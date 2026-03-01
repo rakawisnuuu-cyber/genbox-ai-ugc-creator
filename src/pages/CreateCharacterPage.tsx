@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import { usePromptModel } from "@/hooks/usePromptModel";
+import { useUpscale } from "@/hooks/useUpscale";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -15,6 +17,7 @@ import {
   Camera, RotateCcw, Mic, PersonStanding, Search, Hand,
   Zap, CheckCircle2, Loader2, AlertCircle,
 } from "lucide-react";
+import UpscaleButton from "@/components/UpscaleButton";
 
 // ── TYPES ──
 type Gender = "female" | "male";
@@ -103,6 +106,8 @@ export default function CreateCharacterPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { kieApiKey, geminiKey } = useApiKeys();
+  const { model: promptModel } = usePromptModel();
+  const { upscale, getState: getUpscaleState } = useUpscale();
 
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -138,30 +143,33 @@ export default function CreateCharacterPage() {
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
 
     try {
-      // Step 2 — Gemini identity prompt
+      // Step 2 — Gemini structured JSON identity prompt
       const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{
               parts: [{
-                text: `You are an expert character identity prompt builder for AI image generation. Based on these attributes, create a SINGLE detailed English identity description paragraph for a realistic Indonesian person. Include physical appearance, skin tone, facial features, hair, expression, and outfit. Be specific and visual.\n\nAttributes:\n- Gender: ${form.gender}\n- Age: ${form.age_range}\n- Skin tone: ${form.skin_tone}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression: ${form.expression}\n- Outfit: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Custom notes: ${form.custom_notes}\n\nRespond ONLY with the identity description, no explanations.`,
+                text: `You are an expert character identity prompt builder for AI image generation. Based on the attributes below, create a structured JSON identity for a realistic Indonesian person.\n\nAttributes:\n- Gender: ${form.gender}\n- Age: ${form.age_range}\n- Skin tone: ${form.skin_tone}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression: ${form.expression}\n- Outfit: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Custom notes: ${form.custom_notes}\n\nRespond ONLY with valid JSON in this exact format, no markdown, no explanation:\n{\n  "identity_summary": "A single detailed paragraph describing the full character appearance in English",\n  "face": "detailed face description: shape, features, expression, skin",\n  "hair": "hair style, color, length, texture details",\n  "body": "build, posture, proportions",\n  "outfit": "detailed clothing description with colors and style",\n  "skin": "skin tone, texture, condition details",\n  "mood": "emotional tone, energy, vibe of the character",\n  "photography_style": "recommended camera angle, lighting, and photography approach"\n}`,
               }],
             }],
+            generationConfig: { responseMimeType: "application/json" },
           }),
         }
       );
       const geminiData = await geminiRes.json();
-      const identityPrompt = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!identityPrompt) throw new Error("Gagal generate identity prompt dari Gemini");
+      const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) throw new Error("Gagal generate identity prompt dari Gemini");
+      const identityJson = JSON.parse(rawText);
+      const identityPrompt = identityJson.identity_summary;
 
       // Step 4 — Create all 6 tasks in parallel
       const taskResults = await Promise.all(
         SHOT_KEYS.map(async (key) => {
           const cfg = SHOT_CONFIGS[key];
-          const finalPrompt = `${identityPrompt}\n\n${cfg.framing}\n\nHyper-realistic photography, shot on iPhone 15 Pro, natural lighting, 8K detail.`;
+          const finalPrompt = `${identityJson.identity_summary}\n\nFace: ${identityJson.face}\nHair: ${identityJson.hair}\nOutfit: ${identityJson.outfit}\nSkin: ${identityJson.skin}\nMood: ${identityJson.mood}\n\n${cfg.framing}\n\nPhotography: ${identityJson.photography_style}. Hyper-realistic, shot on iPhone 15 Pro, natural lighting, 8K detail.`;
           const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
             method: "POST",
             headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
@@ -435,7 +443,21 @@ export default function CreateCharacterPage() {
                     <span className="text-[11px] text-[#555] uppercase tracking-wider text-center px-1">{cfg.label}</span>
                   )}
                   {shot.status === "success" && shot.url && (
-                    <CheckCircle2 className="absolute top-1.5 right-1.5 w-4 h-4 text-green-500 drop-shadow" />
+                    <>
+                      <CheckCircle2 className="absolute top-1.5 right-1.5 w-4 h-4 text-green-500 drop-shadow" />
+                      {getUpscaleState(key).factor && (
+                        <span className="absolute top-1.5 left-1.5 bg-primary/20 text-primary text-[9px] rounded-full px-1.5 font-medium">{getUpscaleState(key).factor}x</span>
+                      )}
+                      <div className="absolute bottom-1.5 right-1.5">
+                        <UpscaleButton
+                          imageUrl={getUpscaleState(key).resultUrl || shot.url}
+                          imageKey={key}
+                          loading={getUpscaleState(key).loading}
+                          currentFactor={getUpscaleState(key).factor}
+                          onUpscale={(k, u, f) => upscale(k, u, f)}
+                        />
+                      </div>
+                    </>
                   )}
                   {/* Model badge */}
                   <span className={`absolute bottom-1.5 left-1.5 text-[9px] px-1.5 py-0.5 rounded font-medium ${isPro ? "bg-primary/20 text-primary" : "bg-blue-500/20 text-blue-400"}`}>

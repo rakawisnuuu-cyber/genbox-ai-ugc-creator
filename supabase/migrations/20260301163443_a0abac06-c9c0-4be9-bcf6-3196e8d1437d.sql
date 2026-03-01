@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS user_settings_user_id_key_idx ON public.user_settings (user_id, key);

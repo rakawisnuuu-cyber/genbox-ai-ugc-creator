@@ -16,7 +16,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import { usePromptModel } from "@/hooks/usePromptModel";
+import { useUpscale } from "@/hooks/useUpscale";
 import { useToast } from "@/hooks/use-toast";
+import UpscaleButton from "@/components/UpscaleButton";
 import {
   Select,
   SelectContent,
@@ -53,6 +56,8 @@ type GenState = "idle" | "loading" | "completed" | "failed";
 const GeneratePage = () => {
   const { user } = useAuth();
   const { kieApiKey, geminiKey, keys } = useApiKeys();
+  const { model: promptModel } = usePromptModel();
+  const { upscale, getState: getUpscaleState } = useUpscale();
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -184,22 +189,28 @@ const GeneratePage = () => {
     try {
       const bg = background === "Custom" ? customBg : background;
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{
               parts: [{
-                text: `You are an expert UGC image prompt builder. Create a SINGLE detailed English prompt for generating a hyper-realistic UGC-style photo.\n\nCharacter: ${selectedChar.name} — ${selectedChar.description}\nProduct: User's product (shown in reference)\nBackground: ${bg || "not specified"}\nPose: ${pose || "not specified"}\nMood: ${mood || "not specified"}\n\nThe prompt should describe: the person, their expression, how they interact with the product, the setting, lighting, and camera angle. Make it photorealistic, shot on iPhone style.\n\nRespond ONLY with the image prompt, no explanations.`,
+                text: `You are an expert UGC (user-generated content) prompt builder for AI image generation. Create a structured JSON prompt for a realistic product UGC photo.\n\nCharacter: ${selectedChar.name} — ${selectedChar.description}\nProduct: User's product (shown in reference)\nBackground: ${bg || "not specified"}\nPose: ${pose || "not specified"}\nMood: ${mood || "not specified"}\n\nRespond ONLY with valid JSON:\n{\n  "scene_description": "Full scene description in English",\n  "character_action": "What the person is doing with the product",\n  "product_placement": "How and where the product appears",\n  "lighting": "Lighting setup description",\n  "background": "Background/environment details",\n  "camera": "Camera angle, distance, lens",\n  "style": "Overall photo style (UGC, editorial, candid, etc)",\n  "final_prompt": "Complete combined prompt ready for image generation"\n}`,
               }],
             }],
+            generationConfig: { responseMimeType: "application/json" },
           }),
         }
       );
       const json = await res.json();
-      const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      setPrompt(text.trim());
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      try {
+        const parsed = JSON.parse(rawText);
+        setPrompt(parsed.final_prompt || rawText);
+      } catch {
+        setPrompt(rawText.trim());
+      }
     } catch {
       toast({ title: "Gagal generate prompt", variant: "destructive" });
     } finally {
@@ -539,9 +550,9 @@ const GeneratePage = () => {
               <span>•</span>
               <span>{elapsed}s</span>
             </div>
-            <div className="flex gap-3 w-full">
+            <div className="flex gap-2 w-full">
               <a
-                href={resultUrl}
+                href={getUpscaleState("ugc_result").resultUrl || resultUrl}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
@@ -550,12 +561,18 @@ const GeneratePage = () => {
                 <Download className="h-3.5 w-3.5" />
                 Download
               </a>
+              <UpscaleButton
+                imageUrl={resultUrl}
+                imageKey="ugc_result"
+                loading={getUpscaleState("ugc_result").loading}
+                currentFactor={getUpscaleState("ugc_result").factor}
+                onUpscale={(k, u, f) => upscale(k, u, f)}
+              />
               <button
                 onClick={() => { setGenState("idle"); setResultUrl(null); }}
-                className="flex-1 border border-border text-muted-foreground text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:text-foreground transition-colors"
+                className="border border-border text-muted-foreground text-xs py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 hover:text-foreground transition-colors"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
-                Ulang
               </button>
             </div>
           </div>
