@@ -6,11 +6,29 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
+import DashboardLayout from "./components/DashboardLayout";
+import DashboardHome from "./pages/DashboardHome";
+import GeneratePage from "./pages/GeneratePage";
+import CharactersPage from "./pages/CharactersPage";
+import GalleryPage from "./pages/GalleryPage";
+import PromptPage from "./pages/PromptPage";
+import BlueprintPage from "./pages/BlueprintPage";
+import SettingsPage from "./pages/SettingsPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const protectedPaths = [
+  "/dashboard",
+  "/generate",
+  "/characters",
+  "/gallery",
+  "/prompt",
+  "/blueprint",
+  "/video",
+  "/settings",
+];
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -23,13 +41,20 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route
-              path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <DashboardLayout />
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route path="/dashboard" element={<DashboardHome />} />
+              <Route path="/generate" element={<GeneratePage />} />
+              <Route path="/characters" element={<CharactersPage />} />
+              <Route path="/gallery" element={<GalleryPage />} />
+              <Route path="/prompt" element={<PromptPage />} />
+              <Route path="/blueprint" element={<BlueprintPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

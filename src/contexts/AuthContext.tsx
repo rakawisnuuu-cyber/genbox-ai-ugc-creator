@@ -48,12 +48,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (loading) return;
 
+    const protectedPaths = ["/dashboard", "/generate", "/characters", "/gallery", "/prompt", "/blueprint", "/video", "/settings"];
     const isLoginPage = location.pathname === "/login";
-    const isDashboard = location.pathname.startsWith("/dashboard");
+    const isProtected = protectedPaths.some((p) => location.pathname.startsWith(p));
 
     if (session && isLoginPage) {
       navigate("/dashboard", { replace: true });
-    } else if (!session && isDashboard) {
+    } else if (!session && isProtected) {
       navigate("/login", { replace: true });
     }
   }, [session, loading, location.pathname, navigate]);
