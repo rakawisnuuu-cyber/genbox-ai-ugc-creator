@@ -163,33 +163,32 @@ const FiturSection = () => {
   return (
     <section id="fitur" ref={ref} className="relative z-10 px-4 py-10 sm:py-14">
       <div className="mx-auto max-w-5xl">
-        {/* Badge */}
-        <div className="flex justify-center">
+        <div className="text-center mb-10 sm:mb-14">
+          {/* Badge */}
           <div
-            className={`flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+            className={`inline-flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary-foreground mb-4 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
             style={{ animationDelay: "0.1s" }}
           >
             <Sparkles size={14} />
             FITUR UTAMA
           </div>
+
+          <h2
+            className={`font-satoshi text-2xl sm:text-3xl lg:text-[40px] font-bold uppercase tracking-tight mb-3 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+            style={{
+              animationDelay: "0.2s",
+              background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            SEMUA YANG KAMU BUTUHKAN UNTUK KONTEN UGC
+          </h2>
         </div>
 
-        {/* Heading */}
-        <h2
-          className={`mx-auto mt-6 max-w-[700px] text-center font-satoshi text-[28px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{
-            animationDelay: "0.2s",
-            background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          SEMUA YANG KAMU BUTUHKAN UNTUK KONTEN UGC
-        </h2>
-
         {/* Feature Rows */}
-        <div className="mt-14 space-y-14 sm:space-y-20">
+        <div className="space-y-14 sm:space-y-20">
           {features.map((f, i) => (
             <FeatureRow
               key={f.num}

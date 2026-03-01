@@ -24,27 +24,29 @@ const DibuatUntukSection = () => {
 
   return (
     <section ref={ref} className="relative z-10 px-4 py-10 sm:py-14">
-      <div className="mx-auto max-w-5xl text-center">
-        <h2
-          className={`font-satoshi text-[28px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{
-            animationDelay: "0.1s",
-            background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          DIBUAT UNTUK AFFILIATE MARKETER INDONESIA
-        </h2>
-        <p
-          className={`mx-auto mt-4 max-w-[600px] font-body text-base text-muted-foreground sm:text-lg ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.2s" }}
-        >
-          Dari seller TikTok Shop sampai dropshipper — GENBOX bantu kamu bikin konten yang convert.
-        </p>
+      <div className="mx-auto max-w-5xl">
+        <div className="text-center mb-10 sm:mb-14">
+          <h2
+            className={`font-satoshi text-2xl sm:text-3xl lg:text-[40px] font-bold uppercase tracking-tight mb-3 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+            style={{
+              animationDelay: "0.1s",
+              background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            DIBUAT UNTUK AFFILIATE MARKETER INDONESIA
+          </h2>
+          <p
+            className={`font-body text-base sm:text-lg text-muted-foreground max-w-[520px] mx-auto ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+            style={{ animationDelay: "0.2s" }}
+          >
+            Dari seller TikTok Shop sampai dropshipper — GENBOX bantu kamu bikin konten yang convert.
+          </p>
+        </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="grid gap-8 sm:gap-12 md:grid-cols-3">
           {cards.map((card, i) => (
             <div
               key={card.title}

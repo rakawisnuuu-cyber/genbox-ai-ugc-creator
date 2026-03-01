@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
+import { usePromptModel } from "@/hooks/usePromptModel";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   User, Key, Download, LogOut, Eye, EyeOff, Loader2,
-  CheckCircle2, XCircle, Clock, FileCode2, Workflow, Webhook,
+  CheckCircle2, XCircle, Clock, FileCode2, Workflow, Webhook, Cpu,
 } from "lucide-react";
 
 /* ── Status Badge ── */
@@ -69,10 +70,28 @@ const blueprints = [
   { icon: Webhook, name: "Webhook Integration", desc: "Integrasi webhook untuk trigger otomatis" },
 ];
 
+const MODEL_OPTIONS = [
+  {
+    value: "gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    desc: "Cepat, gratis, cocok untuk kebanyakan kasus",
+    badge: "GRATIS",
+    badgeCls: "bg-green-500/20 text-green-400",
+  },
+  {
+    value: "gemini-3.1-pro-preview",
+    label: "Gemini 3.1 Pro",
+    desc: "Reasoning lebih dalam, prompt lebih detail & akurat",
+    badge: "PREMIUM",
+    badgeCls: "bg-primary/20 text-primary",
+  },
+];
+
 /* ── Main Page ── */
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
   const { keys, savingProvider, testingProvider, saveKey, testKey, setLocalKey } = useApiKeys();
+  const { model: promptModel, saveModel } = usePromptModel();
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "User";
 
@@ -110,28 +129,50 @@ const SettingsPage = () => {
         <p className="text-sm text-muted-foreground mb-5">Masukkan API key kamu untuk menggunakan fitur generate</p>
         <div className="space-y-6">
           <ApiKeyRow
-            label="Kie AI"
-            provider="kie_ai"
-            keyValue={keys.kie_ai.key}
-            status={keys.kie_ai.status}
+            label="Kie AI" provider="kie_ai"
+            keyValue={keys.kie_ai.key} status={keys.kie_ai.status}
             onKeyChange={(v) => setLocalKey("kie_ai", v)}
             onSave={() => saveKey("kie_ai", keys.kie_ai.key)}
             onTest={() => testKey("kie_ai")}
-            saving={savingProvider === "kie_ai"}
-            testing={testingProvider === "kie_ai"}
+            saving={savingProvider === "kie_ai"} testing={testingProvider === "kie_ai"}
           />
           <div className="border-t border-border" />
           <ApiKeyRow
-            label="Gemini"
-            provider="gemini"
-            keyValue={keys.gemini.key}
-            status={keys.gemini.status}
+            label="Gemini" provider="gemini"
+            keyValue={keys.gemini.key} status={keys.gemini.status}
             onKeyChange={(v) => setLocalKey("gemini", v)}
             onSave={() => saveKey("gemini", keys.gemini.key)}
             onTest={() => testKey("gemini")}
-            saving={savingProvider === "gemini"}
-            testing={testingProvider === "gemini"}
+            saving={savingProvider === "gemini"} testing={testingProvider === "gemini"}
           />
+        </div>
+      </section>
+
+      {/* Section 2.5 — Model Prompt */}
+      <section className="animate-fade-up bg-[hsl(var(--secondary))] border border-border rounded-xl p-6" style={{ animationDelay: "150ms" }}>
+        <div className="flex items-center gap-3 mb-1">
+          <Cpu className="w-5 h-5 text-primary" />
+          <h2 className="font-satoshi font-bold text-foreground">Model Prompt</h2>
+        </div>
+        <p className="text-xs text-muted-foreground mb-2.5">Model yang dipakai untuk generate prompt karakter dan UGC.</p>
+        <div className="grid grid-cols-2 gap-3">
+          {MODEL_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => saveModel(opt.value)}
+              className={`text-left rounded-xl p-4 transition-all ${
+                promptModel === opt.value
+                  ? "border-2 border-primary bg-primary/5"
+                  : "border border-border bg-card hover:border-primary/50"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-semibold text-sm text-foreground">{opt.label}</span>
+                <span className={`${opt.badgeCls} text-[10px] font-bold rounded-full px-2`}>{opt.badge}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{opt.desc}</p>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -152,8 +193,7 @@ const SettingsPage = () => {
                 </div>
               </div>
               <Button
-                variant="outline"
-                size="sm"
+                variant="outline" size="sm"
                 className="text-xs border-border text-muted-foreground hover:text-foreground"
                 onClick={() => toast({ title: "Coming soon", description: "Akan tersedia setelah launch!" })}
               >
@@ -171,8 +211,7 @@ const SettingsPage = () => {
           <h2 className="font-satoshi font-bold text-foreground">Akun</h2>
         </div>
         <Button
-          variant="outline"
-          onClick={signOut}
+          variant="outline" onClick={signOut}
           className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg px-4 py-2"
         >
           Keluar

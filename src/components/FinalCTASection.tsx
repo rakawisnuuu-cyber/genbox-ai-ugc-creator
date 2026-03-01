@@ -24,14 +24,14 @@ const FinalCTASection = () => {
 
       <div ref={ref} className="relative mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
         <h2
-          className={`font-satoshi text-2xl sm:text-3xl lg:text-[40px] font-bold uppercase leading-tight tracking-wide text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`font-satoshi text-2xl sm:text-3xl lg:text-[40px] font-bold uppercase leading-tight tracking-tight text-foreground mb-3 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.1s" }}
         >
           SIAP BIKIN KONTEN UGC YANG BIKIN CUAN?
         </h2>
 
         <p
-          className={`mx-auto mt-5 max-w-[520px] text-base sm:text-lg text-muted-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mx-auto max-w-[520px] font-body text-base sm:text-lg text-muted-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
           Sekali bayar, akses selamanya. Gabung bareng ribuan affiliate marketer Indonesia yang udah pakai GENBOX.

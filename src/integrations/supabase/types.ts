@@ -94,6 +94,8 @@ export type Database = {
           provider: string
           status: string
           type: string
+          upscale_factor: number | null
+          upscaled_url: string | null
           user_id: string
         }
         Insert: {
@@ -106,6 +108,8 @@ export type Database = {
           provider?: string
           status?: string
           type?: string
+          upscale_factor?: number | null
+          upscaled_url?: string | null
           user_id: string
         }
         Update: {
@@ -118,6 +122,8 @@ export type Database = {
           provider?: string
           status?: string
           type?: string
+          upscale_factor?: number | null
+          upscaled_url?: string | null
           user_id?: string
         }
         Relationships: []
@@ -173,6 +179,33 @@ export type Database = {
           updated_at?: string
           user_id?: string
           video_credits?: number
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          user_id: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          user_id: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          user_id?: string
+          value?: string
         }
         Relationships: []
       }
