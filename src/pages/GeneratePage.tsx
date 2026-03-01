@@ -33,6 +33,26 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import type { CharacterData } from "@/components/CharacterCard";
 
+/* ── GENBOX Realism Blocks ──────────────────────────────────── */
+const SKIN_BLOCK = "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
+const QUALITY_BLOCK = "8K resolution, ultra-high detail, photographic realism, sharp focus, natural color grading, realistic contrast, clean studio image quality.";
+const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter.";
+
+/* ── Helper: convert image URL to base64 ────────────────────── */
+async function imageUrlToBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 /* ── preset characters (same as CharactersPage) ─────────────── */
 const PRESETS: CharacterData[] = [
   { id: "p1", name: "Hijab Casual", type: "Wanita", age_range: "20-25", style: "Modern", description: "Wanita muda dengan hijab modern pastel, ekspresi hangat dan ramah.", gradient_from: "from-emerald-900/40", gradient_to: "to-teal-900/40", is_preset: true },
@@ -191,17 +211,58 @@ const GeneratePage = () => {
     setGeneratingPrompt(true);
     try {
       const bg = background === "Custom" ? customBg : background;
+      const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
+
+      // Build multimodal parts
+      const parts: any[] = [];
+
+      // Add product image if available
+      if (productUrl) {
+        try {
+          const base64 = await imageUrlToBase64(productUrl);
+          parts.push({
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: base64,
+            },
+          });
+          parts.push({ text: "This is the product image. Describe it accurately in your prompt." });
+        } catch (e) {
+          console.warn("Failed to convert product image to base64:", e);
+        }
+      }
+
+      // Add the main prompt text
+      parts.push({
+        text: `You are an expert UGC (user-generated content) prompt builder for AI image generation. Create a structured JSON prompt for a realistic product UGC photo.
+
+Character: ${selectedChar.name}
+Character Identity: ${characterIdentity}
+Product: ${productUrl ? "Analyze the product image above — describe its exact shape, color, size, packaging, label, and type." : "User's product (no image provided)"}
+Background: ${bg || "not specified"}
+Pose: ${pose || "not specified"}
+Mood: ${mood || "not specified"}
+
+Respond ONLY with valid JSON:
+{
+  "product_description": "Exact description of the product from the image — shape, color, packaging, label text if visible, size",
+  "scene_description": "Full scene description combining character + product + setting",
+  "character_action": "Specific action with the product",
+  "product_placement": "Exactly how the product appears — which hand holds it, position relative to face, angle of label",
+  "lighting": "Lighting setup that complements the scene",
+  "background": "Background/environment details",
+  "camera": "Camera angle, distance, lens",
+  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera. The product description must match the uploaded image precisely."
+}`,
+      });
+
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: `You are an expert UGC (user-generated content) prompt builder for AI image generation. Create a structured JSON prompt for a realistic product UGC photo.\n\nCharacter: ${selectedChar.name} — ${selectedChar.description}\nProduct: User's product (shown in reference)\nBackground: ${bg || "not specified"}\nPose: ${pose || "not specified"}\nMood: ${mood || "not specified"}\n\nRespond ONLY with valid JSON:\n{\n  "scene_description": "Full scene description in English",\n  "character_action": "What the person is doing with the product",\n  "product_placement": "How and where the product appears",\n  "lighting": "Lighting setup description",\n  "background": "Background/environment details",\n  "camera": "Camera angle, distance, lens",\n  "style": "Overall photo style (UGC, editorial, candid, etc)",\n  "final_prompt": "Complete combined prompt ready for image generation"\n}`,
-              }],
-            }],
+            contents: [{ parts }],
             generationConfig: { responseMimeType: "application/json" },
           }),
         }
@@ -210,7 +271,9 @@ const GeneratePage = () => {
       const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
       try {
         const parsed = JSON.parse(rawText);
-        setPrompt(parsed.final_prompt || rawText);
+        // Append GENBOX realism blocks to final prompt
+        const enhancedPrompt = `${parsed.final_prompt}\n\n${SKIN_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
+        setPrompt(enhancedPrompt);
       } catch {
         setPrompt(rawText.trim());
       }
@@ -250,6 +313,19 @@ const GeneratePage = () => {
     startTimer();
 
     try {
+      // Build image_input array with character hero + product references
+      const imageInputs: string[] = [];
+
+      // Add character hero image as face reference (for custom characters with generated images)
+      if (selectedChar && !selectedChar.id.startsWith("p") && selectedChar.hero_image_url) {
+        imageInputs.push(selectedChar.hero_image_url);
+      }
+
+      // Add product image as product reference
+      if (productUrl) {
+        imageInputs.push(productUrl);
+      }
+
       // Create task
       const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
         method: "POST",
@@ -258,7 +334,7 @@ const GeneratePage = () => {
           model: "nano-banana-pro",
           input: {
             prompt: prompt,
-            image_input: [],
+            image_input: imageInputs,
             aspect_ratio: "3:4",
             resolution: "2K",
             output_format: "jpg",
