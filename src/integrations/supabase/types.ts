@@ -17,42 +17,66 @@ export type Database = {
       characters: {
         Row: {
           age_range: string
+          config: Json | null
           created_at: string
           description: string
+          gender: string
           gradient_from: string
           gradient_to: string
+          hero_image_url: string | null
           id: string
+          identity_prompt: string | null
           is_preset: boolean
           name: string
+          reference_images: string[] | null
+          shot_metadata: Json | null
           style: string
+          tags: string[] | null
+          thumbnail_url: string | null
           type: string
           updated_at: string
           user_id: string
         }
         Insert: {
           age_range?: string
+          config?: Json | null
           created_at?: string
           description?: string
+          gender?: string
           gradient_from?: string
           gradient_to?: string
+          hero_image_url?: string | null
           id?: string
+          identity_prompt?: string | null
           is_preset?: boolean
           name: string
+          reference_images?: string[] | null
+          shot_metadata?: Json | null
           style?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
           type?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           age_range?: string
+          config?: Json | null
           created_at?: string
           description?: string
+          gender?: string
           gradient_from?: string
           gradient_to?: string
+          hero_image_url?: string | null
           id?: string
+          identity_prompt?: string | null
           is_preset?: boolean
           name?: string
+          reference_images?: string[] | null
+          shot_metadata?: Json | null
           style?: string
+          tags?: string[] | null
+          thumbnail_url?: string | null
           type?: string
           updated_at?: string
           user_id?: string
