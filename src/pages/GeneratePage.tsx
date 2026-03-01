@@ -111,6 +111,9 @@ const GeneratePage = () => {
               gradient_from: d.gradient_from,
               gradient_to: d.gradient_to,
               is_preset: false,
+              hero_image_url: d.hero_image_url ?? undefined,
+              reference_images: d.reference_images ?? undefined,
+              identity_prompt: d.identity_prompt ?? undefined,
             }))
           );
         }
@@ -403,7 +406,11 @@ const GeneratePage = () => {
                   {customChars.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       <span className="flex items-center gap-2">
-                        <UserCircle className="h-4 w-4 text-primary shrink-0" />
+                        {c.hero_image_url ? (
+                          <img src={c.hero_image_url} alt={c.name} className="h-6 w-6 rounded-full object-cover shrink-0" />
+                        ) : (
+                          <UserCircle className="h-4 w-4 text-primary shrink-0" />
+                        )}
                         {c.name}
                       </span>
                     </SelectItem>
@@ -415,9 +422,13 @@ const GeneratePage = () => {
 
           {selectedChar && (
             <div className="mt-3 flex items-center gap-3 bg-card border border-border rounded-lg p-3">
-              <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                <UserCircle className="h-5 w-5 text-muted-foreground" />
-              </div>
+              {selectedChar.hero_image_url ? (
+                <img src={selectedChar.hero_image_url} alt={selectedChar.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                  <UserCircle className="h-5 w-5 text-muted-foreground" />
+                </div>
+              )}
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground">{selectedChar.name}</p>
                 <p className="text-xs text-muted-foreground truncate">

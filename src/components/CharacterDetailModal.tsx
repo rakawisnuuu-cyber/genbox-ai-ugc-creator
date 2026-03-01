@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { UserCircle } from "lucide-react";
+import { UserCircle, X } from "lucide-react";
 import type { CharacterData } from "./CharacterCard";
 
 interface CharacterDetailModalProps {
@@ -10,65 +11,94 @@ interface CharacterDetailModalProps {
 }
 
 const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDetailModalProps) => {
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
   if (!character) return null;
 
   const tags = [character.type, character.age_range, character.style].filter(Boolean);
+  const refImages = character.reference_images?.filter(Boolean) || [];
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#141414] border-[#2A2A2A] max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-satoshi text-xl">{character.name}</DialogTitle>
-          <DialogDescription className="sr-only">Detail karakter {character.name}</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="bg-[#141414] border-[#2A2A2A] max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-satoshi text-xl">{character.name}</DialogTitle>
+            <DialogDescription className="sr-only">Detail karakter {character.name}</DialogDescription>
+          </DialogHeader>
 
-        {/* Gradient preview */}
-        <div className={`w-full aspect-[4/3] rounded-xl bg-gradient-to-b ${character.gradient_from} ${character.gradient_to} flex items-center justify-center`}>
-          <UserCircle className="h-20 w-20 text-[#444]" />
-        </div>
+          {/* Preview */}
+          {character.hero_image_url ? (
+            <img src={character.hero_image_url} alt={character.name} className="w-full aspect-[4/3] rounded-xl object-cover cursor-pointer" onClick={() => setLightboxUrl(character.hero_image_url!)} />
+          ) : (
+            <div className={`w-full aspect-[4/3] rounded-xl bg-gradient-to-b ${character.gradient_from} ${character.gradient_to} flex items-center justify-center`}>
+              <UserCircle className="h-20 w-20 text-[#444]" />
+            </div>
+          )}
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          {tags.map((t) => (
-            <span key={t} className="bg-[#2A2A2A] text-[#888] text-[11px] px-2.5 py-1 rounded-full">{t}</span>
-          ))}
-          <span className={`text-[11px] px-2.5 py-1 rounded-full ${character.is_preset ? "bg-[#2A2A2A] text-[#888]" : "bg-primary/20 text-primary"}`}>
-            {character.is_preset ? "PRESET" : "CUSTOM"}
-          </span>
-        </div>
-
-        {/* Description */}
-        <p className="text-sm text-[#999] mt-2 leading-relaxed">{character.description}</p>
-
-        {/* 6-shot grid placeholder */}
-        <div className="mt-4">
-          <p className="text-xs uppercase tracking-widest text-[#666] mb-3">Contoh Foto</p>
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="aspect-square rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center">
-                <UserCircle className="h-6 w-6 text-[#333]" />
-              </div>
+          {/* Tags */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {tags.map((t) => (
+              <span key={t} className="bg-[#2A2A2A] text-[#888] text-[11px] px-2.5 py-1 rounded-full">{t}</span>
             ))}
+            <span className={`text-[11px] px-2.5 py-1 rounded-full ${character.is_preset ? "bg-[#2A2A2A] text-[#888]" : "bg-primary/20 text-primary"}`}>
+              {character.is_preset ? "PRESET" : "CUSTOM"}
+            </span>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 mt-4">
-          <button
-            onClick={() => onUse(character)}
-            className="flex-1 bg-primary text-primary-foreground font-bold text-sm py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            GUNAKAN
+          {/* Description */}
+          <p className="text-sm text-[#999] mt-2 leading-relaxed">{character.description}</p>
+
+          {/* 6-shot grid */}
+          <div className="mt-4">
+            <p className="text-xs uppercase tracking-widest text-[#666] mb-3">Contoh Foto</p>
+            <div className="grid grid-cols-3 gap-2">
+              {refImages.length > 0
+                ? refImages.map((url, i) => (
+                    <img
+                      key={i}
+                      src={url}
+                      alt={`Shot ${i + 1}`}
+                      className="aspect-square rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setLightboxUrl(url)}
+                    />
+                  ))
+                : Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="aspect-square rounded-lg bg-[#1A1A1A] border border-[#2A2A2A] flex items-center justify-center">
+                      <UserCircle className="h-6 w-6 text-[#333]" />
+                    </div>
+                  ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={() => onUse(character)}
+              className="flex-1 bg-primary text-primary-foreground font-bold text-sm py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              GUNAKAN
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 border border-[#2A2A2A] text-[#888] font-bold text-sm py-2.5 rounded-lg hover:text-white hover:border-[#444] transition-colors"
+            >
+              TUTUP
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxUrl(null)}>
+          <button className="absolute top-4 right-4 text-white/70 hover:text-white" onClick={() => setLightboxUrl(null)}>
+            <X className="h-6 w-6" />
           </button>
-          <button
-            onClick={onClose}
-            className="flex-1 border border-[#2A2A2A] text-[#888] font-bold text-sm py-2.5 rounded-lg hover:text-white hover:border-[#444] transition-colors"
-          >
-            TUTUP
-          </button>
+          <img src={lightboxUrl} alt="Preview" className="max-w-full max-h-[90vh] rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
         </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </>
   );
 };
 
