@@ -1,0 +1,275 @@
+import { useState, useEffect, useRef } from "react";
+import { Sparkles } from "lucide-react";
+import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+
+type ModelType = "IMAGE" | "VIDEO" | "MUSIC" | "PROMPT";
+type TabFilter = "ALL" | ModelType;
+
+interface Model {
+  name: string;
+  note?: string;
+  provider: string;
+  type: ModelType;
+  credits: string;
+  price: string;
+  discount?: string;
+  freePrice?: boolean;
+}
+
+const providerColors: Record<string, string> = {
+  GOOGLE: "bg-green-400",
+  OPENAI: "bg-white",
+  BYTEDANCE: "bg-blue-400",
+  "BLACK FOREST LABS": "bg-purple-400",
+  KLING: "bg-orange-400",
+  RUNWAY: "bg-pink-400",
+  HAILUO: "bg-cyan-400",
+  SUNO: "bg-fuchsia-400",
+  ELEVENLABS: "bg-violet-400",
+  ANTHROPIC: "bg-orange-300",
+};
+
+const typeBadge: Record<ModelType, string> = {
+  IMAGE: "bg-blue-500/20 text-blue-400",
+  VIDEO: "bg-red-500/20 text-red-400",
+  MUSIC: "bg-fuchsia-500/20 text-fuchsia-400",
+  PROMPT: "bg-purple-500/20 text-purple-400",
+};
+
+const models: Model[] = [
+  { name: "Nano Banana 2 (Gemini 3.1 Flash Image)", note: "NEW — sub-second 4K, subject consistency", provider: "GOOGLE", type: "IMAGE", credits: "~4", price: "~$0.02 (~Rp 320)" },
+  { name: "Nano Banana Pro (Gemini 3.0 Pro Image)", note: "4K, multi-turn editing, deep reasoning", provider: "GOOGLE", type: "IMAGE", credits: "~24", price: "~$0.12 (~Rp 1.920)" },
+  { name: "Nano Banana (Gemini 2.5 Flash Image)", note: "Fast & cheap, great for bulk", provider: "GOOGLE", type: "IMAGE", credits: "4", price: "$0.02 (~Rp 320)" },
+  { name: "Seedream 4.5", note: "4K, strong consistency", provider: "BYTEDANCE", type: "IMAGE", credits: "~5", price: "~$0.025 (~Rp 400)" },
+  { name: "Seedream 5.0 Lite", note: "Web search + reasoning, NEW", provider: "BYTEDANCE", type: "IMAGE", credits: "~7", price: "~$0.035 (~Rp 560)" },
+  { name: "GPT Image 1.5", note: "#1 leaderboard, tiered quality", provider: "OPENAI", type: "IMAGE", credits: "~12", price: "~$0.04-0.08 (~Rp 640-1.280)" },
+  { name: "4o Image (GPT-Image-1)", provider: "OPENAI", type: "IMAGE", credits: "10", price: "$0.05 (~Rp 800)" },
+  { name: "Flux.1 Kontext", note: "Context-aware editing", provider: "BLACK FOREST LABS", type: "IMAGE", credits: "6", price: "$0.03 (~Rp 480)" },
+  { name: "Veo 3.1 Fast (8s, with audio)", note: "Synced audio, 1080p", provider: "GOOGLE", type: "VIDEO", credits: "60", price: "$0.30 (~Rp 4.800)", discount: "-70%" },
+  { name: "Veo 3 Quality (8s, with audio)", note: "Premium cinematic", provider: "GOOGLE", type: "VIDEO", credits: "250", price: "$1.25 (~Rp 20.000)" },
+  { name: "Kling 2.1 Standard (5s)", provider: "KLING", type: "VIDEO", credits: "~28", price: "~$0.14 (~Rp 2.240)" },
+  { name: "Kling 2.1 Pro (5s)", provider: "KLING", type: "VIDEO", credits: "~56", price: "~$0.28 (~Rp 4.480)" },
+  { name: "Seedance 1.5 Pro (8s, with audio)", provider: "BYTEDANCE", type: "VIDEO", credits: "56", price: "$0.28 (~Rp 4.480)", discount: "-32%" },
+  { name: "Hailuo (MiniMax)", provider: "HAILUO", type: "VIDEO", credits: "~50", price: "~$0.25 (~Rp 4.000)" },
+  { name: "Runway Gen-4 Turbo", provider: "RUNWAY", type: "VIDEO", credits: "~100", price: "~$0.50 (~Rp 8.000)" },
+  { name: "Suno V4.5 Plus", note: "Up to 8 min, vocals + instrumentals", provider: "SUNO", type: "MUSIC", credits: "~20", price: "~$0.10 (~Rp 1.600)" },
+  { name: "ElevenLabs TTS", note: "Text-to-speech, voice cloning", provider: "ELEVENLABS", type: "MUSIC", credits: "~5", price: "~$0.025 (~Rp 400)" },
+  { name: "Gemini 2.0 Flash", note: "Recommended for GENBOX prompts", provider: "GOOGLE", type: "PROMPT", credits: "0", price: "FREE", freePrice: true },
+  { name: "Claude Sonnet", provider: "ANTHROPIC", type: "PROMPT", credits: "~2", price: "~$0.01 (~Rp 160)" },
+];
+
+const tabs: TabFilter[] = ["ALL", "IMAGE", "VIDEO", "MUSIC", "PROMPT"];
+
+function AnimatedNumber({ target, visible }: { target: number; visible: boolean }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    if (!visible) return;
+    let start = 0;
+    const duration = 1200;
+    const startTime = performance.now();
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      start = Math.round(eased * target);
+      setVal(start);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [target, visible]);
+  return <>{val.toLocaleString("id-ID")}</>;
+}
+
+const simCards = [
+  {
+    title: "Pemula",
+    desc: "50 gambar + 5 video / bulan",
+    models: "Pakai: Nano Banana 2 + Kling Standard",
+    calc: "(50 × Rp 320) + (5 × Rp 2.240)",
+    total: 27200,
+    vs: "vs. hire fotografer: Rp 500.000+",
+  },
+  {
+    title: "Aktif",
+    desc: "200 gambar + 20 video / bulan",
+    models: "Pakai: Nano Banana 2 + Seedance 8s",
+    calc: "(200 × Rp 320) + (20 × Rp 4.480)",
+    total: 153600,
+    vs: "vs. content agency: Rp 3.000.000+",
+  },
+  {
+    title: "Power User",
+    desc: "500 gambar + 50 video / bulan",
+    models: "Pakai: Seedream 4.5 + Veo 3.1 Fast",
+    calc: "(500 × Rp 400) + (50 × Rp 4.800)",
+    total: 440000,
+    vs: "vs. full production: Rp 10.000.000+",
+  },
+];
+
+const ApiCostSection = () => {
+  const { ref, isVisible } = useScrollReveal();
+  const { ref: simRef, isVisible: simVisible } = useScrollReveal();
+  const [activeTab, setActiveTab] = useState<TabFilter>("ALL");
+
+  const filtered = activeTab === "ALL" ? models : models.filter((m) => m.type === activeTab);
+
+  return (
+    <section id="api-cost" className="relative py-24 sm:py-32 overflow-hidden">
+      <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Badge */}
+        <div
+          className={`flex justify-center mb-6 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.1s" }}
+        >
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            BIAYA API TRANSPARAN
+          </span>
+        </div>
+
+        <h2
+          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold uppercase tracking-wide text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.2s" }}
+        >
+          KAMU YANG KONTROL BIAYA
+        </h2>
+        <p
+          className={`mt-4 text-center text-base text-muted-foreground max-w-xl mx-auto ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.3s" }}
+        >
+          Sebagai pengguna BYOK, kamu bayar langsung ke provider via Kie.ai. 1 credit = $0.005.
+        </p>
+
+        {/* Tab filter */}
+        <div
+          className={`mt-10 flex flex-wrap justify-center gap-2 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.35s" }}
+        >
+          {tabs.map((t) => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
+                activeTab === t
+                  ? "bg-primary text-primary-foreground scale-105"
+                  : "border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* Table */}
+        <div
+          className={`mt-8 overflow-hidden rounded-xl border border-border bg-card ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.4s" }}
+        >
+          <div className="overflow-x-auto scrollbar-none">
+            <table className="w-full min-w-[700px] text-sm">
+              <thead>
+                <tr className="bg-[hsl(0_0%_10%)]">
+                  <th className="sticky left-0 z-10 bg-[hsl(0_0%_10%)] min-w-[200px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                    Model Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                    Provider
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                    Type
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                    Credits
+                  </th>
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                    Est. Price
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((m, i) => (
+                  <tr
+                    key={m.name}
+                    className={`${
+                      i % 2 === 0 ? "bg-[hsl(0_0%_8%)]" : "bg-[hsl(0_0%_6.7%)]"
+                    } transition-colors hover:bg-secondary/60`}
+                  >
+                    <td className="sticky left-0 z-10 min-w-[200px] px-4 py-3 bg-inherit">
+                      <span className="font-medium text-foreground">{m.name}</span>
+                      {m.discount && (
+                        <span className="ml-2 inline-flex rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-400">
+                          {m.discount}
+                        </span>
+                      )}
+                      {m.note && (
+                        <span className="block text-[11px] text-muted-foreground mt-0.5">{m.note}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className={`h-2 w-2 rounded-full ${providerColors[m.provider] || "bg-gray-400"}`} />
+                        {m.provider}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeBadge[m.type]}`}>
+                        {m.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{m.credits}</td>
+                    <td className={`px-4 py-3 text-xs ${m.freePrice ? "font-bold text-primary" : "text-muted-foreground"}`}>
+                      {m.price}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between border-t border-border px-4 py-3">
+            <span className="text-[11px] text-[hsl(0_0%_40%)]">{filtered.length} MODELS LOADED</span>
+            <span className="flex items-center gap-2 text-[11px] text-[hsl(0_0%_40%)]">
+              LIVE API FEED
+              <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse-subtle" />
+            </span>
+          </div>
+        </div>
+
+        {/* Cost Simulator */}
+        <div
+          ref={simRef}
+          className={`mt-12 rounded-xl border border-border bg-card p-6 sm:p-8 ${simVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.2s" }}
+        >
+          <h3 className="text-center font-satoshi text-lg font-bold uppercase tracking-wider text-foreground">
+            💡 SIMULASI BIAYA BULANAN
+          </h3>
+
+          <div className="mt-8 grid gap-6 sm:grid-cols-3">
+            {simCards.map((c) => (
+              <div key={c.title} className="rounded-xl border border-border bg-secondary/50 p-5">
+                <p className="font-satoshi text-base font-bold text-foreground">{c.title}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{c.desc}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{c.models}</p>
+                <p className="mt-2 font-mono text-[11px] text-muted-foreground">{c.calc}</p>
+                <p className="mt-3 text-lg font-bold text-primary">
+                  = Rp <AnimatedNumber target={c.total} visible={simVisible} />
+                  <span className="text-sm font-normal text-muted-foreground">/bulan</span>
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground line-through">{c.vs}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-6 text-center text-[11px] text-muted-foreground leading-relaxed">
+            * Harga berdasarkan Kie.ai credit rate $0.005/credit. Kurs Rp 16.000/$. Harga dapat berubah sesuai provider. Gemini Flash untuk prompt gratis.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default ApiCostSection;
