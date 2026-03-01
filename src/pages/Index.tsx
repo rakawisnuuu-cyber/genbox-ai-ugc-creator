@@ -1,23 +1,14 @@
-import Navbar from "@/components/Navbar";
-import HeroSection from "@/components/HeroSection";
-import FiturSection from "@/components/FiturSection";
-import CaraKerjaSection from "@/components/CaraKerjaSection";
-import HargaSection from "@/components/HargaSection";
-import FAQSection from "@/components/FAQSection";
-import FinalCTASection from "@/components/FinalCTASection";
-import AnimatedBackground from "@/components/AnimatedBackground";
-
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      <AnimatedBackground />
-      <Navbar />
-      <HeroSection />
-      <FiturSection />
-      <CaraKerjaSection />
-      <HargaSection />
-      <FAQSection />
-      <FinalCTASection />
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="font-satoshi text-4xl font-bold uppercase tracking-wider text-primary mb-4">
+          GENBOX
+        </h1>
+        <p className="text-muted-foreground font-body">
+          Segera hadir.
+        </p>
+      </div>
     </div>
   );
 };
