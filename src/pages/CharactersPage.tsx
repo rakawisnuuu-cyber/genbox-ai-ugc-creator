@@ -50,6 +50,9 @@ const CharactersPage = () => {
           gradient_from: d.gradient_from,
           gradient_to: d.gradient_to,
           is_preset: false,
+          hero_image_url: d.hero_image_url ?? undefined,
+          reference_images: d.reference_images ?? undefined,
+          identity_prompt: d.identity_prompt ?? undefined,
         }))
       );
     }

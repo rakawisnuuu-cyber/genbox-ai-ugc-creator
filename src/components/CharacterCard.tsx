@@ -10,6 +10,9 @@ export interface CharacterData {
   gradient_from: string;
   gradient_to: string;
   is_preset: boolean;
+  hero_image_url?: string;
+  reference_images?: string[];
+  identity_prompt?: string;
 }
 
 interface CharacterCardProps {
@@ -30,9 +33,13 @@ const CharacterCard = ({ character, onDetail, onUse, onDelete, showDelete }: Cha
         className="relative aspect-[3/4] cursor-pointer"
         onClick={() => onDetail(character)}
       >
-        <div className={`absolute inset-0 bg-gradient-to-b ${character.gradient_from} ${character.gradient_to} flex items-center justify-center`}>
-          <UserCircle className="h-16 w-16 text-[#444]" />
-        </div>
+        {character.hero_image_url ? (
+          <img src={character.hero_image_url} alt={character.name} className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className={`absolute inset-0 bg-gradient-to-b ${character.gradient_from} ${character.gradient_to} flex items-center justify-center`}>
+            <UserCircle className="h-16 w-16 text-[#444]" />
+          </div>
+        )}
 
         {/* Badge */}
         <span
