@@ -5,7 +5,7 @@ const FinalCTASection = () => {
   const { ref, isVisible } = useScrollReveal();
 
   return (
-    <section className="relative py-24 sm:py-32 overflow-hidden">
+    <section className="relative py-10 sm:py-14 overflow-hidden">
       {/* Radial gradient bg */}
       <div
         className="pointer-events-none absolute inset-0"
