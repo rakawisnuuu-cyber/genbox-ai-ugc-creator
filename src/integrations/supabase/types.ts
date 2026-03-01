@@ -85,26 +85,38 @@ export type Database = {
       }
       generations: {
         Row: {
+          character_id: string | null
           created_at: string
           id: string
           image_url: string | null
+          model: string
           prompt: string | null
+          provider: string
+          status: string
           type: string
           user_id: string
         }
         Insert: {
+          character_id?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
+          model?: string
           prompt?: string | null
+          provider?: string
+          status?: string
           type?: string
           user_id: string
         }
         Update: {
+          character_id?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
+          model?: string
           prompt?: string | null
+          provider?: string
+          status?: string
           type?: string
           user_id?: string
         }

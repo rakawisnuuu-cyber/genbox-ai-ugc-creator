@@ -34,6 +34,7 @@ const DashboardLayout = () => {
   const displayName = user?.email?.split("@")[0] || "User";
 
   const isActive = (path: string) => location.pathname === path;
+  const isGeneratePage = location.pathname === "/generate";
 
   const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
     <ul className="space-y-1">
@@ -181,7 +182,7 @@ const DashboardLayout = () => {
 
       {/* Main Content */}
       <main className="mt-14 min-h-screen lg:ml-60 lg:mt-0">
-        <div className="mx-auto max-w-5xl px-4 py-4 lg:px-6 lg:py-8">
+        <div className={`mx-auto ${isGeneratePage ? "" : "max-w-5xl px-4 py-4 lg:px-6 lg:py-8"}`}>
           <Outlet />
         </div>
       </main>
