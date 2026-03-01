@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import {
   Camera, RotateCcw, Mic, PersonStanding, Search, Hand,
-  Zap, CheckCircle2, Loader2, AlertCircle,
+  Zap, CheckCircle2, Loader2, AlertCircle, X, Download,
 } from "lucide-react";
 import UpscaleButton from "@/components/UpscaleButton";
 
@@ -119,6 +119,7 @@ export default function CreateCharacterPage() {
   const [completedCount, setCompletedCount] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [zoomedShot, setZoomedShot] = useState<{url: string, label: string} | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const set = (key: keyof FormData, val: string) => setForm((p) => ({ ...p, [key]: val }));
@@ -398,7 +399,7 @@ export default function CreateCharacterPage() {
         </div>
 
         {/* ── RIGHT COLUMN: PREVIEW ── */}
-        <div className="w-full lg:w-[400px] shrink-0 lg:sticky lg:top-8 self-start animate-fade-up" style={{ animationDelay: "100ms" }}>
+        <div className="w-full lg:w-[480px] shrink-0 lg:sticky lg:top-8 self-start animate-fade-up" style={{ animationDelay: "100ms" }}>
           {/* Summary */}
           <div className="bg-card border border-border rounded-xl p-5 mb-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-3">Preview Karakter</p>
@@ -422,7 +423,7 @@ export default function CreateCharacterPage() {
           )}
 
           {/* 6-shot grid */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
+          <div className="grid grid-cols-2 gap-3 mb-5">
             {SHOT_KEYS.map((key) => {
               const cfg = SHOT_CONFIGS[key];
               const shot = shots[key];
@@ -431,7 +432,7 @@ export default function CreateCharacterPage() {
               return (
                 <div key={key} className="relative aspect-[3/4] bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden">
                   {shot.status === "success" && shot.url ? (
-                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in" />
+                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={() => setZoomedShot({url: shot.url!, label: cfg.label})} />
                   ) : shot.status === "generating" ? (
                     <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
                   ) : shot.status === "failed" ? (
@@ -494,6 +495,30 @@ export default function CreateCharacterPage() {
           )}
         </div>
       </div>
+
+      {/* Lightbox */}
+      {zoomedShot && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fade-in"
+          onClick={() => setZoomedShot(null)}
+          onKeyDown={(e) => e.key === "Escape" && setZoomedShot(null)}
+          tabIndex={0}
+        >
+          <button className="fixed top-4 right-4 text-white/70 hover:text-white z-[101]" onClick={() => setZoomedShot(null)}>
+            <X className="h-6 w-6" />
+          </button>
+          <img src={zoomedShot.url} alt={zoomedShot.label} className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl" onClick={(e) => e.stopPropagation()} />
+          <p className="text-white/70 text-sm mt-3">{zoomedShot.label}</p>
+          <a
+            href={zoomedShot.url}
+            download={`${zoomedShot.label}.jpg`}
+            className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Download className="h-4 w-4" /> Download
+          </a>
+        </div>
+      )}
     </div>
   );
 }

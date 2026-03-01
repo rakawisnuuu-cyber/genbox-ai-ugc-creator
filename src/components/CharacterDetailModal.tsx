@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { UserCircle, X } from "lucide-react";
+import { UserCircle, X, Download } from "lucide-react";
 import type { CharacterData } from "./CharacterCard";
 
 interface CharacterDetailModalProps {
@@ -91,11 +91,24 @@ const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDeta
 
       {/* Lightbox */}
       {lightboxUrl && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4" onClick={() => setLightboxUrl(null)}>
-          <button className="absolute top-4 right-4 text-white/70 hover:text-white" onClick={() => setLightboxUrl(null)}>
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center p-4 animate-fade-in"
+          onClick={() => setLightboxUrl(null)}
+          onKeyDown={(e) => e.key === "Escape" && setLightboxUrl(null)}
+          tabIndex={0}
+        >
+          <button className="fixed top-4 right-4 text-white/70 hover:text-white z-[101]" onClick={() => setLightboxUrl(null)}>
             <X className="h-6 w-6" />
           </button>
-          <img src={lightboxUrl} alt="Preview" className="max-w-full max-h-[90vh] rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
+          <img src={lightboxUrl} alt="Preview" className="max-w-[90vw] max-h-[90vh] rounded-xl object-contain" onClick={(e) => e.stopPropagation()} />
+          <a
+            href={lightboxUrl}
+            download="character-image.jpg"
+            className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Download className="h-4 w-4" /> Download
+          </a>
         </div>
       )}
     </>
