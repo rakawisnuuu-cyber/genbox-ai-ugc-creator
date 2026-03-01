@@ -14,6 +14,7 @@ import GalleryPage from "./pages/GalleryPage";
 import PromptPage from "./pages/PromptPage";
 import BlueprintPage from "./pages/BlueprintPage";
 import SettingsPage from "./pages/SettingsPage";
+import CreateCharacterPage from "./pages/CreateCharacterPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/prompt" element={<PromptPage />} />
               <Route path="/blueprint" element={<BlueprintPage />} />
+              <Route path="/characters/create" element={<CreateCharacterPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
