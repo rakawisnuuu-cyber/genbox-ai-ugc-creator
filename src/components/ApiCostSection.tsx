@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Lightbulb } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 type ModelType = "IMAGE" | "VIDEO" | "MUSIC" | "PROMPT";
@@ -115,7 +115,7 @@ const ApiCostSection = () => {
   const filtered = activeTab === "ALL" ? models : models.filter((m) => m.type === activeTab);
 
   return (
-    <section id="api-cost" className="relative py-24 sm:py-32 overflow-hidden">
+    <section id="api-cost" className="relative py-10 sm:py-14 overflow-hidden">
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Badge */}
         <div
@@ -243,8 +243,11 @@ const ApiCostSection = () => {
           className={`mt-12 rounded-xl border border-border bg-card p-6 sm:p-8 ${simVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          <h3 className="text-center font-satoshi text-lg font-bold uppercase tracking-wider text-foreground">
-            💡 SIMULASI BIAYA BULANAN
+          <h3 className="flex items-center justify-center gap-2 font-satoshi text-lg font-bold uppercase tracking-wider text-foreground">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+              <Lightbulb size={16} className="text-primary" />
+            </span>
+            SIMULASI BIAYA BULANAN
           </h3>
 
           <div className="mt-8 grid gap-6 sm:grid-cols-3">

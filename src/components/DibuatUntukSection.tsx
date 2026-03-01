@@ -23,7 +23,7 @@ const DibuatUntukSection = () => {
   const { ref, isVisible } = useScrollReveal(0.15);
 
   return (
-    <section ref={ref} className="relative z-10 px-4 py-24 sm:py-32">
+    <section ref={ref} className="relative z-10 px-4 py-10 sm:py-14">
       <div className="mx-auto max-w-5xl text-center">
         <h2
           className={`font-satoshi text-[28px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}

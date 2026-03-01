@@ -161,7 +161,7 @@ const FiturSection = () => {
   const { ref, isVisible } = useScrollReveal(0.15);
 
   return (
-    <section id="fitur" ref={ref} className="relative z-10 px-4 py-24 sm:py-32">
+    <section id="fitur" ref={ref} className="relative z-10 px-4 py-10 sm:py-14">
       <div className="mx-auto max-w-5xl">
         {/* Badge */}
         <div className="flex justify-center">
@@ -189,7 +189,7 @@ const FiturSection = () => {
         </h2>
 
         {/* Feature Rows */}
-        <div className="mt-20 space-y-24">
+        <div className="mt-14 space-y-14 sm:space-y-20">
           {features.map((f, i) => (
             <FeatureRow
               key={f.num}

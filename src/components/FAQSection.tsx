@@ -34,7 +34,7 @@ const FAQSection = () => {
   const { ref, isVisible } = useScrollReveal();
 
   return (
-    <section id="faq" className="relative py-24 sm:py-32 overflow-hidden">
+    <section id="faq" className="relative py-10 sm:py-14 overflow-hidden">
       {/* Decorative glow */}
       <div
         className="pointer-events-none absolute -right-32 top-1/2 h-[350px] w-[350px] rounded-full opacity-[0.03]"

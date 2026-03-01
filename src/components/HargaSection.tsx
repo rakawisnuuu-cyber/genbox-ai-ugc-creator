@@ -23,7 +23,7 @@ const HargaSection = () => {
   const { ref, isVisible } = useScrollReveal();
 
   return (
-    <section id="harga" className="relative py-24 sm:py-32 overflow-hidden">
+    <section id="harga" className="relative py-10 sm:py-14 overflow-hidden">
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Badge */}
         <div

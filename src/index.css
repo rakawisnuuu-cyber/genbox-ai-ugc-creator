@@ -103,6 +103,17 @@
 }
 .animate-fade-slide-right { opacity: 0; animation: fade-slide-right 0.6s ease-out forwards; will-change: transform, opacity; }
 
+@keyframes dash-march {
+  0% { background-position: 0 0; }
+  100% { background-position: 20px 0; }
+}
+
+@keyframes step-highlight {
+  0% { box-shadow: 0 0 0 0 hsl(73 100% 50% / 0.3); }
+  50% { box-shadow: 0 0 20px 4px hsl(73 100% 50% / 0.15); }
+  100% { box-shadow: 0 0 0 0 hsl(73 100% 50% / 0); }
+}
+
 @keyframes cta-glow {
   0%, 100% { box-shadow: 0 0 20px -5px hsl(73 100% 50% / 0.2); }
   50% { box-shadow: 0 0 30px -2px hsl(73 100% 50% / 0.35); }

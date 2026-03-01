@@ -9,6 +9,7 @@ import HargaSection from "@/components/HargaSection";
 import ApiCostSection from "@/components/ApiCostSection";
 import FAQSection from "@/components/FAQSection";
 import FinalCTASection from "@/components/FinalCTASection";
+import TransactionPopup from "@/components/TransactionPopup";
 
 const Index = () => {
   return (
@@ -24,6 +25,7 @@ const Index = () => {
       <ApiCostSection />
       <FAQSection />
       <FinalCTASection />
+      <TransactionPopup />
     </div>
   );
 };
