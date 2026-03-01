@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      characters: {
+        Row: {
+          age_range: string
+          created_at: string
+          description: string
+          gradient_from: string
+          gradient_to: string
+          id: string
+          is_preset: boolean
+          name: string
+          style: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age_range?: string
+          created_at?: string
+          description?: string
+          gradient_from?: string
+          gradient_to?: string
+          id?: string
+          is_preset?: boolean
+          name: string
+          style?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age_range?: string
+          created_at?: string
+          description?: string
+          gradient_from?: string
+          gradient_to?: string
+          id?: string
+          is_preset?: boolean
+          name?: string
+          style?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       generations: {
         Row: {
           created_at: string
