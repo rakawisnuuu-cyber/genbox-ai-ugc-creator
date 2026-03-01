@@ -1,6 +1,8 @@
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import DibuatUntukSection from "@/components/DibuatUntukSection";
+import FiturSection from "@/components/FiturSection";
 
 const Index = () => {
   return (
@@ -8,6 +10,8 @@ const Index = () => {
       <AnimatedBackground />
       <Navbar />
       <HeroSection />
+      <DibuatUntukSection />
+      <FiturSection />
     </div>
   );
 };
