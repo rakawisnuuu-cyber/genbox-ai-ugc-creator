@@ -93,35 +93,36 @@ const CaraKerjaSection = () => {
       style={{ background: "linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(0 0% 5%) 100%)" }}
     >
       <div className="mx-auto max-w-5xl">
-        <div className="text-center mb-10 sm:mb-14">
-          {/* Badge */}
+        {/* Badge */}
+        <div className="flex justify-center">
           <div
-            className={`inline-flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary-foreground mb-4 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+            className={`flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
             style={{ animationDelay: "0.1s" }}
           >
             <Sparkles size={14} />
             CARA KERJA
           </div>
-
-          <h2
-            className={`font-satoshi text-2xl sm:text-3xl lg:text-[40px] font-bold uppercase tracking-tight mb-3 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-            style={{
-              animationDelay: "0.2s",
-              background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            3 LANGKAH MUDAH
-          </h2>
-          <p
-            className={`font-body text-base sm:text-lg text-muted-foreground max-w-[520px] mx-auto ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-            style={{ animationDelay: "0.25s" }}
-          >
-            Dari foto produk ke konten UGC dalam hitungan detik
-          </p>
         </div>
+
+        {/* Heading */}
+        <h2
+          className={`mt-5 text-center font-satoshi text-[28px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{
+            animationDelay: "0.2s",
+            background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          3 LANGKAH MUDAH
+        </h2>
+        <p
+          className={`mt-3 text-center font-body text-base text-muted-foreground sm:text-lg ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.25s" }}
+        >
+          Dari foto produk ke konten UGC dalam hitungan detik
+        </p>
 
         {/* Steps */}
         <div className="relative mt-12">

@@ -117,28 +117,29 @@ const ApiCostSection = () => {
   return (
     <section id="api-cost" className="relative py-10 sm:py-14 overflow-hidden">
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-10 sm:mb-14">
-          <span
-            className={`inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-4 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-            style={{ animationDelay: "0.1s" }}
-          >
+        {/* Badge */}
+        <div
+          className={`flex justify-center mb-6 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.1s" }}
+        >
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
             BIAYA API TRANSPARAN
           </span>
-
-          <h2
-            className={`font-satoshi text-2xl sm:text-3xl lg:text-[40px] font-bold uppercase tracking-tight text-foreground mb-3 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-            style={{ animationDelay: "0.2s" }}
-          >
-            KAMU YANG KONTROL BIAYA
-          </h2>
-          <p
-            className={`font-body text-base sm:text-lg text-muted-foreground max-w-[520px] mx-auto ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-            style={{ animationDelay: "0.3s" }}
-          >
-            Sebagai pengguna BYOK, kamu bayar langsung ke provider via Kie.ai. 1 credit = $0.005.
-          </p>
         </div>
+
+        <h2
+          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold uppercase tracking-wide text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.2s" }}
+        >
+          KAMU YANG KONTROL BIAYA
+        </h2>
+        <p
+          className={`mt-4 text-center text-base text-muted-foreground max-w-xl mx-auto ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.3s" }}
+        >
+          Sebagai pengguna BYOK, kamu bayar langsung ke provider via Kie.ai. 1 credit = $0.005.
+        </p>
 
         {/* Tab filter */}
         <div

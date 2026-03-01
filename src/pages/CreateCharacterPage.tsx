@@ -2,7 +2,6 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
-import { usePromptModel } from "@/hooks/usePromptModel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -16,7 +15,6 @@ import {
   Camera, RotateCcw, Mic, PersonStanding, Search, Hand,
   Zap, CheckCircle2, Loader2, AlertCircle,
 } from "lucide-react";
-import UpscaleButton from "@/components/UpscaleButton";
 
 // ── TYPES ──
 type Gender = "female" | "male";
@@ -42,8 +40,6 @@ type ShotStatus = "idle" | "generating" | "success" | "failed";
 interface ShotResult {
   status: ShotStatus;
   url?: string;
-  upscaledUrl?: string;
-  upscaleFactor?: number;
   taskId?: string;
   model: string;
 }
@@ -107,7 +103,6 @@ export default function CreateCharacterPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { kieApiKey, geminiKey } = useApiKeys();
-  const { model: promptModel } = usePromptModel();
 
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -143,34 +138,30 @@ export default function CreateCharacterPage() {
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
 
     try {
-      // Step 2 — Gemini structured JSON identity prompt
+      // Step 2 — Gemini identity prompt
       const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [{
               parts: [{
-                text: `You are an expert character identity prompt builder for AI image generation. Based on the attributes below, create a structured JSON identity for a realistic Indonesian person.\n\nAttributes:\n- Gender: ${form.gender}\n- Age: ${form.age_range}\n- Skin tone: ${form.skin_tone}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression: ${form.expression}\n- Outfit: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Custom notes: ${form.custom_notes}\n\nRespond ONLY with valid JSON in this exact format, no markdown, no explanation:\n{\n  "identity_summary": "A single detailed paragraph describing the full character appearance in English",\n  "face": "detailed face description: shape, features, expression, skin",\n  "hair": "hair style, color, length, texture details",\n  "body": "build, posture, proportions",\n  "outfit": "detailed clothing description with colors and style",\n  "skin": "skin tone, texture, condition details",\n  "mood": "emotional tone, energy, vibe of the character",\n  "photography_style": "recommended camera angle, lighting, and photography approach"\n}`,
+                text: `You are an expert character identity prompt builder for AI image generation. Based on these attributes, create a SINGLE detailed English identity description paragraph for a realistic Indonesian person. Include physical appearance, skin tone, facial features, hair, expression, and outfit. Be specific and visual.\n\nAttributes:\n- Gender: ${form.gender}\n- Age: ${form.age_range}\n- Skin tone: ${form.skin_tone}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression: ${form.expression}\n- Outfit: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Custom notes: ${form.custom_notes}\n\nRespond ONLY with the identity description, no explanations.`,
               }],
             }],
-            generationConfig: { responseMimeType: "application/json" },
           }),
         }
       );
       const geminiData = await geminiRes.json();
-      const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!rawText) throw new Error("Gagal generate identity prompt dari Gemini");
-
-      const identityJson = JSON.parse(rawText);
-      const identityPrompt = identityJson.identity_summary || rawText;
+      const identityPrompt = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!identityPrompt) throw new Error("Gagal generate identity prompt dari Gemini");
 
       // Step 4 — Create all 6 tasks in parallel
       const taskResults = await Promise.all(
         SHOT_KEYS.map(async (key) => {
           const cfg = SHOT_CONFIGS[key];
-          const finalPrompt = `${identityJson.identity_summary}\n\nFace: ${identityJson.face}\nHair: ${identityJson.hair}\nOutfit: ${identityJson.outfit}\nSkin: ${identityJson.skin}\nMood: ${identityJson.mood}\n\n${cfg.framing}\n\nPhotography: ${identityJson.photography_style}. Hyper-realistic, shot on iPhone 15 Pro, natural lighting, 8K detail.`;
+          const finalPrompt = `${identityPrompt}\n\n${cfg.framing}\n\nHyper-realistic photography, shot on iPhone 15 Pro, natural lighting, 8K detail.`;
           const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
             method: "POST",
             headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
@@ -218,6 +209,7 @@ export default function CreateCharacterPage() {
               return;
             }
           }
+          // timeout
           setShots((p) => ({ ...p, [key]: { status: "failed", taskId, model: cfg.model } }));
           done++;
           setCompletedCount(done);
@@ -263,10 +255,6 @@ export default function CreateCharacterPage() {
     }
   };
 
-  const handleShotUpscaled = (key: ShotKey, newUrl: string, factor: number) => {
-    setShots((p) => ({ ...p, [key]: { ...p[key], upscaledUrl: newUrl, upscaleFactor: factor } }));
-  };
-
   // ── SUMMARY PILLS ──
   const pills = [
     form.gender === "female" ? "Wanita" : "Pria",
@@ -284,24 +272,27 @@ export default function CreateCharacterPage() {
             <p className="text-sm text-muted-foreground mb-6">Kustomisasi karakter AI untuk konten UGC kamu</p>
           </div>
 
+          {/* Name */}
           <FormGroup label="Nama Karakter">
-            <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Contoh: Sarah Hijab" className="bg-[hsl(0_0%_10%)] border-border" />
+            <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Contoh: Sarah Hijab" className="bg-[#1A1A1A] border-border" />
           </FormGroup>
 
+          {/* Gender */}
           <FormGroup label="Gender">
             <div className="flex gap-2">
               {(["female", "male"] as Gender[]).map((g) => (
                 <button key={g} onClick={() => set("gender", g)}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${form.gender === g ? "bg-primary text-primary-foreground" : "bg-[hsl(0_0%_10%)] border border-border text-muted-foreground hover:text-foreground"}`}>
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${form.gender === g ? "bg-primary text-primary-foreground" : "bg-[#1A1A1A] border border-border text-muted-foreground hover:text-foreground"}`}>
                   {g === "female" ? "Wanita" : "Pria"}
                 </button>
               ))}
             </div>
           </FormGroup>
 
+          {/* Age Range */}
           <FormGroup label="Rentang Usia">
             <Select value={form.age_range} onValueChange={(v) => set("age_range", v)}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih usia" /></SelectTrigger>
+              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih usia" /></SelectTrigger>
               <SelectContent>
                 {["17-22 tahun", "20-25 tahun", "25-30 tahun", "30-40 tahun", "40-50 tahun"].map((o) => (
                   <SelectItem key={o} value={o}>{o}</SelectItem>
@@ -310,6 +301,7 @@ export default function CreateCharacterPage() {
             </Select>
           </FormGroup>
 
+          {/* Skin Tone */}
           <FormGroup label="Warna Kulit">
             <div className="flex gap-4">
               {SKIN_TONES.map((t) => (
@@ -321,71 +313,79 @@ export default function CreateCharacterPage() {
             </div>
           </FormGroup>
 
+          {/* Face Shape */}
           <FormGroup label="Bentuk Wajah">
             <Select value={form.face_shape} onValueChange={(v) => set("face_shape", v)}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
               <SelectContent>
                 {["Oval", "Bulat", "Kotak", "Hati", "Lonjong"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormGroup>
 
+          {/* Eye Color */}
           <FormGroup label="Warna Mata">
             <Select value={form.eye_color} onValueChange={(v) => set("eye_color", v)}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
               <SelectContent>
                 {["Coklat Tua", "Coklat Madu", "Hitam", "Coklat Terang"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormGroup>
 
+          {/* Hair Style */}
           <FormGroup label="Gaya Rambut">
             <Select value={form.hair_style} onValueChange={(v) => set("hair_style", v)}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
               <SelectContent>
                 {HAIR_STYLES[form.gender].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormGroup>
 
+          {/* Hair Color */}
           <FormGroup label="Warna Rambut">
             <Select value={form.hair_color} onValueChange={(v) => set("hair_color", v)}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
               <SelectContent>
                 {["Hitam", "Coklat Tua", "Coklat Madu", "Highlighted"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormGroup>
 
+          {/* Expression */}
           <FormGroup label="Ekspresi">
             <Select value={form.expression} onValueChange={(v) => set("expression", v)}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
               <SelectContent>
                 {["Hangat & Ramah", "Percaya Diri", "Kalem Profesional", "Energik Ceria", "Lembut Natural"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormGroup>
 
+          {/* Outfit Style */}
           <FormGroup label="Gaya Outfit">
             <Select value={form.outfit_style} onValueChange={(v) => set("outfit_style", v)}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
               <SelectContent>
                 {["Casual Modern", "Smart Casual", "Hijab Modern", "Streetwear", "Athletic", "Professional", "Beauty/Glam"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormGroup>
 
+          {/* Skin Condition */}
           <FormGroup label="Kondisi Kulit">
             <Select value={form.skin_condition} onValueChange={(v) => set("skin_condition", v)}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
               <SelectContent>
                 {["Bersih Natural", "Sedikit Freckles", "Glowing Sehat", "Matte Clean"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </FormGroup>
 
+          {/* Custom Notes */}
           <FormGroup label="Catatan Tambahan (Opsional)">
-            <Textarea value={form.custom_notes} onChange={(e) => set("custom_notes", e.target.value)} rows={3} placeholder="Detail tambahan..." className="bg-[hsl(0_0%_10%)] border-border" />
+            <Textarea value={form.custom_notes} onChange={(e) => set("custom_notes", e.target.value)} rows={3} placeholder="Detail tambahan..." className="bg-[#1A1A1A] border-border" />
           </FormGroup>
         </div>
 
@@ -409,7 +409,7 @@ export default function CreateCharacterPage() {
                 <span>Generating karakter... {completedCount}/6</span>
                 <span>{elapsed}s</span>
               </div>
-              <Progress value={(completedCount / 6) * 100} className="h-2 bg-muted" />
+              <Progress value={(completedCount / 6) * 100} className="h-2 bg-[#2A2A2A]" />
             </div>
           )}
 
@@ -420,44 +420,27 @@ export default function CreateCharacterPage() {
               const shot = shots[key];
               const Icon = cfg.icon;
               const isPro = cfg.model === "nano-banana-pro";
-              const displayUrl = shot.upscaledUrl || shot.url;
               return (
-                <div key={key} className="relative aspect-[3/4] bg-secondary border border-border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden">
-                  {shot.status === "success" && displayUrl ? (
-                    <img src={displayUrl} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in" />
+                <div key={key} className="relative aspect-[3/4] bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden">
+                  {shot.status === "success" && shot.url ? (
+                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in" />
                   ) : shot.status === "generating" ? (
                     <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
                   ) : shot.status === "failed" ? (
                     <AlertCircle className="w-6 h-6 text-destructive" />
                   ) : (
-                    <Icon className="w-6 h-6 text-muted-foreground/40" />
+                    <Icon className="w-6 h-6 text-[#555]" />
                   )}
                   {shot.status !== "success" && (
-                    <span className="text-[11px] text-muted-foreground/40 uppercase tracking-wider text-center px-1">{cfg.label}</span>
+                    <span className="text-[11px] text-[#555] uppercase tracking-wider text-center px-1">{cfg.label}</span>
                   )}
-                  {shot.status === "success" && displayUrl && (
-                    <>
-                      <CheckCircle2 className="absolute top-1.5 right-1.5 w-4 h-4 text-green-500 drop-shadow" />
-                      {shot.upscaleFactor && (
-                        <span className="absolute top-1.5 left-1.5 bg-primary/20 text-primary text-[9px] font-bold rounded-full px-1.5 py-0.5">
-                          {shot.upscaleFactor}x
-                        </span>
-                      )}
-                    </>
+                  {shot.status === "success" && shot.url && (
+                    <CheckCircle2 className="absolute top-1.5 right-1.5 w-4 h-4 text-green-500 drop-shadow" />
                   )}
                   {/* Model badge */}
                   <span className={`absolute bottom-1.5 left-1.5 text-[9px] px-1.5 py-0.5 rounded font-medium ${isPro ? "bg-primary/20 text-primary" : "bg-blue-500/20 text-blue-400"}`}>
                     {isPro ? "PRO" : "FAST"}
                   </span>
-                  {/* Upscale button */}
-                  {shot.status === "success" && shot.url && !shot.upscaleFactor && (
-                    <div className="absolute bottom-1.5 right-1.5">
-                      <UpscaleButton
-                        imageUrl={shot.url}
-                        onUpscaled={(url, factor) => handleShotUpscaled(key, url, factor)}
-                      />
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -468,7 +451,7 @@ export default function CreateCharacterPage() {
             <Zap className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <div>
               <p>Estimasi: ~64 credits (~Rp 5.120) untuk 6 gambar</p>
-              <p className="text-[11px] text-muted-foreground/60 mt-0.5">2x Nano Banana Pro (hero + detail) + 4x Nano Banana 2 (sisanya)</p>
+              <p className="text-[11px] text-[#555] mt-0.5">2x Nano Banana Pro (hero + detail) + 4x Nano Banana 2 (sisanya)</p>
             </div>
           </div>
 
