@@ -47,6 +47,26 @@ interface ShotResult {
   model: string;
 }
 
+// ── GENBOX PROMPT SYSTEM CONSTANTS ──
+const REALISM_BASE = "Ultra-realistic photographic portrait, commercial photography, real-world studio photography, cinematic realism, lifelike details, true-to-life textures.";
+
+const LIGHTING_BLOCK = "Professional studio lighting setup: soft key light from 45 degrees creating gentle modeling on the face, fill light reducing harsh shadows, subtle rim light separating subject from background. Warm neutral tones that complement Southeast Asian skin. No harsh directional shadows, no artificial color cast. Clean, professional, flattering but natural.";
+
+const SKIN_BLOCK = "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
+
+const QUALITY_BLOCK = "8K resolution, ultra-high detail, photographic realism, sharp focus, natural color grading, realistic contrast, clean studio image quality.";
+
+const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter.";
+
+// ── SKIN TONE PROMPT MAPPING ──
+const SKIN_TONE_PROMPTS: Record<string, string> = {
+  "Kuning Langsat": "light warm golden-tan Southeast Asian skin",
+  "Sawo Terang": "warm light-brown Southeast Asian complexion",
+  "Sawo Matang": "warm medium-brown Indonesian skin tone",
+  "Sawo Gelap": "rich warm brown Southeast Asian complexion",
+  "Coklat Gelap": "deep warm dark-brown Indonesian skin",
+};
+
 // ── CONSTANTS ──
 const SKIN_TONES = [
   { label: "Kuning Langsat", hex: "#F5D5B8" },
@@ -61,46 +81,93 @@ const HAIR_STYLES: Record<Gender, string[]> = {
   male: ["Pendek Rapi", "Undercut", "Side Part", "Messy Textured", "Buzz Cut"],
 };
 
-const SHOT_CONFIGS: Record<ShotKey, { label: string; model: string; framing: string; icon: typeof Camera }> = {
+const SHOT_CONFIGS: Record<ShotKey, { label: string; model: string; camera: string; framing: string; icon: typeof Camera }> = {
   hero_portrait: {
     label: "Hero Portrait", model: "nano-banana-pro",
-    framing: "Close-up portrait headshot, soft studio lighting, shallow depth of field, looking at camera with warm expression, clean neutral background",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, shallow depth of field, tack-sharp focus on face.",
+    framing: "Chest-up centered portrait, facing directly toward camera, making warm direct eye contact. Expression is a genuine warm smile — friendly, approachable, and confident, like a brand ambassador introduction photo. Posture is upright and natural, shoulders relaxed. Background is a smooth soft grey studio gradient, clean and distraction-free.",
     icon: Camera,
   },
   profile_3_4: {
     label: "3/4 Profile", model: "nano-banana-2",
-    framing: "Three-quarter angle portrait, natural side lighting, gentle smile, soft bokeh background, editorial style",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, shallow depth of field.",
+    framing: "Head and shoulders, turned 45 degrees to the right, looking slightly past camera. Expression is calm, natural, thoughtful. Background is a smooth soft grey studio gradient, same as hero shot.",
     icon: RotateCcw,
   },
   talking: {
     label: "Talking", model: "nano-banana-2",
-    framing: "Mid-shot of person talking naturally, candid moment, hand gesturing, casual indoor setting, natural window light",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/1.8 aperture.",
+    framing: "Chest-up direct angle, making direct eye contact. Expression is mid-sentence, mouth slightly open, animated, conversational — like speaking to camera in a product review. Background is the same smooth soft grey studio gradient.",
     icon: Mic,
   },
   full_body: {
     label: "Full Body", model: "nano-banana-2",
-    framing: "Full body standing shot, head to toe visible, relaxed confident pose, minimal clean background, fashion editorial style",
+    camera: "Shot on a full-frame mirrorless camera, 35mm lens, f/2.8 aperture, full body in focus, natural perspective.",
+    framing: "Full body standing shot, head to toe visible. Relaxed natural posture, hands visible — relaxed at sides or one in pocket. Direct eye contact, relaxed expression. Background is the same smooth soft grey studio gradient, slightly wider.",
     icon: PersonStanding,
   },
   skin_detail: {
     label: "Skin Detail", model: "nano-banana-pro",
-    framing: "Extreme close-up of face showing skin texture and detail, macro photography style, soft even lighting, focus on natural skin quality",
+    camera: "Shot on a full-frame mirrorless camera, 85mm portrait lens, f/1.8 aperture, extreme close-up, face fills entire frame.",
+    framing: "Face filling the entire frame from forehead to chin. Direct calm gaze, neutral relaxed expression. Background is completely blurred out of focus. Focus on realistic skin texture, pore detail, natural skin quality.",
     icon: Search,
   },
   product_interaction: {
     label: "Product", model: "nano-banana-2",
-    framing: "Person holding a small product box near face level, natural smile, product clearly visible, clean studio background, UGC style photo",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, sharp focus on face and hands.",
+    framing: "Chest-up with hands visible in frame, holding a generic small product (bottle or box shape). Natural engaged expression, looking at product or toward camera. Background is the same smooth soft grey studio gradient.",
     icon: Hand,
   },
 };
 
 const SHOT_KEYS: ShotKey[] = ["hero_portrait", "profile_3_4", "talking", "full_body", "skin_detail", "product_interaction"];
+const REMAINING_KEYS: ShotKey[] = ["profile_3_4", "talking", "full_body", "skin_detail", "product_interaction"];
 
 const DEFAULT_FORM: FormData = {
   name: "", gender: "female", age_range: "", skin_tone: "Sawo Terang",
   face_shape: "", eye_color: "", hair_style: "", hair_color: "",
   expression: "", outfit_style: "", skin_condition: "", custom_notes: "",
 };
+
+// ── HELPER: Assemble prompt for a shot ──
+function assemblePrompt(
+  shotKey: ShotKey,
+  identityBlock: string,
+  consistencyAnchors: string[],
+) {
+  const cfg = SHOT_CONFIGS[shotKey];
+  return [
+    REALISM_BASE,
+    cfg.camera,
+    identityBlock,
+    `MANDATORY consistency anchors: ${consistencyAnchors.join(", ")}`,
+    cfg.framing,
+    LIGHTING_BLOCK,
+    SKIN_BLOCK,
+    QUALITY_BLOCK,
+    NEGATIVE_BLOCK,
+  ].join("\n\n");
+}
+
+// ── HELPER: Poll a Kie AI task ──
+async function pollTask(taskId: string, kieApiKey: string): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const res = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+      headers: { Authorization: `Bearer ${kieApiKey}` },
+    });
+    const json = await res.json();
+    const state = json?.data?.state;
+    if (state === "success") {
+      try {
+        const resultJson = JSON.parse(json.data.resultJson);
+        return resultJson?.resultUrls?.[0] || resultJson?.url || "";
+      } catch { return ""; }
+    }
+    if (state === "fail") throw new Error("Generation failed");
+  }
+  throw new Error("Timeout");
+}
 
 export default function CreateCharacterPage() {
   const { user } = useAuth();
@@ -117,6 +184,7 @@ export default function CreateCharacterPage() {
     return init;
   });
   const [completedCount, setCompletedCount] = useState(0);
+  const [genPhase, setGenPhase] = useState<"idle" | "identity" | "hero" | "variations" | "saving">("idle");
   const [elapsed, setElapsed] = useState(0);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [zoomedShot, setZoomedShot] = useState<{url: string, label: string} | null>(null);
@@ -124,7 +192,7 @@ export default function CreateCharacterPage() {
 
   const set = (key: keyof FormData, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
-  // ── GENERATION FLOW ──
+  // ── GENERATION FLOW (GENBOX Sequential) ──
   const handleGenerate = async () => {
     if (!form.name.trim()) { toast({ title: "Nama wajib diisi", variant: "destructive" }); return; }
     if (!kieApiKey || !geminiKey) {
@@ -137,23 +205,29 @@ export default function CreateCharacterPage() {
     setCompletedCount(0);
     setElapsed(0);
     setSavedId(null);
+    setGenPhase("identity");
     const resetShots: any = {};
-    SHOT_KEYS.forEach((k) => (resetShots[k] = { status: "generating", model: SHOT_CONFIGS[k].model }));
+    SHOT_KEYS.forEach((k) => (resetShots[k] = { status: "idle", model: SHOT_CONFIGS[k].model }));
     setShots(resetShots);
 
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
 
     try {
-      // Step 2 — Gemini structured JSON identity prompt
+      // ── STEP 1: Gemini structured identity prompt ──
+      const skinToneEnglish = SKIN_TONE_PROMPTS[form.skin_tone] || form.skin_tone;
+
       const geminiRes = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: "You are an expert at writing hyper-specific physical descriptions of people for AI image generation. Your descriptions must be extremely detailed and specific to ensure visual consistency across multiple generated images." }],
+            },
             contents: [{
               parts: [{
-                text: `You are an expert character identity prompt builder for AI image generation. Based on the attributes below, create a structured JSON identity for a realistic Indonesian person.\n\nAttributes:\n- Gender: ${form.gender}\n- Age: ${form.age_range}\n- Skin tone: ${form.skin_tone}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression: ${form.expression}\n- Outfit: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Custom notes: ${form.custom_notes}\n\nRespond ONLY with valid JSON in this exact format, no markdown, no explanation:\n{\n  "identity_summary": "A single detailed paragraph describing the full character appearance in English",\n  "face": "detailed face description: shape, features, expression, skin",\n  "hair": "hair style, color, length, texture details",\n  "body": "build, posture, proportions",\n  "outfit": "detailed clothing description with colors and style",\n  "skin": "skin tone, texture, condition details",\n  "mood": "emotional tone, energy, vibe of the character",\n  "photography_style": "recommended camera angle, lighting, and photography approach"\n}`,
+                text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.\n\nAttributes:\n- Gender: ${form.gender === "female" ? "Female" : "Male"}\n- Age range: ${form.age_range}\n- Skin tone: ${skinToneEnglish}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression tendency: ${form.expression}\n- Outfit style: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Additional notes: ${form.custom_notes || "none"}\n\nRespond ONLY with valid JSON, no markdown:\n{\n  "identity_block": "A single detailed paragraph in English describing the EXACT physical appearance — face shape, specific nose type, lip shape, jawline, skin details, exact hair description with color and style, exact outfit with specific colors and materials. Include 3-5 distinctive anchor features (like a beauty mark, specific nose shape, dimples, etc) that should appear in every image.",\n  "hair_description": "Detailed hair description",\n  "outfit_description": "Specific outfit with exact colors and materials",\n  "consistency_anchors": ["anchor1", "anchor2", "anchor3"]\n}`,
               }],
             }],
             generationConfig: { responseMimeType: "application/json" },
@@ -164,62 +238,67 @@ export default function CreateCharacterPage() {
       const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!rawText) throw new Error("Gagal generate identity prompt dari Gemini");
       const identityJson = JSON.parse(rawText);
-      const identityPrompt = identityJson.identity_summary;
+      const identityBlock: string = identityJson.identity_block;
+      const consistencyAnchors: string[] = identityJson.consistency_anchors || [];
 
-      // Step 4 — Create all 6 tasks in parallel
-      const taskResults = await Promise.all(
-        SHOT_KEYS.map(async (key) => {
-          const cfg = SHOT_CONFIGS[key];
-          const finalPrompt = `${identityJson.identity_summary}\n\nFace: ${identityJson.face}\nHair: ${identityJson.hair}\nOutfit: ${identityJson.outfit}\nSkin: ${identityJson.skin}\nMood: ${identityJson.mood}\n\n${cfg.framing}\n\nPhotography: ${identityJson.photography_style}. Hyper-realistic, shot on iPhone 15 Pro, natural lighting, 8K detail.`;
-          const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({
-              model: cfg.model,
-              input: { prompt: finalPrompt, image_input: [], aspect_ratio: "3:4", resolution: "2K", output_format: "jpg", google_search: false },
-            }),
-          });
-          const json = await res.json();
-          if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
-          return { key, taskId: json.data.taskId as string };
-        })
-      );
+      // ── STEP 2: Generate hero portrait ALONE (no reference) ──
+      setGenPhase("hero");
+      setShots((p) => ({ ...p, hero_portrait: { status: "generating", model: SHOT_CONFIGS.hero_portrait.model } }));
 
-      // Step 5 — Poll each task
-      let done = 0;
-      const finalResults: Record<string, { url: string; taskId: string; model: string }> = {};
+      const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors);
+      const heroCreateRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: SHOT_CONFIGS.hero_portrait.model,
+          input: { prompt: heroPrompt, image_input: [], aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
+        }),
+      });
+      const heroCreateJson = await heroCreateRes.json();
+      if (heroCreateJson.code !== 200) throw new Error("Failed to create hero task");
+      const heroTaskId = heroCreateJson.data.taskId as string;
+
+      const heroUrl = await pollTask(heroTaskId, kieApiKey);
+      if (!heroUrl) throw new Error("Hero portrait gagal — tidak ada URL");
+
+      setShots((p) => ({ ...p, hero_portrait: { status: "success", url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model } }));
+      setCompletedCount(1);
+
+      // ── STEP 3: Generate remaining 5 shots using hero as reference (parallel) ──
+      setGenPhase("variations");
+      REMAINING_KEYS.forEach((k) => {
+        setShots((p) => ({ ...p, [k]: { status: "generating", model: SHOT_CONFIGS[k].model } }));
+      });
+
+      let done = 1;
+      const finalResults: Record<string, { url: string; taskId: string; model: string }> = {
+        hero_portrait: { url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model },
+      };
 
       await Promise.all(
-        taskResults.map(async ({ key, taskId }) => {
+        REMAINING_KEYS.map(async (key) => {
           const cfg = SHOT_CONFIGS[key];
-          for (let i = 0; i < 40; i++) {
-            await new Promise((r) => setTimeout(r, 3000));
-            const res = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
-              headers: { Authorization: `Bearer ${kieApiKey}` },
+          const shotPrompt = assemblePrompt(key, identityBlock, consistencyAnchors);
+
+          try {
+            const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: cfg.model,
+                input: { prompt: shotPrompt, image_input: [heroUrl], aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
+              }),
             });
             const json = await res.json();
-            const state = json?.data?.state;
-            if (state === "success") {
-              let imageUrl = "";
-              try {
-                const resultJson = JSON.parse(json.data.resultJson);
-                imageUrl = resultJson?.resultUrls?.[0] || resultJson?.url || "";
-              } catch { imageUrl = ""; }
-              setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
-              finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
-              done++;
-              setCompletedCount(done);
-              return;
-            }
-            if (state === "fail") {
-              setShots((p) => ({ ...p, [key]: { status: "failed", taskId, model: cfg.model } }));
-              done++;
-              setCompletedCount(done);
-              return;
-            }
+            if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
+            const taskId = json.data.taskId as string;
+
+            const imageUrl = await pollTask(taskId, kieApiKey);
+            setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
+            finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
+          } catch {
+            setShots((p) => ({ ...p, [key]: { status: "failed", model: cfg.model } }));
           }
-          // timeout
-          setShots((p) => ({ ...p, [key]: { status: "failed", taskId, model: cfg.model } }));
           done++;
           setCompletedCount(done);
         })
@@ -227,7 +306,8 @@ export default function CreateCharacterPage() {
 
       if (timerRef.current) clearInterval(timerRef.current);
 
-      // Step 6 — Save
+      // ── STEP 4: Save ──
+      setGenPhase("saving");
       if (finalResults.hero_portrait?.url) {
         const { data, error } = await supabase.from("characters").insert({
           user_id: user!.id,
@@ -237,9 +317,9 @@ export default function CreateCharacterPage() {
           age_range: form.age_range,
           style: form.outfit_style,
           tags: [form.gender === "female" ? "Wanita" : "Pria", form.age_range, form.outfit_style],
-          description: identityPrompt.substring(0, 200),
+          description: identityBlock.substring(0, 200),
           config: form as any,
-          identity_prompt: identityPrompt,
+          identity_prompt: identityBlock,
           hero_image_url: finalResults.hero_portrait.url,
           thumbnail_url: finalResults.hero_portrait.url,
           reference_images: SHOT_KEYS.map((k) => finalResults[k]?.url || "").filter(Boolean),
@@ -261,6 +341,7 @@ export default function CreateCharacterPage() {
       if (timerRef.current) clearInterval(timerRef.current);
     } finally {
       setIsGenerating(false);
+      setGenPhase("idle");
     }
   };
 
@@ -270,6 +351,17 @@ export default function CreateCharacterPage() {
     form.age_range, form.skin_tone, form.face_shape, form.eye_color,
     form.hair_style, form.hair_color, form.expression, form.outfit_style, form.skin_condition,
   ].filter(Boolean);
+
+  // ── Progress label ──
+  const progressLabel = (() => {
+    switch (genPhase) {
+      case "identity": return "Membuat identity prompt...";
+      case "hero": return "Membuat hero portrait... (1/6)";
+      case "variations": return `Generating variasi... (${completedCount}/6)`;
+      case "saving": return "Menyimpan karakter...";
+      default: return "";
+    }
+  })();
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -415,7 +507,10 @@ export default function CreateCharacterPage() {
           {isGenerating && (
             <div className="mb-4 space-y-2 animate-fade-in">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Generating karakter... {completedCount}/6</span>
+                <span className="flex items-center gap-2">
+                  {genPhase === "hero" && <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />}
+                  {progressLabel}
+                </span>
                 <span>{elapsed}s</span>
               </div>
               <Progress value={(completedCount / 6) * 100} className="h-2 bg-[#2A2A2A]" />
@@ -429,8 +524,9 @@ export default function CreateCharacterPage() {
               const shot = shots[key];
               const Icon = cfg.icon;
               const isPro = cfg.model === "nano-banana-pro";
+              const isHero = key === "hero_portrait";
               return (
-                <div key={key} className="relative aspect-[3/4] bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden">
+                <div key={key} className={`relative aspect-[3/4] bg-[#1A1A1A] border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden ${isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" : "border-[#2A2A2A]"}`}>
                   {shot.status === "success" && shot.url ? (
                     <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={() => setZoomedShot({url: shot.url!, label: cfg.label})} />
                   ) : shot.status === "generating" ? (
@@ -490,7 +586,7 @@ export default function CreateCharacterPage() {
             </div>
           ) : (
             <Button onClick={handleGenerate} disabled={isGenerating} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
-              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating...</> : "Generate Karakter"}
+              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter"}
             </Button>
           )}
         </div>
