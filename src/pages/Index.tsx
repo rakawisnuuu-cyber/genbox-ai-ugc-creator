@@ -3,6 +3,8 @@ import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
 import DibuatUntukSection from "@/components/DibuatUntukSection";
 import FiturSection from "@/components/FiturSection";
+import CaraKerjaSection from "@/components/CaraKerjaSection";
+import HasilNyataSection from "@/components/HasilNyataSection";
 
 const Index = () => {
   return (
@@ -12,6 +14,8 @@ const Index = () => {
       <HeroSection />
       <DibuatUntukSection />
       <FiturSection />
+      <CaraKerjaSection />
+      <HasilNyataSection />
     </div>
   );
 };
