@@ -10,12 +10,15 @@ import {
   Loader2,
   Info,
   Images,
+  Copy,
+  Volume2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { usePromptModel } from "@/hooks/usePromptModel";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -76,14 +79,21 @@ const VideoPage = () => {
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
   const [prompt, setPrompt] = useState("");
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
+  const [promptEnhanced, setPromptEnhanced] = useState(false);
+  const [promptFlash, setPromptFlash] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Generation
   const [genState, setGenState] = useState<GenState>("idle");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [finalPrompt, setFinalPrompt] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortRef = useRef(false);
+
+  // Audio feedback
+  const [audioFeedbackShown, setAudioFeedbackShown] = useState(true);
 
   const startTimer = () => {
     setElapsed(0);
@@ -136,6 +146,7 @@ const VideoPage = () => {
       .select("id, image_url, created_at")
       .eq("user_id", user.id)
       .not("image_url", "is", null)
+      .neq("type", "video")
       .order("created_at", { ascending: false })
       .limit(50);
     setGalleryImages((data as GalleryImage[]) || []);
@@ -148,14 +159,21 @@ const VideoPage = () => {
     setGalleryOpen(false);
   };
 
+  /* ── Flash animation helper ─────────────────────────────── */
+  const flashTextarea = () => {
+    setPromptFlash(true);
+    setTimeout(() => setPromptFlash(false), 300);
+  };
+
   /* ── Gemini Prompt Helper ────────────────────────────────── */
-  const generatePrompt = async () => {
+  const enhancePrompt = async (): Promise<string> => {
     if (!geminiKey || keys.gemini.status !== "valid") {
       toast({ title: "Gemini API key belum di-setup", description: "Buka Settings.", variant: "destructive" });
-      return;
+      return prompt;
     }
     setGeneratingPrompt(true);
     try {
+      const userContext = prompt.trim() || "product/person photo";
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
         {
@@ -164,20 +182,25 @@ const VideoPage = () => {
           body: JSON.stringify({
             systemInstruction: {
               parts: [{
-                text: "You are an expert video prompt builder for AI video generation. The user has a source image and wants to create a short 5-8 second UGC-style video for TikTok/Reels.\n\nCreate a concise, action-focused English video prompt. Describe:\n- The specific MOTION and ACTION (what moves, how fast, direction)\n- Camera movement (static, slow zoom in, gentle pan, handheld feel)\n- Expression and body language changes\n- The mood and energy level\n\nKeep it under 80 words. Veo and Grok work best with concise, specific motion prompts.\n\nDo NOT describe what's already in the image. Only describe what MOVES and CHANGES.\n\nRespond with just the prompt text, no JSON, no quotes, no explanation.",
+                text: "You are an expert video prompt builder for AI video generation. The user has a source image and wants to create a short 5-8 second UGC-style video for TikTok/Reels.\n\nCreate a concise, action-focused English video prompt. Describe:\n- The specific MOTION and ACTION (what moves, how fast, direction)\n- Camera movement (static, slow zoom in, gentle pan, handheld feel)\n- Expression and body language changes\n- The mood and energy level\n\nKeep it under 80 words. Veo and Grok work best with concise, specific motion prompts.\n\nDo NOT describe what's already in the image. Only describe what MOVES and CHANGES.\n\nIMPORTANT: Replace any placeholder brackets like [DIALOGUE: ...] with actual natural dialogue text. The output must be clean — no brackets, no placeholders, no template markers.\n\nRespond with just the prompt text, no JSON, no quotes, no explanation.",
               }],
             },
             contents: [{
-              parts: [{ text: "Source image context: product/person photo. Create a video prompt for a UGC-style TikTok clip." }],
+              parts: [{ text: `Source image context: ${userContext}. Create a video prompt for a UGC-style TikTok clip.` }],
             }],
           }),
         }
       );
       const json = await res.json();
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      setPrompt(text.trim());
+      const enhanced = text.trim();
+      setPrompt(enhanced);
+      setPromptEnhanced(true);
+      flashTextarea();
+      return enhanced;
     } catch {
       toast({ title: "Gagal generate prompt", variant: "destructive" });
+      return prompt;
     } finally {
       setGeneratingPrompt(false);
     }
@@ -195,15 +218,22 @@ const VideoPage = () => {
     setGenState("loading");
     setVideoUrl(null);
     setErrorMsg("");
+    setAudioFeedbackShown(true);
     startTimer();
 
     try {
+      // Auto-enhance if not yet enhanced
+      let usedPrompt = prompt;
+      if (!promptEnhanced && geminiKey && keys.gemini.status === "valid") {
+        usedPrompt = await enhancePrompt();
+      }
+      setFinalPrompt(usedPrompt);
+
       let taskId: string;
       let pollUrl: string;
       let pollInterval: number;
 
       if (videoModel === "grok") {
-        // Grok Imagine
         const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
           method: "POST",
           headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
@@ -211,7 +241,7 @@ const VideoPage = () => {
             model: "grok-imagine/image-to-video",
             input: {
               image_urls: [sourceUrl],
-              prompt,
+              prompt: usedPrompt,
               mode: "normal",
               duration: "6",
               resolution: "480p",
@@ -224,12 +254,11 @@ const VideoPage = () => {
         pollUrl = `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`;
         pollInterval = 3000;
       } else {
-        // Veo 3.1
         const createRes = await fetch("https://api.kie.ai/api/v1/veo/generate", {
           method: "POST",
           headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt,
+            prompt: usedPrompt,
             imageUrls: [sourceUrl],
             model: videoModel === "veo_fast" ? "veo3_fast" : "veo3",
             aspect_ratio: aspectRatio,
@@ -264,7 +293,6 @@ const VideoPage = () => {
           }
           if (state === "fail") throw new Error("Generation failed");
         } else {
-          // Veo
           const status = j.data?.status || j.status;
           if (status === "SUCCESS" || status === "success" || status === "completed") {
             const url = j.data?.videoUrl || j.data?.video_url || j.videoUrl || "";
@@ -286,15 +314,22 @@ const VideoPage = () => {
       setGenState("completed");
 
       // Save
-      await supabase.from("generations").insert({
+      const { error: saveError } = await supabase.from("generations").insert({
         user_id: user!.id,
         type: "video",
         image_url: resultVideoUrl,
-        prompt,
+        prompt: usedPrompt,
         model: videoModel === "grok" ? "grok-imagine" : videoModel === "veo_fast" ? "veo3_fast" : "veo3",
         provider: "kie_ai",
         status: "completed",
       });
+      if (saveError) {
+        console.error("Save error:", saveError);
+        sonnerToast.error("Gagal menyimpan. Coba download manual.");
+      } else {
+        sonnerToast.success("Video berhasil disimpan ke gallery!");
+      }
+      console.log("Saved video URL:", resultVideoUrl);
     } catch (err: any) {
       stopTimer();
       if (!abortRef.current) {
@@ -308,6 +343,11 @@ const VideoPage = () => {
     abortRef.current = true;
     stopTimer();
     setGenState("idle");
+  };
+
+  const copyPrompt = () => {
+    navigator.clipboard.writeText(finalPrompt || prompt);
+    sonnerToast.success("Prompt di-copy!");
   };
 
   const canGenerate = !!sourceUrl && !!prompt.trim() && genState !== "loading";
@@ -402,9 +442,9 @@ const VideoPage = () => {
         {/* Aspect Ratio */}
         <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Aspect Ratio</label>
-          <ToggleGroup type="single" value={aspectRatio} onValueChange={(v) => v && setAspectRatio(v as "9:16" | "16:9")}>
-            <ToggleGroupItem value="9:16" className="text-xs px-4">9:16 Portrait</ToggleGroupItem>
-            <ToggleGroupItem value="16:9" className="text-xs px-4">16:9 Landscape</ToggleGroupItem>
+          <ToggleGroup type="single" value={aspectRatio} onValueChange={(v) => v && setAspectRatio(v as "9:16" | "16:9")} className="w-full sm:w-auto">
+            <ToggleGroupItem value="9:16" className="text-xs px-4 flex-1 sm:flex-none">9:16 Portrait</ToggleGroupItem>
+            <ToggleGroupItem value="16:9" className="text-xs px-4 flex-1 sm:flex-none">16:9 Landscape</ToggleGroupItem>
           </ToggleGroup>
         </div>
 
@@ -412,19 +452,20 @@ const VideoPage = () => {
         <div className="animate-fade-up" style={{ animationDelay: "250ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Video Prompt</label>
           <Textarea
+            ref={textareaRef}
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => { setPrompt(e.target.value); setPromptEnhanced(false); }}
             rows={4}
             placeholder="Deskripsikan gerakan yang kamu inginkan... Contoh: Person smiles and holds up the product, looking at camera naturally"
-            className="bg-[hsl(0_0%_10%)] border-border text-sm"
+            className={`bg-muted/30 border-border text-sm transition-all duration-300 ${promptFlash ? "border-green-500 ring-2 ring-green-500/30" : ""}`}
           />
           <button
-            onClick={generatePrompt}
+            onClick={enhancePrompt}
             disabled={generatingPrompt}
             className="mt-2 inline-flex items-center gap-2 border border-primary text-primary text-xs font-bold px-4 py-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
           >
             {generatingPrompt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            ✨ GENERATE PROMPT
+            ✨ ENHANCE & GENERATE PROMPT
           </button>
           <p className="text-[11px] text-muted-foreground/60 mt-1.5">Edit prompt untuk hasil yang lebih baik</p>
         </div>
@@ -451,27 +492,31 @@ const VideoPage = () => {
           <button
             onClick={generate}
             disabled={!canGenerate}
-            className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40 animate-cta-glow disabled:animate-none"
+            className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40"
           >
-            <Film className="h-4 w-4" />
+            {genState === "loading" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Film className="h-4 w-4" />
+            )}
             🎬 GENERATE VIDEO
           </button>
         </div>
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="w-full lg:w-[45%] bg-[hsl(0_0%_5%)] border-t lg:border-t-0 lg:border-l border-border flex items-center justify-center p-6 lg:p-10 min-h-[400px] lg:min-h-0">
+      <div className="w-full lg:w-[45%] bg-muted/20 border-t lg:border-t-0 lg:border-l border-border flex items-center justify-center p-6 lg:p-10 min-h-[400px] lg:min-h-0">
         {genState === "idle" && (
           <div className="flex flex-col items-center text-center animate-fade-in">
             <Film className="h-16 w-16 text-foreground/10 mb-4" />
             <p className="text-sm text-muted-foreground">Hasil video akan muncul di sini</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Upload gambar dan tulis prompt untuk mulai</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Pilih gambar, atur keyword, dan generate!</p>
           </div>
         )}
 
         {genState === "loading" && (
           <div className="flex flex-col items-center text-center gap-4 w-full max-w-xs animate-fade-in">
-            <div className={`${aspectRatio === "9:16" ? "aspect-[9/16]" : "aspect-[16/9]"} w-full rounded-xl bg-[hsl(0_0%_10%)] border-2 border-primary/30 animate-pulse`} />
+            <div className={`${aspectRatio === "9:16" ? "aspect-[9/16]" : "aspect-[16/9]"} w-full rounded-xl bg-muted border-2 border-primary/30 animate-pulse`} />
             <p className="text-sm text-muted-foreground">Sedang membuat video...</p>
             <p className="text-xs text-muted-foreground/60">{elapsed}s</p>
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${info.badgeColor}`}>{info.label}</span>
@@ -486,28 +531,63 @@ const VideoPage = () => {
               controls
               autoPlay
               loop
-              muted
+              playsInline
               className={`w-full rounded-xl border-2 border-primary/20 shadow-lg ${aspectRatio === "9:16" ? "aspect-[9/16]" : "aspect-[16/9]"} object-cover`}
             />
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap justify-center">
               <span className={`font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-[10px] ${info.badgeColor}`}>{info.label}</span>
               <span>•</span>
               <span>{elapsed}s</span>
+              <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-[10px] font-medium">
+                <Volume2 className="h-3 w-3" /> Audio native
+              </span>
             </div>
-            <div className="flex gap-2 w-full">
+
+            {/* Audio quality check */}
+            {audioFeedbackShown && (
+              <div className="w-full bg-card border border-border rounded-lg p-3 space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Audio oke?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAudioFeedbackShown(false)}
+                    className="flex-1 text-xs py-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
+                  >
+                    👍 Bagus
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAudioFeedbackShown(false);
+                      sonnerToast.info("Tip: Edit prompt untuk memperbaiki dialog, lalu generate ulang.");
+                    }}
+                    className="flex-1 text-xs py-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                  >
+                    👎 Kurang
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 w-full flex-wrap">
               <a
                 href={videoUrl}
                 download
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+                className="flex-1 bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors min-w-[120px]"
               >
                 <Download className="h-3.5 w-3.5" />
                 Download
               </a>
               <button
-                onClick={() => { setGenState("idle"); setVideoUrl(null); }}
-                className="border border-border text-muted-foreground text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 hover:text-foreground transition-colors"
+                onClick={copyPrompt}
+                className="border border-border text-muted-foreground text-xs py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 hover:text-foreground transition-colors"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copy Prompt
+              </button>
+              <button
+                onClick={() => { setGenState("idle"); setVideoUrl(null); setPromptEnhanced(false); }}
+                className="border border-border text-muted-foreground text-xs py-2.5 px-3 rounded-lg flex items-center justify-center gap-1.5 hover:text-foreground transition-colors"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 Generate Lagi
@@ -543,7 +623,7 @@ const VideoPage = () => {
               ) : galleryImages.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-12">Belum ada gambar di gallery</p>
               ) : (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {galleryImages.map((img) => (
                     <button
                       key={img.id}
