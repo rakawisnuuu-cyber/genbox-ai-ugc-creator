@@ -21,7 +21,7 @@ const navItems = [
   { title: "Gallery", icon: Images, path: "/gallery" },
   { title: "Prompt Generator", icon: Sparkles, path: "/prompt" },
   { title: "n8n Blueprint", icon: Package, path: "/blueprint" },
-  { title: "Buat Video", icon: Film, path: "/video", disabled: true },
+  { title: "Buat Video", icon: Film, path: "/video" },
   { title: "Settings", icon: Settings, path: "/settings" },
 ];
 
@@ -34,25 +34,12 @@ const DashboardLayout = () => {
   const displayName = user?.email?.split("@")[0] || "User";
 
   const isActive = (path: string) => location.pathname === path;
-  const isGeneratePage = location.pathname === "/generate";
+  const isFullWidthPage = location.pathname === "/generate" || location.pathname === "/video";
 
   const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
     <ul className="space-y-1">
       {navItems.map((item) => {
         const active = isActive(item.path);
-        if (item.disabled) {
-          return (
-            <li key={item.path}>
-              <span className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[hsl(0_0%_27%)] cursor-not-allowed">
-                <item.icon className="h-[18px] w-[18px]" />
-                {item.title}
-                <span className="ml-auto rounded-full bg-[hsl(0_0%_16%)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[hsl(0_0%_40%)]">
-                  Soon
-                </span>
-              </span>
-            </li>
-          );
-        }
         return (
           <li key={item.path}>
             <Link
@@ -129,19 +116,6 @@ const DashboardLayout = () => {
             <ul className="space-y-1">
               {navItems.map((item) => {
                 const active = isActive(item.path);
-                if (item.disabled) {
-                  return (
-                    <li key={item.path}>
-                      <span className="flex items-center gap-3 py-4 text-base font-medium text-[hsl(0_0%_27%)] cursor-not-allowed">
-                        <item.icon className="h-5 w-5" />
-                        {item.title}
-                        <span className="ml-auto rounded-full bg-[hsl(0_0%_16%)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[hsl(0_0%_40%)]">
-                          Soon
-                        </span>
-                      </span>
-                    </li>
-                  );
-                }
                 return (
                   <li key={item.path}>
                     <Link
@@ -182,7 +156,7 @@ const DashboardLayout = () => {
 
       {/* Main Content */}
       <main className="mt-14 min-h-screen lg:ml-60 lg:mt-0">
-        <div className={`mx-auto ${isGeneratePage ? "" : "max-w-5xl px-4 py-4 lg:px-6 lg:py-8"}`}>
+        <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-4 py-4 lg:px-6 lg:py-8"}`}>
           <Outlet />
         </div>
       </main>
