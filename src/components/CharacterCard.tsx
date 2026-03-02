@@ -13,6 +13,7 @@ export interface CharacterData {
   hero_image_url?: string;
   reference_images?: string[];
   identity_prompt?: string;
+  reference_photo_url?: string;
 }
 
 interface CharacterCardProps {
