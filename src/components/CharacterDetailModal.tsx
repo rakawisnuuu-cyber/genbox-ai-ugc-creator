@@ -46,6 +46,22 @@ const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDeta
             </span>
           </div>
 
+          {/* Reference Photo */}
+          {character.reference_photo_url && (
+            <div className="mt-2">
+              <p className="text-xs uppercase tracking-widest text-[#666] mb-2">Foto Referensi</p>
+              <div className="flex items-center gap-3">
+                <img
+                  src={character.reference_photo_url}
+                  alt="Reference"
+                  className="h-16 w-16 rounded-full object-cover border border-[#2A2A2A] cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setLightboxUrl(character.reference_photo_url!)}
+                />
+                <p className="text-[11px] text-[#888]">Foto asli yang digunakan sebagai referensi wajah</p>
+              </div>
+            </div>
+          )}
+
           {/* Description */}
           <p className="text-sm text-[#999] mt-2 leading-relaxed">{character.description}</p>
 

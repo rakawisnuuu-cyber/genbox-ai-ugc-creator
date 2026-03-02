@@ -134,6 +134,7 @@ const GeneratePage = () => {
               hero_image_url: d.hero_image_url ?? undefined,
               reference_images: d.reference_images ?? undefined,
               identity_prompt: d.identity_prompt ?? undefined,
+              reference_photo_url: d.reference_photo_url ?? undefined,
             }))
           );
         }
@@ -316,7 +317,12 @@ Respond ONLY with valid JSON:
       // Build image_input array with character hero + product references
       const imageInputs: string[] = [];
 
-      // Add character hero image as face reference (for custom characters with generated images)
+      // Add original reference photo if character has one (highest priority face anchor)
+      if (selectedChar?.reference_photo_url) {
+        imageInputs.push(selectedChar.reference_photo_url);
+      }
+
+      // Add character hero image as secondary face reference (for custom characters)
       if (selectedChar && !selectedChar.id.startsWith("p") && selectedChar.hero_image_url) {
         imageInputs.push(selectedChar.hero_image_url);
       }

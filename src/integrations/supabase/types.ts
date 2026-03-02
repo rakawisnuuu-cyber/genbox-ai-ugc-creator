@@ -29,6 +29,7 @@ export type Database = {
           is_preset: boolean
           name: string
           reference_images: string[] | null
+          reference_photo_url: string | null
           shot_metadata: Json | null
           style: string
           tags: string[] | null
@@ -51,6 +52,7 @@ export type Database = {
           is_preset?: boolean
           name: string
           reference_images?: string[] | null
+          reference_photo_url?: string | null
           shot_metadata?: Json | null
           style?: string
           tags?: string[] | null
@@ -73,6 +75,7 @@ export type Database = {
           is_preset?: boolean
           name?: string
           reference_images?: string[] | null
+          reference_photo_url?: string | null
           shot_metadata?: Json | null
           style?: string
           tags?: string[] | null

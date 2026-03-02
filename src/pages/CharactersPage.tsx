@@ -53,6 +53,7 @@ const CharactersPage = () => {
           hero_image_url: d.hero_image_url ?? undefined,
           reference_images: d.reference_images ?? undefined,
           identity_prompt: d.identity_prompt ?? undefined,
+          reference_photo_url: d.reference_photo_url ?? undefined,
         }))
       );
     }
