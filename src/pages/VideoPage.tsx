@@ -509,7 +509,7 @@ const VideoPage = () => {
             className="mt-2 inline-flex items-center gap-2 border border-primary text-primary text-xs font-bold px-4 py-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
           >
             {generatingPrompt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            ✨ ENHANCE & GENERATE PROMPT
+            ENHANCE & GENERATE PROMPT
           </button>
           <p className="text-[11px] text-muted-foreground/60 mt-1.5">Edit prompt untuk hasil yang lebih baik</p>
         </div>
@@ -519,7 +519,7 @@ const VideoPage = () => {
           <div className="flex items-start gap-2 bg-primary/10 border border-primary/20 rounded-lg p-3">
             <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <p className="text-xs text-muted-foreground">
-              📋 Ingat: Toggle &apos;AI-generated content&apos; saat upload ke TikTok. Konten AI yang dilabeli TIDAK akan dikurangi jangkauannya.
+              Ingat: Toggle &apos;AI-generated content&apos; saat upload ke TikTok. Konten AI yang dilabeli TIDAK akan dikurangi jangkauannya.
             </p>
           </div>
         </div>
@@ -543,7 +543,7 @@ const VideoPage = () => {
             ) : (
               <Film className="h-4 w-4" />
             )}
-            🎬 GENERATE VIDEO
+            GENERATE VIDEO
           </button>
         </div>
       </div>
@@ -595,7 +595,7 @@ const VideoPage = () => {
                     onClick={() => setAudioFeedbackShown(false)}
                     className="flex-1 text-xs py-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-colors"
                   >
-                    👍 Bagus
+                    Bagus
                   </button>
                   <button
                     onClick={() => {
@@ -604,7 +604,7 @@ const VideoPage = () => {
                     }}
                     className="flex-1 text-xs py-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
                   >
-                    👎 Kurang
+                    Kurang
                   </button>
                 </div>
               </div>

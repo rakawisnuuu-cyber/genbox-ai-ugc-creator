@@ -20,6 +20,24 @@ import {
   Copy,
   RefreshCw,
   Clock,
+  Zap,
+  AlertCircle,
+  Clapperboard,
+  CheckCircle,
+  MousePointerClick,
+  ArrowRightLeft,
+  Camera,
+  Palette,
+  MessageSquare,
+  Eye,
+  Sparkle,
+  Package,
+  HandMetal,
+  Smartphone,
+  BookOpen,
+  Gem,
+  BookMarked,
+  type LucideIcon,
 } from "lucide-react";
 import { useMultiShotGeneration } from "@/hooks/useMultiShotGeneration";
 import { Progress } from "@/components/ui/progress";
@@ -42,6 +60,24 @@ import {
   type VideoProject,
 } from "@/lib/video-modules";
 
+// Map icon string names to lucide components
+const MODULE_ICONS: Record<string, LucideIcon> = {
+  Zap, AlertCircle, Clapperboard, CheckCircle, MousePointerClick, ArrowRightLeft, Camera,
+};
+const TEMPLATE_ICONS: Record<string, LucideIcon> = {
+  Smartphone, BookOpen, Gem, BookMarked,
+};
+
+const getModuleIcon = (iconName: string) => {
+  const Icon = MODULE_ICONS[iconName];
+  return Icon ? <Icon className="h-3 w-3" /> : null;
+};
+
+const getTemplateIcon = (iconName: string) => {
+  const Icon = TEMPLATE_ICONS[iconName];
+  return Icon ? <Icon className="h-6 w-6 text-muted-foreground" /> : null;
+};
+
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
 type Template = keyof typeof VIDEO_TEMPLATES | "custom";
 
@@ -52,11 +88,11 @@ const MODEL_INFO_MULTI: Record<VideoModel, { label: string; badge: string; badge
 };
 
 const SCRIPT_TEMPLATES = [
-  { id: "testimony", icon: "💬", label: "Testimony" },
-  { id: "discovery", icon: "😲", label: "Discovery" },
-  { id: "before_after", icon: "✨", label: "Before-After" },
-  { id: "unboxing", icon: "📦", label: "Unboxing" },
-  { id: "casual", icon: "👋", label: "Casual Rec" },
+  { id: "testimony", icon: MessageSquare, label: "Testimony" },
+  { id: "discovery", icon: Eye, label: "Discovery" },
+  { id: "before_after", icon: Sparkle, label: "Before-After" },
+  { id: "unboxing", icon: Package, label: "Unboxing" },
+  { id: "casual", icon: HandMetal, label: "Casual Rec" },
 ];
 
 const MultiShotCreator = () => {
@@ -379,7 +415,7 @@ const MultiShotCreator = () => {
                     } bg-card`}
                   >
                     <div className="flex items-start justify-between">
-                      <span className="text-2xl">{tmpl.icon}</span>
+                      {getTemplateIcon(tmpl.icon)}
                       <span className="text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{tmpl.duration}</span>
                     </div>
                     <p className="text-sm font-semibold text-foreground mt-2">{tmpl.nameId}</p>
@@ -387,8 +423,8 @@ const MultiShotCreator = () => {
                     <p className="text-[11px] text-muted-foreground/60 mt-1">{tmpl.modules.length} shots</p>
                     <div className="flex gap-1 mt-2 flex-wrap">
                       {tmpl.modules.map((m, i) => (
-                        <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-full border ${MODULE_LIBRARY[m.type].color}`}>
-                          {MODULE_LIBRARY[m.type].icon}
+                        <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-full border inline-flex items-center gap-0.5 ${MODULE_LIBRARY[m.type].color}`}>
+                          {getModuleIcon(MODULE_LIBRARY[m.type].icon)}
                         </span>
                       ))}
                     </div>
@@ -404,7 +440,7 @@ const MultiShotCreator = () => {
                     : "border-2 border-dashed border-border hover:border-muted-foreground/30"
                 } bg-card`}
               >
-                <span className="text-2xl">🎨</span>
+                <Palette className="h-6 w-6 text-muted-foreground" />
                 <p className="text-sm font-semibold text-foreground mt-2">Custom</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">Buat sendiri dari nol</p>
               </button>
@@ -567,8 +603,8 @@ const MultiShotCreator = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[11px] text-muted-foreground font-mono">#{idx + 1}</span>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lib.color}`}>
-                              {lib.icon} {lib.label}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${lib.color}`}>
+                              {getModuleIcon(lib.icon)} {lib.label}
                             </span>
                             <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">{mod.duration}s</span>
                             {mod.withDialogue ? (
@@ -608,7 +644,7 @@ const MultiShotCreator = () => {
                                   onClick={() => { addModule(idx, type); setAddMenuIdx(null); }}
                                   className="w-full text-left text-xs px-3 py-2 rounded-md hover:bg-muted flex items-center gap-2 transition-colors"
                                 >
-                                  <span>{lib.icon}</span>
+                                  <span>{getModuleIcon(lib.icon)}</span>
                                   <span className="font-medium">{lib.label}</span>
                                   <span className="text-muted-foreground ml-auto">{lib.defaultDuration}s</span>
                                 </button>
@@ -647,8 +683,8 @@ const MultiShotCreator = () => {
             {selectedModule ? (
               <div className="bg-card border border-border rounded-xl p-5 space-y-5 sticky top-4">
                 <div className="flex items-center justify-between">
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full border ${MODULE_LIBRARY[selectedModule.type].color}`}>
-                    {MODULE_LIBRARY[selectedModule.type].icon} {MODULE_LIBRARY[selectedModule.type].label}
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full border inline-flex items-center gap-1 ${MODULE_LIBRARY[selectedModule.type].color}`}>
+                    {getModuleIcon(MODULE_LIBRARY[selectedModule.type].icon)} {MODULE_LIBRARY[selectedModule.type].label}
                   </span>
                   <span className="text-[11px] text-muted-foreground">#{selectedModuleIdx + 1}</span>
                 </div>
@@ -707,7 +743,7 @@ const MultiShotCreator = () => {
                     ) : (
                       <Sparkles className="h-3 w-3" />
                     )}
-                    ✨ Generate Prompt
+                    Generate Prompt
                   </button>
                 </div>
 
@@ -738,7 +774,7 @@ const MultiShotCreator = () => {
                                 : "border-border text-muted-foreground hover:border-muted-foreground/50"
                             }`}
                           >
-                            {st.icon} {st.label}
+                            <st.icon className="h-3 w-3" /> {st.label}
                           </button>
                         ))}
                       </div>
@@ -856,8 +892,8 @@ const MultiShotCreator = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-[11px] text-muted-foreground font-mono">#{idx + 1}</span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lib.color}`}>
-                                {lib.icon} {lib.label}
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${lib.color}`}>
+                                {getModuleIcon(lib.icon)} {lib.label}
                               </span>
                               {mod.withDialogue && <Volume2 className="h-3 w-3 text-primary" />}
 
@@ -878,7 +914,7 @@ const MultiShotCreator = () => {
                                 </span>
                               )}
                               {!isActive && !isCompleted && !isFailed && (
-                                <span className="text-[10px] text-muted-foreground/50">⏳ Menunggu...</span>
+                                <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1"><Clock className="h-3 w-3" /> Menunggu...</span>
                               )}
                             </div>
 
@@ -887,7 +923,7 @@ const MultiShotCreator = () => {
                                 onClick={() => setPreviewShotIdx(idx)}
                                 className="text-[10px] text-primary hover:underline mt-1"
                               >
-                                ▶ Lihat preview
+                                <Play className="h-3 w-3 inline mr-0.5" /> Lihat preview
                               </button>
                             )}
                             {isFailed && (
@@ -948,7 +984,7 @@ const MultiShotCreator = () => {
                   )}
                   {multiShotGen.progress.status === "completed" && (
                     <div className="text-center py-2">
-                      <p className="text-sm font-semibold text-green-500">✅ Semua shot selesai!</p>
+                      <p className="text-sm font-semibold text-green-500 flex items-center justify-center gap-1"><CheckCircle className="h-4 w-4" /> Semua shot selesai!</p>
                       {multiShotGen.progress.failedShots.length > 0 && (
                         <p className="text-xs text-destructive mt-1">{multiShotGen.progress.failedShots.length} shot gagal — retry di atas</p>
                       )}
@@ -976,11 +1012,11 @@ const MultiShotCreator = () => {
                       </div>
                       <div className="p-4 space-y-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${MODULE_LIBRARY[modules[previewShotIdx].type].color}`}>
-                            {MODULE_LIBRARY[modules[previewShotIdx].type].icon} Shot #{previewShotIdx + 1}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${MODULE_LIBRARY[modules[previewShotIdx].type].color}`}>
+                            {getModuleIcon(MODULE_LIBRARY[modules[previewShotIdx].type].icon)} Shot #{previewShotIdx + 1}
                           </span>
                           {modules[previewShotIdx].withDialogue && (
-                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">🔊 Audio native</span>
+                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full inline-flex items-center gap-1"><Volume2 className="h-3 w-3" /> Audio native</span>
                           )}
                         </div>
                         <a
@@ -1000,8 +1036,8 @@ const MultiShotCreator = () => {
                           <p className="text-sm text-muted-foreground">
                             Generating shot {multiShotGen.progress.currentShot + 1}...
                           </p>
-                          <p className="text-[10px] text-muted-foreground/50 mt-1">
-                            {MODULE_LIBRARY[modules[multiShotGen.progress.currentShot]?.type]?.icon}{" "}
+                          <p className="text-[10px] text-muted-foreground/50 mt-1 flex items-center justify-center gap-1">
+                            {getModuleIcon(MODULE_LIBRARY[modules[multiShotGen.progress.currentShot]?.type]?.icon)}
                             {MODULE_LIBRARY[modules[multiShotGen.progress.currentShot]?.type]?.label}
                           </p>
                         </>

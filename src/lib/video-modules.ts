@@ -50,7 +50,7 @@ export const MODULE_LIBRARY: Record<ModuleType, {
   hook: {
     label: "HOOK",
     labelId: "Hook",
-    icon: "⚡",
+    icon: "Zap",
     description: "Stop the scroll. First 3 seconds determine if user watches.",
     descriptionId: "Hentikan scrolling. 3 detik pertama menentukan segalanya.",
     defaultDuration: 3,
@@ -63,7 +63,7 @@ export const MODULE_LIBRARY: Record<ModuleType, {
   problem: {
     label: "PROBLEM",
     labelId: "Problem",
-    icon: "😤",
+    icon: "AlertCircle",
     description: "Establish relatable pain point. Build emotional connection.",
     descriptionId: "Tunjukkan masalah yang relatable. Bangun koneksi emosional.",
     defaultDuration: 4,
@@ -76,7 +76,7 @@ export const MODULE_LIBRARY: Record<ModuleType, {
   demo: {
     label: "DEMO",
     labelId: "Demo",
-    icon: "🎬",
+    icon: "Clapperboard",
     description: "Show product in action. The money shot.",
     descriptionId: "Tunjukkan produk beraksi. The money shot.",
     defaultDuration: 7,
@@ -89,7 +89,7 @@ export const MODULE_LIBRARY: Record<ModuleType, {
   proof: {
     label: "PROOF",
     labelId: "Bukti",
-    icon: "✨",
+    icon: "CheckCircle",
     description: "Social proof or results. Build credibility.",
     descriptionId: "Bukti sosial atau hasil. Bangun kredibilitas.",
     defaultDuration: 4,
@@ -102,7 +102,7 @@ export const MODULE_LIBRARY: Record<ModuleType, {
   cta: {
     label: "CTA",
     labelId: "Call to Action",
-    icon: "👆",
+    icon: "MousePointerClick",
     description: "Drive action. Tell viewer exactly what to do next.",
     descriptionId: "Ajak aksi. Arahkan penonton untuk bertindak.",
     defaultDuration: 3,
@@ -115,7 +115,7 @@ export const MODULE_LIBRARY: Record<ModuleType, {
   transition: {
     label: "TRANSITION",
     labelId: "Transisi",
-    icon: "🔄",
+    icon: "ArrowRightLeft",
     description: "Smooth scene change. Pace reset.",
     descriptionId: "Perpindahan scene yang halus.",
     defaultDuration: 2,
@@ -128,7 +128,7 @@ export const MODULE_LIBRARY: Record<ModuleType, {
   broll: {
     label: "B-ROLL",
     labelId: "B-Roll",
-    icon: "🎞️",
+    icon: "Camera",
     description: "Supplementary footage. Texture, lifestyle, aesthetic.",
     descriptionId: "Footage tambahan. Estetik, lifestyle, suasana.",
     defaultDuration: 3,
@@ -147,7 +147,7 @@ export const VIDEO_TEMPLATES = {
     description: "TikTok Shop, product promotion, affiliate marketing",
     descriptionId: "TikTok Shop, promosi produk, affiliate marketing",
     duration: "15-20 detik",
-    icon: "📱",
+    icon: "Smartphone",
     modules: [
       { type: "hook" as ModuleType, duration: 3, source: "character" as const, withDialogue: true },
       { type: "problem" as ModuleType, duration: 4, source: "character" as const, withDialogue: true },
@@ -162,7 +162,7 @@ export const VIDEO_TEMPLATES = {
     description: "Tutorial, how-to, tips & tricks",
     descriptionId: "Tutorial, cara pakai, tips & trik",
     duration: "25-30 detik",
-    icon: "📚",
+    icon: "BookOpen",
     modules: [
       { type: "hook" as ModuleType, duration: 3, source: "character" as const, withDialogue: true },
       { type: "broll" as ModuleType, duration: 2, source: "text_only" as const, withDialogue: false },
@@ -178,7 +178,7 @@ export const VIDEO_TEMPLATES = {
     description: "Product launch, hero content, brand awareness",
     descriptionId: "Peluncuran produk, konten hero, brand awareness",
     duration: "15 detik",
-    icon: "💎",
+    icon: "Gem",
     modules: [
       { type: "hook" as ModuleType, duration: 2, source: "character" as const, withDialogue: false },
       { type: "demo" as ModuleType, duration: 6, source: "product" as const, withDialogue: false },
@@ -192,7 +192,7 @@ export const VIDEO_TEMPLATES = {
     description: "Emotional narrative, brand story, testimonial",
     descriptionId: "Narasi emosional, cerita brand, testimoni",
     duration: "30 detik",
-    icon: "📖",
+    icon: "BookMarked",
     modules: [
       { type: "hook" as ModuleType, duration: 3, source: "character" as const, withDialogue: true },
       { type: "problem" as ModuleType, duration: 7, source: "character" as const, withDialogue: true },
