@@ -212,6 +212,68 @@ export type Database = {
         }
         Relationships: []
       }
+      video_projects: {
+        Row: {
+          aspect_ratio: string
+          character_id: string | null
+          created_at: string
+          final_video_url: string | null
+          id: string
+          model: string
+          modules: Json
+          product_image_url: string | null
+          status: string
+          template: string
+          title: string
+          total_duration: number
+          updated_at: string
+          user_id: string
+          with_dialogue: boolean
+        }
+        Insert: {
+          aspect_ratio?: string
+          character_id?: string | null
+          created_at?: string
+          final_video_url?: string | null
+          id?: string
+          model?: string
+          modules?: Json
+          product_image_url?: string | null
+          status?: string
+          template: string
+          title?: string
+          total_duration?: number
+          updated_at?: string
+          user_id: string
+          with_dialogue?: boolean
+        }
+        Update: {
+          aspect_ratio?: string
+          character_id?: string | null
+          created_at?: string
+          final_video_url?: string | null
+          id?: string
+          model?: string
+          modules?: Json
+          product_image_url?: string | null
+          status?: string
+          template?: string
+          title?: string
+          total_duration?: number
+          updated_at?: string
+          user_id?: string
+          with_dialogue?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_projects_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
