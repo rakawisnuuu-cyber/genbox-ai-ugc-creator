@@ -13,7 +13,16 @@ import {
   AlertTriangle,
   Film,
   GripVertical,
+  Pause,
+  Play,
+  X,
+  Download,
+  Copy,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
+import { useMultiShotGeneration } from "@/hooks/useMultiShotGeneration";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
@@ -52,7 +61,7 @@ const SCRIPT_TEMPLATES = [
 
 const MultiShotCreator = () => {
   const { user } = useAuth();
-  const { geminiKey, keys } = useApiKeys();
+  const { geminiKey, keys, kieApiKey } = useApiKeys();
   const { model: promptModel } = usePromptModel();
   const { toast } = useToast();
 
@@ -75,6 +84,52 @@ const MultiShotCreator = () => {
   const [selectedModuleIdx, setSelectedModuleIdx] = useState(0);
   const [generatingPromptIdx, setGeneratingPromptIdx] = useState<number | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Step 3 state
+  const [showCostConfirm, setShowCostConfirm] = useState(true);
+  const [previewShotIdx, setPreviewShotIdx] = useState<number | null>(null);
+  const [generationStarted, setGenerationStarted] = useState(false);
+
+  // Character info for generation
+  const selectedChar = characters.find((c) => c.id === characterId);
+
+  // Multi-shot generation hook
+  const multiShotGen = useMultiShotGeneration({
+    projectId: projectId || "",
+    modules,
+    characterHeroUrl: selectedChar?.hero_image_url || null,
+    characterRefUrl: null,
+    productImageUrl,
+    model: videoModel,
+    aspectRatio,
+    kieApiKey: kieApiKey || "",
+    geminiApiKey: geminiKey || "",
+    promptModel,
+    onModuleUpdate: (idx, patch) => {
+      setModules((prev) => prev.map((m, i) => (i === idx ? { ...m, ...patch } : m)));
+    },
+    onProjectStatusChange: async (status) => {
+      if (projectId) {
+        await supabase.from("video_projects").update({ status, updated_at: new Date().toISOString() }).eq("id", projectId);
+      }
+    },
+  });
+
+  // Auto-select latest completed shot for preview
+  useEffect(() => {
+    if (multiShotGen.progress.completedShots.length > 0) {
+      const latest = multiShotGen.progress.completedShots[multiShotGen.progress.completedShots.length - 1];
+      setPreviewShotIdx(latest);
+    }
+  }, [multiShotGen.progress.completedShots]);
+
+  const handleStartGeneration = () => {
+    setShowCostConfirm(false);
+    setGenerationStarted(true);
+    multiShotGen.start();
+  };
+
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   // Load characters
   useEffect(() => {
@@ -730,12 +785,268 @@ const MultiShotCreator = () => {
         </div>
       )}
 
-      {/* STEP 3 placeholder */}
+      {/* STEP 3: Generate & Preview */}
       {step === 3 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-up">
-          <Film className="h-16 w-16 text-muted-foreground/20 mb-4" />
-          <p className="text-sm text-muted-foreground">Generate & Preview</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Coming soon — akan dibangun di langkah selanjutnya</p>
+        <div className="max-w-6xl mx-auto animate-fade-up">
+          {/* Cost confirmation */}
+          {showCostConfirm && !generationStarted && (
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
+              <Film className="h-12 w-12 text-primary/40" />
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-foreground">Estimasi Biaya</h3>
+                <p className="text-sm text-muted-foreground">
+                  {modules.length} shots × Rp {multiShotGen.costPerShot.toLocaleString("id-ID")} ={" "}
+                  <span className="text-foreground font-bold">Rp {multiShotGen.totalCost.toLocaleString("id-ID")}</span>
+                </p>
+                <p className="text-xs text-muted-foreground/60">Semua shots termasuk audio native</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setStep(2)}
+                  className="text-sm text-muted-foreground px-4 py-2.5 rounded-lg hover:text-foreground transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4 inline mr-1" /> Kembali
+                </button>
+                <button
+                  onClick={handleStartGeneration}
+                  disabled={!kieApiKey || keys.kie_ai.status !== "valid"}
+                  className="bg-primary text-primary-foreground font-bold text-sm px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-2"
+                >
+                  <Play className="h-4 w-4" /> Mulai Generate
+                </button>
+              </div>
+              {(!kieApiKey || keys.kie_ai.status !== "valid") && (
+                <p className="text-xs text-destructive">Kie AI API key belum di-setup. Buka Settings.</p>
+              )}
+            </div>
+          )}
+
+          {/* Generation in progress / completed */}
+          {generationStarted && (
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Left — Progress Tracker */}
+              <div className="w-full lg:w-[55%] space-y-4">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block">Generation Progress</label>
+
+                <div className="space-y-2">
+                  {modules.map((mod, idx) => {
+                    const lib = MODULE_LIBRARY[mod.type];
+                    const isActive = multiShotGen.progress.currentShot === idx && mod.status === "generating";
+                    const isCompleted = mod.status === "completed";
+                    const isFailed = mod.status === "failed";
+                    const shotElapsed = multiShotGen.progress.elapsedPerShot[idx] || 0;
+
+                    return (
+                      <div
+                        key={mod.id}
+                        className={`rounded-xl p-3.5 transition-all border ${
+                          isActive
+                            ? "border-primary/50 bg-primary/5 animate-pulse"
+                            : isCompleted
+                            ? "border-green-500/30 bg-green-500/5"
+                            : isFailed
+                            ? "border-destructive/30 bg-destructive/5"
+                            : "border-border bg-card"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-1 h-10 rounded-full ${
+                            isCompleted ? "bg-green-500" : isFailed ? "bg-destructive" : isActive ? "bg-primary" : lib.color.split(" ")[0]
+                          }`} />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[11px] text-muted-foreground font-mono">#{idx + 1}</span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${lib.color}`}>
+                                {lib.icon} {lib.label}
+                              </span>
+                              {mod.withDialogue && <Volume2 className="h-3 w-3 text-primary" />}
+
+                              {/* Status */}
+                              {isActive && (
+                                <span className="text-[10px] text-primary flex items-center gap-1">
+                                  <Loader2 className="h-3 w-3 animate-spin" /> Generating... {formatTime(shotElapsed)}
+                                </span>
+                              )}
+                              {isCompleted && (
+                                <span className="text-[10px] text-green-500 flex items-center gap-1">
+                                  <Check className="h-3 w-3" /> Selesai
+                                </span>
+                              )}
+                              {isFailed && (
+                                <span className="text-[10px] text-destructive flex items-center gap-1">
+                                  <X className="h-3 w-3" /> Gagal
+                                </span>
+                              )}
+                              {!isActive && !isCompleted && !isFailed && (
+                                <span className="text-[10px] text-muted-foreground/50">⏳ Menunggu...</span>
+                              )}
+                            </div>
+
+                            {isCompleted && mod.video_url && (
+                              <button
+                                onClick={() => setPreviewShotIdx(idx)}
+                                className="text-[10px] text-primary hover:underline mt-1"
+                              >
+                                ▶ Lihat preview
+                              </button>
+                            )}
+                            {isFailed && (
+                              <button
+                                onClick={() => multiShotGen.retryShot(idx)}
+                                className="text-[10px] text-destructive hover:underline mt-1 flex items-center gap-1"
+                              >
+                                <RefreshCw className="h-3 w-3" /> Coba Lagi
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Overall progress */}
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{multiShotGen.progress.completedShots.length} / {modules.length} shots selesai</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatTime(multiShotGen.progress.totalElapsed)}</span>
+                  </div>
+                  <Progress value={(multiShotGen.progress.completedShots.length / modules.length) * 100} className="h-2" />
+
+                  {/* Controls */}
+                  {multiShotGen.progress.status === "generating" && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={multiShotGen.pause}
+                        className="text-xs bg-muted text-muted-foreground px-3 py-2 rounded-lg hover:bg-muted/80 flex items-center gap-1.5 transition-colors"
+                      >
+                        <Pause className="h-3 w-3" /> Pause
+                      </button>
+                      <button
+                        onClick={multiShotGen.cancel}
+                        className="text-xs text-destructive border border-destructive/30 px-3 py-2 rounded-lg hover:bg-destructive/10 flex items-center gap-1.5 transition-colors"
+                      >
+                        <X className="h-3 w-3" /> Batalkan Semua
+                      </button>
+                    </div>
+                  )}
+                  {multiShotGen.progress.status === "paused" && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={multiShotGen.resume}
+                        className="text-xs bg-primary text-primary-foreground px-3 py-2 rounded-lg hover:bg-primary/90 flex items-center gap-1.5 transition-colors"
+                      >
+                        <Play className="h-3 w-3" /> Lanjutkan
+                      </button>
+                      <button
+                        onClick={multiShotGen.cancel}
+                        className="text-xs text-destructive border border-destructive/30 px-3 py-2 rounded-lg hover:bg-destructive/10 flex items-center gap-1.5 transition-colors"
+                      >
+                        <X className="h-3 w-3" /> Batalkan
+                      </button>
+                    </div>
+                  )}
+                  {multiShotGen.progress.status === "completed" && (
+                    <div className="text-center py-2">
+                      <p className="text-sm font-semibold text-green-500">✅ Semua shot selesai!</p>
+                      {multiShotGen.progress.failedShots.length > 0 && (
+                        <p className="text-xs text-destructive mt-1">{multiShotGen.progress.failedShots.length} shot gagal — retry di atas</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right — Live Preview */}
+              <div className="w-full lg:w-[45%]">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-3">Preview</label>
+                <div className="bg-card border border-border rounded-xl overflow-hidden">
+                  {previewShotIdx !== null && modules[previewShotIdx]?.video_url ? (
+                    <div>
+                      <div className={`relative bg-black ${aspectRatio === "9:16" ? "aspect-[9/16] max-h-[50vh]" : "aspect-video"} mx-auto`}>
+                        <video
+                          key={modules[previewShotIdx].video_url}
+                          src={modules[previewShotIdx].video_url!}
+                          className="w-full h-full object-contain"
+                          controls
+                          autoPlay
+                          loop
+                          playsInline
+                        />
+                      </div>
+                      <div className="p-4 space-y-3">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${MODULE_LIBRARY[modules[previewShotIdx].type].color}`}>
+                            {MODULE_LIBRARY[modules[previewShotIdx].type].icon} Shot #{previewShotIdx + 1}
+                          </span>
+                          {modules[previewShotIdx].withDialogue && (
+                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">🔊 Audio native</span>
+                          )}
+                        </div>
+                        <a
+                          href={modules[previewShotIdx].video_url!}
+                          download={`shot-${previewShotIdx + 1}.mp4`}
+                          className="text-xs bg-primary text-primary-foreground px-3 py-2 rounded-lg inline-flex items-center gap-1.5 hover:bg-primary/90 transition-colors"
+                        >
+                          <Download className="h-3 w-3" /> Download Shot
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      {multiShotGen.progress.status === "generating" ? (
+                        <>
+                          <Loader2 className="h-10 w-10 text-primary/30 animate-spin mb-3" />
+                          <p className="text-sm text-muted-foreground">
+                            Generating shot {multiShotGen.progress.currentShot + 1}...
+                          </p>
+                          <p className="text-[10px] text-muted-foreground/50 mt-1">
+                            {MODULE_LIBRARY[modules[multiShotGen.progress.currentShot]?.type]?.icon}{" "}
+                            {MODULE_LIBRARY[modules[multiShotGen.progress.currentShot]?.type]?.label}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <Film className="h-10 w-10 text-muted-foreground/20 mb-3" />
+                          <p className="text-sm text-muted-foreground">Preview akan muncul di sini</p>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Completed shots thumbnail strip */}
+                  {multiShotGen.progress.completedShots.length > 1 && (
+                    <div className="border-t border-border p-3">
+                      <div className="flex gap-2 overflow-x-auto">
+                        {multiShotGen.progress.completedShots.map((shotIdx) => (
+                          <button
+                            key={shotIdx}
+                            onClick={() => setPreviewShotIdx(shotIdx)}
+                            className={`shrink-0 rounded-lg overflow-hidden border-2 transition-colors ${
+                              previewShotIdx === shotIdx ? "border-primary" : "border-transparent hover:border-muted-foreground/30"
+                            }`}
+                          >
+                            <div className="w-16 h-16 bg-black relative">
+                              <video
+                                src={modules[shotIdx]?.video_url || ""}
+                                className="w-full h-full object-cover"
+                                muted
+                                playsInline
+                                onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.1; }}
+                              />
+                              <span className="absolute bottom-0.5 right-0.5 text-[8px] bg-black/70 text-white px-1 rounded">
+                                #{shotIdx + 1}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -749,7 +1060,7 @@ const MultiShotCreator = () => {
             <ChevronLeft className="h-4 w-4" /> Kembali
           </button>
           <button
-            onClick={() => setStep(3)}
+            onClick={() => { setShowCostConfirm(true); setGenerationStarted(false); setStep(3); }}
             disabled={!isStep2Valid}
             className="bg-primary text-primary-foreground font-bold text-sm px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40"
           >
