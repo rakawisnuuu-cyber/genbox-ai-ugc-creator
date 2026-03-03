@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import type { VideoModule } from "@/lib/video-modules";
 import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
+import { geminiFetch } from "@/lib/gemini-fetch";
 interface UseMultiShotGenerationOptions {
   projectId: string;
   modules: VideoModule[];
@@ -100,15 +101,10 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
         ? `\n\nInclude natural spoken dialogue: "${mod.dialogueText}"\nAudio direction: ${mod.audioDirection || "natural ambient"}`
         : `\nNo dialogue. Audio: ${mod.audioDirection || "ambient sounds only"}`;
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiApiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{
-                text: `You are an expert TikTok video prompt engineer. Enhance this video prompt for AI generation.
+      const json = await geminiFetch(promptModel, geminiApiKey, {
+        systemInstruction: {
+          parts: [{
+            text: `You are an expert TikTok video prompt engineer. Enhance this video prompt for AI generation.
 
 Rules:
 - Output MUST be in English
@@ -121,13 +117,10 @@ Rules:
 
 Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s. Module type: ${mod.type}.
 ${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substring(0, 100) || 'N/A'}` : ''}${dialogueSection}`,
-              }],
-            },
-            contents: [{ parts: [{ text: mod.prompt }] }],
-          }),
-        }
-      );
-      const json = await res.json();
+          }],
+        },
+        contents: [{ parts: [{ text: mod.prompt }] }],
+      });
       return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || mod.prompt;
     } catch {
       return mod.prompt;

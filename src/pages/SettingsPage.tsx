@@ -73,7 +73,7 @@ const blueprints = [
 /* ── Main Page ── */
 const MODEL_OPTIONS = [
   { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", desc: "Cepat, gratis, cocok untuk kebanyakan kasus", badge: "GRATIS", badgeClass: "bg-green-500/20 text-green-400" },
-  { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", desc: "Reasoning lebih dalam, prompt lebih detail & akurat", badge: "PREMIUM", badgeClass: "bg-primary/20 text-primary" },
+  { value: "gemini-2.5-pro-preview-05-06", label: "Gemini 2.5 Pro", desc: "Reasoning lebih dalam, prompt lebih detail & akurat", badge: "PREMIUM", badgeClass: "bg-primary/20 text-primary" },
 ];
 
 const SettingsPage = () => {

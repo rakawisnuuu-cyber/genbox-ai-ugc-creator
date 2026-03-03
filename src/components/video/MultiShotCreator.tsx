@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { geminiFetch } from "@/lib/gemini-fetch";
 import {
   ChevronLeft,
   ChevronRight,
@@ -443,22 +444,14 @@ const MultiShotCreator = () => {
     const char = characters.find((c) => c.id === characterId);
     setGeneratingPromptIdx(idx);
     try {
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{
-                text: `You are an expert TikTok video prompt builder. Generate a motion-focused English prompt for a ${mod.type} shot in a UGC-style TikTok video. The video features ${char?.description || "a person"}. This is shot #${idx + 1} of ${modules.length}. Duration: ${mod.duration} seconds. Focus on: ${lib.promptStrategy}. Keep under 60 words. Describe MOTION and ACTION only. Replace any placeholders with actual content. Respond with just the prompt.`,
-              }],
-            },
-            contents: [{ parts: [{ text: `Generate a ${mod.type} video prompt.` }] }],
-          }),
-        }
-      );
-      const json = await res.json();
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        systemInstruction: {
+          parts: [{
+            text: `You are an expert TikTok video prompt builder. Generate a motion-focused English prompt for a ${mod.type} shot in a UGC-style TikTok video. The video features ${char?.description || "a person"}. This is shot #${idx + 1} of ${modules.length}. Duration: ${mod.duration} seconds. Focus on: ${lib.promptStrategy}. Keep under 60 words. Describe MOTION and ACTION only. Replace any placeholders with actual content. Respond with just the prompt.`,
+          }],
+        },
+        contents: [{ parts: [{ text: `Generate a ${mod.type} video prompt.` }] }],
+      });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       if (text) updateModule(idx, { prompt: text });
     } catch {

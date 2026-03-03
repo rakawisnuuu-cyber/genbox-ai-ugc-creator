@@ -92,6 +92,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          metadata: Json | null
           model: string
           prompt: string | null
           provider: string
@@ -106,6 +107,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          metadata?: Json | null
           model?: string
           prompt?: string | null
           provider?: string
@@ -120,6 +122,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          metadata?: Json | null
           model?: string
           prompt?: string | null
           provider?: string

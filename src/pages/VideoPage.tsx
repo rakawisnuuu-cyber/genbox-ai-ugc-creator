@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { geminiFetch } from "@/lib/gemini-fetch";
 import {
   Upload,
   X,
@@ -183,24 +184,16 @@ const VideoPage = () => {
     setGeneratingPrompt(true);
     try {
       const userContext = prompt.trim() || "product/person photo";
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{
-                text: "You are an expert video prompt builder for AI video generation. The user has a source image and wants to create a short 5-8 second UGC-style video for TikTok/Reels.\n\nCreate a concise, action-focused English video prompt. Describe:\n- The specific MOTION and ACTION (what moves, how fast, direction)\n- Camera movement (static, slow zoom in, gentle pan, handheld feel)\n- Expression and body language changes\n- The mood and energy level\n\nKeep it under 80 words. Veo and Grok work best with concise, specific motion prompts.\n\nDo NOT describe what's already in the image. Only describe what MOVES and CHANGES.\n\nIMPORTANT: Replace any placeholder brackets like [DIALOGUE: ...] with actual natural dialogue text. The output must be clean — no brackets, no placeholders, no template markers.\n\nRespond with just the prompt text, no JSON, no quotes, no explanation.",
-              }],
-            },
-            contents: [{
-              parts: [{ text: `Source image context: ${userContext}. Create a video prompt for a UGC-style TikTok clip.` }],
-            }],
-          }),
-        }
-      );
-      const json = await res.json();
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        systemInstruction: {
+          parts: [{
+            text: "You are an expert video prompt builder for AI video generation. The user has a source image and wants to create a short 5-8 second UGC-style video for TikTok/Reels.\n\nCreate a concise, action-focused English video prompt. Describe:\n- The specific MOTION and ACTION (what moves, how fast, direction)\n- Camera movement (static, slow zoom in, gentle pan, handheld feel)\n- Expression and body language changes\n- The mood and energy level\n\nKeep it under 80 words. Veo and Grok work best with concise, specific motion prompts.\n\nDo NOT describe what's already in the image. Only describe what MOVES and CHANGES.\n\nIMPORTANT: Replace any placeholder brackets like [DIALOGUE: ...] with actual natural dialogue text. The output must be clean — no brackets, no placeholders, no template markers.\n\nRespond with just the prompt text, no JSON, no quotes, no explanation.",
+          }],
+        },
+        contents: [{
+          parts: [{ text: `Source image context: ${userContext}. Create a video prompt for a UGC-style TikTok clip.` }],
+        }],
+      });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
       const enhanced = text.trim();
       setPrompt(enhanced);
