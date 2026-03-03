@@ -11,7 +11,6 @@ export interface VideoModule {
   status: "pending" | "generating" | "completed" | "failed";
   error_message?: string;
   customImageUrl?: string;
-  sourceImageUrl?: string | null;
   withDialogue: boolean;
   scriptTemplate?: string | null;
   dialogueText?: string | null;

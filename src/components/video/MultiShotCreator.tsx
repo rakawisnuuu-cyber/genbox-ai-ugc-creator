@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { imageUrlToBase64 } from "@/lib/product-analyzer";
 import {
   ChevronLeft,
   ChevronRight,
@@ -113,10 +112,6 @@ const MultiShotCreator = () => {
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [productPreview, setProductPreview] = useState<string | null>(null);
   const [uploadingProduct, setUploadingProduct] = useState(false);
-  const [startImageUrl, setStartImageUrl] = useState<string | null>(null);
-  const [startImagePreview, setStartImagePreview] = useState<string | null>(null);
-  const [galleryImages, setGalleryImages] = useState<any[]>([]);
-  const [galleryLoading, setGalleryLoading] = useState(false);
   const [videoModel, setVideoModel] = useState<VideoModel>("veo_fast");
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
   const [withDialogue, setWithDialogue] = useState(true);
@@ -126,7 +121,6 @@ const MultiShotCreator = () => {
   const [selectedModuleIdx, setSelectedModuleIdx] = useState(0);
   const [generatingPromptIdx, setGeneratingPromptIdx] = useState<number | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [moduleGalleryOpen, setModuleGalleryOpen] = useState(false);
 
   // Step 2 drag-and-drop state
   const [dragIdx, setDragIdx] = useState<number | null>(null);
@@ -216,24 +210,6 @@ const MultiShotCreator = () => {
     setUploadingProduct(false);
   };
 
-  // Load gallery images for Start Image selection
-  const loadGalleryImages = async () => {
-    if (!user) return;
-    setGalleryLoading(true);
-    const { data } = await supabase
-      .from("generations")
-      .select("id, image_url, created_at, model, metadata")
-      .eq("user_id", user.id)
-      .not("image_url", "is", null)
-      .neq("type", "video")
-      .order("created_at", { ascending: false })
-      .limit(30);
-    setGalleryImages(data || []);
-    setGalleryLoading(false);
-  };
-
-  useEffect(() => { loadGalleryImages(); }, [user]);
-
   // Build modules from template
   const buildModules = (tmpl: Template): VideoModule[] => {
     if (tmpl === "custom") {
@@ -260,7 +236,6 @@ const MultiShotCreator = () => {
       video_url: null,
       thumbnail_url: null,
       status: "pending",
-      sourceImageUrl: startImageUrl || null,
       withDialogue: dialogue,
       scriptTemplate: dialogue ? "discovery" : null,
       dialogueText: dialogue ? lib.exampleScript : null,
@@ -605,52 +580,12 @@ const MultiShotCreator = () => {
             </select>
           </div>
 
-          {/* Start Image (default from Gallery) */}
+          {/* Product Image */}
           <div>
-            <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Start Image</label>
-            <p className="text-[11px] text-muted-foreground/60 mb-2">Gambar utama yang akan dijadikan video — semua module akan menggunakan ini sebagai default</p>
-            {startImagePreview ? (
-              <div className="relative inline-block">
-                <img src={startImagePreview} alt="Start" className="max-w-[160px] rounded-xl border border-border" />
-                <button
-                  onClick={() => { setStartImagePreview(null); setStartImageUrl(null); }}
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
-                >
-                  <span className="text-xs">✕</span>
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto">
-                {galleryLoading ? (
-                  <div className="col-span-4 flex items-center justify-center py-6">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </div>
-                ) : galleryImages.length === 0 ? (
-                  <p className="col-span-4 text-xs text-muted-foreground text-center py-4">Belum ada gambar di gallery</p>
-                ) : (
-                  galleryImages.map((img: any) => (
-                    <button
-                      key={img.id}
-                      onClick={() => {
-                        setStartImageUrl(img.image_url);
-                        setStartImagePreview(img.image_url);
-                      }}
-                      className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-105 transition-all"
-                    >
-                      <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Product Image (optional, secondary) */}
-          <div>
-            <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Gambar Produk (opsional)</label>
+            <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Gambar Produk</label>
             {productPreview ? (
               <div className="relative inline-block">
-                <img src={productPreview} alt="Product" className="max-w-[120px] rounded-xl border border-border" />
+                <img src={productPreview} alt="Product" className="max-w-[160px] rounded-xl border border-border" />
                 <button
                   onClick={() => { setProductPreview(null); setProductImageUrl(null); }}
                   className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
@@ -674,10 +609,10 @@ const MultiShotCreator = () => {
                   inp.onchange = (ev) => { const f = (ev.target as HTMLInputElement).files?.[0]; if (f) handleProductUpload(f); };
                   inp.click();
                 }}
-                className="border-2 border-dashed border-border rounded-xl p-4 bg-background hover:border-primary/30 transition-colors flex flex-col items-center gap-1.5 cursor-pointer"
+                className="border-2 border-dashed border-border rounded-xl p-6 bg-background hover:border-primary/30 transition-colors flex flex-col items-center gap-2 cursor-pointer"
               >
-                <Upload className="h-5 w-5 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Upload gambar produk</p>
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Upload gambar produk (opsional)</p>
               </div>
             )}
           </div>
@@ -967,65 +902,7 @@ const MultiShotCreator = () => {
                   </div>
                 </div>
 
-                {/* Start Image per module */}
-                <div>
-                  <label className="text-[11px] uppercase tracking-widest text-muted-foreground block mb-2">Start Image</label>
-                  {selectedModule.sourceImageUrl ? (
-                    <div className="flex items-center gap-3">
-                      <img src={selectedModule.sourceImageUrl} alt="" className="w-14 h-14 rounded-lg object-cover border border-border" />
-                      <div className="flex-1">
-                        <p className="text-[10px] text-muted-foreground">Gambar khusus untuk shot ini</p>
-                        <button
-                          onClick={() => setModuleGalleryOpen(true)}
-                          className="text-[10px] text-primary hover:underline mt-0.5"
-                        >
-                          Ganti
-                        </button>
-                        <span className="text-[10px] text-muted-foreground mx-1">·</span>
-                        <button
-                          onClick={() => updateModule(selectedModuleIdx, { sourceImageUrl: startImageUrl || null })}
-                          className="text-[10px] text-muted-foreground hover:text-foreground"
-                        >
-                          Reset ke default
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setModuleGalleryOpen(true)}
-                      className="w-full text-xs text-muted-foreground border border-dashed border-border rounded-lg py-3 hover:border-primary/30 transition-colors"
-                    >
-                      Pilih gambar berbeda dari Gallery
-                    </button>
-                  )}
-                  {/* Module gallery picker modal */}
-                  {moduleGalleryOpen && (
-                    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setModuleGalleryOpen(false)}>
-                      <div className="bg-card border border-border rounded-xl max-w-lg w-full max-h-[70vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Pilih Start Image untuk Shot #{selectedModuleIdx + 1}</h3>
-                          <button onClick={() => setModuleGalleryOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-                        </div>
-                        <div className="p-3 overflow-y-auto max-h-[55vh]">
-                          <div className="grid grid-cols-3 gap-2">
-                            {galleryImages.map((img: any) => (
-                              <button
-                                key={img.id}
-                                onClick={() => {
-                                  updateModule(selectedModuleIdx, { sourceImageUrl: img.image_url });
-                                  setModuleGalleryOpen(false);
-                                }}
-                                className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-105 transition-all"
-                              >
-                                <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {/* Prompt */}
                 <div>
                   <label className="text-[11px] uppercase tracking-widest text-muted-foreground block mb-2">Prompt</label>
                   <Textarea
