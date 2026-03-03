@@ -269,11 +269,32 @@ Respond ONLY with valid JSON:
 }`,
       });
 
+      console.log("=== GEMINI PROMPT GENERATE ===");
+      console.log("Model:", promptModel, "| Key length:", geminiKey?.length);
+
+      const genConfig: Record<string, any> = {};
+      // gemini-3.1-pro-preview doesn't support responseMimeType
+      if (promptModel !== "gemini-3.1-pro-preview") {
+        genConfig.responseMimeType = "application/json";
+      }
+
       const json = await geminiFetch(promptModel, geminiKey!, {
         contents: [{ parts }],
-        generationConfig: { responseMimeType: "application/json" },
+        generationConfig: genConfig,
       });
+
+      console.log("Gemini response status: OK", JSON.stringify(json).length, "bytes");
+
+      // Check for block reasons
+      if (json.promptFeedback?.blockReason) {
+        throw new Error(`Prompt blocked: ${json.promptFeedback.blockReason}`);
+      }
+
       const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      if (!rawText) {
+        const finishReason = json.candidates?.[0]?.finishReason;
+        throw new Error(`Empty response from Gemini${finishReason ? ` (${finishReason})` : ""}`);
+      }
       try {
         const parsed = JSON.parse(rawText);
         // Append GENBOX realism blocks to final prompt
