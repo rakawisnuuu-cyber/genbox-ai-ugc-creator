@@ -20,6 +20,7 @@ import { usePromptModel } from "@/hooks/usePromptModel";
 import { useUpscale } from "@/hooks/useUpscale";
 import { useToast } from "@/hooks/use-toast";
 import UpscaleButton from "@/components/UpscaleButton";
+import GenerationLoading from "@/components/GenerationLoading";
 import {
   Select,
   SelectContent,
@@ -623,12 +624,15 @@ Respond ONLY with valid JSON:
         )}
 
         {genState === "loading" && (
-          <div className="flex flex-col items-center text-center gap-4 w-full max-w-xs animate-fade-in">
-            <div className="aspect-[3/4] w-full rounded-xl bg-[hsl(0_0%_10%)] border-2 border-primary/30 animate-pulse" />
-            <p className="text-sm text-muted-foreground">Sedang membuat gambar...</p>
-            <p className="text-xs text-muted-foreground/60">{elapsed}s</p>
-            <button onClick={cancelGeneration} className="text-xs text-destructive hover:underline">Batal</button>
-          </div>
+          <GenerationLoading
+            model="image"
+            elapsed={elapsed}
+            aspectRatio="3:4"
+            prompt={prompt}
+            modelLabel="nano-banana-pro"
+            badgeColor="bg-primary/20 text-primary"
+            onCancel={cancelGeneration}
+          />
         )}
 
         {genState === "completed" && resultUrl && (
