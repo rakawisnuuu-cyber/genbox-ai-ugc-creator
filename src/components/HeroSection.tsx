@@ -105,8 +105,8 @@ const HeroSection = () => {
           >
             BELI SEKARANG — Rp 249.000 →
           </a>
-          <button className="flex h-12 items-center rounded-lg border border-foreground/20 bg-transparent px-6 text-sm font-bold uppercase tracking-wider text-foreground transition-colors hover:bg-foreground/5">
-            LIHAT DEMO ▶
+          <button className="flex h-12 items-center gap-2 rounded-lg border border-foreground/20 bg-transparent px-6 text-sm font-bold uppercase tracking-wider text-foreground transition-colors hover:bg-foreground/5">
+            LIHAT DEMO
           </button>
         </div>
 
