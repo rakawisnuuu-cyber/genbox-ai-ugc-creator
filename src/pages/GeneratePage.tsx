@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { geminiFetch } from "@/lib/gemini-fetch";
+import { splitGridImage, ANGLE_LABELS } from "@/lib/grid-splitter";
 import {
   Upload,
   X,
@@ -12,6 +14,7 @@ import {
   UserCircle,
   Loader2,
   Link as LinkIcon,
+  Grid3X3,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,6 +76,7 @@ const POSES = ["Memegang Produk", "Selfie dengan Produk", "Flat Lay", "Unboxing"
 const MOODS = ["Happy Review", "Excited Unboxing", "Casual Lifestyle", "Professional"];
 
 type GenState = "idle" | "loading" | "completed" | "failed";
+type MultiAngleState = "idle" | "generating" | "splitting" | "completed";
 
 const GeneratePage = () => {
   const { user } = useAuth();
@@ -109,6 +113,13 @@ const GeneratePage = () => {
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortRef = useRef(false);
+
+  // Multi-angle state
+  const [multiAngleState, setMultiAngleState] = useState<MultiAngleState>("idle");
+  const [multiAngleImages, setMultiAngleImages] = useState<string[]>([]);
+  const [multiAngleElapsed, setMultiAngleElapsed] = useState(0);
+  const multiAngleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const multiAngleAbortRef = useRef(false);
 
   // Fetch custom characters
   useEffect(() => {
@@ -258,18 +269,10 @@ Respond ONLY with valid JSON:
 }`,
       });
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts }],
-            generationConfig: { responseMimeType: "application/json" },
-          }),
-        }
-      );
-      const json = await res.json();
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{ parts }],
+        generationConfig: { responseMimeType: "application/json" },
+      });
       const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
       try {
         const parsed = JSON.parse(rawText);
@@ -410,6 +413,149 @@ Respond ONLY with valid JSON:
   };
 
   const canGenerate = !!productUrl && !!selectedChar && !!prompt.trim() && genState !== "loading";
+
+  /* ── Multi-Angle Grid Generation ─────────────────────────── */
+  const generateMultiAngle = async () => {
+    if (!kieApiKey || !geminiKey || !resultUrl || !selectedChar) return;
+
+    multiAngleAbortRef.current = false;
+    setMultiAngleState("generating");
+    setMultiAngleImages([]);
+    setMultiAngleElapsed(0);
+    multiAngleTimerRef.current = setInterval(() => setMultiAngleElapsed((p) => p + 1), 1000);
+
+    try {
+      // Build multi-angle prompt via Gemini
+      const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
+      const gridPromptJson = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{ parts: [{ text: `You are a UGC photo prompt expert. Create ONE single image prompt that generates a 2x3 grid (6 panels in one image) of the SAME person with a product.
+
+Character: ${selectedChar.name} — ${characterIdentity}
+The 6 panels must show these angles (left-to-right, top-to-bottom):
+1. Hero shot — front-facing, holding product, warm smile
+2. Close-up detail — hands holding product, label visible, macro focus
+3. Lifestyle in-use — person actively using the product naturally
+4. Selfie with product — selfie angle, product next to face
+5. Flat lay — product centered on clean surface, top-down view
+6. Unboxing — hands opening package, excited expression
+
+CRITICAL RULES:
+- Same person in every panel (same face, same outfit, same hair)
+- Same product in every panel
+- No text overlays, no panel borders, no labels
+- Each panel is a distinct photo angle, NOT collage-style
+- Photorealistic, 8K quality
+- Output ONLY the final prompt text, no JSON` }] }],
+      });
+
+      const gridPrompt = gridPromptJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      if (!gridPrompt) throw new Error("Failed to generate grid prompt");
+
+      // Build image references
+      const imageInputs: string[] = [];
+      if (resultUrl) imageInputs.push(resultUrl);
+      if (selectedChar.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
+      if (selectedChar.hero_image_url && !selectedChar.id.startsWith("p")) imageInputs.push(selectedChar.hero_image_url);
+      if (productUrl) imageInputs.push(productUrl);
+
+      // Generate via Kie AI (single call)
+      const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "nano-banana-pro",
+          input: {
+            prompt: gridPrompt,
+            image_input: [...new Set(imageInputs)],
+            aspect_ratio: "3:4",
+            resolution: "2K",
+            output_format: "jpg",
+            google_search: false,
+          },
+        }),
+      });
+      const createJson = await createRes.json();
+      if (createJson.code !== 200 || !createJson.data?.taskId) {
+        throw new Error(createJson.msg || createJson.message || "Failed to create grid task");
+      }
+      const taskId = createJson.data.taskId;
+
+      // Poll
+      let polls = 0;
+      const maxPolls = 50;
+      const pollGrid = async (): Promise<string> => {
+        if (multiAngleAbortRef.current) throw new Error("Cancelled");
+        const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+          headers: { Authorization: `Bearer ${kieApiKey}` },
+        });
+        const j = await r.json();
+        const state = j.data?.state;
+        if (state === "success") {
+          const rj = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
+          return rj?.resultUrls?.[0] || rj?.url || "";
+        }
+        if (state === "fail") throw new Error("Grid generation failed");
+        polls++;
+        if (polls >= maxPolls) throw new Error("Timeout");
+        await new Promise((r) => setTimeout(r, 3000));
+        return pollGrid();
+      };
+
+      const gridImageUrl = await pollGrid();
+      if (!gridImageUrl) throw new Error("No grid image URL");
+
+      // Split into 6
+      setMultiAngleState("splitting");
+      const blobs = await splitGridImage(gridImageUrl);
+
+      // Upload each to storage + save to generations
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < blobs.length; i++) {
+        const path = `${user!.id}/multi-angle/${Date.now()}_${i}.jpg`;
+        const { error } = await supabase.storage.from("product-images").upload(path, blobs[i], { contentType: "image/jpeg" });
+        if (error) {
+          console.error("Upload failed for split", i, error);
+          continue;
+        }
+        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+        uploadedUrls.push(urlData.publicUrl);
+
+        await supabase.from("generations").insert({
+          user_id: user!.id,
+          type: "ugc_image",
+          prompt: `Multi-angle: ${ANGLE_LABELS[i]}`,
+          image_url: urlData.publicUrl,
+          character_id: selectedChar.id.startsWith("p") ? null : selectedChar.id,
+          provider: "kie_ai",
+          model: "nano-banana-pro",
+          status: "completed",
+          metadata: { angle: ANGLE_LABELS[i], source: "multi_angle" },
+        });
+      }
+
+      if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
+      setMultiAngleImages(uploadedUrls);
+      setMultiAngleState("completed");
+    } catch (err: any) {
+      if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
+      if (!multiAngleAbortRef.current) {
+        setMultiAngleState("idle");
+        toast({ title: "Multi-angle gagal", description: err.message || "Terjadi kesalahan", variant: "destructive" });
+      }
+    }
+  };
+
+  const cancelMultiAngle = () => {
+    multiAngleAbortRef.current = true;
+    if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
+    setMultiAngleState("idle");
+  };
+
+  const resetMultiAngle = () => {
+    setMultiAngleState("idle");
+    setMultiAngleImages([]);
+    setMultiAngleElapsed(0);
+  };
 
   /* ── Render ───────────────────────────────────────────────── */
   return (
@@ -614,7 +760,7 @@ Respond ONLY with valid JSON:
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="w-full lg:w-[45%] bg-[hsl(0_0%_5%)] border-t lg:border-t-0 lg:border-l border-border flex items-center justify-center p-6 lg:p-10 min-h-[400px] lg:min-h-0">
+      <div className="w-full lg:w-[45%] bg-[hsl(0_0%_5%)] border-t lg:border-t-0 lg:border-l border-border flex flex-col items-center justify-start p-6 lg:p-10 min-h-[400px] lg:min-h-0 overflow-y-auto">
         {genState === "idle" && (
           <div className="flex flex-col items-center text-center animate-fade-in">
             <ImageIcon className="h-16 w-16 text-foreground/10 mb-4" />
@@ -666,11 +812,91 @@ Respond ONLY with valid JSON:
                 onUpscale={(k, u, f) => upscale(k, u, f)}
               />
               <button
-                onClick={() => { setGenState("idle"); setResultUrl(null); }}
+                onClick={() => { setGenState("idle"); setResultUrl(null); resetMultiAngle(); }}
                 className="border border-border text-muted-foreground text-xs py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 hover:text-foreground transition-colors"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
               </button>
+            </div>
+
+            {/* Multi-Angle Section */}
+            <div className="w-full border-t border-border pt-4 mt-2">
+              {multiAngleState === "idle" && (
+                <div className="space-y-3">
+                  <button
+                    onClick={generateMultiAngle}
+                    className="w-full border border-primary text-primary font-bold text-xs py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                    Generate Multi-Angle (6 shots)
+                  </button>
+                  <p className="text-[10px] text-muted-foreground/60 text-center">1 API call = 6 angles • ~Rp 150-500</p>
+                </div>
+              )}
+
+              {multiAngleState === "generating" && (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground text-center">Generating 6 angles...</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="aspect-[3/4] rounded-lg bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground font-mono">{Math.floor(multiAngleElapsed / 60)}:{String(multiAngleElapsed % 60).padStart(2, "0")}</span>
+                    <button
+                      onClick={cancelMultiAngle}
+                      className="text-[10px] text-destructive hover:underline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {multiAngleState === "splitting" && (
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <p className="text-xs text-muted-foreground">Splitting & saving ke gallery...</p>
+                </div>
+              )}
+
+              {multiAngleState === "completed" && multiAngleImages.length > 0 && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    {multiAngleImages.map((url, i) => (
+                      <div key={i} className="group relative">
+                        <img
+                          src={url}
+                          alt={ANGLE_LABELS[i]}
+                          className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
+                        />
+                        <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                          <a
+                            href={url}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </a>
+                          <span className="text-[9px] text-white/80">{ANGLE_LABELS[i]}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/60 text-center">
+                    Semua shot tersimpan di Gallery — bisa jadi Start Image di Buat Video
+                  </p>
+                  <button
+                    onClick={resetMultiAngle}
+                    className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="h-3 w-3" /> Generate lagi
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
