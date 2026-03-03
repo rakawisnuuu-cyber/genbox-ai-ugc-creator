@@ -282,8 +282,10 @@ Respond ONLY with valid JSON:
       } catch {
         setPrompt(rawText.trim());
       }
-    } catch {
-      toast({ title: "Gagal generate prompt", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message || "Unknown error";
+      console.error("Generate prompt error:", msg);
+      toast({ title: "Gagal generate prompt", description: msg, variant: "destructive" });
     } finally {
       setGeneratingPrompt(false);
     }
