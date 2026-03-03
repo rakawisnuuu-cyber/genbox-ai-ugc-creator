@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { analyzeProduct, imageUrlToBase64 as analyzerImageUrlToBase64, type ProductAnalysis } from "@/lib/product-analyzer";
+import { analyzeStartImage, imageUrlToBase64 as analyzerImageUrlToBase64 } from "@/lib/product-analyzer";
 import {
   Upload,
   X,
@@ -15,6 +15,7 @@ import {
   Volume2,
   Zap,
   Clapperboard,
+  CheckCircle,
 } from "lucide-react";
 import { generateVideoAndWait } from "@/lib/kie-video-generation";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,11 +32,14 @@ import GenerationLoading from "@/components/GenerationLoading";
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
 type GenState = "idle" | "loading" | "completed" | "failed";
 type VideoMode = "quick" | "multishot";
+type StartImageTab = "gallery" | "upload";
 
 interface GalleryImage {
   id: string;
   image_url: string;
   created_at: string;
+  model?: string;
+  metadata?: any;
 }
 
 const MODEL_INFO: Record<VideoModel, { label: string; badge: string; badgeColor: string; subtitle: string; desc: string; cost: string }> = {
@@ -65,6 +69,14 @@ const MODEL_INFO: Record<VideoModel, { label: string; badge: string; badgeColor:
   },
 };
 
+const MODEL_BADGE_MAP: Record<string, string> = {
+  "nano": "Nano",
+  "seedream": "Seedream",
+  "grok-imagine": "Grok",
+  "veo3_fast": "Veo Fast",
+  "veo3": "Veo Quality",
+};
+
 const VideoPage = () => {
   const { user } = useAuth();
   const { kieApiKey, geminiKey, keys } = useApiKeys();
@@ -74,15 +86,23 @@ const VideoPage = () => {
   // Mode toggle
   const [mode, setMode] = useState<VideoMode>("quick");
 
-  // Source image
+  // Start Image
   const [sourcePreview, setSourcePreview] = useState<string | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
+  const [selectedGenerationId, setSelectedGenerationId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [startImageTab, setStartImageTab] = useState<StartImageTab>("gallery");
 
-  // Gallery modal
-  const [galleryOpen, setGalleryOpen] = useState(false);
+  // Scene analysis
+  const [imageAnalysis, setImageAnalysis] = useState<string>("");
+  const [analyzingImage, setAnalyzingImage] = useState(false);
+
+  // Gallery
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryOffset, setGalleryOffset] = useState(0);
+  const [hasMoreGallery, setHasMoreGallery] = useState(false);
+  const GALLERY_PAGE_SIZE = 20;
 
   // Settings
   const [videoModel, setVideoModel] = useState<VideoModel>("grok");
@@ -91,8 +111,6 @@ const VideoPage = () => {
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
   const [promptEnhanced, setPromptEnhanced] = useState(false);
   const [promptFlash, setPromptFlash] = useState(false);
-  const [productAnalysis, setProductAnalysis] = useState<ProductAnalysis | null>(null);
-  const [analyzingProduct, setAnalyzingProduct] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Generation
@@ -116,7 +134,69 @@ const VideoPage = () => {
     timerRef.current = null;
   };
 
-  /* ── Source Image Upload ──────────────────────────────────── */
+  /* ── Load Gallery on mount ──────────────────────────────── */
+  const loadGallery = useCallback(async (offset = 0, append = false) => {
+    if (!user) return;
+    setGalleryLoading(true);
+    const { data } = await supabase
+      .from("generations")
+      .select("id, image_url, created_at, model, metadata")
+      .eq("user_id", user.id)
+      .not("image_url", "is", null)
+      .neq("type", "video")
+      .order("created_at", { ascending: false })
+      .range(offset, offset + GALLERY_PAGE_SIZE - 1);
+    const results = (data as GalleryImage[]) || [];
+    setGalleryImages(append ? (prev) => [...prev, ...results] : results);
+    setHasMoreGallery(results.length === GALLERY_PAGE_SIZE);
+    setGalleryOffset(offset + results.length);
+    setGalleryLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    loadGallery(0);
+  }, [loadGallery]);
+
+  /* ── Run scene analysis ─────────────────────────────────── */
+  const runSceneAnalysis = async (imageUrl: string) => {
+    if (!geminiKey || keys.gemini.status !== "valid") return;
+    setAnalyzingImage(true);
+    try {
+      const base64 = await analyzerImageUrlToBase64(imageUrl);
+      const analysis = await analyzeStartImage(base64, geminiKey, promptModel);
+      setImageAnalysis(analysis);
+      console.log("[video] Scene analysis completed, length:", analysis.length);
+
+      // Save to generation record if we have one
+      if (selectedGenerationId) {
+        await supabase
+          .from("generations")
+          .update({ metadata: { scene_analysis: analysis } } as any)
+          .eq("id", selectedGenerationId);
+      }
+    } catch (err) {
+      console.error("Scene analysis failed:", err);
+    } finally {
+      setAnalyzingImage(false);
+    }
+  };
+
+  /* ── Select from Gallery ────────────────────────────────── */
+  const selectFromGallery = (img: GalleryImage) => {
+    setSourcePreview(img.image_url);
+    setSourceUrl(img.image_url);
+    setSelectedGenerationId(img.id);
+    // Check for saved analysis
+    if (img.metadata?.scene_analysis) {
+      setImageAnalysis(img.metadata.scene_analysis);
+      console.log("Loaded saved scene analysis");
+    } else {
+      // Run fresh analysis
+      runSceneAnalysis(img.image_url);
+    }
+  };
+
+  /* ── Upload Image ───────────────────────────────────────── */
   const handleFileSelect = async (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       toast({ title: "File terlalu besar", description: "Maksimal 10MB", variant: "destructive" });
@@ -124,6 +204,7 @@ const VideoPage = () => {
     }
     setSourcePreview(URL.createObjectURL(file));
     setUploading(true);
+    setSelectedGenerationId(null);
     const ext = file.name.split(".").pop();
     const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(path, file);
@@ -136,21 +217,7 @@ const VideoPage = () => {
     const publicUrl = urlData.publicUrl;
     setSourceUrl(publicUrl);
     setUploading(false);
-
-    // Auto-analyze product in background
-    if (geminiKey && keys.gemini.status === "valid") {
-      setAnalyzingProduct(true);
-      try {
-        const base64 = await analyzerImageUrlToBase64(publicUrl);
-        const analysis = await analyzeProduct(base64, geminiKey, promptModel);
-        setProductAnalysis(analysis);
-        console.log("[video] Product analysis:", analysis);
-      } catch (err) {
-        console.error("Product analysis failed:", err);
-      } finally {
-        setAnalyzingProduct(false);
-      }
-    }
+    runSceneAnalysis(publicUrl);
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -162,35 +229,8 @@ const VideoPage = () => {
   const removeSource = () => {
     setSourcePreview(null);
     setSourceUrl(null);
-    setProductAnalysis(null);
-  };
-
-  /* ── Gallery Modal ───────────────────────────────────────── */
-  const openGallery = async () => {
-    if (!user) return;
-    setGalleryOpen(true);
-    setGalleryLoading(true);
-    const { data } = await supabase
-      .from("generations")
-      .select("id, image_url, created_at, metadata")
-      .eq("user_id", user.id)
-      .not("image_url", "is", null)
-      .neq("type", "video")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setGalleryImages((data as GalleryImage[]) || []);
-    setGalleryLoading(false);
-  };
-
-  const selectFromGallery = (img: GalleryImage & { metadata?: any }) => {
-    setSourcePreview(img.image_url);
-    setSourceUrl(img.image_url);
-    setGalleryOpen(false);
-    // Load saved product analysis if available
-    if (img.metadata?.product_analysis) {
-      setProductAnalysis(img.metadata.product_analysis);
-      console.log("Loaded saved product analysis:", img.metadata.product_analysis.product_name);
-    }
+    setImageAnalysis("");
+    setSelectedGenerationId(null);
   };
 
   /* ── Flash animation helper ─────────────────────────────── */
@@ -216,7 +256,7 @@ const VideoPage = () => {
           body: JSON.stringify({
             systemInstruction: {
               parts: [{
-                text: `You are an expert video prompt builder for AI video generation. The user has a source image and wants to create a short 5-8 second UGC-style video for TikTok/Reels.\n\nCreate a concise, action-focused English video prompt. Describe:\n- The specific MOTION and ACTION (what moves, how fast, direction)\n- Camera movement (static, slow zoom in, gentle pan, handheld feel)\n- Expression and body language changes\n- The mood and energy level\n\nKeep it under 80 words. Veo and Grok work best with concise, specific motion prompts.\n\nDo NOT describe what's already in the image. Only describe what MOVES and CHANGES.\n\nIMPORTANT: Replace any placeholder brackets like [DIALOGUE: ...] with actual natural dialogue text. The output must be clean — no brackets, no placeholders, no template markers.\n${productAnalysis ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===\n${productAnalysis.product_visual}\nThe product must match this description in every frame. No alterations to shape, color, text, or proportions.\n` : ''}\nRespond with just the prompt text, no JSON, no quotes, no explanation.`,
+                text: `You are an expert video prompt builder for AI video generation. The user has a source image and wants to create a short 5-8 second UGC-style video for TikTok/Reels.\n\nCreate a concise, action-focused English video prompt. Describe:\n- The specific MOTION and ACTION (what moves, how fast, direction)\n- Camera movement (static, slow zoom in, gentle pan, handheld feel)\n- Expression and body language changes\n- The mood and energy level\n\nKeep it under 80 words. Veo and Grok work best with concise, specific motion prompts.\n\nDo NOT describe what's already in the image. Only describe what MOVES and CHANGES.\n\nIMPORTANT: Replace any placeholder brackets like [DIALOGUE: ...] with actual natural dialogue text. The output must be clean — no brackets, no placeholders, no template markers.\n${imageAnalysis ? `\n=== START IMAGE ANALYSIS (FIRST FRAME REFERENCE) ===\n${imageAnalysis}\n\nThe video MUST start with a frame that matches this description EXACTLY.\nEvery detail — face, outfit, product grip, lighting, background — must be identical to this reference.\nThe video is this image coming to life with natural motion.\n` : ''}\nRespond with just the prompt text, no JSON, no quotes, no explanation.`,
               }],
             },
             contents: [{
@@ -286,10 +326,10 @@ const VideoPage = () => {
         model: videoModel === "grok" ? "grok-imagine" : videoModel === "veo_fast" ? "veo3_fast" : "veo3",
         provider: "kie_ai",
         status: "completed",
-        metadata: productAnalysis ? {
-          product_analysis: productAnalysis,
-          source_product_url: sourceUrl,
-        } : {},
+        metadata: {
+          scene_analysis: imageAnalysis || undefined,
+          source_image_url: sourceUrl,
+        },
       } as any);
       if (saveError) {
         console.error("Save error:", saveError);
@@ -297,7 +337,6 @@ const VideoPage = () => {
       } else {
         sonnerToast.success("Video berhasil disimpan ke gallery!");
       }
-      console.log("Saved video URL:", resultVideoUrl);
     } catch (err: any) {
       stopTimer();
       if (!abortRef.current) {
@@ -377,72 +416,135 @@ const VideoPage = () => {
           </div>
         </div>
 
-        {/* Source Image */}
+        {/* Start Image */}
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Source Image</label>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Start Image</label>
+          
           {sourcePreview ? (
-            <div className="relative inline-block">
-              <img src={sourcePreview} alt="Source" className="max-w-[200px] rounded-xl object-cover border border-border" />
-              <button onClick={removeSource} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                <X className="h-3 w-3" />
-              </button>
-              {uploading && (
-                <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <div>
+              <div className="relative inline-block">
+                <img src={sourcePreview} alt="Start" className="max-w-[200px] rounded-xl object-cover border border-border" />
+                <button onClick={removeSource} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
+                  <X className="h-3 w-3" />
+                </button>
+                {uploading && (
+                  <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                )}
+              </div>
+              {/* Analysis status */}
+              {analyzingImage && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Menganalisis gambar...
                 </div>
               )}
-            </div>
-          ) : null}
-          {/* Product Analysis Card */}
-          {analyzingProduct && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              Menganalisis produk...
-            </div>
-          )}
-          {productAnalysis && !analyzingProduct && sourcePreview && (
-            <div className="mt-3 p-3 bg-card border border-border rounded-lg space-y-1.5">
-              <p className="text-xs font-medium text-primary">{productAnalysis.product_name}</p>
-              <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
-                {productAnalysis.product_visual}
-              </p>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {productAnalysis.product_features.split(",").slice(0, 4).map((f, i) => (
-                  <span key={i} className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
-                    {f.trim()}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          {!sourcePreview && (
-            <div className="space-y-2">
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={onDrop}
-                onClick={() => {
-                  const inp = document.createElement("input");
-                  inp.type = "file";
-                  inp.accept = "image/jpeg,image/png,image/webp";
-                  inp.onchange = (e) => {
-                    const f = (e.target as HTMLInputElement).files?.[0];
-                    if (f) handleFileSelect(f);
-                  };
-                  inp.click();
-                }}
-                className="border-2 border-dashed border-border rounded-xl p-8 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
-              >
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Upload gambar baru</p>
-                <p className="text-[11px] text-muted-foreground/60">JPEG, PNG, WebP — Maks 10MB</p>
-              </div>
+              {imageAnalysis && !analyzingImage && (
+                <div className="flex items-center gap-1.5 text-xs text-primary/70 mt-2">
+                  <CheckCircle className="w-3 h-3" />
+                  Gambar teranalisis — siap generate video
+                </div>
+              )}
               <button
-                onClick={openGallery}
-                className="inline-flex items-center gap-2 text-xs text-primary hover:underline"
+                onClick={removeSource}
+                className="mt-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Images className="h-3.5 w-3.5" />
-                Pilih dari Gallery
+                Ganti Start Image
               </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Tabs */}
+              <div className="flex gap-1 bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => setStartImageTab("gallery")}
+                  className={`flex-1 text-xs font-medium px-3 py-2 rounded-md transition-colors ${
+                    startImageTab === "gallery" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Images className="h-3.5 w-3.5 inline mr-1.5" />
+                  Pilih dari Gallery
+                </button>
+                <button
+                  onClick={() => setStartImageTab("upload")}
+                  className={`flex-1 text-xs font-medium px-3 py-2 rounded-md transition-colors ${
+                    startImageTab === "upload" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Upload className="h-3.5 w-3.5 inline mr-1.5" />
+                  Upload Baru
+                </button>
+              </div>
+
+              {/* Gallery Tab */}
+              {startImageTab === "gallery" && (
+                <div>
+                  {galleryLoading && galleryImages.length === 0 ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  ) : galleryImages.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-sm text-muted-foreground">Belum ada gambar di gallery</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1">Generate gambar di Buat Gambar terlebih dahulu</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-[11px] text-muted-foreground/60">Pilih gambar untuk dijadikan video</p>
+                      <div className="grid grid-cols-3 sm:grid-cols-3 gap-2">
+                        {galleryImages.map((img) => (
+                          <button
+                            key={img.id}
+                            onClick={() => selectFromGallery(img)}
+                            className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 hover:scale-105 transition-all relative group"
+                          >
+                            <img src={img.image_url!} alt="" className="w-full h-full object-cover" />
+                            {img.model && (
+                              <span className="absolute bottom-1 left-1 text-[9px] bg-background/80 backdrop-blur-sm text-foreground px-1.5 py-0.5 rounded-full">
+                                {MODEL_BADGE_MAP[img.model] || img.model}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      {hasMoreGallery && (
+                        <button
+                          onClick={() => loadGallery(galleryOffset, true)}
+                          disabled={galleryLoading}
+                          className="w-full text-xs text-primary py-2 hover:underline disabled:opacity-50"
+                        >
+                          {galleryLoading ? <Loader2 className="h-3 w-3 animate-spin inline mr-1" /> : null}
+                          Muat lebih banyak
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Upload Tab */}
+              {startImageTab === "upload" && (
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={onDrop}
+                  onClick={() => {
+                    const inp = document.createElement("input");
+                    inp.type = "file";
+                    inp.accept = "image/jpeg,image/png,image/webp";
+                    inp.onchange = (e) => {
+                      const f = (e.target as HTMLInputElement).files?.[0];
+                      if (f) handleFileSelect(f);
+                    };
+                    inp.click();
+                  }}
+                  className="border-2 border-dashed border-border rounded-xl p-8 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Upload gambar baru</p>
+                  <p className="text-[11px] text-muted-foreground/60">JPEG, PNG, WebP — Maks 10MB</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -646,37 +748,6 @@ const VideoPage = () => {
           </div>
         )}
       </div>
-
-      {/* Gallery Modal */}
-      {galleryOpen && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setGalleryOpen(false)}>
-          <div className="bg-card border border-border rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="text-sm font-bold font-satoshi uppercase tracking-wider text-foreground">Pilih dari Gallery</h2>
-              <button onClick={() => setGalleryOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="p-4 overflow-y-auto max-h-[65vh]">
-              {galleryLoading ? (
-                <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-              ) : galleryImages.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-12">Belum ada gambar di gallery</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {galleryImages.map((img) => (
-                    <button
-                      key={img.id}
-                      onClick={() => selectFromGallery(img)}
-                      className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
-                    >
-                      <img src={img.image_url!} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -1,14 +1,15 @@
 import { useState, useRef, useCallback } from "react";
 import type { VideoModule } from "@/lib/video-modules";
 import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
-import { analyzeProduct, imageUrlToBase64, type ProductAnalysis } from "@/lib/product-analyzer";
+import { analyzeStartImage, imageUrlToBase64 } from "@/lib/product-analyzer";
+
 interface UseMultiShotGenerationOptions {
   projectId: string;
   modules: VideoModule[];
   characterHeroUrl: string | null;
   characterRefUrl: string | null;
   productImageUrl: string | null;
-  model: string; // "grok" | "veo_fast" | "veo_quality"
+  model: string;
   aspectRatio: string;
   kieApiKey: string;
   geminiApiKey: string;
@@ -63,8 +64,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
   const cancelRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const shotTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastFrameRef = useRef<string | null>(null);
-  const productAnalysisRef = useRef<ProductAnalysis | null>(null);
+  const imageAnalysisCacheRef = useRef<Record<string, string>>({});
 
   const startGlobalTimer = useCallback(() => {
     timerRef.current = setInterval(() => {
@@ -102,6 +102,11 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
         ? `\n\nInclude natural spoken dialogue: "${mod.dialogueText}"\nAudio direction: ${mod.audioDirection || "natural ambient"}`
         : `\nNo dialogue. Audio: ${mod.audioDirection || "ambient sounds only"}`;
 
+      // Get scene analysis for this module's source image
+      const shotAnalysis = mod.sourceImageUrl
+        ? imageAnalysisCacheRef.current[mod.sourceImageUrl] || ""
+        : "";
+
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiApiKey}`,
         {
@@ -123,7 +128,7 @@ Rules:
 
 Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s. Module type: ${mod.type}.
 ${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substring(0, 100) || 'N/A'}` : ''}
-${productAnalysisRef.current ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===\n${productAnalysisRef.current.product_visual}\nThe product must match this description in every frame. No alterations to shape, color, text, or proportions.\n` : ''}${dialogueSection}`,
+${shotAnalysis ? `\n=== START IMAGE FOR THIS SHOT ===\n${shotAnalysis}\nThis shot's first frame must match this image exactly. The video brings this specific image to life.\n` : ''}${dialogueSection}`,
               }],
             },
             contents: [{ parts: [{ text: mod.prompt }] }],
@@ -143,22 +148,29 @@ ${productAnalysisRef.current ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===
     shotIndex: number,
     enhancedPrompt: string
   ): Promise<string> => {
-    // Build image inputs — only use actual IMAGE URLs, never video URLs
+    // Build image inputs — use module-specific Start Image as primary
     const imageInputs: string[] = [];
-    // Always include character hero image for visual consistency
-    if (characterHeroUrl) imageInputs.push(characterHeroUrl);
-    // Always include product image if available
-    if (productImageUrl) imageInputs.push(productImageUrl);
-    // For custom source modules with uploaded images
-    if (mod.source === "custom" && mod.customImageUrl) imageInputs.push(mod.customImageUrl);
-    // NOTE: We do NOT add lastFrameRef (previous video URL) because
-    // Grok/Veo image_urls only accepts image files (JPEG/PNG/WebP), not .mp4
+
+    // Primary: this module's Start Image (from Gallery)
+    if (mod.sourceImageUrl) {
+      imageInputs.push(mod.sourceImageUrl);
+    }
+
+    // Fallback: character hero image if no module-specific image
+    if (!mod.sourceImageUrl && characterHeroUrl) {
+      imageInputs.push(characterHeroUrl);
+    }
+
+    // Additional: product image as secondary reference (if different from source)
+    if (productImageUrl && !imageInputs.includes(productImageUrl)) {
+      imageInputs.push(productImageUrl);
+    }
 
     const uniqueImages = [...new Set(imageInputs.filter(Boolean))];
 
     console.log(`=== MULTI-SHOT: Generating shot ${shotIndex + 1} ===`);
     console.log("Model:", model, "Duration:", mod.duration, "→", normalizeDurationForModel(model, mod.duration));
-    console.log("Images:", uniqueImages.length);
+    console.log("Images:", uniqueImages.length, "Source:", mod.sourceImageUrl ? "module-specific" : "fallback");
 
     const result = await generateVideoAndWait(
       {
@@ -179,8 +191,7 @@ ${productAnalysisRef.current ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===
   const start = useCallback(async () => {
     cancelRef.current = false;
     pauseRef.current = false;
-    lastFrameRef.current = null;
-    productAnalysisRef.current = null;
+    imageAnalysisCacheRef.current = {};
 
     setProgress({
       currentShot: 0,
@@ -195,15 +206,21 @@ ${productAnalysisRef.current ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===
     onProjectStatusChange("generating");
     startGlobalTimer();
 
-    // Analyze product image before starting shots
-    if (productImageUrl && geminiApiKey) {
-      try {
-        const base64 = await imageUrlToBase64(productImageUrl);
-        const analysis = await analyzeProduct(base64, geminiApiKey, promptModel);
-        productAnalysisRef.current = analysis;
-        console.log("[multi-shot] Product analysis:", analysis.product_name);
-      } catch (err) {
-        console.warn("[multi-shot] Product analysis failed, continuing without:", err);
+    // Analyze each unique Start Image once before generation loop
+    if (geminiApiKey) {
+      const uniqueSourceImages = [...new Set(
+        modules.map(m => m.sourceImageUrl).filter(Boolean) as string[]
+      )];
+
+      for (const imgUrl of uniqueSourceImages) {
+        try {
+          const base64 = await imageUrlToBase64(imgUrl);
+          const analysis = await analyzeStartImage(base64, geminiApiKey, promptModel);
+          imageAnalysisCacheRef.current[imgUrl] = analysis;
+          console.log(`[multi-shot] Analyzed image: ${imgUrl.substring(0, 50)}...`);
+        } catch {
+          console.warn(`[multi-shot] Failed to analyze: ${imgUrl.substring(0, 50)}`);
+        }
       }
     }
 
@@ -222,11 +239,9 @@ ${productAnalysisRef.current ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===
       startShotTimer(i);
 
       try {
-        // Enhance prompt
         const enhancedPrompt = await enhanceModulePrompt(mod, i);
         onModuleUpdate(i, { prompt: enhancedPrompt });
 
-        // Generate
         const videoUrl = await generateSingleShot(mod, i, enhancedPrompt);
         stopShotTimer();
 
@@ -246,7 +261,6 @@ ${productAnalysisRef.current ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===
           ...p,
           failedShots: [...p.failedShots, i],
         }));
-        // Continue to next shot even on failure
       }
     }
 
@@ -256,11 +270,8 @@ ${productAnalysisRef.current ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===
       setProgress((p) => ({ ...p, status: "cancelled" }));
       onProjectStatusChange("draft");
     } else {
-      const finalCompleted = modules.every(
-        (_, i) => modules[i]?.status === "completed" || progress.completedShots.includes(i)
-      );
       setProgress((p) => ({ ...p, status: "completed" }));
-      onProjectStatusChange(finalCompleted ? "completed" : "completed");
+      onProjectStatusChange("completed");
     }
   }, [modules, model, aspectRatio, kieApiKey, geminiApiKey, promptModel, characterHeroUrl, characterRefUrl, productImageUrl]);
 

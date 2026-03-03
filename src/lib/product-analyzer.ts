@@ -78,3 +78,83 @@ export async function imageUrlToBase64(url: string): Promise<string> {
     reader.readAsDataURL(blob);
   });
 }
+
+/**
+ * Analyze a full UGC scene (person + product + setting + lighting)
+ * for use as a Start Image that will become the first frame of a video.
+ */
+export async function analyzeStartImage(
+  imageBase64: string,
+  geminiApiKey: string,
+  promptModel: string
+): Promise<string> {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiApiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: imageBase64,
+              },
+            },
+            {
+              text: `You are analyzing a UGC-style product photo that will be turned into a video. This image will be the FIRST FRAME of the video — the video must look like this exact image coming to life.
+
+Analyze with EXTREME detail. Describe as if explaining to an artist who must recreate this EXACT scene:
+
+PERSON:
+- Exact appearance: age range, gender, ethnicity, skin tone and texture
+- Face: shape, features, expression, eye direction, mouth position
+- Hair: exact style, color, length, parting, any covering (hijab type/color/draping if applicable)
+- Body: posture, shoulder position, hand placement, finger positions
+- Clothing: every visible item with exact colors, material, fit, layers, accessories
+
+PRODUCT:
+- Type, shape, exact dimensions relative to hand
+- Every color of each part (body, cap, label, liquid)
+- Material and finish (glossy, matte, frosted, metallic)
+- ALL visible text: brand name, variant, size — with position and font style
+- How it's being held: which hand, finger positions, grip style, angle, tilt
+- Which parts of product face camera, which are hidden
+
+ENVIRONMENT:
+- Setting type and specific location details
+- Background elements: furniture, walls, decor, objects
+- Surface textures and colors
+- Depth: what's in focus, what's blurred
+
+LIGHTING:
+- Primary light source direction (left, right, above, window)
+- Light quality (hard/soft, warm/cool, natural/artificial)
+- Color temperature (warm golden, cool white, neutral)
+- Shadow placement and intensity
+- Any rim light, fill light, or secondary sources
+
+CAMERA:
+- Framing (extreme close-up, close-up, medium, full body)
+- Angle (eye level, slightly above, below)
+- Distance from subject
+- Depth of field (bokeh level)
+- Orientation (portrait 9:16 or landscape 16:9)
+
+MOOD & STYLE:
+- Overall color palette and grading
+- Energy level (calm, energetic, cozy, professional)
+- UGC authenticity markers (natural imperfections, phone-quality feel, casual vs staged)
+
+Respond in English only. Be extremely specific — every detail matters for video reconstruction. This description will be used to ensure the video's first frame EXACTLY matches this image.`,
+            },
+          ],
+        }],
+      }),
+    }
+  );
+
+  const json = await res.json();
+  return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+}
