@@ -4,6 +4,7 @@ import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight } f
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCountUp } from "@/components/GenerationLoading";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 const MODEL_COST: Record<string, number> = {
@@ -38,6 +39,16 @@ interface DailyPoint {
   date: string;
   label: string;
   count: number;
+}
+
+function AnimatedStat({ value }: { value: string | number }) {
+  const isNum = typeof value === "number";
+  const animated = useCountUp(isNum ? value : 0, 800, isNum);
+  return (
+    <p className="font-mono text-3xl font-bold text-primary">
+      {isNum ? animated : value}
+    </p>
+  );
 }
 
 const DashboardHome = () => {
@@ -151,13 +162,13 @@ const DashboardHome = () => {
 
       {/* Stats row */}
       <div className="grid gap-4 sm:grid-cols-3">
-        {stats.map((s) => (
-          <div key={s.label} className="relative rounded-xl border border-border bg-card p-5">
+        {stats.map((s, i) => (
+          <div key={s.label} className="relative rounded-xl border border-border bg-card p-5 animate-fade-up" style={{ animationDelay: `${i * 80}ms` }}>
             <s.icon className="absolute right-4 top-4 h-5 w-5 text-muted-foreground/40" />
             {loading ? (
               <Skeleton className="h-9 w-24" />
             ) : (
-              <p className="font-mono text-3xl font-bold text-primary">{s.value}</p>
+              <AnimatedStat value={s.value} />
             )}
             <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
             <p className="text-xs text-muted-foreground/60">

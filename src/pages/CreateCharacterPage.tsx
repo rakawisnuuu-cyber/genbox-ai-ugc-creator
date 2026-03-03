@@ -666,7 +666,9 @@ export default function CreateCharacterPage() {
                   {shot.status === "success" && shot.url ? (
                     <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={() => setZoomedShot({url: shot.url!, label: cfg.label})} />
                   ) : shot.status === "generating" ? (
-                    <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+                    <div className="absolute inset-0 generation-mesh flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-primary/60 animate-spin" />
+                    </div>
                   ) : shot.status === "failed" ? (
                     <AlertCircle className="w-6 h-6 text-destructive" />
                   ) : (

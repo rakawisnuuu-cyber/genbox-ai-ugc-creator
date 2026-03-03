@@ -24,6 +24,7 @@ import { toast as sonnerToast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import MultiShotCreator from "@/components/video/MultiShotCreator";
+import GenerationLoading from "@/components/GenerationLoading";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
 type GenState = "idle" | "loading" | "completed" | "failed";
@@ -559,13 +560,15 @@ const VideoPage = () => {
         )}
 
         {genState === "loading" && (
-          <div className="flex flex-col items-center text-center gap-4 w-full max-w-xs animate-fade-in">
-            <div className={`${aspectRatio === "9:16" ? "aspect-[9/16]" : "aspect-[16/9]"} w-full rounded-xl bg-muted border-2 border-primary/30 animate-pulse`} />
-            <p className="text-sm text-muted-foreground">Sedang membuat video...</p>
-            <p className="text-xs text-muted-foreground/60">{elapsed}s</p>
-            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${info.badgeColor}`}>{info.label}</span>
-            <button onClick={cancelGeneration} className="text-xs text-destructive hover:underline">Batal</button>
-          </div>
+          <GenerationLoading
+            model={videoModel}
+            elapsed={elapsed}
+            aspectRatio={aspectRatio}
+            prompt={finalPrompt || prompt}
+            modelLabel={info.label}
+            badgeColor={info.badgeColor}
+            onCancel={cancelGeneration}
+          />
         )}
 
         {genState === "completed" && videoUrl && (
