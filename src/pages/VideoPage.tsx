@@ -15,6 +15,7 @@ import {
   Zap,
   Clapperboard,
 } from "lucide-react";
+import { generateVideoAndWait } from "@/lib/kie-video-generation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
@@ -236,79 +237,18 @@ const VideoPage = () => {
       }
       setFinalPrompt(usedPrompt);
 
-      let taskId: string;
-      let pollUrl: string;
-      let pollInterval: number;
-
-      if (videoModel === "grok") {
-        const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "grok-imagine/image-to-video",
-            input: { image_urls: [sourceUrl], prompt: usedPrompt, mode: "normal", duration: "6", resolution: "480p" },
-          }),
-        });
-        const createJson = await createRes.json();
-        if (createJson.code !== 200 || !createJson.data?.taskId) throw new Error(createJson.message || "Failed to create task");
-        taskId = createJson.data.taskId;
-        pollUrl = `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`;
-        pollInterval = 3000;
-      } else {
-        const createRes = await fetch("https://api.kie.ai/api/v1/veo/generate", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: usedPrompt,
-            imageUrls: [sourceUrl],
-            model: videoModel === "veo_fast" ? "veo3_fast" : "veo3",
-            aspect_ratio: aspectRatio,
-            generationType: "FIRST_AND_LAST_FRAMES_2_VIDEO",
-            enableTranslation: true,
-          }),
-        });
-        const createJson = await createRes.json();
-        console.log("Veo create response:", createJson);
-        taskId = createJson.data?.taskId || createJson.taskId;
-        if (!taskId) throw new Error(createJson.message || "Failed to create Veo task");
-        pollUrl = `https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`;
-        pollInterval = 5000;
-      }
-
-      let polls = 0;
-      const maxPolls = 60;
-      const poll = async (): Promise<string> => {
-        if (abortRef.current) throw new Error("Cancelled");
-        const r = await fetch(pollUrl, { headers: { Authorization: `Bearer ${kieApiKey}` } });
-        const j = await r.json();
-        console.log("Poll response:", j);
-
-        if (videoModel === "grok") {
-          const state = j.data?.state;
-          if (state === "success") {
-            const resultJson = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
-            const url = resultJson?.resultUrls?.[0] || resultJson?.videoUrl || resultJson?.video_url || resultJson?.url || "";
-            if (!url) throw new Error("No video URL in result");
-            return url;
-          }
-          if (state === "fail") throw new Error("Generation failed");
-        } else {
-          const successFlag = j.data?.successFlag;
-          if (successFlag === 1) {
-            const url = j.data?.videoUrl || j.data?.resultUrl || "";
-            if (!url) throw new Error("No video URL in Veo result");
-            return url;
-          }
-          if (successFlag === 3) throw new Error("Veo generation failed");
-        }
-
-        polls++;
-        if (polls >= maxPolls) throw new Error("Timeout — generation took too long");
-        await new Promise((r) => setTimeout(r, pollInterval));
-        return poll();
-      };
-
-      const resultVideoUrl = await poll();
+      const result = await generateVideoAndWait(
+        {
+          model: videoModel,
+          prompt: usedPrompt,
+          imageUrls: [sourceUrl],
+          duration: 6,
+          aspectRatio,
+          apiKey: kieApiKey,
+        },
+        () => abortRef.current,
+      );
+      const resultVideoUrl = result.videoUrl;
       stopTimer();
       setVideoUrl(resultVideoUrl);
       setGenState("completed");
