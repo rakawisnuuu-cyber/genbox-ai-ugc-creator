@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { geminiFetch } from "@/lib/gemini-fetch";
+import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
 import {
   ChevronLeft,
   ChevronRight,
@@ -237,6 +238,7 @@ const MultiShotCreator = () => {
       video_url: null,
       thumbnail_url: null,
       status: "pending",
+      sourceImageUrl: null,
       withDialogue: dialogue,
       scriptTemplate: dialogue ? "discovery" : null,
       dialogueText: dialogue ? lib.exampleScript : null,
@@ -433,6 +435,27 @@ const MultiShotCreator = () => {
     }
   };
 
+  // Gallery images for Start Image picker
+  const [moduleGalleryImages, setModuleGalleryImages] = useState<{id: string; image_url: string}[]>([]);
+  const [moduleGalleryLoaded, setModuleGalleryLoaded] = useState(false);
+
+  // Load gallery images once for module start image picker
+  useEffect(() => {
+    if (!user || moduleGalleryLoaded) return;
+    supabase
+      .from("generations")
+      .select("id, image_url")
+      .eq("user_id", user.id)
+      .not("image_url", "is", null)
+      .neq("type", "video")
+      .order("created_at", { ascending: false })
+      .limit(12)
+      .then(({ data }) => {
+        setModuleGalleryImages((data || []).filter(d => d.image_url) as {id: string; image_url: string}[]);
+        setModuleGalleryLoaded(true);
+      });
+  }, [user, moduleGalleryLoaded]);
+
   // Generate prompt for module
   const generateModulePrompt = async (idx: number) => {
     if (!geminiKey || keys.gemini.status !== "valid") {
@@ -440,16 +463,22 @@ const MultiShotCreator = () => {
       return;
     }
     const mod = modules[idx];
-    const lib = MODULE_LIBRARY[mod.type];
     const char = characters.find((c) => c.id === characterId);
     setGeneratingPromptIdx(idx);
     try {
+      const sysText = buildVideoDirectorInstruction({
+        shotIndex: idx,
+        totalShots: modules.length,
+        duration: mod.duration,
+        moduleType: mod.type,
+        previousPrompt: idx > 0 ? modules[idx - 1]?.prompt : undefined,
+        withDialogue: mod.withDialogue,
+        dialogueText: mod.dialogueText,
+        audioDirection: mod.audioDirection,
+        characterDescription: char?.description,
+      });
       const json = await geminiFetch(promptModel, geminiKey!, {
-        systemInstruction: {
-          parts: [{
-            text: `You are an expert TikTok video prompt builder. Generate a motion-focused English prompt for a ${mod.type} shot in a UGC-style TikTok video. The video features ${char?.description || "a person"}. This is shot #${idx + 1} of ${modules.length}. Duration: ${mod.duration} seconds. Focus on: ${lib.promptStrategy}. Keep under 60 words. Describe MOTION and ACTION only. Replace any placeholders with actual content. Respond with just the prompt.`,
-          }],
-        },
+        systemInstruction: { parts: [{ text: sysText }] },
         contents: [{ parts: [{ text: `Generate a ${mod.type} video prompt.` }] }],
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
@@ -875,7 +904,43 @@ const MultiShotCreator = () => {
                   )}
                 </div>
 
-                {/* Source */}
+                {/* Start Image per Module */}
+                <div>
+                  <label className="text-[11px] uppercase tracking-widest text-muted-foreground block mb-2">Start Image untuk shot ini</label>
+                  {selectedModule.sourceImageUrl ? (
+                    <div className="relative inline-block">
+                      <img src={selectedModule.sourceImageUrl} alt="Start" className="w-24 h-24 rounded-lg object-cover border border-border" />
+                      <button
+                        onClick={() => updateModule(selectedModuleIdx, { sourceImageUrl: null })}
+                        className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px]"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                      <p className="text-[10px] text-muted-foreground mt-1">Klik ✕ untuk pakai gambar global</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-[10px] text-muted-foreground/60">
+                        {selectedChar?.hero_image_url ? "Menggunakan gambar karakter global" : "Belum ada start image"}
+                      </p>
+                      {moduleGalleryImages.length > 0 && (
+                        <div className="grid grid-cols-4 gap-1.5 max-h-[200px] overflow-y-auto">
+                          {moduleGalleryImages.map((img) => (
+                            <button
+                              key={img.id}
+                              onClick={() => updateModule(selectedModuleIdx, { sourceImageUrl: img.image_url })}
+                              className="rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors aspect-square"
+                            >
+                              <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/60">Pilih dari gallery — ideal: multi-angle shots</p>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label className="text-[11px] uppercase tracking-widest text-muted-foreground block mb-2">Source</label>
                   <div className="grid grid-cols-2 gap-2">
