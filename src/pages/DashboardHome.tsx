@@ -1,221 +1,251 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Zap, Film, Images, ImagePlus, UserCircle, ArrowRight } from "lucide-react";
+import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Sparkles } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-interface Credits {
-  image_credits: number;
-  video_credits: number;
+const MODEL_COST: Record<string, number> = {
+  nano: 320,
+  seedream: 280,
+  "nano-banana-2-pro": 640,
+  grok: 1600,
+  veo3_fast: 4800,
+  veo3: 19200,
+};
+
+function estimateCost(model: string): number {
+  for (const [key, cost] of Object.entries(MODEL_COST)) {
+    if (model.includes(key)) return cost;
+  }
+  return 320;
 }
 
-interface Generation {
-  id: string;
-  image_url: string | null;
-  created_at: string;
+const MONTH_NAMES_ID = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+function formatDateId(d: Date) {
+  const day = d.getDate();
+  const month = MONTH_NAMES_ID[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
+}
+
+interface DailyPoint {
+  date: string;
+  label: string;
+  count: number;
 }
 
 const DashboardHome = () => {
   const { user } = useAuth();
-  const [credits, setCredits] = useState<Credits>({ image_credits: 0, video_credits: 0 });
-  const [generations, setGenerations] = useState<Generation[]>([]);
-  const [totalGenerations, setTotalGenerations] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [totalGen, setTotalGen] = useState(0);
+  const [monthGen, setMonthGen] = useState(0);
+  const [prevMonthGen, setPrevMonthGen] = useState(0);
+  const [totalCost, setTotalCost] = useState(0);
+  const [dailyData, setDailyData] = useState<DailyPoint[]>([]);
 
   const firstName = user?.email?.split("@")[0] || "User";
+  const now = new Date();
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchData = async () => {
-      const [creditsRes, gensRes, countRes] = await Promise.all([
-        supabase.from("user_credits").select("image_credits, video_credits").eq("user_id", user.id).maybeSingle(),
-        supabase.from("generations").select("id, image_url, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(4),
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+    const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+
+    const fetchAll = async () => {
+      const [totalRes, monthRes, prevRes, modelsRes, dailyRes] = await Promise.all([
         supabase.from("generations").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("generations").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("created_at", startOfMonth),
+        supabase.from("generations").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("created_at", startOfPrevMonth).lte("created_at", endOfPrevMonth),
+        supabase.from("generations").select("model").eq("user_id", user.id),
+        supabase.from("generations").select("created_at").eq("user_id", user.id).gte("created_at", thirtyDaysAgo),
       ]);
 
-      if (creditsRes.data) setCredits(creditsRes.data);
-      if (gensRes.data) setGenerations(gensRes.data);
-      if (countRes.count !== null) setTotalGenerations(countRes.count);
+      setTotalGen(totalRes.count ?? 0);
+      setMonthGen(monthRes.count ?? 0);
+      setPrevMonthGen(prevRes.count ?? 0);
+
+      if (modelsRes.data) {
+        setTotalCost(modelsRes.data.reduce((sum, r) => sum + estimateCost(r.model), 0));
+      }
+
+      // Build daily chart data
+      const counts: Record<string, number> = {};
+      if (dailyRes.data) {
+        for (const r of dailyRes.data) {
+          const d = r.created_at.slice(0, 10);
+          counts[d] = (counts[d] || 0) + 1;
+        }
+      }
+      const points: DailyPoint[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000);
+        const key = d.toISOString().slice(0, 10);
+        const day = d.getDate();
+        const mon = MONTH_NAMES_ID[d.getMonth()].slice(0, 3);
+        points.push({ date: key, label: `${day} ${mon}`, count: counts[key] || 0 });
+      }
+      setDailyData(points);
       setLoading(false);
     };
 
-    fetchData();
+    fetchAll();
   }, [user]);
 
+  const monthDiff = monthGen - prevMonthGen;
+  const currentMonthLabel = `${MONTH_NAMES_ID[now.getMonth()]} ${now.getFullYear()}`;
+
   const stats = [
-    { icon: Zap, value: credits.image_credits, label: "Kredit Gambar" },
-    { icon: Film, value: credits.video_credits, label: "Kredit Video" },
-    { icon: Images, value: totalGenerations, label: "Total Generasi" },
+    {
+      label: "Total Generasi",
+      value: totalGen,
+      sub: "gambar & video",
+      icon: ImagePlus,
+    },
+    {
+      label: "Bulan Ini",
+      value: monthGen,
+      sub: currentMonthLabel,
+      icon: monthDiff >= 0 ? TrendingUp : TrendingDown,
+      diff: monthDiff,
+    },
+    {
+      label: "Kredit Terpakai",
+      value: `Rp ${totalCost.toLocaleString("id-ID")}`,
+      sub: "estimasi dari API key kamu",
+      icon: Coins,
+    },
   ];
 
   const actions = [
-    {
-      icon: ImagePlus,
-      iconClass: "text-primary",
-      title: "Buat Gambar UGC",
-      desc: "Generate gambar realistis dari foto produk kamu",
-      cta: "GENERATE",
-      to: "/generate",
-      disabled: false,
-    },
-    {
-      icon: Film,
-      iconClass: "text-muted-foreground",
-      title: "Buat Video UGC",
-      desc: "Ubah gambar jadi video 5-15 detik",
-      cta: "SEGERA HADIR",
-      to: "#",
-      disabled: true,
-    },
-    {
-      icon: UserCircle,
-      iconClass: "text-primary",
-      title: "Buat Karakter",
-      desc: "Buat avatar realistis untuk konten jangka panjang",
-      cta: "BUAT KARAKTER",
-      to: "/characters",
-      disabled: false,
-      outline: true,
-    },
+    { icon: ImagePlus, title: "Buat Gambar UGC", desc: "Generate gambar produk dengan AI", to: "/generate" },
+    { icon: Film, title: "Buat Video", desc: "Generate video UGC untuk TikTok", to: "/video" },
+    { icon: Users, title: "Buat Karakter", desc: "Buat karakter AI untuk konten", to: "/characters/create" },
   ];
 
   return (
     <div className="space-y-8">
-      {/* Section 1 — Welcome */}
-      <div className="animate-fade-up">
-        <div className="flex items-center gap-3">
+      {/* Welcome header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
           <h1 className="font-satoshi text-2xl font-bold text-foreground">
             Selamat datang, {firstName}!
           </h1>
-          <svg
-            className="animate-float h-6 w-6"
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <path
-              d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z"
-              fill="hsl(73, 100%, 50%)"
-            />
-          </svg>
+          <p className="mt-1 text-sm text-muted-foreground">{formatDateId(now)}</p>
         </div>
-        <div className="mt-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-            <Sparkles size={12} />
-            BYOK LIFETIME
-          </span>
-        </div>
+        <Link
+          to="/generate"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <ImagePlus size={16} /> Buat Gambar
+        </Link>
       </div>
 
-      {/* Section 2 — Stats */}
-      <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
-        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="relative min-w-[160px] flex-1 snap-start rounded-xl border border-border bg-secondary p-5"
-            >
-              <stat.icon className="absolute right-4 top-4 h-5 w-5 text-muted-foreground/40" />
-              <p className="text-3xl font-bold text-primary">{loading ? "—" : stat.value}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Section 3 — Quick Actions */}
-      <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
-        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          MULAI BUAT KONTEN
-        </p>
-        <div className="grid gap-4 md:grid-cols-3">
-          {actions.map((action) => (
-            <div
-              key={action.title}
-              className={`rounded-xl border border-border bg-secondary p-6 transition-all ${
-                action.disabled
-                  ? "cursor-not-allowed opacity-50"
-                  : "hover:border-primary/30 hover:scale-[1.01]"
-              }`}
-            >
-              <action.icon className={`h-8 w-8 ${action.iconClass}`} />
-              <h3 className="mt-4 font-satoshi text-base font-bold text-foreground">
-                {action.title}
-              </h3>
-              <p className="mt-1 text-sm text-muted-foreground">{action.desc}</p>
-              {action.disabled ? (
-                <span className="mt-4 inline-block rounded-lg bg-muted px-4 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  {action.cta}
+      {/* Stats row */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {stats.map((s) => (
+          <div key={s.label} className="relative rounded-xl border border-border bg-card p-5">
+            <s.icon className="absolute right-4 top-4 h-5 w-5 text-muted-foreground/40" />
+            {loading ? (
+              <Skeleton className="h-9 w-24" />
+            ) : (
+              <p className="font-mono text-3xl font-bold text-primary">{s.value}</p>
+            )}
+            <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
+            <p className="text-xs text-muted-foreground/60">
+              {s.sub}
+              {s.diff !== undefined && !loading && (
+                <span className={s.diff >= 0 ? "ml-2 text-green-500" : "ml-2 text-red-500"}>
+                  {s.diff >= 0 ? `+${s.diff}` : s.diff}
                 </span>
-              ) : action.outline ? (
-                <Link
-                  to={action.to}
-                  className="mt-4 inline-flex items-center gap-1 rounded-lg border border-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-                >
-                  {action.cta} <ArrowRight size={14} />
-                </Link>
-              ) : (
-                <Link
-                  to={action.to}
-                  className="mt-4 inline-flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  {action.cta} <ArrowRight size={14} />
-                </Link>
               )}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Activity chart */}
+      <div>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          AKTIVITAS
+        </p>
+        <div className="rounded-xl border border-border bg-card p-5">
+          {loading ? (
+            <Skeleton className="h-[200px] w-full" />
+          ) : dailyData.every((d) => d.count === 0) ? (
+            <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+              Belum ada aktivitas. Mulai generate untuk melihat statistik.
             </div>
-          ))}
+          ) : (
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={dailyData}>
+                <defs>
+                  <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={4}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                  formatter={(v: number) => [`${v} generasi`, ""]}
+                  labelStyle={{ color: "hsl(var(--foreground))" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  fill="url(#areaFill)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
-      {/* Section 4 — Recent Generations */}
-      <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            GENERASI TERAKHIR
-          </p>
-          <Link
-            to="/gallery"
-            className="flex items-center gap-1 text-xs text-primary transition-colors hover:text-primary/80"
-          >
-            Lihat Semua <ArrowRight size={12} />
-          </Link>
-        </div>
-
-        {!loading && generations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-12 text-center">
-            <Images className="mb-3 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">Belum ada generasi</p>
+      {/* Quick actions */}
+      <div>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          MULAI
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {actions.map((a) => (
             <Link
-              to="/generate"
-              className="mt-4 inline-flex items-center gap-1 rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+              key={a.title}
+              to={a.to}
+              className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
             >
-              BUAT GAMBAR PERTAMA <ArrowRight size={14} />
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {generations.map((gen) => (
-              <div
-                key={gen.id}
-                className="aspect-square overflow-hidden rounded-xl border border-border bg-secondary transition-transform hover:scale-[1.03]"
-              >
-                {gen.image_url ? (
-                  <img
-                    src={gen.image_url}
-                    alt="Generated"
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <Images className="h-8 w-8 text-muted-foreground/30" />
-                  </div>
-                )}
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <a.icon size={20} className="text-primary" />
               </div>
-            ))}
-          </div>
-        )}
+              <h3 className="font-satoshi text-base font-bold text-foreground">{a.title}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{a.desc}</p>
+              <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                Mulai <ArrowRight size={12} />
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
