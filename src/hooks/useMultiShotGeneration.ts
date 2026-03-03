@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import type { VideoModule } from "@/lib/video-modules";
 import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
 import { geminiFetch } from "@/lib/gemini-fetch";
+import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
 interface UseMultiShotGenerationOptions {
   projectId: string;
   modules: VideoModule[];
@@ -97,28 +98,19 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
   const enhanceModulePrompt = async (mod: VideoModule, shotIndex: number): Promise<string> => {
     if (!geminiApiKey) return mod.prompt;
     try {
-      const dialogueSection = mod.withDialogue && mod.dialogueText
-        ? `\n\nInclude natural spoken dialogue: "${mod.dialogueText}"\nAudio direction: ${mod.audioDirection || "natural ambient"}`
-        : `\nNo dialogue. Audio: ${mod.audioDirection || "ambient sounds only"}`;
+      const sysText = buildVideoDirectorInstruction({
+        shotIndex,
+        totalShots: modules.length,
+        duration: mod.duration,
+        moduleType: mod.type,
+        previousPrompt: shotIndex > 0 ? modules[shotIndex - 1]?.prompt : undefined,
+        withDialogue: mod.withDialogue,
+        dialogueText: mod.dialogueText,
+        audioDirection: mod.audioDirection,
+      });
 
       const json = await geminiFetch(promptModel, geminiApiKey, {
-        systemInstruction: {
-          parts: [{
-            text: `You are an expert TikTok video prompt engineer. Enhance this video prompt for AI generation.
-
-Rules:
-- Output MUST be in English
-- Focus on MOTION, ACTION, CAMERA MOVEMENT
-- Keep under 80 words
-- Include audio/dialogue direction naturally in the prompt
-- NO brackets, NO placeholders, NO template markers
-- IMPORTANT: Maintain visual consistency — the person should wear the SAME outfit, have the SAME appearance across all shots
-- Output ONLY the final prompt text
-
-Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s. Module type: ${mod.type}.
-${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substring(0, 100) || 'N/A'}` : ''}${dialogueSection}`,
-          }],
-        },
+        systemInstruction: { parts: [{ text: sysText }] },
         contents: [{ parts: [{ text: mod.prompt }] }],
       });
       return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || mod.prompt;
@@ -135,14 +127,21 @@ ${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substrin
   ): Promise<string> => {
     // Build image inputs — only use actual IMAGE URLs, never video URLs
     const imageInputs: string[] = [];
-    // Always include character hero image for visual consistency
-    if (characterHeroUrl) imageInputs.push(characterHeroUrl);
-    // Always include product image if available
-    if (productImageUrl) imageInputs.push(productImageUrl);
+    // Use module-specific sourceImageUrl as PRIMARY reference if available
+    if (mod.sourceImageUrl) {
+      imageInputs.push(mod.sourceImageUrl);
+    } else if (characterHeroUrl) {
+      // Fallback to global character hero image
+      imageInputs.push(characterHeroUrl);
+    }
+    // Always include product image as secondary reference if different from primary
+    if (productImageUrl && !imageInputs.includes(productImageUrl)) {
+      imageInputs.push(productImageUrl);
+    }
     // For custom source modules with uploaded images
-    if (mod.source === "custom" && mod.customImageUrl) imageInputs.push(mod.customImageUrl);
-    // NOTE: We do NOT add lastFrameRef (previous video URL) because
-    // Grok/Veo image_urls only accepts image files (JPEG/PNG/WebP), not .mp4
+    if (mod.source === "custom" && mod.customImageUrl && !imageInputs.includes(mod.customImageUrl)) {
+      imageInputs.push(mod.customImageUrl);
+    }
 
     const uniqueImages = [...new Set(imageInputs.filter(Boolean))];
 
