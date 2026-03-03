@@ -37,6 +37,7 @@ import {
   BookOpen,
   Gem,
   BookMarked,
+  Pencil,
   type LucideIcon,
 } from "lucide-react";
 import { useMultiShotGeneration } from "@/hooks/useMultiShotGeneration";
@@ -121,10 +122,20 @@ const MultiShotCreator = () => {
   const [generatingPromptIdx, setGeneratingPromptIdx] = useState<number | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Step 2 drag-and-drop state
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
   // Step 3 state
   const [showCostConfirm, setShowCostConfirm] = useState(true);
   const [previewShotIdx, setPreviewShotIdx] = useState<number | null>(null);
   const [generationStarted, setGenerationStarted] = useState(false);
+  const [editingShotIdx, setEditingShotIdx] = useState<number | null>(null);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [editDialogue, setEditDialogue] = useState("");
+  const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
+  const [needsRestitch, setNeedsRestitch] = useState(false);
+  const [deleteConfirmIdx, setDeleteConfirmIdx] = useState<number | null>(null);
 
   // Character info for generation
   const selectedChar = characters.find((c) => c.id === characterId);
@@ -303,9 +314,22 @@ const MultiShotCreator = () => {
     setSelectedModuleIdx(afterIdx + 1);
   };
 
-  // Remove module
+  // Remove module with validation
   const removeModule = (idx: number) => {
-    if (modules.length <= 3) return;
+    if (modules.length <= 3) {
+      toast({ title: "Minimum 3 module diperlukan", variant: "destructive" });
+      return;
+    }
+    const mod = modules[idx];
+    if (mod.type === "hook" && idx === 0) {
+      toast({ title: "Video harus dimulai dengan Hook", variant: "destructive" });
+      return;
+    }
+    if (mod.type === "cta" && idx === modules.length - 1) {
+      toast({ title: "Video harus diakhiri dengan CTA", variant: "destructive" });
+      return;
+    }
+    setDeleteConfirmIdx(null);
     setModules((prev) => {
       const next = prev.filter((_, i) => i !== idx);
       saveModules(next);
@@ -314,8 +338,99 @@ const MultiShotCreator = () => {
     setSelectedModuleIdx((prev) => Math.min(prev, modules.length - 2));
   };
 
-  // Generate prompt for module
-  const generateModulePrompt = async (idx: number) => {
+  // Drag-and-drop reorder
+  const handleDragStart = (idx: number) => {
+    setDragIdx(idx);
+  };
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setDragOverIdx(idx);
+  };
+
+  const handleDrop = (targetIdx: number) => {
+    if (dragIdx === null || dragIdx === targetIdx) {
+      setDragIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    
+    const draggedMod = modules[dragIdx];
+    const targetMod = modules[targetIdx];
+    
+    // Hook must stay first
+    if (draggedMod.type === "hook" && targetIdx !== 0) {
+      toast({ title: "Hook harus tetap di posisi pertama", variant: "destructive" });
+      setDragIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    if (targetIdx === 0 && draggedMod.type !== "hook" && modules[0].type === "hook") {
+      toast({ title: "Hook harus tetap di posisi pertama", variant: "destructive" });
+      setDragIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    // CTA must stay last
+    if (draggedMod.type === "cta" && targetIdx !== modules.length - 1) {
+      toast({ title: "CTA harus tetap di posisi terakhir", variant: "destructive" });
+      setDragIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    if (targetIdx === modules.length - 1 && draggedMod.type !== "cta" && modules[modules.length - 1].type === "cta") {
+      toast({ title: "CTA harus tetap di posisi terakhir", variant: "destructive" });
+      setDragIdx(null);
+      setDragOverIdx(null);
+      return;
+    }
+    
+    setModules((prev) => {
+      const next = [...prev];
+      const [removed] = next.splice(dragIdx, 1);
+      next.splice(targetIdx, 0, removed);
+      saveModules(next);
+      return next;
+    });
+    setSelectedModuleIdx(targetIdx);
+    setDragIdx(null);
+    setDragOverIdx(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIdx(null);
+    setDragOverIdx(null);
+  };
+
+  // Step 3: Regenerate single shot
+  const handleRegenerateShot = async (idx: number) => {
+    setRegeneratingIdx(idx);
+    try {
+      await multiShotGen.retryShot(idx);
+      setNeedsRestitch(true);
+      sonnerToast.success(`Shot #${idx + 1} berhasil di-regenerate`);
+    } catch {
+      sonnerToast.error(`Gagal regenerate shot #${idx + 1}`);
+    } finally {
+      setRegeneratingIdx(null);
+    }
+  };
+
+  // Step 3: Save edited prompt & regenerate
+  const handleSaveAndRegenerate = async (idx: number) => {
+    updateModule(idx, { prompt: editPrompt, dialogueText: editDialogue || null });
+    setEditingShotIdx(null);
+    setRegeneratingIdx(idx);
+    try {
+      // Update module first, then retry
+      setTimeout(() => multiShotGen.retryShot(idx), 100);
+      setNeedsRestitch(true);
+    } catch {
+      sonnerToast.error(`Gagal regenerate shot #${idx + 1}`);
+    } finally {
+      setTimeout(() => setRegeneratingIdx(null), 500);
+    }
+  };
     if (!geminiKey || keys.gemini.status !== "valid") {
       toast({ title: "Gemini API key belum di-setup", variant: "destructive" });
       return;
@@ -586,20 +701,32 @@ const MultiShotCreator = () => {
               {modules.map((mod, idx) => {
                 const lib = MODULE_LIBRARY[mod.type];
                 const isSelected = idx === selectedModuleIdx;
+                const isDragOver = dragOverIdx === idx && dragIdx !== idx;
                 return (
                   <div key={mod.id}>
-                    {/* Module card */}
-                    <button
+                    {/* Drop indicator line */}
+                    {isDragOver && dragIdx !== null && dragIdx > idx && (
+                      <div className="h-0.5 bg-primary rounded-full mx-4 my-0.5 transition-all" />
+                    )}
+                    {/* Module card with drag */}
+                    <div
+                      draggable
+                      onDragStart={() => handleDragStart(idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDrop={() => handleDrop(idx)}
+                      onDragEnd={handleDragEnd}
                       onClick={() => setSelectedModuleIdx(idx)}
-                      className={`w-full text-left rounded-xl p-3.5 transition-all relative ${
+                      className={`w-full text-left rounded-xl p-3.5 transition-all relative group cursor-pointer ${
                         isSelected
                           ? "border-2 border-primary bg-primary/5 shadow-[0_0_15px_-5px_hsl(var(--primary)/0.15)]"
                           : "border border-border bg-card hover:border-muted-foreground/30"
-                      }`}
+                      } ${dragIdx === idx ? "opacity-40" : ""}`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        {/* Drag handle */}
+                        <GripVertical className="h-4 w-4 text-muted-foreground/30 shrink-0 cursor-grab active:cursor-grabbing group-hover:text-muted-foreground transition-colors" />
                         {/* Colored bar */}
-                        <div className={`w-1 h-10 rounded-full ${lib.color.split(" ")[0]}`} />
+                        <div className={`w-1 h-10 rounded-full shrink-0 ${lib.color.split(" ")[0]}`} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[11px] text-muted-foreground font-mono">#{idx + 1}</span>
@@ -612,7 +739,6 @@ const MultiShotCreator = () => {
                             ) : (
                               <VolumeX className="h-3 w-3 text-muted-foreground/50" />
                             )}
-                            {/* Status */}
                             <span className={`h-2 w-2 rounded-full ${
                               mod.status === "completed" ? "bg-green-500" :
                               mod.status === "generating" ? "bg-yellow-500 animate-pulse" :
@@ -622,8 +748,39 @@ const MultiShotCreator = () => {
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-1 truncate">{mod.prompt.slice(0, 60)}...</p>
                         </div>
+                        {/* Delete button on hover */}
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          {deleteConfirmIdx === idx ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeModule(idx); }}
+                                className="text-[10px] text-destructive-foreground bg-destructive px-2 py-1 rounded"
+                              >
+                                Hapus
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setDeleteConfirmIdx(null); }}
+                                className="text-[10px] text-muted-foreground px-1 py-1"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDeleteConfirmIdx(idx); }}
+                              className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                              title={`Hapus module ${lib.label}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </button>
+                    </div>
+                    {/* Drop indicator line */}
+                    {isDragOver && dragIdx !== null && dragIdx < idx && (
+                      <div className="h-0.5 bg-primary rounded-full mx-4 my-0.5 transition-all" />
+                    )}
 
                     {/* Add button between modules */}
                     {idx < modules.length - 1 && modules.length < 7 && (
@@ -867,15 +1024,16 @@ const MultiShotCreator = () => {
                 <div className="space-y-2">
                   {modules.map((mod, idx) => {
                     const lib = MODULE_LIBRARY[mod.type];
-                    const isActive = multiShotGen.progress.currentShot === idx && mod.status === "generating";
-                    const isCompleted = mod.status === "completed";
-                    const isFailed = mod.status === "failed";
+                    const isActive = (multiShotGen.progress.currentShot === idx && mod.status === "generating") || regeneratingIdx === idx;
+                    const isCompleted = mod.status === "completed" && regeneratingIdx !== idx;
+                    const isFailed = mod.status === "failed" && regeneratingIdx !== idx;
                     const shotElapsed = multiShotGen.progress.elapsedPerShot[idx] || 0;
+                    const isEditing = editingShotIdx === idx;
 
                     return (
                       <div
                         key={mod.id}
-                        className={`rounded-xl p-3.5 transition-all border ${
+                        className={`rounded-xl transition-all border ${
                           isActive
                             ? "border-primary/50 bg-primary/5 animate-pulse"
                             : isCompleted
@@ -885,57 +1043,132 @@ const MultiShotCreator = () => {
                             : "border-border bg-card"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-1 h-10 rounded-full ${
-                            isCompleted ? "bg-green-500" : isFailed ? "bg-destructive" : isActive ? "bg-primary" : lib.color.split(" ")[0]
-                          }`} />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-[11px] text-muted-foreground font-mono">#{idx + 1}</span>
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${lib.color}`}>
-                                {getModuleIcon(lib.icon)} {lib.label}
-                              </span>
-                              {mod.withDialogue && <Volume2 className="h-3 w-3 text-primary" />}
+                        <div className="p-3.5">
+                          <div className="flex items-center gap-3 group">
+                            <div className={`w-1 h-10 rounded-full shrink-0 ${
+                              isCompleted ? "bg-green-500" : isFailed ? "bg-destructive" : isActive ? "bg-primary" : lib.color.split(" ")[0]
+                            }`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] text-muted-foreground font-mono">#{idx + 1}</span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${lib.color}`}>
+                                  {getModuleIcon(lib.icon)} {lib.label}
+                                </span>
+                                {mod.withDialogue && <Volume2 className="h-3 w-3 text-primary" />}
 
-                              {/* Status */}
-                              {isActive && (
-                                <span className="text-[10px] text-primary flex items-center gap-1">
-                                  <Loader2 className="h-3 w-3 animate-spin" /> Generating... {formatTime(shotElapsed)}
-                                </span>
-                              )}
-                              {isCompleted && (
-                                <span className="text-[10px] text-green-500 flex items-center gap-1">
-                                  <Check className="h-3 w-3" /> Selesai
-                                </span>
-                              )}
-                              {isFailed && (
-                                <span className="text-[10px] text-destructive flex items-center gap-1">
-                                  <X className="h-3 w-3" /> Gagal
-                                </span>
-                              )}
-                              {!isActive && !isCompleted && !isFailed && (
-                                <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1"><Clock className="h-3 w-3" /> Menunggu...</span>
-                              )}
+                                {/* Status */}
+                                {isActive && (
+                                  <span className="text-[10px] text-primary flex items-center gap-1">
+                                    <Loader2 className="h-3 w-3 animate-spin" /> Generating... {formatTime(shotElapsed)}
+                                  </span>
+                                )}
+                                {isCompleted && (
+                                  <span className="text-[10px] text-green-500 flex items-center gap-1">
+                                    <Check className="h-3 w-3" /> Selesai
+                                  </span>
+                                )}
+                                {isFailed && (
+                                  <span className="text-[10px] text-destructive flex items-center gap-1">
+                                    <X className="h-3 w-3" /> Gagal
+                                  </span>
+                                )}
+                                {!isActive && !isCompleted && !isFailed && (
+                                  <span className="text-[10px] text-muted-foreground/50 flex items-center gap-1"><Clock className="h-3 w-3" /> Menunggu...</span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {isCompleted && mod.video_url && (
+                                  <button
+                                    onClick={() => setPreviewShotIdx(idx)}
+                                    className="text-[10px] text-primary hover:underline"
+                                  >
+                                    <Play className="h-3 w-3 inline mr-0.5" /> Preview
+                                  </button>
+                                )}
+                                {isFailed && (
+                                  <button
+                                    onClick={() => handleRegenerateShot(idx)}
+                                    className="text-[10px] text-destructive hover:underline flex items-center gap-1"
+                                  >
+                                    <RefreshCw className="h-3 w-3" /> Coba Lagi
+                                  </button>
+                                )}
+                                {/* Regenerate & Edit buttons on completed shots */}
+                                {isCompleted && (
+                                  <>
+                                    <button
+                                      onClick={() => handleRegenerateShot(idx)}
+                                      className="text-[10px] text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1"
+                                    >
+                                      <RefreshCw className="h-3 w-3" /> Regenerate
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingShotIdx(isEditing ? null : idx);
+                                        setEditPrompt(mod.prompt);
+                                        setEditDialogue(mod.dialogueText || "");
+                                      }}
+                                      className="text-[10px] text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-all flex items-center gap-1"
+                                    >
+                                      <Pencil className="h-3 w-3" /> Edit Prompt
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             </div>
-
-                            {isCompleted && mod.video_url && (
-                              <button
-                                onClick={() => setPreviewShotIdx(idx)}
-                                className="text-[10px] text-primary hover:underline mt-1"
-                              >
-                                <Play className="h-3 w-3 inline mr-0.5" /> Lihat preview
-                              </button>
-                            )}
-                            {isFailed && (
-                              <button
-                                onClick={() => multiShotGen.retryShot(idx)}
-                                className="text-[10px] text-destructive hover:underline mt-1 flex items-center gap-1"
-                              >
-                                <RefreshCw className="h-3 w-3" /> Coba Lagi
-                              </button>
-                            )}
                           </div>
                         </div>
+
+                        {/* Expandable prompt editor */}
+                        {isEditing && (
+                          <div className="border-t border-border p-3.5 space-y-3 animate-fade-up">
+                            <div>
+                              <label className="text-[10px] uppercase tracking-widest text-muted-foreground block mb-1.5">Prompt</label>
+                              <Textarea
+                                value={editPrompt}
+                                onChange={(e) => setEditPrompt(e.target.value)}
+                                rows={4}
+                                className="bg-muted/30 border-border text-xs"
+                              />
+                            </div>
+                            {mod.withDialogue && (
+                              <div>
+                                <label className="text-[10px] uppercase tracking-widest text-muted-foreground block mb-1.5">Dialog</label>
+                                <Textarea
+                                  value={editDialogue}
+                                  onChange={(e) => setEditDialogue(e.target.value)}
+                                  rows={2}
+                                  placeholder="Dialog karakter..."
+                                  className="bg-muted/30 border-border text-xs"
+                                />
+                              </div>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleSaveAndRegenerate(idx)}
+                                className="text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1.5"
+                              >
+                                <Sparkles className="h-3 w-3" /> Save & Regenerate
+                              </button>
+                              <button
+                                onClick={() => setEditingShotIdx(null)}
+                                className="text-xs text-muted-foreground px-3 py-1.5 rounded-lg hover:text-foreground transition-colors"
+                              >
+                                Batal
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Restitch warning */}
+                        {needsRestitch && isCompleted && idx === modules.length - 1 && (
+                          <div className="border-t border-border px-3.5 py-2">
+                            <p className="text-[10px] text-yellow-500 flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" /> Re-stitching diperlukan setelah regenerate
+                            </p>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
