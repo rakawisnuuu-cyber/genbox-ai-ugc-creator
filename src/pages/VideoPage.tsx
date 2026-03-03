@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { analyzeProduct, imageUrlToBase64 as analyzerImageUrlToBase64, type ProductAnalysis } from "@/lib/product-analyzer";
 import {
   Upload,
   X,
@@ -90,6 +91,8 @@ const VideoPage = () => {
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
   const [promptEnhanced, setPromptEnhanced] = useState(false);
   const [promptFlash, setPromptFlash] = useState(false);
+  const [productAnalysis, setProductAnalysis] = useState<ProductAnalysis | null>(null);
+  const [analyzingProduct, setAnalyzingProduct] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Generation
@@ -130,8 +133,24 @@ const VideoPage = () => {
       return;
     }
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-    setSourceUrl(urlData.publicUrl);
+    const publicUrl = urlData.publicUrl;
+    setSourceUrl(publicUrl);
     setUploading(false);
+
+    // Auto-analyze product in background
+    if (geminiKey && keys.gemini.status === "valid") {
+      setAnalyzingProduct(true);
+      try {
+        const base64 = await analyzerImageUrlToBase64(publicUrl);
+        const analysis = await analyzeProduct(base64, geminiKey, promptModel);
+        setProductAnalysis(analysis);
+        console.log("[video] Product analysis:", analysis);
+      } catch (err) {
+        console.error("Product analysis failed:", err);
+      } finally {
+        setAnalyzingProduct(false);
+      }
+    }
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -143,6 +162,7 @@ const VideoPage = () => {
   const removeSource = () => {
     setSourcePreview(null);
     setSourceUrl(null);
+    setProductAnalysis(null);
   };
 
   /* ── Gallery Modal ───────────────────────────────────────── */
@@ -152,7 +172,7 @@ const VideoPage = () => {
     setGalleryLoading(true);
     const { data } = await supabase
       .from("generations")
-      .select("id, image_url, created_at")
+      .select("id, image_url, created_at, metadata")
       .eq("user_id", user.id)
       .not("image_url", "is", null)
       .neq("type", "video")
@@ -162,10 +182,15 @@ const VideoPage = () => {
     setGalleryLoading(false);
   };
 
-  const selectFromGallery = (img: GalleryImage) => {
+  const selectFromGallery = (img: GalleryImage & { metadata?: any }) => {
     setSourcePreview(img.image_url);
     setSourceUrl(img.image_url);
     setGalleryOpen(false);
+    // Load saved product analysis if available
+    if (img.metadata?.product_analysis) {
+      setProductAnalysis(img.metadata.product_analysis);
+      console.log("Loaded saved product analysis:", img.metadata.product_analysis.product_name);
+    }
   };
 
   /* ── Flash animation helper ─────────────────────────────── */
@@ -191,7 +216,7 @@ const VideoPage = () => {
           body: JSON.stringify({
             systemInstruction: {
               parts: [{
-                text: "You are an expert video prompt builder for AI video generation. The user has a source image and wants to create a short 5-8 second UGC-style video for TikTok/Reels.\n\nCreate a concise, action-focused English video prompt. Describe:\n- The specific MOTION and ACTION (what moves, how fast, direction)\n- Camera movement (static, slow zoom in, gentle pan, handheld feel)\n- Expression and body language changes\n- The mood and energy level\n\nKeep it under 80 words. Veo and Grok work best with concise, specific motion prompts.\n\nDo NOT describe what's already in the image. Only describe what MOVES and CHANGES.\n\nIMPORTANT: Replace any placeholder brackets like [DIALOGUE: ...] with actual natural dialogue text. The output must be clean — no brackets, no placeholders, no template markers.\n\nRespond with just the prompt text, no JSON, no quotes, no explanation.",
+                text: `You are an expert video prompt builder for AI video generation. The user has a source image and wants to create a short 5-8 second UGC-style video for TikTok/Reels.\n\nCreate a concise, action-focused English video prompt. Describe:\n- The specific MOTION and ACTION (what moves, how fast, direction)\n- Camera movement (static, slow zoom in, gentle pan, handheld feel)\n- Expression and body language changes\n- The mood and energy level\n\nKeep it under 80 words. Veo and Grok work best with concise, specific motion prompts.\n\nDo NOT describe what's already in the image. Only describe what MOVES and CHANGES.\n\nIMPORTANT: Replace any placeholder brackets like [DIALOGUE: ...] with actual natural dialogue text. The output must be clean — no brackets, no placeholders, no template markers.\n${productAnalysis ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===\n${productAnalysis.product_visual}\nThe product must match this description in every frame. No alterations to shape, color, text, or proportions.\n` : ''}\nRespond with just the prompt text, no JSON, no quotes, no explanation.`,
               }],
             },
             contents: [{
@@ -261,7 +286,11 @@ const VideoPage = () => {
         model: videoModel === "grok" ? "grok-imagine" : videoModel === "veo_fast" ? "veo3_fast" : "veo3",
         provider: "kie_ai",
         status: "completed",
-      });
+        metadata: productAnalysis ? {
+          product_analysis: productAnalysis,
+          source_product_url: sourceUrl,
+        } : {},
+      } as any);
       if (saveError) {
         console.error("Save error:", saveError);
         sonnerToast.error("Gagal menyimpan. Coba download manual.");
@@ -363,7 +392,30 @@ const VideoPage = () => {
                 </div>
               )}
             </div>
-          ) : (
+          ) : null}
+          {/* Product Analysis Card */}
+          {analyzingProduct && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Menganalisis produk...
+            </div>
+          )}
+          {productAnalysis && !analyzingProduct && sourcePreview && (
+            <div className="mt-3 p-3 bg-card border border-border rounded-lg space-y-1.5">
+              <p className="text-xs font-medium text-primary">{productAnalysis.product_name}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
+                {productAnalysis.product_visual}
+              </p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {productAnalysis.product_features.split(",").slice(0, 4).map((f, i) => (
+                  <span key={i} className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
+                    {f.trim()}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {!sourcePreview && (
             <div className="space-y-2">
               <div
                 onDragOver={(e) => e.preventDefault()}
