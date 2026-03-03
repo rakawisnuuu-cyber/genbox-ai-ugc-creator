@@ -431,6 +431,9 @@ const MultiShotCreator = () => {
       setTimeout(() => setRegeneratingIdx(null), 500);
     }
   };
+
+  // Generate prompt for module
+  const generateModulePrompt = async (idx: number) => {
     if (!geminiKey || keys.gemini.status !== "valid") {
       toast({ title: "Gemini API key belum di-setup", variant: "destructive" });
       return;
