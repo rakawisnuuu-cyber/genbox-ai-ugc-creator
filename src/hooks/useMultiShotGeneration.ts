@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import type { VideoModule } from "@/lib/video-modules";
 import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
+import { analyzeProduct, imageUrlToBase64, type ProductAnalysis } from "@/lib/product-analyzer";
 interface UseMultiShotGenerationOptions {
   projectId: string;
   modules: VideoModule[];
@@ -63,6 +64,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const shotTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastFrameRef = useRef<string | null>(null);
+  const productAnalysisRef = useRef<ProductAnalysis | null>(null);
 
   const startGlobalTimer = useCallback(() => {
     timerRef.current = setInterval(() => {
@@ -120,7 +122,8 @@ Rules:
 - Output ONLY the final prompt text
 
 Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s. Module type: ${mod.type}.
-${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substring(0, 100) || 'N/A'}` : ''}${dialogueSection}`,
+${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substring(0, 100) || 'N/A'}` : ''}
+${productAnalysisRef.current ? `\n=== PRODUCT REFERENCE (MUST MATCH EXACTLY) ===\n${productAnalysisRef.current.product_visual}\nThe product must match this description in every frame. No alterations to shape, color, text, or proportions.\n` : ''}${dialogueSection}`,
               }],
             },
             contents: [{ parts: [{ text: mod.prompt }] }],
@@ -177,6 +180,7 @@ ${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substrin
     cancelRef.current = false;
     pauseRef.current = false;
     lastFrameRef.current = null;
+    productAnalysisRef.current = null;
 
     setProgress({
       currentShot: 0,
@@ -190,6 +194,18 @@ ${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substrin
 
     onProjectStatusChange("generating");
     startGlobalTimer();
+
+    // Analyze product image before starting shots
+    if (productImageUrl && geminiApiKey) {
+      try {
+        const base64 = await imageUrlToBase64(productImageUrl);
+        const analysis = await analyzeProduct(base64, geminiApiKey, promptModel);
+        productAnalysisRef.current = analysis;
+        console.log("[multi-shot] Product analysis:", analysis.product_name);
+      } catch (err) {
+        console.warn("[multi-shot] Product analysis failed, continuing without:", err);
+      }
+    }
 
     for (let i = 0; i < modules.length; i++) {
       if (cancelRef.current) break;

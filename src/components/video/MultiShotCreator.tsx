@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { analyzeProduct, imageUrlToBase64, type ProductAnalysis } from "@/lib/product-analyzer";
 import {
   ChevronLeft,
   ChevronRight,
@@ -112,6 +113,8 @@ const MultiShotCreator = () => {
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [productPreview, setProductPreview] = useState<string | null>(null);
   const [uploadingProduct, setUploadingProduct] = useState(false);
+  const [productAnalysis, setProductAnalysis] = useState<ProductAnalysis | null>(null);
+  const [analyzingProduct, setAnalyzingProduct] = useState(false);
   const [videoModel, setVideoModel] = useState<VideoModel>("veo_fast");
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
   const [withDialogue, setWithDialogue] = useState(true);
@@ -206,8 +209,24 @@ const MultiShotCreator = () => {
       return;
     }
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-    setProductImageUrl(urlData.publicUrl);
+    const publicUrl = urlData.publicUrl;
+    setProductImageUrl(publicUrl);
     setUploadingProduct(false);
+
+    // Auto-analyze product
+    if (geminiKey && keys.gemini.status === "valid") {
+      setAnalyzingProduct(true);
+      try {
+        const base64 = await imageUrlToBase64(publicUrl);
+        const analysis = await analyzeProduct(base64, geminiKey, promptModel);
+        setProductAnalysis(analysis);
+        console.log("[multi-shot] Product analysis:", analysis);
+      } catch (err) {
+        console.error("Product analysis failed:", err);
+      } finally {
+        setAnalyzingProduct(false);
+      }
+    }
   };
 
   // Build modules from template
@@ -613,6 +632,35 @@ const MultiShotCreator = () => {
               >
                 <Upload className="h-6 w-6 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">Upload gambar produk (opsional)</p>
+              </div>
+            )}
+            {/* Product Analysis Card */}
+            {analyzingProduct && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Menganalisis produk...
+              </div>
+            )}
+            {productAnalysis && !analyzingProduct && productPreview && (
+              <div className="mt-3 p-3 bg-card border border-border rounded-lg space-y-1.5">
+                <p className="text-xs font-medium text-primary">{productAnalysis.product_name}</p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
+                  {productAnalysis.product_visual}
+                </p>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {productAnalysis.product_features.split(",").slice(0, 4).map((f, i) => (
+                    <span key={i} className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
+                      {f.trim()}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="text-[10px] text-muted-foreground/60">Setting: {productAnalysis.video_setting}</span>
+                  <span className="text-[10px] text-muted-foreground/60">ICP: {productAnalysis.icp}</span>
+                </div>
+                {!characterId && productAnalysis.character_model && (
+                  <p className="text-[10px] text-primary/70 mt-1">💡 Rekomendasi karakter: {productAnalysis.character_model}</p>
+                )}
               </div>
             )}
           </div>

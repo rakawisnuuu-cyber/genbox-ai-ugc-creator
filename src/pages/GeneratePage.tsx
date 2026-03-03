@@ -19,6 +19,7 @@ import { useApiKeys } from "@/hooks/useApiKeys";
 import { usePromptModel } from "@/hooks/usePromptModel";
 import { useUpscale } from "@/hooks/useUpscale";
 import { useToast } from "@/hooks/use-toast";
+import { analyzeProduct, imageUrlToBase64 as analyzerImageUrlToBase64, type ProductAnalysis } from "@/lib/product-analyzer";
 import UpscaleButton from "@/components/UpscaleButton";
 import GenerationLoading from "@/components/GenerationLoading";
 import {
@@ -102,6 +103,10 @@ const GeneratePage = () => {
   const [prompt, setPrompt] = useState("");
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
 
+  // Product analysis state
+  const [productAnalysis, setProductAnalysis] = useState<ProductAnalysis | null>(null);
+  const [analyzingProduct, setAnalyzingProduct] = useState(false);
+
   // Generation state
   const [genState, setGenState] = useState<GenState>("idle");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -184,8 +189,24 @@ const GeneratePage = () => {
       return;
     }
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-    setProductUrl(urlData.publicUrl);
+    const publicUrl = urlData.publicUrl;
+    setProductUrl(publicUrl);
     setUploading(false);
+
+    // Auto-analyze product in background
+    if (geminiKey && keys.gemini.status === "valid") {
+      setAnalyzingProduct(true);
+      try {
+        const base64 = await analyzerImageUrlToBase64(publicUrl);
+        const analysis = await analyzeProduct(base64, geminiKey, promptModel);
+        setProductAnalysis(analysis);
+        console.log("Product analysis:", analysis);
+      } catch (err) {
+        console.error("Product analysis failed:", err);
+      } finally {
+        setAnalyzingProduct(false);
+      }
+    }
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -198,6 +219,7 @@ const GeneratePage = () => {
     setProductFile(null);
     setProductPreview(null);
     setProductUrl(null);
+    setProductAnalysis(null);
   };
 
   /* ── Prompt Generation via Gemini ─────────────────────────── */
@@ -240,7 +262,7 @@ const GeneratePage = () => {
 
 Character: ${selectedChar.name}
 Character Identity: ${characterIdentity}
-Product: ${productUrl ? "Analyze the product image above — describe its exact shape, color, size, packaging, label, and type." : "User's product (no image provided)"}
+Product: ${productAnalysis ? `KNOWN PRODUCT: ${productAnalysis.product_name}. EXACT VISUAL: ${productAnalysis.product_visual}. Features: ${productAnalysis.product_features}` : productUrl ? "Analyze the product image above — describe its exact shape, color, size, packaging, label, and type." : "User's product (no image provided)"}
 Background: ${bg || "not specified"}
 Pose: ${pose || "not specified"}
 Mood: ${mood || "not specified"}
@@ -393,7 +415,11 @@ Respond ONLY with valid JSON:
         provider: "kie_ai",
         model: "nano-banana-pro",
         status: "completed",
-      });
+        metadata: productAnalysis ? {
+          product_analysis: productAnalysis,
+          source_product_url: productUrl,
+        } : {},
+      } as any);
     } catch (err: any) {
       stopTimer();
       if (!abortRef.current) {
@@ -425,7 +451,7 @@ Respond ONLY with valid JSON:
         {/* Upload Produk */}
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Upload Produk</label>
-          {productPreview ? (
+          {productPreview && (
             <div className="relative inline-block">
               <img src={productPreview} alt="Product" className="h-32 w-32 rounded-xl object-cover border border-border" />
               <button
@@ -440,7 +466,37 @@ Respond ONLY with valid JSON:
                 </div>
               )}
             </div>
-          ) : (
+          )}
+          {/* Product Analysis Card */}
+          {analyzingProduct && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Menganalisis produk...
+            </div>
+          )}
+          {productAnalysis && !analyzingProduct && productPreview && (
+            <div className="mt-3 p-3 bg-card border border-border rounded-lg space-y-1.5">
+              <p className="text-xs font-medium text-primary">{productAnalysis.product_name}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
+                {productAnalysis.product_visual}
+              </p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {productAnalysis.product_features.split(",").slice(0, 4).map((f, i) => (
+                  <span key={i} className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
+                    {f.trim()}
+                  </span>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="text-[10px] text-muted-foreground/60">Setting: {productAnalysis.video_setting}</span>
+                <span className="text-[10px] text-muted-foreground/60">ICP: {productAnalysis.icp}</span>
+              </div>
+              {productAnalysis.character_model && (
+                <p className="text-[10px] text-primary/70 mt-1">💡 Karakter disarankan: {productAnalysis.character_model}</p>
+              )}
+            </div>
+          )}
+          {!productPreview && (
             <div
               onDragOver={(e) => e.preventDefault()}
               onDrop={onDrop}
