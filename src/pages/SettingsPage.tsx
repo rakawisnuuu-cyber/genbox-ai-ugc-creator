@@ -73,7 +73,8 @@ const blueprints = [
 /* ── Main Page ── */
 const MODEL_OPTIONS = [
   { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", desc: "Cepat, gratis, cocok untuk kebanyakan kasus", badge: "GRATIS", badgeClass: "bg-green-500/20 text-green-400" },
-  { value: "gemini-2.5-pro-preview-05-06", label: "Gemini 2.5 Pro", desc: "Reasoning lebih dalam, prompt lebih detail & akurat", badge: "PREMIUM", badgeClass: "bg-primary/20 text-primary" },
+  { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", desc: "Reasoning terbaik, JSON precision, prompt paling detail", badge: "TERBARU", badgeClass: "bg-blue-500/20 text-blue-400" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", desc: "Kreativitas tinggi, multimodal vision, analisis gambar", badge: "PREMIUM", badgeClass: "bg-primary/20 text-primary" },
 ];
 
 const SettingsPage = () => {
@@ -149,7 +150,7 @@ const SettingsPage = () => {
           <h2 className="font-satoshi font-bold text-foreground">Model Prompt</h2>
         </div>
         <p className="text-xs text-muted-foreground mb-5">Model yang dipakai untuk generate prompt karakter dan UGC.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {MODEL_OPTIONS.map((opt) => (
             <button
               key={opt.value}

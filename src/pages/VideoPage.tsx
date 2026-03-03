@@ -194,6 +194,7 @@ const VideoPage = () => {
         dialogueText: null,
         audioDirection: null,
       });
+      console.log("=== VIDEO ENHANCE PROMPT ===", "Model:", promptModel);
       const json = await geminiFetch(promptModel, geminiKey!, {
         systemInstruction: { parts: [{ text: sysText }] },
         contents: [{
@@ -201,13 +202,17 @@ const VideoPage = () => {
         }],
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      if (!text) {
+        const reason = json.candidates?.[0]?.finishReason || json.promptFeedback?.blockReason;
+        throw new Error(`Empty response${reason ? `: ${reason}` : ""}`);
+      }
       const enhanced = text.trim();
       setPrompt(enhanced);
       setPromptEnhanced(true);
       flashTextarea();
       return enhanced;
-    } catch {
-      toast({ title: "Gagal generate prompt", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Gagal generate prompt", description: err?.message || "Unknown error", variant: "destructive" });
       return prompt;
     } finally {
       setGeneratingPrompt(false);
