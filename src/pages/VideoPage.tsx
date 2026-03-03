@@ -271,7 +271,7 @@ const VideoPage = () => {
         console.log("Veo create response:", createJson);
         taskId = createJson.data?.taskId || createJson.taskId;
         if (!taskId) throw new Error(createJson.message || "Failed to create Veo task");
-        pollUrl = `https://api.kie.ai/api/v1/veo/detail?taskId=${taskId}`;
+        pollUrl = `https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`;
         pollInterval = 5000;
       }
 
@@ -293,13 +293,13 @@ const VideoPage = () => {
           }
           if (state === "fail") throw new Error("Generation failed");
         } else {
-          const status = j.data?.status || j.status;
-          if (status === "SUCCESS" || status === "success" || status === "completed") {
-            const url = j.data?.videoUrl || j.data?.video_url || j.videoUrl || "";
+          const successFlag = j.data?.successFlag;
+          if (successFlag === 1) {
+            const url = j.data?.videoUrl || j.data?.resultUrl || "";
             if (!url) throw new Error("No video URL in Veo result");
             return url;
           }
-          if (status === "FAILED" || status === "fail" || status === "failed") throw new Error("Veo generation failed");
+          if (successFlag === 3) throw new Error("Veo generation failed");
         }
 
         polls++;

@@ -192,17 +192,37 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
       const createJson = await createRes.json();
       taskId = createJson.data?.taskId || createJson.taskId;
       if (!taskId) throw new Error(createJson.message || "Failed to create Veo task");
-      pollUrl = `https://api.kie.ai/api/v1/veo/detail?taskId=${taskId}`;
+      pollUrl = `https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`;
       pollInterval = 5000;
     }
 
-    // Poll
-    let polls = 0;
-    const maxPolls = 60;
+    // Poll with 404 retry limit and model-specific timeouts
+    const POLL_TIMEOUT: Record<string, number> = { grok: 180000, veo_fast: 300000, veo_quality: 600000 };
+    const MAX_404_RETRIES = 5;
+    const startTime = Date.now();
+    let consecutive404s = 0;
+
     const poll = async (): Promise<string> => {
       if (cancelRef.current) throw new Error("Cancelled");
+      if (Date.now() - startTime > (POLL_TIMEOUT[model] || 300000)) {
+        throw new Error("Timeout — generation took too long");
+      }
+
       const r = await fetch(pollUrl, { headers: { Authorization: `Bearer ${kieApiKey}` } });
+      
+      if (r.status === 404) {
+        consecutive404s++;
+        console.error(`Poll 404 (${consecutive404s}/${MAX_404_RETRIES}). URL: ${pollUrl}`);
+        if (consecutive404s >= MAX_404_RETRIES) {
+          throw new Error("Task not found after multiple retries — task creation may have failed");
+        }
+        await new Promise((r) => setTimeout(r, pollInterval));
+        return poll();
+      }
+      consecutive404s = 0;
+
       const j = await r.json();
+      console.log("Poll response:", j);
 
       if (model === "grok") {
         const state = j.data?.state;
@@ -214,17 +234,15 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
         }
         if (state === "fail") throw new Error("Grok generation failed");
       } else {
-        const status = j.data?.status || j.status;
-        if (status === "SUCCESS" || status === "success" || status === "completed") {
-          const url = j.data?.videoUrl || j.data?.video_url || j.videoUrl || "";
+        const status = j.data?.successFlag;
+        if (status === 1) {
+          const url = j.data?.videoUrl || j.data?.resultUrl || "";
           if (!url) throw new Error("No video URL in Veo result");
           return url;
         }
-        if (status === "FAILED" || status === "fail" || status === "failed") throw new Error("Veo generation failed");
+        if (status === 3) throw new Error("Veo generation failed");
       }
 
-      polls++;
-      if (polls >= maxPolls) throw new Error("Timeout — generation took too long");
       await new Promise((r) => setTimeout(r, pollInterval));
       return poll();
     };
