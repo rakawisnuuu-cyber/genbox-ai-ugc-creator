@@ -854,14 +854,32 @@ const MultiShotCreator = () => {
                   <label className="text-[11px] uppercase tracking-widest text-muted-foreground block mb-2">
                     Durasi: {selectedModule.duration} detik
                   </label>
-                  <Slider
-                    value={[selectedModule.duration]}
-                    onValueChange={([v]) => updateModule(selectedModuleIdx, { duration: v })}
-                    min={1}
-                    max={10}
-                    step={1}
-                    className="w-full"
-                  />
+                  {videoModel === "grok" ? (
+                    <div className="space-y-2">
+                      <RadioGroup
+                        value={String(selectedModule.duration <= 7 ? 6 : 10)}
+                        onValueChange={(v) => updateModule(selectedModuleIdx, { duration: Number(v) })}
+                        className="flex gap-3"
+                      >
+                        <label className="flex items-center gap-2 text-xs cursor-pointer">
+                          <RadioGroupItem value="6" /> 6 detik
+                        </label>
+                        <label className="flex items-center gap-2 text-xs cursor-pointer">
+                          <RadioGroupItem value="10" /> 10 detik
+                        </label>
+                      </RadioGroup>
+                      <p className="text-[10px] text-muted-foreground/60">Grok mendukung durasi 6 atau 10 detik saja</p>
+                    </div>
+                  ) : (
+                    <Slider
+                      value={[selectedModule.duration]}
+                      onValueChange={([v]) => updateModule(selectedModuleIdx, { duration: v })}
+                      min={1}
+                      max={10}
+                      step={1}
+                      className="w-full"
+                    />
+                  )}
                 </div>
 
                 {/* Source */}
@@ -1073,6 +1091,9 @@ const MultiShotCreator = () => {
                                 {isFailed && (
                                   <span className="text-[10px] text-destructive flex items-center gap-1">
                                     <X className="h-3 w-3" /> Gagal
+                                    {mod.error_message && (
+                                      <span className="text-destructive/70 ml-1">— {mod.error_message}</span>
+                                    )}
                                   </span>
                                 )}
                                 {!isActive && !isCompleted && !isFailed && (

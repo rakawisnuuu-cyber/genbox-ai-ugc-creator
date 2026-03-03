@@ -116,9 +116,11 @@ Rules:
 - Keep under 80 words
 - Include audio/dialogue direction naturally in the prompt
 - NO brackets, NO placeholders, NO template markers
+- IMPORTANT: Maintain visual consistency — the person should wear the SAME outfit, have the SAME appearance across all shots
 - Output ONLY the final prompt text
 
-Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s. Module type: ${mod.type}.${dialogueSection}`,
+Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s. Module type: ${mod.type}.
+${shotIndex > 0 ? `Previous shot was: ${modules[shotIndex - 1]?.prompt?.substring(0, 100) || 'N/A'}` : ''}${dialogueSection}`,
               }],
             },
             contents: [{ parts: [{ text: mod.prompt }] }],
@@ -138,14 +140,16 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
     shotIndex: number,
     enhancedPrompt: string
   ): Promise<string> => {
-    // Build image inputs
+    // Build image inputs — only use actual IMAGE URLs, never video URLs
     const imageInputs: string[] = [];
-    if (mod.source === "character" && characterHeroUrl) imageInputs.push(characterHeroUrl);
-    if (characterRefUrl) imageInputs.push(characterRefUrl);
-    if (mod.source === "product" && productImageUrl) imageInputs.push(productImageUrl);
-    else if (productImageUrl && mod.source === "character") imageInputs.push(productImageUrl);
-    // Add previous shot's last frame for continuity
-    if (shotIndex > 0 && lastFrameRef.current) imageInputs.push(lastFrameRef.current);
+    // Always include character hero image for visual consistency
+    if (characterHeroUrl) imageInputs.push(characterHeroUrl);
+    // Always include product image if available
+    if (productImageUrl) imageInputs.push(productImageUrl);
+    // For custom source modules with uploaded images
+    if (mod.source === "custom" && mod.customImageUrl) imageInputs.push(mod.customImageUrl);
+    // NOTE: We do NOT add lastFrameRef (previous video URL) because
+    // Grok/Veo image_urls only accepts image files (JPEG/PNG/WebP), not .mp4
 
     const uniqueImages = [...new Set(imageInputs.filter(Boolean))];
 
@@ -211,7 +215,6 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
         stopShotTimer();
 
         onModuleUpdate(i, { status: "completed", video_url: videoUrl });
-        lastFrameRef.current = videoUrl; // Use as reference for next shot
 
         setProgress((p) => ({
           ...p,
@@ -220,8 +223,9 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
       } catch (err: any) {
         stopShotTimer();
         if (cancelRef.current) break;
-        console.error(`Shot ${i + 1} failed:`, err);
-        onModuleUpdate(i, { status: "failed" });
+        const errorMsg = err?.message || "Unknown error";
+        console.error(`Shot ${i + 1} failed:`, errorMsg);
+        onModuleUpdate(i, { status: "failed", error_message: errorMsg });
         setProgress((p) => ({
           ...p,
           failedShots: [...p.failedShots, i],
@@ -283,8 +287,9 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
       }));
     } catch (err: any) {
       stopShotTimer();
-      console.error(`Retry shot ${shotIdx + 1} failed:`, err);
-      onModuleUpdate(shotIdx, { status: "failed" });
+      const errorMsg = err?.message || "Unknown error";
+      console.error(`Retry shot ${shotIdx + 1} failed:`, errorMsg);
+      onModuleUpdate(shotIdx, { status: "failed", error_message: errorMsg });
     }
   }, [modules]);
 
