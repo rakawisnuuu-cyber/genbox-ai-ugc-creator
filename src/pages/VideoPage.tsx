@@ -12,6 +12,8 @@ import {
   Images,
   Copy,
   Volume2,
+  Zap,
+  Clapperboard,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,9 +23,11 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import MultiShotCreator from "@/components/video/MultiShotCreator";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
 type GenState = "idle" | "loading" | "completed" | "failed";
+type VideoMode = "quick" | "multishot";
 
 interface GalleryImage {
   id: string;
@@ -63,6 +67,9 @@ const VideoPage = () => {
   const { kieApiKey, geminiKey, keys } = useApiKeys();
   const { model: promptModel } = usePromptModel();
   const { toast } = useToast();
+
+  // Mode toggle
+  const [mode, setMode] = useState<VideoMode>("quick");
 
   // Source image
   const [sourcePreview, setSourcePreview] = useState<string | null>(null);
@@ -222,7 +229,6 @@ const VideoPage = () => {
     startTimer();
 
     try {
-      // Auto-enhance if not yet enhanced
       let usedPrompt = prompt;
       if (!promptEnhanced && geminiKey && keys.gemini.status === "valid") {
         usedPrompt = await enhancePrompt();
@@ -239,13 +245,7 @@ const VideoPage = () => {
           headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "grok-imagine/image-to-video",
-            input: {
-              image_urls: [sourceUrl],
-              prompt: usedPrompt,
-              mode: "normal",
-              duration: "6",
-              resolution: "480p",
-            },
+            input: { image_urls: [sourceUrl], prompt: usedPrompt, mode: "normal", duration: "6", resolution: "480p" },
           }),
         });
         const createJson = await createRes.json();
@@ -274,7 +274,6 @@ const VideoPage = () => {
         pollInterval = 5000;
       }
 
-      // Poll
       let polls = 0;
       const maxPolls = 60;
       const poll = async (): Promise<string> => {
@@ -313,7 +312,6 @@ const VideoPage = () => {
       setVideoUrl(resultVideoUrl);
       setGenState("completed");
 
-      // Save
       const { error: saveError } = await supabase.from("generations").insert({
         user_id: user!.id,
         type: "video",
@@ -353,14 +351,60 @@ const VideoPage = () => {
   const canGenerate = !!sourceUrl && !!prompt.trim() && genState !== "loading";
   const info = MODEL_INFO[videoModel];
 
+  // If multi-shot mode, render that component instead
+  if (mode === "multishot") {
+    return (
+      <div className="-mx-4 -my-4 lg:-mx-6 lg:-my-8">
+        {/* Mode Toggle */}
+        <div className="px-4 lg:px-6 pt-6 lg:pt-8">
+          <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit mx-auto sm:mx-0">
+            <button
+              onClick={() => setMode("quick")}
+              className="text-xs font-medium px-4 py-2 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <Zap className="h-3.5 w-3.5 inline mr-1.5" />
+              Quick Video
+            </button>
+            <button
+              className="text-xs font-medium px-4 py-2 rounded-md transition-colors bg-background text-foreground shadow-sm"
+            >
+              <Clapperboard className="h-3.5 w-3.5 inline mr-1.5" />
+              Multi-Shot Creator
+            </button>
+          </div>
+        </div>
+        <MultiShotCreator />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col lg:flex-row lg:min-h-[calc(100vh-0px)] -mx-4 -my-4 lg:-mx-6 lg:-my-8">
       {/* LEFT PANEL */}
       <div className="w-full lg:w-[55%] overflow-y-auto px-4 lg:px-6 py-6 lg:py-8 space-y-6">
-        {/* Header */}
+        {/* Header + Mode Toggle */}
         <div className="animate-fade-up">
-          <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Buat Video</h1>
-          <p className="text-xs text-muted-foreground mt-1">Generate video UGC 5-8 detik dari gambar</p>
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-1">
+            <div>
+              <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Buat Video</h1>
+              <p className="text-xs text-muted-foreground mt-1">Generate video UGC 5-8 detik dari gambar</p>
+            </div>
+            <div className="flex gap-1 bg-muted rounded-lg p-1">
+              <button
+                className="text-xs font-medium px-4 py-2 rounded-md transition-colors bg-background text-foreground shadow-sm"
+              >
+                <Zap className="h-3.5 w-3.5 inline mr-1.5" />
+                Quick Video
+              </button>
+              <button
+                onClick={() => setMode("multishot")}
+                className="text-xs font-medium px-4 py-2 rounded-md transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <Clapperboard className="h-3.5 w-3.5 inline mr-1.5" />
+                Multi-Shot Creator
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Source Image */}
@@ -543,7 +587,6 @@ const VideoPage = () => {
               </span>
             </div>
 
-            {/* Audio quality check */}
             {audioFeedbackShown && (
               <div className="w-full bg-card border border-border rounded-lg p-3 space-y-2">
                 <p className="text-xs text-muted-foreground font-medium">Audio oke?</p>
