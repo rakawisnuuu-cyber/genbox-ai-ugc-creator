@@ -1,7 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
-import { splitGridImage, ANGLE_LABELS } from "@/lib/grid-splitter";
+import { splitGridImage } from "@/lib/grid-splitter";
+import {
+  detectProductDNA,
+  getCategoryPromptInstruction,
+  getAnglesByCategory,
+  buildProductConsistencyBlock,
+  ALL_CATEGORIES,
+  EMPTY_DNA,
+  type ProductDNA,
+  type ProductCategory,
+} from "@/lib/product-dna";
 import {
   Upload,
   X,
@@ -15,6 +25,7 @@ import {
   Loader2,
   Link as LinkIcon,
   Grid3X3,
+  ScanSearch,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +35,7 @@ import { useUpscale } from "@/hooks/useUpscale";
 import { useToast } from "@/hooks/use-toast";
 import UpscaleButton from "@/components/UpscaleButton";
 import GenerationLoading from "@/components/GenerationLoading";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -54,6 +66,19 @@ async function imageUrlToBase64(url: string): Promise<string> {
     };
     reader.onerror = reject;
     reader.readAsDataURL(blob);
+  });
+}
+
+/* ── Helper: convert File to base64 ─────────────────────────── */
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
@@ -93,6 +118,10 @@ const GeneratePage = () => {
   const [productPreview, setProductPreview] = useState<string | null>(null);
   const [productUrl, setProductUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Product DNA state
+  const [productDNA, setProductDNA] = useState<ProductDNA | null>(null);
+  const [detectingDNA, setDetectingDNA] = useState(false);
 
   const [selectedCharId, setSelectedCharId] = useState<string>("");
   const [selectedChar, setSelectedChar] = useState<CharacterData | null>(null);
@@ -176,6 +205,23 @@ const GeneratePage = () => {
     setSelectedChar(found);
   };
 
+  /* ── Product DNA Detection ───────────────────────────────────── */
+  const runDNADetection = async (file: File) => {
+    if (!geminiKey || keys.gemini.status !== "valid") return;
+    setDetectingDNA(true);
+    try {
+      const base64 = await fileToBase64(file);
+      const dna = await detectProductDNA(base64, promptModel, geminiKey!);
+      setProductDNA(dna);
+      toast({ title: `Produk terdeteksi: ${dna.category}/${dna.sub_category}`, description: dna.product_description.slice(0, 80) });
+    } catch (err: any) {
+      console.error("DNA detection failed:", err);
+      // Don't block — DNA is optional enhancement
+    } finally {
+      setDetectingDNA(false);
+    }
+  };
+
   /* ── Product Upload ───────────────────────────────────────── */
   const handleFileSelect = async (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
@@ -184,6 +230,7 @@ const GeneratePage = () => {
     }
     setProductFile(file);
     setProductPreview(URL.createObjectURL(file));
+    setProductDNA(null);
     setUploading(true);
 
     const ext = file.name.split(".").pop();
@@ -197,6 +244,9 @@ const GeneratePage = () => {
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
     setProductUrl(urlData.publicUrl);
     setUploading(false);
+
+    // Auto-detect DNA
+    runDNADetection(file);
   };
 
   const onDrop = (e: React.DragEvent) => {
@@ -209,9 +259,10 @@ const GeneratePage = () => {
     setProductFile(null);
     setProductPreview(null);
     setProductUrl(null);
+    setProductDNA(null);
   };
 
-  /* ── Prompt Generation via Gemini ─────────────────────────── */
+  /* ── Prompt Generation via Gemini (Category-Aware) ───────── */
   const generatePrompt = async () => {
     if (!geminiKey || keys.gemini.status !== "valid") {
       toast({ title: "Gemini API key belum di-setup", description: "Buka Settings untuk setup API key.", variant: "destructive" });
@@ -226,6 +277,11 @@ const GeneratePage = () => {
       const bg = background === "Custom" ? customBg : background;
       const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
 
+      // Build category-aware instruction
+      const categoryInstruction = productDNA
+        ? getCategoryPromptInstruction(productDNA)
+        : "Analyze the product image above — describe its exact shape, color, size, packaging, label, and type.";
+
       // Build multimodal parts
       const parts: any[] = [];
 
@@ -234,33 +290,32 @@ const GeneratePage = () => {
         try {
           const base64 = await imageUrlToBase64(productUrl);
           parts.push({
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: base64,
-            },
+            inlineData: { mimeType: "image/jpeg", data: base64 },
           });
-          parts.push({ text: "This is the product image. Describe it accurately in your prompt." });
+          parts.push({ text: "This is the product image. Use it as primary visual reference." });
         } catch (e) {
           console.warn("Failed to convert product image to base64:", e);
         }
       }
 
-      // Add the main prompt text
+      // Add the main prompt text with category awareness
       parts.push({
         text: `You are an expert UGC (user-generated content) prompt builder for AI image generation. Create a structured JSON prompt for a realistic product UGC photo.
 
 Character: ${selectedChar.name}
 Character Identity: ${characterIdentity}
-Product: ${productUrl ? "Analyze the product image above — describe its exact shape, color, size, packaging, label, and type." : "User's product (no image provided)"}
 Background: ${bg || "not specified"}
 Pose: ${pose || "not specified"}
 Mood: ${mood || "not specified"}
+
+CATEGORY-SPECIFIC DIRECTION:
+${categoryInstruction}
 
 Respond ONLY with valid JSON:
 {
   "product_description": "Exact description of the product from the image — shape, color, packaging, label text if visible, size",
   "scene_description": "Full scene description combining character + product + setting",
-  "character_action": "Specific action with the product",
+  "character_action": "Specific action with the product matching the category direction above",
   "product_placement": "Exactly how the product appears — which hand holds it, position relative to face, angle of label",
   "lighting": "Lighting setup that complements the scene",
   "background": "Background/environment details",
@@ -270,10 +325,9 @@ Respond ONLY with valid JSON:
       });
 
       console.log("=== GEMINI PROMPT GENERATE ===");
-      console.log("Model:", promptModel, "| Key length:", geminiKey?.length);
+      console.log("Model:", promptModel, "| Key length:", geminiKey?.length, "| DNA:", productDNA?.category);
 
       const genConfig: Record<string, any> = {};
-      // gemini-3.1-pro-preview doesn't support responseMimeType
       if (promptModel !== "gemini-3.1-pro-preview") {
         genConfig.responseMimeType = "application/json";
       }
@@ -285,7 +339,6 @@ Respond ONLY with valid JSON:
 
       console.log("Gemini response status: OK", JSON.stringify(json).length, "bytes");
 
-      // Check for block reasons
       if (json.promptFeedback?.blockReason) {
         throw new Error(`Prompt blocked: ${json.promptFeedback.blockReason}`);
       }
@@ -296,10 +349,15 @@ Respond ONLY with valid JSON:
         throw new Error(`Empty response from Gemini${finishReason ? ` (${finishReason})` : ""}`);
       }
       try {
-        const parsed = JSON.parse(rawText);
-        // Append GENBOX realism blocks to final prompt
+        const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+        const parsed = JSON.parse(cleaned);
         const enhancedPrompt = `${parsed.final_prompt}\n\n${SKIN_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
         setPrompt(enhancedPrompt);
+
+        // Step 3: Enrich DNA with better product_description from generation
+        if (productDNA && parsed.product_description && parsed.product_description.length > (productDNA.product_description?.length || 0)) {
+          setProductDNA((prev) => prev ? { ...prev, product_description: parsed.product_description } : prev);
+        }
       } catch {
         setPrompt(rawText.trim());
       }
@@ -323,7 +381,6 @@ Respond ONLY with valid JSON:
   };
 
   const generate = async () => {
-    // Validate keys
     if (!kieApiKey || keys.kie_ai.status !== "valid") {
       toast({ title: "Kie AI API key belum di-setup", description: "Buka Settings untuk setup API key.", variant: "destructive" });
       return;
@@ -341,25 +398,11 @@ Respond ONLY with valid JSON:
     startTimer();
 
     try {
-      // Build image_input array with character hero + product references
       const imageInputs: string[] = [];
+      if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
+      if (selectedChar && !selectedChar.id.startsWith("p") && selectedChar.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
+      if (productUrl) imageInputs.push(productUrl);
 
-      // Add original reference photo if character has one (highest priority face anchor)
-      if (selectedChar?.reference_photo_url) {
-        imageInputs.push(selectedChar.reference_photo_url);
-      }
-
-      // Add character hero image as secondary face reference (for custom characters)
-      if (selectedChar && !selectedChar.id.startsWith("p") && selectedChar.hero_image_url) {
-        imageInputs.push(selectedChar.hero_image_url);
-      }
-
-      // Add product image as product reference
-      if (productUrl) {
-        imageInputs.push(productUrl);
-      }
-
-      // Create task
       const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
         method: "POST",
         headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
@@ -381,7 +424,6 @@ Respond ONLY with valid JSON:
       }
       const taskId = createJson.data.taskId;
 
-      // Poll
       let polls = 0;
       const maxPolls = 40;
       const poll = async (): Promise<string> => {
@@ -409,7 +451,6 @@ Respond ONLY with valid JSON:
       setResultUrl(imageUrl);
       setGenState("completed");
 
-      // Save to generations
       await supabase.from("generations").insert({
         user_id: user!.id,
         type: "ugc_image",
@@ -419,6 +460,7 @@ Respond ONLY with valid JSON:
         provider: "kie_ai",
         model: "nano-banana-pro",
         status: "completed",
+        metadata: (productDNA ? { productDNA } : {}) as any,
       });
     } catch (err: any) {
       stopTimer();
@@ -437,9 +479,11 @@ Respond ONLY with valid JSON:
 
   const canGenerate = !!productUrl && !!selectedChar && !!prompt.trim() && genState !== "loading";
 
-  /* ── Multi-Angle Grid Generation ─────────────────────────── */
+  /* ── Multi-Angle Grid Generation (Category-Aware) ─────────── */
   const generateMultiAngle = async () => {
     if (!kieApiKey || !geminiKey || !resultUrl || !selectedChar) return;
+    const dna = productDNA || EMPTY_DNA;
+    const angles = getAnglesByCategory(dna.category, dna.sub_category);
 
     multiAngleAbortRef.current = false;
     setMultiAngleState("generating");
@@ -448,23 +492,30 @@ Respond ONLY with valid JSON:
     multiAngleTimerRef.current = setInterval(() => setMultiAngleElapsed((p) => p + 1), 1000);
 
     try {
-      // Build multi-angle prompt via Gemini
       const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
+      const anglesText = angles
+        .map((a, i) => `${i + 1}. ${a.label} — ${a.description} [Story: ${a.storyRole}]`)
+        .join("\n");
+
+      const consistencyBlock = buildProductConsistencyBlock(dna);
+
       const gridPromptJson = await geminiFetch(promptModel, geminiKey!, {
         contents: [{ parts: [{ text: `You are a UGC photo prompt expert. Create ONE single image prompt that generates a 2x3 grid (6 panels in one image) of the SAME person with a product.
 
 Character: ${selectedChar.name} — ${characterIdentity}
-The 6 panels must show these angles (left-to-right, top-to-bottom):
-1. Hero shot — front-facing, holding product, warm smile
-2. Close-up detail — hands holding product, label visible, macro focus
-3. Lifestyle in-use — person actively using the product naturally
-4. Selfie with product — selfie angle, product next to face
-5. Flat lay — product centered on clean surface, top-down view
-6. Unboxing — hands opening package, excited expression
+
+The 6 panels must show these category-specific angles (left-to-right, top-to-bottom):
+${anglesText}
+
+${consistencyBlock}
+
+GRID STORY STRUCTURE:
+The 6 panels follow a micro-story for conversion:
+1. Attention grab → 2. Build trust → 3. Demonstrate value → 4. Highlight USP → 5. Aspirational context → 6. Social proof
 
 CRITICAL RULES:
 - Same person in every panel (same face, same outfit, same hair)
-- Same product in every panel
+- Same EXACT product in every panel (matching the description above)
 - No text overlays, no panel borders, no labels
 - Each panel is a distinct photo angle, NOT collage-style
 - Photorealistic, 8K quality
@@ -474,14 +525,13 @@ CRITICAL RULES:
       const gridPrompt = gridPromptJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       if (!gridPrompt) throw new Error("Failed to generate grid prompt");
 
-      // Build image references
+      // Step 6: Include BOTH image references
       const imageInputs: string[] = [];
-      if (resultUrl) imageInputs.push(resultUrl);
+      if (resultUrl) imageInputs.push(resultUrl); // Base generated result
+      if (productUrl) imageInputs.push(productUrl); // Original product photo
       if (selectedChar.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
       if (selectedChar.hero_image_url && !selectedChar.id.startsWith("p")) imageInputs.push(selectedChar.hero_image_url);
-      if (productUrl) imageInputs.push(productUrl);
 
-      // Generate via Kie AI (single call)
       const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
         method: "POST",
         headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
@@ -503,7 +553,6 @@ CRITICAL RULES:
       }
       const taskId = createJson.data.taskId;
 
-      // Poll
       let polls = 0;
       const maxPolls = 50;
       const pollGrid = async (): Promise<string> => {
@@ -527,11 +576,9 @@ CRITICAL RULES:
       const gridImageUrl = await pollGrid();
       if (!gridImageUrl) throw new Error("No grid image URL");
 
-      // Split into 6
       setMultiAngleState("splitting");
       const blobs = await splitGridImage(gridImageUrl);
 
-      // Upload each to storage + save to generations
       const uploadedUrls: string[] = [];
       for (let i = 0; i < blobs.length; i++) {
         const path = `${user!.id}/multi-angle/${Date.now()}_${i}.jpg`;
@@ -546,13 +593,18 @@ CRITICAL RULES:
         await supabase.from("generations").insert({
           user_id: user!.id,
           type: "ugc_image",
-          prompt: `Multi-angle: ${ANGLE_LABELS[i]}`,
+          prompt: `Multi-angle: ${angles[i]?.label || `Panel ${i + 1}`}`,
           image_url: urlData.publicUrl,
           character_id: selectedChar.id.startsWith("p") ? null : selectedChar.id,
           provider: "kie_ai",
           model: "nano-banana-pro",
           status: "completed",
-          metadata: { angle: ANGLE_LABELS[i], source: "multi_angle" },
+          metadata: {
+            angle: angles[i]?.label || `Panel ${i + 1}`,
+            storyRole: angles[i]?.storyRole || "",
+            source: "multi_angle",
+            productDNA: dna.category !== "other" ? dna : undefined,
+          } as any,
         });
       }
 
@@ -580,6 +632,11 @@ CRITICAL RULES:
     setMultiAngleElapsed(0);
   };
 
+  // Get current angle labels based on DNA
+  const currentAngles = productDNA
+    ? getAnglesByCategory(productDNA.category, productDNA.sub_category)
+    : getAnglesByCategory("other");
+
   /* ── Render ───────────────────────────────────────────────── */
   return (
     <div className="flex flex-col lg:flex-row lg:min-h-[calc(100vh-0px)] -mx-4 -my-4 lg:-mx-6 lg:-my-8">
@@ -595,17 +652,58 @@ CRITICAL RULES:
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Upload Produk</label>
           {productPreview ? (
-            <div className="relative inline-block">
-              <img src={productPreview} alt="Product" className="h-32 w-32 rounded-xl object-cover border border-border" />
-              <button
-                onClick={removeProduct}
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
-              >
-                <X className="h-3 w-3" />
-              </button>
-              {uploading && (
-                <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <div className="space-y-2">
+              <div className="relative inline-block">
+                <img src={productPreview} alt="Product" className="h-32 w-32 rounded-xl object-cover border border-border" />
+                <button
+                  onClick={removeProduct}
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                {uploading && (
+                  <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                )}
+              </div>
+
+              {/* Product DNA Badge */}
+              {detectingDNA && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <ScanSearch className="h-3.5 w-3.5 animate-pulse" />
+                  <span>Mendeteksi produk...</span>
+                </div>
+              )}
+              {productDNA && !detectingDNA && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Select
+                    value={productDNA.category}
+                    onValueChange={(val) =>
+                      setProductDNA((prev) => prev ? { ...prev, category: val as ProductCategory } : prev)
+                    }
+                  >
+                    <SelectTrigger className="h-7 w-auto min-w-[120px] text-xs bg-primary/10 border-primary/20 text-primary font-semibold px-2.5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ALL_CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value} className="text-xs">
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {productDNA.sub_category && (
+                    <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                      {productDNA.sub_category}
+                    </Badge>
+                  )}
+                  {productDNA.dominant_color && (
+                    <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                      {productDNA.dominant_color}
+                    </Badge>
+                  )}
                 </div>
               )}
             </div>
@@ -815,6 +913,14 @@ CRITICAL RULES:
               <span>nano-banana-pro</span>
               <span>•</span>
               <span>{elapsed}s</span>
+              {productDNA && (
+                <>
+                  <span>•</span>
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                    {productDNA.category}
+                  </Badge>
+                </>
+              )}
             </div>
             <div className="flex gap-2 w-full">
               <a
@@ -853,6 +959,15 @@ CRITICAL RULES:
                     <Grid3X3 className="h-4 w-4" />
                     Generate Multi-Angle (6 shots)
                   </button>
+                  {productDNA && (
+                    <div className="grid grid-cols-3 gap-1">
+                      {currentAngles.map((a, i) => (
+                        <div key={i} className="text-[9px] text-muted-foreground/60 text-center truncate" title={a.description}>
+                          {a.label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-[10px] text-muted-foreground/60 text-center">1 API call = 6 angles • ~Rp 150-500</p>
                 </div>
               )}
@@ -891,7 +1006,7 @@ CRITICAL RULES:
                       <div key={i} className="group relative">
                         <img
                           src={url}
-                          alt={ANGLE_LABELS[i]}
+                          alt={currentAngles[i]?.label || `Panel ${i + 1}`}
                           className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
                         />
                         <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
@@ -904,7 +1019,8 @@ CRITICAL RULES:
                           >
                             <Download className="h-3.5 w-3.5" />
                           </a>
-                          <span className="text-[9px] text-white/80">{ANGLE_LABELS[i]}</span>
+                          <span className="text-[9px] text-white/80">{currentAngles[i]?.label}</span>
+                          <span className="text-[8px] text-white/50">{currentAngles[i]?.storyRole}</span>
                         </div>
                       </div>
                     ))}
