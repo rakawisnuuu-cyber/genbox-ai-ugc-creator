@@ -16,11 +16,22 @@ import {
 import {
   Camera, RotateCcw, Mic, PersonStanding, Search, Hand,
   Zap, CheckCircle2, Loader2, AlertCircle, X, Download, Upload, ImageIcon,
+  SlidersHorizontal, Sparkles,
 } from "lucide-react";
 import UpscaleButton from "@/components/UpscaleButton";
+import {
+  VIBE_PACKS,
+  IMPERFECTION_LEVELS,
+  ENVIRONMENT_DETAILS,
+  MICRO_DETAIL_LEVELS,
+  BODY_TYPES,
+  AGE_RANGES,
+  type VibePack,
+} from "@/lib/character-vibes";
 
 // ── TYPES ──
 type Gender = "female" | "male";
+type CreationMode = "simple" | "advanced";
 
 interface FormData {
   name: string;
@@ -35,6 +46,12 @@ interface FormData {
   outfit_style: string;
   skin_condition: string;
   custom_notes: string;
+  // New advanced fields
+  imperfection: string;
+  environment: string;
+  microDetail: string;
+  bodyType: string;
+  ageRangeNew: string;
 }
 
 type ShotKey = "hero_portrait" | "profile_3_4" | "talking" | "full_body" | "skin_detail" | "product_interaction";
@@ -127,6 +144,8 @@ const DEFAULT_FORM: FormData = {
   name: "", gender: "female", age_range: "", skin_tone: "Sawo Terang",
   face_shape: "", eye_color: "", hair_style: "", hair_color: "",
   expression: "", outfit_style: "", skin_condition: "", custom_notes: "",
+  imperfection: "natural", environment: "simple", microDetail: "standard",
+  bodyType: "average", ageRangeNew: "young_adult",
 };
 
 // ── HELPER: Convert image URL to base64 ──
@@ -184,12 +203,32 @@ async function pollTask(taskId: string, kieApiKey: string): Promise<string> {
   throw new Error("Timeout");
 }
 
+// ── HELPER: Build extra prompt context from advanced fields ──
+function buildAdvancedContext(form: FormData): string {
+  const parts: string[] = [];
+  const imp = IMPERFECTION_LEVELS.find((l) => l.value === form.imperfection);
+  if (imp?.prompt) parts.push(`Skin imperfection level: ${imp.prompt}`);
+  const env = ENVIRONMENT_DETAILS.find((e) => e.value === form.environment);
+  if (env?.prompt) parts.push(`Environment: ${env.prompt}`);
+  const micro = MICRO_DETAIL_LEVELS.find((m) => m.value === form.microDetail);
+  if (micro?.prompt) parts.push(`Micro detail: ${micro.prompt}`);
+  const body = BODY_TYPES.find((b) => b.value === form.bodyType);
+  if (body?.prompt) parts.push(`Body type: ${body.prompt}`);
+  const age = AGE_RANGES.find((a) => a.value === form.ageRangeNew);
+  if (age?.prompt) parts.push(`Age: ${age.prompt}`);
+  return parts.join("\n");
+}
+
 export default function CreateCharacterPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { kieApiKey, geminiKey } = useApiKeys();
   const { model: promptModel } = usePromptModel();
   const { upscale, getState: getUpscaleState } = useUpscale();
+
+  // Mode & vibe
+  const [mode, setMode] = useState<CreationMode>("simple");
+  const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -206,12 +245,29 @@ export default function CreateCharacterPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Reference photo state
-  const [refFile, setRefFile] = useState<File | null>(null);
   const [refPreview, setRefPreview] = useState<string | null>(null);
   const [refUrl, setRefUrl] = useState<string | null>(null);
   const [refUploading, setRefUploading] = useState(false);
 
   const set = (key: keyof FormData, val: string) => setForm((p) => ({ ...p, [key]: val }));
+
+  // ── Apply vibe pack to form ──
+  const applyVibePack = (pack: VibePack) => {
+    setSelectedVibe(pack.id);
+    setForm((prev) => ({
+      ...prev,
+      expression: pack.config.expression,
+      outfit_style: pack.config.outfit,
+      skin_condition: pack.config.skinDetail,
+      hair_style: pack.config.hairStyle || prev.hair_style,
+      custom_notes: `[Vibe: ${pack.name}] Hijab: ${pack.config.hijab}. Lighting: ${pack.config.lighting}. Setting: ${pack.config.setting}.`,
+    }));
+  };
+
+  // ── Customize: switch to advanced with pack values pre-filled ──
+  const customizeFromVibe = () => {
+    setMode("advanced");
+  };
 
   // ── Reference photo upload ──
   const handleRefUpload = async (file: File) => {
@@ -219,7 +275,6 @@ export default function CreateCharacterPage() {
       toast({ title: "File terlalu besar", description: "Maksimal 5MB", variant: "destructive" });
       return;
     }
-    setRefFile(file);
     setRefPreview(URL.createObjectURL(file));
     setRefUploading(true);
 
@@ -237,12 +292,11 @@ export default function CreateCharacterPage() {
   };
 
   const removeRef = () => {
-    setRefFile(null);
     setRefPreview(null);
     setRefUrl(null);
   };
 
-  // ── GENERATION FLOW (GENBOX Sequential) ──
+  // ── GENERATION FLOW ──
   const handleGenerate = async () => {
     if (!form.name.trim()) { toast({ title: "Nama wajib diisi", variant: "destructive" }); return; }
     if (!kieApiKey || !geminiKey) {
@@ -265,11 +319,10 @@ export default function CreateCharacterPage() {
     try {
       // ── STEP 1: Gemini structured identity prompt ──
       const skinToneEnglish = SKIN_TONE_PROMPTS[form.skin_tone] || form.skin_tone;
+      const advancedContext = buildAdvancedContext(form);
 
-      // Build multimodal parts for Gemini
       const geminiParts: any[] = [];
 
-      // If reference photo exists, include it as vision input
       if (refUrl) {
         try {
           const base64Ref = await imageUrlToBase64(refUrl);
@@ -285,7 +338,7 @@ export default function CreateCharacterPage() {
       }
 
       geminiParts.push({
-        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.\n\nAttributes:\n- Gender: ${form.gender === "female" ? "Female" : "Male"}\n- Age range: ${form.age_range}\n- Skin tone: ${skinToneEnglish}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression tendency: ${form.expression}\n- Outfit style: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Additional notes: ${form.custom_notes || "none"}\n${refUrl ? "\nIMPORTANT: A reference photo was provided. Your identity_block MUST describe the person in the photo as accurately as possible. Use the form attributes as supplementary styling guidance only." : ""}\n\nRespond ONLY with valid JSON, no markdown:\n{\n  "identity_block": "A single detailed paragraph in English describing the EXACT physical appearance — face shape, specific nose type, lip shape, jawline, skin details, exact hair description with color and style, exact outfit with specific colors and materials. Include 3-5 distinctive anchor features (like a beauty mark, specific nose shape, dimples, etc) that should appear in every image.",\n  "hair_description": "Detailed hair description",\n  "outfit_description": "Specific outfit with exact colors and materials",\n  "consistency_anchors": ["anchor1", "anchor2", "anchor3"]\n}`,
+        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.\n\nAttributes:\n- Gender: ${form.gender === "female" ? "Female" : "Male"}\n- Age range: ${form.age_range}\n- Skin tone: ${skinToneEnglish}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression tendency: ${form.expression}\n- Outfit style: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Additional notes: ${form.custom_notes || "none"}\n${advancedContext ? `\nAdvanced styling context:\n${advancedContext}` : ""}\n${refUrl ? "\nIMPORTANT: A reference photo was provided. Your identity_block MUST describe the person in the photo as accurately as possible. Use the form attributes as supplementary styling guidance only." : ""}\n\nRespond ONLY with valid JSON, no markdown:\n{\n  "identity_block": "A single detailed paragraph in English describing the EXACT physical appearance — face shape, specific nose type, lip shape, jawline, skin details, exact hair description with color and style, exact outfit with specific colors and materials. Include 3-5 distinctive anchor features (like a beauty mark, specific nose shape, dimples, etc) that should appear in every image.",\n  "hair_description": "Detailed hair description",\n  "outfit_description": "Specific outfit with exact colors and materials",\n  "consistency_anchors": ["anchor1", "anchor2", "anchor3"]\n}`,
       });
 
       const geminiRes = await fetch(
@@ -334,7 +387,7 @@ export default function CreateCharacterPage() {
       setShots((p) => ({ ...p, hero_portrait: { status: "success", url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model } }));
       setCompletedCount(1);
 
-      // ── STEP 3: Generate remaining 5 shots using hero as reference (parallel) ──
+      // ── STEP 3: Generate remaining 5 shots ──
       setGenPhase("variations");
       REMAINING_KEYS.forEach((k) => {
         setShots((p) => ({ ...p, [k]: { status: "generating", model: SHOT_CONFIGS[k].model } }));
@@ -345,7 +398,6 @@ export default function CreateCharacterPage() {
         hero_portrait: { url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model },
       };
 
-      // Build image_input for remaining shots
       const remainingImageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
 
       await Promise.all(
@@ -420,11 +472,14 @@ export default function CreateCharacterPage() {
   };
 
   // ── SUMMARY PILLS ──
-  const pills = [
-    form.gender === "female" ? "Wanita" : "Pria",
-    form.age_range, form.skin_tone, form.face_shape, form.eye_color,
-    form.hair_style, form.hair_color, form.expression, form.outfit_style, form.skin_condition,
-  ].filter(Boolean);
+  const vibeSelected = VIBE_PACKS.find((v) => v.id === selectedVibe);
+  const pills = mode === "simple" && vibeSelected
+    ? vibeSelected.tags
+    : [
+        form.gender === "female" ? "Wanita" : "Pria",
+        form.age_range, form.skin_tone, form.face_shape, form.eye_color,
+        form.hair_style, form.hair_color, form.expression, form.outfit_style, form.skin_condition,
+      ].filter(Boolean);
 
   // ── Progress label ──
   const progressLabel = (() => {
@@ -444,10 +499,28 @@ export default function CreateCharacterPage() {
         <div className="flex-1 min-w-0 space-y-6 animate-fade-up">
           <div>
             <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase mb-1">Buat Karakter Baru</h1>
-            <p className="text-sm text-muted-foreground mb-6">Kustomisasi karakter AI untuk konten UGC kamu</p>
+            <p className="text-sm text-muted-foreground mb-4">Kustomisasi karakter AI untuk konten UGC kamu</p>
+
+            {/* Mode Toggle */}
+            <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
+              <button
+                onClick={() => setMode("simple")}
+                className={`text-xs font-medium px-4 py-2 rounded-md transition-colors ${mode === "simple" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Sparkles className="h-3.5 w-3.5 inline mr-1.5" />
+                Simple
+              </button>
+              <button
+                onClick={() => setMode("advanced")}
+                className={`text-xs font-medium px-4 py-2 rounded-md transition-colors ${mode === "advanced" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5 inline mr-1.5" />
+                Advanced
+              </button>
+            </div>
           </div>
 
-          {/* Reference Photo Upload */}
+          {/* Reference Photo Upload — shared between modes */}
           <FormGroup label="Referensi Wajah (Opsional)">
             {refPreview ? (
               <div className="relative inline-block">
@@ -490,128 +563,222 @@ export default function CreateCharacterPage() {
               </div>
             )}
             <p className="text-[11px] text-muted-foreground/60 mt-2 leading-relaxed">
-              Upload foto close-up wajah untuk hasil karakter yang lebih mirip. Tips: 1 orang, wajah terlihat jelas, pencahayaan bagus, menghadap kamera.
-            </p>
-            <p className="text-[11px] text-primary/70 mt-1 italic">
-              Tanpa foto referensi, AI akan membuat wajah baru dari deskripsi form.
+              Upload foto close-up wajah untuk hasil karakter yang lebih mirip.
             </p>
           </FormGroup>
 
-          {/* Name */}
+          {/* Name — shared */}
           <FormGroup label="Nama Karakter">
-            <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Contoh: Sarah Hijab" className="bg-[#1A1A1A] border-border" />
+            <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Contoh: Sarah Hijab" className="bg-muted/50 border-border" />
           </FormGroup>
 
-          {/* Gender */}
+          {/* Gender — shared */}
           <FormGroup label="Gender">
             <div className="flex gap-2">
               {(["female", "male"] as Gender[]).map((g) => (
                 <button key={g} onClick={() => set("gender", g)}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${form.gender === g ? "bg-primary text-primary-foreground" : "bg-[#1A1A1A] border border-border text-muted-foreground hover:text-foreground"}`}>
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${form.gender === g ? "bg-primary text-primary-foreground" : "bg-muted/50 border border-border text-muted-foreground hover:text-foreground"}`}>
                   {g === "female" ? "Wanita" : "Pria"}
                 </button>
               ))}
             </div>
           </FormGroup>
 
-          {/* Age Range */}
-          <FormGroup label="Rentang Usia">
-            <Select value={form.age_range} onValueChange={(v) => set("age_range", v)}>
-              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih usia" /></SelectTrigger>
-              <SelectContent>
-                {["17-22 tahun", "20-25 tahun", "25-30 tahun", "30-40 tahun", "40-50 tahun"].map((o) => (
-                  <SelectItem key={o} value={o}>{o}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormGroup>
+          {/* ── SIMPLE MODE: Vibe Pack Grid ── */}
+          {mode === "simple" && (
+            <div className="space-y-3 animate-fade-in">
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground font-medium">Pilih Gaya Karakter</label>
+              <div className="grid grid-cols-2 gap-3">
+                {VIBE_PACKS.map((pack) => {
+                  const isSelected = selectedVibe === pack.id;
+                  return (
+                    <button
+                      key={pack.id}
+                      onClick={() => applyVibePack(pack)}
+                      className={`text-left rounded-xl overflow-hidden transition-all ${
+                        isSelected
+                          ? "border-2 border-primary ring-1 ring-primary/20"
+                          : "border border-border hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      {/* Gradient preview */}
+                      <div
+                        className="h-24 w-full"
+                        style={{ background: pack.previewGradient }}
+                      />
+                      <div className="p-3 bg-card">
+                        <p className="text-sm font-bold text-foreground">{pack.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{pack.description}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {pack.tags.map((tag) => (
+                            <span key={tag} className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
 
-          {/* Skin Tone */}
-          <FormGroup label="Warna Kulit">
-            <div className="flex gap-4">
-              {SKIN_TONES.map((t) => (
-                <button key={t.hex} onClick={() => set("skin_tone", t.label)} className="flex flex-col items-center gap-1.5">
-                  <div className={`w-9 h-9 rounded-full transition-all ${form.skin_tone === t.label ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: t.hex }} />
-                  <span className="text-[11px] text-muted-foreground">{t.label}</span>
+              {/* Customize link */}
+              {selectedVibe && (
+                <button
+                  onClick={customizeFromVibe}
+                  className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-1"
+                >
+                  <SlidersHorizontal className="h-3 w-3" />
+                  Sesuaikan detail
                 </button>
-              ))}
+              )}
             </div>
-          </FormGroup>
+          )}
 
-          {/* Face Shape */}
-          <FormGroup label="Bentuk Wajah">
-            <Select value={form.face_shape} onValueChange={(v) => set("face_shape", v)}>
-              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-              <SelectContent>
-                {["Oval", "Bulat", "Kotak", "Hati", "Lonjong"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </FormGroup>
+          {/* ── ADVANCED MODE: All form fields ── */}
+          {mode === "advanced" && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Age Range */}
+              <FormGroup label="Rentang Usia">
+                <Select value={form.ageRangeNew} onValueChange={(v) => set("ageRangeNew", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {AGE_RANGES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
 
-          {/* Eye Color */}
-          <FormGroup label="Warna Mata">
-            <Select value={form.eye_color} onValueChange={(v) => set("eye_color", v)}>
-              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-              <SelectContent>
-                {["Coklat Tua", "Coklat Madu", "Hitam", "Coklat Terang"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </FormGroup>
+              {/* Skin Tone */}
+              <FormGroup label="Warna Kulit">
+                <div className="flex gap-4">
+                  {SKIN_TONES.map((t) => (
+                    <button key={t.hex} onClick={() => set("skin_tone", t.label)} className="flex flex-col items-center gap-1.5">
+                      <div className={`w-9 h-9 rounded-full transition-all ${form.skin_tone === t.label ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: t.hex }} />
+                      <span className="text-[11px] text-muted-foreground">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </FormGroup>
 
-          {/* Hair Style */}
-          <FormGroup label="Gaya Rambut">
-            <Select value={form.hair_style} onValueChange={(v) => set("hair_style", v)}>
-              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-              <SelectContent>
-                {HAIR_STYLES[form.gender].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </FormGroup>
+              {/* Face Shape */}
+              <FormGroup label="Bentuk Wajah">
+                <Select value={form.face_shape} onValueChange={(v) => set("face_shape", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Oval", "Bulat", "Kotak", "Hati", "Lonjong"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
 
-          {/* Hair Color */}
-          <FormGroup label="Warna Rambut">
-            <Select value={form.hair_color} onValueChange={(v) => set("hair_color", v)}>
-              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-              <SelectContent>
-                {["Hitam", "Coklat Tua", "Coklat Madu", "Highlighted"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </FormGroup>
+              {/* Eye Color */}
+              <FormGroup label="Warna Mata">
+                <Select value={form.eye_color} onValueChange={(v) => set("eye_color", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Coklat Tua", "Coklat Madu", "Hitam", "Coklat Terang"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
 
-          {/* Expression */}
-          <FormGroup label="Ekspresi">
-            <Select value={form.expression} onValueChange={(v) => set("expression", v)}>
-              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-              <SelectContent>
-                {["Hangat & Ramah", "Percaya Diri", "Kalem Profesional", "Energik Ceria", "Lembut Natural"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </FormGroup>
+              {/* Hair Style */}
+              <FormGroup label="Gaya Rambut">
+                <Select value={form.hair_style} onValueChange={(v) => set("hair_style", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {HAIR_STYLES[form.gender].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
 
-          {/* Outfit Style */}
-          <FormGroup label="Gaya Outfit">
-            <Select value={form.outfit_style} onValueChange={(v) => set("outfit_style", v)}>
-              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-              <SelectContent>
-                {["Casual Modern", "Smart Casual", "Hijab Modern", "Streetwear", "Athletic", "Professional", "Beauty/Glam"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </FormGroup>
+              {/* Hair Color */}
+              <FormGroup label="Warna Rambut">
+                <Select value={form.hair_color} onValueChange={(v) => set("hair_color", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Hitam", "Coklat Tua", "Coklat Madu", "Highlighted"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
 
-          {/* Skin Condition */}
-          <FormGroup label="Kondisi Kulit">
-            <Select value={form.skin_condition} onValueChange={(v) => set("skin_condition", v)}>
-              <SelectTrigger className="bg-[#1A1A1A] border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-              <SelectContent>
-                {["Bersih Natural", "Sedikit Freckles", "Glowing Sehat", "Matte Clean"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </FormGroup>
+              {/* Expression */}
+              <FormGroup label="Ekspresi">
+                <Select value={form.expression} onValueChange={(v) => set("expression", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Hangat & Ramah", "Percaya Diri", "Kalem Profesional", "Energik Ceria", "Lembut Natural"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
 
-          {/* Custom Notes */}
-          <FormGroup label="Catatan Tambahan (Opsional)">
-            <Textarea value={form.custom_notes} onChange={(e) => set("custom_notes", e.target.value)} rows={3} placeholder="Detail tambahan..." className="bg-[#1A1A1A] border-border" />
-          </FormGroup>
+              {/* Outfit Style */}
+              <FormGroup label="Gaya Outfit">
+                <Select value={form.outfit_style} onValueChange={(v) => set("outfit_style", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Casual Modern", "Smart Casual", "Hijab Modern", "Streetwear", "Athletic", "Professional", "Beauty/Glam"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* Skin Condition */}
+              <FormGroup label="Kondisi Kulit">
+                <Select value={form.skin_condition} onValueChange={(v) => set("skin_condition", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Bersih Natural", "Sedikit Freckles", "Glowing Sehat", "Matte Clean"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* ── NEW ADVANCED FIELDS ── */}
+              <div className="border-t border-border pt-6 space-y-6">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Detail Lanjutan</p>
+
+                {/* Body Type */}
+                <FormGroup label="Tipe Tubuh">
+                  <Select value={form.bodyType} onValueChange={(v) => set("bodyType", v)}>
+                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {BODY_TYPES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
+
+                {/* Imperfection Level */}
+                <FormGroup label="Level Imperfeksi Kulit">
+                  <Select value={form.imperfection} onValueChange={(v) => set("imperfection", v)}>
+                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {IMPERFECTION_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
+
+                {/* Environment Detail */}
+                <FormGroup label="Lingkungan Detail">
+                  <Select value={form.environment} onValueChange={(v) => set("environment", v)}>
+                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ENVIRONMENT_DETAILS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
+
+                {/* Micro Detail */}
+                <FormGroup label="Micro Detail">
+                  <Select value={form.microDetail} onValueChange={(v) => set("microDetail", v)}>
+                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MICRO_DETAIL_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
+              </div>
+
+              {/* Custom Notes */}
+              <FormGroup label="Catatan Tambahan (Opsional)">
+                <Textarea value={form.custom_notes} onChange={(e) => set("custom_notes", e.target.value)} rows={3} placeholder="Detail tambahan..." className="bg-muted/50 border-border" />
+              </FormGroup>
+            </div>
+          )}
         </div>
 
         {/* ── RIGHT COLUMN: PREVIEW ── */}
@@ -620,7 +787,6 @@ export default function CreateCharacterPage() {
           <div className="bg-card border border-border rounded-xl p-5 mb-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-3">Preview Karakter</p>
 
-            {/* Reference photo thumbnail */}
             {refPreview && (
               <div className="flex items-center gap-3 mb-3">
                 <img src={refPreview} alt="Ref" className="h-16 w-16 rounded-full object-cover border border-border" />
@@ -644,12 +810,12 @@ export default function CreateCharacterPage() {
             <div className="mb-4 space-y-2 animate-fade-in">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-2">
-                  {genPhase === "hero" && <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />}
+                  {(genPhase === "hero" || genPhase === "variations") && <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />}
                   {progressLabel}
                 </span>
                 <span>{elapsed}s</span>
               </div>
-              <Progress value={(completedCount / 6) * 100} className="h-2 bg-[#2A2A2A]" />
+              <Progress value={(completedCount / 6) * 100} className="h-2 bg-secondary" />
             </div>
           )}
 
@@ -662,7 +828,7 @@ export default function CreateCharacterPage() {
               const isPro = cfg.model === "nano-banana-pro";
               const isHero = key === "hero_portrait";
               return (
-                <div key={key} className={`relative aspect-[3/4] bg-[#1A1A1A] border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden ${isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" : "border-[#2A2A2A]"}`}>
+                <div key={key} className={`relative aspect-[3/4] bg-muted/50 border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden ${isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
                   {shot.status === "success" && shot.url ? (
                     <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={() => setZoomedShot({url: shot.url!, label: cfg.label})} />
                   ) : shot.status === "generating" ? (
@@ -672,10 +838,10 @@ export default function CreateCharacterPage() {
                   ) : shot.status === "failed" ? (
                     <AlertCircle className="w-6 h-6 text-destructive" />
                   ) : (
-                    <Icon className="w-6 h-6 text-[#555]" />
+                    <Icon className="w-6 h-6 text-muted-foreground/30" />
                   )}
                   {shot.status !== "success" && (
-                    <span className="text-[11px] text-[#555] uppercase tracking-wider text-center px-1">{cfg.label}</span>
+                    <span className="text-[11px] text-muted-foreground/30 uppercase tracking-wider text-center px-1">{cfg.label}</span>
                   )}
                   {shot.status === "success" && shot.url && (
                     <>
@@ -694,7 +860,6 @@ export default function CreateCharacterPage() {
                       </div>
                     </>
                   )}
-                  {/* Model badge */}
                   <span className={`absolute bottom-1.5 left-1.5 text-[9px] px-1.5 py-0.5 rounded font-medium ${isPro ? "bg-primary/20 text-primary" : "bg-blue-500/20 text-blue-400"}`}>
                     {isPro ? "PRO" : "FAST"}
                   </span>
@@ -708,7 +873,7 @@ export default function CreateCharacterPage() {
             <Zap className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <div>
               <p>Estimasi: ~64 credits (~Rp 5.120) untuk 6 gambar</p>
-              <p className="text-[11px] text-[#555] mt-0.5">2x Nano Banana Pro (hero + detail) + 4x Nano Banana 2 (sisanya)</p>
+              <p className="text-[11px] text-muted-foreground/50 mt-0.5">2x Nano Banana Pro (hero + detail) + 4x Nano Banana 2 (sisanya)</p>
             </div>
           </div>
 
@@ -723,7 +888,7 @@ export default function CreateCharacterPage() {
               </Button>
             </div>
           ) : (
-            <Button onClick={handleGenerate} disabled={isGenerating} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
+            <Button onClick={handleGenerate} disabled={isGenerating || (mode === "simple" && !selectedVibe)} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
               {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter"}
             </Button>
           )}
@@ -738,11 +903,11 @@ export default function CreateCharacterPage() {
           onKeyDown={(e) => e.key === "Escape" && setZoomedShot(null)}
           tabIndex={0}
         >
-          <button className="fixed top-4 right-4 text-white/70 hover:text-white z-[101]" onClick={() => setZoomedShot(null)}>
+          <button className="fixed top-4 right-4 text-foreground/70 hover:text-foreground z-[101]" onClick={() => setZoomedShot(null)}>
             <X className="h-6 w-6" />
           </button>
           <img src={zoomedShot.url} alt={zoomedShot.label} className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl" onClick={(e) => e.stopPropagation()} />
-          <p className="text-white/70 text-sm mt-3">{zoomedShot.label}</p>
+          <p className="text-foreground/70 text-sm mt-3">{zoomedShot.label}</p>
           <a
             href={zoomedShot.url}
             download={`${zoomedShot.label}.jpg`}
