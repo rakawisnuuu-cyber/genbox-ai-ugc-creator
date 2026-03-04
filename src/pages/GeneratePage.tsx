@@ -13,6 +13,13 @@ import {
   type ProductCategory,
 } from "@/lib/product-dna";
 import {
+  getEnvironments,
+  getPoses,
+  getMoods,
+  findOption,
+  type RichOption,
+} from "@/lib/category-options";
+import {
   Upload,
   X,
   Sparkles,
@@ -96,9 +103,7 @@ const PRESETS: CharacterData[] = [
   { id: "p10", name: "Cowok Gym", type: "Pria", age_range: "22-30", style: "Athletic", description: "Pria atletis dan percaya diri.", gradient_from: "from-red-900/40", gradient_to: "to-orange-900/40", is_preset: true },
 ];
 
-const BACKGROUNDS = ["Studio Putih", "Outdoor Cafe", "Kamar Tidur", "Dapur Modern", "Taman", "Custom"];
-const POSES = ["Memegang Produk", "Selfie dengan Produk", "Flat Lay", "Unboxing", "Menggunakan Produk", "Review"];
-const MOODS = ["Happy Review", "Excited Unboxing", "Casual Lifestyle", "Professional"];
+// Dynamic category-aware options (computed from productDNA)
 
 type GenState = "idle" | "loading" | "completed" | "failed";
 type MultiAngleState = "idle" | "generating" | "splitting" | "completed";
@@ -131,6 +136,24 @@ const GeneratePage = () => {
   const [customBg, setCustomBg] = useState("");
   const [pose, setPose] = useState("");
   const [mood, setMood] = useState("");
+
+  // Compute category-aware options
+  const currentCategory: ProductCategory = productDNA?.category || "other";
+  const envOptions = getEnvironments(currentCategory);
+  const poseOptions = getPoses(currentCategory);
+  const moodOptions = getMoods(currentCategory);
+
+  // Reset selections when category changes
+  const [prevCategory, setPrevCategory] = useState<ProductCategory>("other");
+  useEffect(() => {
+    if (currentCategory !== prevCategory) {
+      setBackground("");
+      setCustomBg("");
+      setPose("");
+      setMood("");
+      setPrevCategory(currentCategory);
+    }
+  }, [currentCategory, prevCategory]);
 
   const [prompt, setPrompt] = useState("");
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
@@ -274,7 +297,13 @@ const GeneratePage = () => {
     }
     setGeneratingPrompt(true);
     try {
-      const bg = background === "Custom" ? customBg : background;
+      // Resolve rich descriptions for prompt injection
+      const envOption = findOption(envOptions, background);
+      const bgRich = background === "Custom" ? customBg : (envOption?.description || background);
+      const poseOption = findOption(poseOptions, pose);
+      const poseRich = poseOption?.description || pose;
+      const moodOption = findOption(moodOptions, mood);
+      const moodRich = moodOption?.description || mood;
       const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
 
       // Build category-aware instruction
@@ -304,9 +333,9 @@ const GeneratePage = () => {
 
 Character: ${selectedChar.name}
 Character Identity: ${characterIdentity}
-Background: ${bg || "not specified"}
-Pose: ${pose || "not specified"}
-Mood: ${mood || "not specified"}
+Background: ${bgRich || "not specified"}
+Pose: ${poseRich || "not specified"}
+Mood: ${moodRich || "not specified"}
 
 CATEGORY-SPECIFIC DIRECTION:
 ${categoryInstruction}
@@ -801,18 +830,25 @@ CRITICAL RULES:
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block">Pengaturan Scene</label>
 
           <div>
-            <label className="text-xs text-muted-foreground block mb-2.5">Background</label>
+            <label className="text-xs text-muted-foreground block mb-2.5">Background / Environment</label>
             <Select value={background} onValueChange={setBackground}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih background..." /></SelectTrigger>
+              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih environment..." /></SelectTrigger>
               <SelectContent>
-                {BACKGROUNDS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                {envOptions.map((opt) => (
+                  <SelectItem key={opt.label} value={opt.label}>
+                    <div className="flex flex-col">
+                      <span>{opt.label}</span>
+                      {opt.description && <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {background === "Custom" && (
               <Input
                 value={customBg}
                 onChange={(e) => setCustomBg(e.target.value)}
-                placeholder="Deskripsikan background..."
+                placeholder="Deskripsikan environment secara detail..."
                 className="mt-2 bg-[hsl(0_0%_10%)] border-border"
               />
             )}
@@ -823,7 +859,14 @@ CRITICAL RULES:
             <Select value={pose} onValueChange={setPose}>
               <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih pose..." /></SelectTrigger>
               <SelectContent>
-                {POSES.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                {poseOptions.map((opt) => (
+                  <SelectItem key={opt.label} value={opt.label}>
+                    <div className="flex flex-col">
+                      <span>{opt.label}</span>
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -833,7 +876,14 @@ CRITICAL RULES:
             <Select value={mood} onValueChange={setMood}>
               <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih mood..." /></SelectTrigger>
               <SelectContent>
-                {MOODS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                {moodOptions.map((opt) => (
+                  <SelectItem key={opt.label} value={opt.label}>
+                    <div className="flex flex-col">
+                      <span>{opt.label}</span>
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
