@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation, useBlocker } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
-import { splitGridImage } from "@/lib/grid-splitter";
 import {
   detectProductDNA,
   getCategoryPromptInstruction,
@@ -33,6 +32,8 @@ import {
   Link as LinkIcon,
   Grid3X3,
   ScanSearch,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -54,6 +55,16 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { CharacterData } from "@/components/CharacterCard";
 
 /* ── GENBOX Realism Blocks ──────────────────────────────────── */
@@ -89,6 +100,59 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/* ── Kie AI single image generation helper ──────────────────── */
+async function generateKieImage(
+  kieApiKey: string,
+  prompt: string,
+  imageInputs: string[],
+  abortCheck: () => boolean,
+): Promise<string> {
+  const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "nano-banana-pro",
+      input: {
+        prompt,
+        image_input: [...new Set(imageInputs.filter(Boolean))],
+        aspect_ratio: "3:4",
+        resolution: "2K",
+        output_format: "jpg",
+        google_search: false,
+      },
+    }),
+  });
+  const createJson = await createRes.json();
+  if (createJson.code !== 200 || !createJson.data?.taskId) {
+    throw new Error(createJson.message || "Failed to create task");
+  }
+  const taskId = createJson.data.taskId;
+
+  let polls = 0;
+  const maxPolls = 50;
+  const poll = async (): Promise<string> => {
+    if (abortCheck()) throw new Error("Cancelled");
+    const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+      headers: { Authorization: `Bearer ${kieApiKey}` },
+    });
+    const j = await r.json();
+    const state = j.data?.state;
+    if (state === "success") {
+      const rj = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
+      const url = rj?.resultUrls?.[0] || rj?.url || "";
+      if (!url) throw new Error("No image URL in result");
+      return url;
+    }
+    if (state === "fail") throw new Error("Generation failed");
+    polls++;
+    if (polls >= maxPolls) throw new Error("Timeout — generation took too long");
+    await new Promise((r) => setTimeout(r, 3000));
+    return poll();
+  };
+
+  return poll();
+}
+
 /* ── preset characters (same as CharactersPage) ─────────────── */
 const PRESETS: CharacterData[] = [
   { id: "p1", name: "Hijab Casual", type: "Wanita", age_range: "20-25", style: "Modern", description: "Wanita muda dengan hijab modern pastel, ekspresi hangat dan ramah.", gradient_from: "from-emerald-900/40", gradient_to: "to-teal-900/40", is_preset: true },
@@ -103,10 +167,14 @@ const PRESETS: CharacterData[] = [
   { id: "p10", name: "Cowok Gym", type: "Pria", age_range: "22-30", style: "Athletic", description: "Pria atletis dan percaya diri.", gradient_from: "from-red-900/40", gradient_to: "to-orange-900/40", is_preset: true },
 ];
 
-// Dynamic category-aware options (computed from productDNA)
-
 type GenState = "idle" | "loading" | "completed" | "failed";
-type MultiAngleState = "idle" | "generating" | "splitting" | "completed";
+
+// Per-shot status for multi-angle
+interface ShotStatus {
+  state: "pending" | "generating" | "completed" | "failed";
+  imageUrl?: string;
+  error?: string;
+}
 
 const GeneratePage = () => {
   const { user } = useAuth();
@@ -166,12 +234,16 @@ const GeneratePage = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortRef = useRef(false);
 
-  // Multi-angle state
-  const [multiAngleState, setMultiAngleState] = useState<MultiAngleState>("idle");
-  const [multiAngleImages, setMultiAngleImages] = useState<string[]>([]);
+  // Multi-angle state (6 individual shots)
+  const [multiAngleActive, setMultiAngleActive] = useState(false);
+  const [shotStatuses, setShotStatuses] = useState<ShotStatus[]>([]);
   const [multiAngleElapsed, setMultiAngleElapsed] = useState(0);
   const multiAngleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const multiAngleAbortRef = useRef(false);
+
+  // Navigation blocker when generation is active
+  const isGenerating = genState === "loading" || multiAngleActive;
+  const blocker = useBlocker(isGenerating);
 
   // Fetch custom characters
   useEffect(() => {
@@ -239,7 +311,6 @@ const GeneratePage = () => {
       toast({ title: `Produk terdeteksi: ${dna.category}/${dna.sub_category}`, description: dna.product_description.slice(0, 80) });
     } catch (err: any) {
       console.error("DNA detection failed:", err);
-      // Don't block — DNA is optional enhancement
     } finally {
       setDetectingDNA(false);
     }
@@ -297,7 +368,6 @@ const GeneratePage = () => {
     }
     setGeneratingPrompt(true);
     try {
-      // Resolve rich descriptions for prompt injection
       const envOption = findOption(envOptions, background);
       const bgRich = background === "Custom" ? customBg : (envOption?.description || background);
       const poseOption = findOption(poseOptions, pose);
@@ -306,15 +376,12 @@ const GeneratePage = () => {
       const moodRich = moodOption?.description || mood;
       const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
 
-      // Build category-aware instruction
       const categoryInstruction = productDNA
         ? getCategoryPromptInstruction(productDNA)
         : "Analyze the product image above — describe its exact shape, color, size, packaging, label, and type.";
 
-      // Build multimodal parts
       const parts: any[] = [];
 
-      // Add product image if available
       if (productUrl) {
         try {
           const base64 = await imageUrlToBase64(productUrl);
@@ -327,7 +394,6 @@ const GeneratePage = () => {
         }
       }
 
-      // Add the main prompt text with category awareness
       parts.push({
         text: `You are an expert UGC (user-generated content) prompt builder for AI image generation. Create a structured JSON prompt for a realistic product UGC photo.
 
@@ -383,7 +449,6 @@ Respond ONLY with valid JSON:
         const enhancedPrompt = `${parsed.final_prompt}\n\n${SKIN_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
         setPrompt(enhancedPrompt);
 
-        // Step 3: Enrich DNA with better product_description from generation
         if (productDNA && parsed.product_description && parsed.product_description.length > (productDNA.product_description?.length || 0)) {
           setProductDNA((prev) => prev ? { ...prev, product_description: parsed.product_description } : prev);
         }
@@ -432,50 +497,12 @@ Respond ONLY with valid JSON:
       if (selectedChar && !selectedChar.id.startsWith("p") && selectedChar.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
       if (productUrl) imageInputs.push(productUrl);
 
-      const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "nano-banana-pro",
-          input: {
-            prompt: prompt,
-            image_input: imageInputs,
-            aspect_ratio: "3:4",
-            resolution: "2K",
-            output_format: "jpg",
-            google_search: false,
-          },
-        }),
-      });
-      const createJson = await createRes.json();
-      if (createJson.code !== 200 || !createJson.data?.taskId) {
-        throw new Error(createJson.message || "Failed to create task");
-      }
-      const taskId = createJson.data.taskId;
-
-      let polls = 0;
-      const maxPolls = 40;
-      const poll = async (): Promise<string> => {
-        if (abortRef.current) throw new Error("Cancelled");
-        const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
-          headers: { Authorization: `Bearer ${kieApiKey}` },
-        });
-        const j = await r.json();
-        const state = j.data?.state;
-        if (state === "success") {
-          const resultJson = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
-          const url = resultJson?.resultUrls?.[0] || resultJson?.url || "";
-          if (!url) throw new Error("No image URL in result");
-          return url;
-        }
-        if (state === "fail") throw new Error("Generation failed");
-        polls++;
-        if (polls >= maxPolls) throw new Error("Timeout — generation took too long");
-        await new Promise((r) => setTimeout(r, 3000));
-        return poll();
-      };
-
-      const imageUrl = await poll();
+      const imageUrl = await generateKieImage(
+        kieApiKey,
+        prompt,
+        imageInputs,
+        () => abortRef.current,
+      );
       stopTimer();
       setResultUrl(imageUrl);
       setGenState("completed");
@@ -508,158 +535,142 @@ Respond ONLY with valid JSON:
 
   const canGenerate = !!productUrl && !!selectedChar && !!prompt.trim() && genState !== "loading";
 
-  /* ── Multi-Angle Grid Generation (Category-Aware) ─────────── */
+  /* ── Multi-Angle: 6 Parallel Individual API Calls ─────────── */
   const generateMultiAngle = async () => {
     if (!kieApiKey || !geminiKey || !resultUrl || !selectedChar) return;
     const dna = productDNA || EMPTY_DNA;
     const angles = getAnglesByCategory(dna.category, dna.sub_category);
 
     multiAngleAbortRef.current = false;
-    setMultiAngleState("generating");
-    setMultiAngleImages([]);
+    setMultiAngleActive(true);
+    setShotStatuses(angles.map(() => ({ state: "pending" as const })));
     setMultiAngleElapsed(0);
     multiAngleTimerRef.current = setInterval(() => setMultiAngleElapsed((p) => p + 1), 1000);
 
-    try {
-      const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
-      const anglesText = angles
-        .map((a, i) => `${i + 1}. ${a.label} — ${a.description} [Story: ${a.storyRole}]`)
-        .join("\n");
+    const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
+    const consistencyBlock = buildProductConsistencyBlock(dna);
 
-      const consistencyBlock = buildProductConsistencyBlock(dna);
+    // Build image inputs shared by all shots
+    const sharedImages: string[] = [];
+    if (resultUrl) sharedImages.push(resultUrl); // Base generated result as PRIMARY
+    if (productUrl) sharedImages.push(productUrl); // Original product photo
+    if (selectedChar.reference_photo_url) sharedImages.push(selectedChar.reference_photo_url);
+    if (selectedChar.hero_image_url && !selectedChar.id.startsWith("p")) sharedImages.push(selectedChar.hero_image_url);
 
-      const gridPromptJson = await geminiFetch(promptModel, geminiKey!, {
-        contents: [{ parts: [{ text: `You are a UGC photo prompt expert. Create ONE single image prompt that generates a 2x3 grid (6 panels in one image) of the SAME person with a product.
+    // Generate per-shot prompts via Gemini in parallel, then generate images
+    const generateSingleAngle = async (angle: ReturnType<typeof getAnglesByCategory>[0], idx: number) => {
+      try {
+        // Update status to generating
+        setShotStatuses((prev) => {
+          const next = [...prev];
+          next[idx] = { state: "generating" };
+          return next;
+        });
 
-Character: ${selectedChar.name} — ${characterIdentity}
+        // Build angle-specific prompt via Gemini
+        let anglePrompt: string;
+        try {
+          const promptResult = await geminiFetch(promptModel, geminiKey!, {
+            contents: [{ parts: [{ text: `You are a UGC photo prompt expert. Create a SINGLE image prompt for this specific angle.
 
-The 6 panels must show these category-specific angles (left-to-right, top-to-bottom):
-${anglesText}
+Character: ${selectedChar!.name} — ${characterIdentity}
+Angle: ${angle.label} — ${angle.description}
+Story Role: ${angle.storyRole}
 
 ${consistencyBlock}
 
-GRID STORY STRUCTURE:
-The 6 panels follow a micro-story for conversion:
-1. Attention grab → 2. Build trust → 3. Demonstrate value → 4. Highlight USP → 5. Aspirational context → 6. Social proof
+RULES:
+- Show the EXACT same person as in the base image (same face, hair, skin tone, outfit)
+- Show the EXACT same product (matching description above)
+- Photorealistic, 8K quality, natural lighting
+- ${SKIN_BLOCK}
+- ${QUALITY_BLOCK}
+- ${NEGATIVE_BLOCK}
 
-CRITICAL RULES:
-- Same person in every panel (same face, same outfit, same hair)
-- Same EXACT product in every panel (matching the description above)
-- No text overlays, no panel borders, no labels
-- Each panel is a distinct photo angle, NOT collage-style
-- Photorealistic, 8K quality
-- Output ONLY the final prompt text, no JSON` }] }],
-      });
+Output ONLY the final prompt text, no JSON, no explanation.` }] }],
+          });
+          anglePrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        } catch {
+          // Fallback: use a simple constructed prompt
+          anglePrompt = `Photorealistic UGC photo. ${angle.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
+        }
 
-      const gridPrompt = gridPromptJson.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-      if (!gridPrompt) throw new Error("Failed to generate grid prompt");
-
-      // Step 6: Include BOTH image references
-      const imageInputs: string[] = [];
-      if (resultUrl) imageInputs.push(resultUrl); // Base generated result
-      if (productUrl) imageInputs.push(productUrl); // Original product photo
-      if (selectedChar.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
-      if (selectedChar.hero_image_url && !selectedChar.id.startsWith("p")) imageInputs.push(selectedChar.hero_image_url);
-
-      const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "nano-banana-pro",
-          input: {
-            prompt: gridPrompt,
-            image_input: [...new Set(imageInputs)],
-            aspect_ratio: "3:4",
-            resolution: "2K",
-            output_format: "jpg",
-            google_search: false,
-          },
-        }),
-      });
-      const createJson = await createRes.json();
-      if (createJson.code !== 200 || !createJson.data?.taskId) {
-        throw new Error(createJson.msg || createJson.message || "Failed to create grid task");
-      }
-      const taskId = createJson.data.taskId;
-
-      let polls = 0;
-      const maxPolls = 50;
-      const pollGrid = async (): Promise<string> => {
         if (multiAngleAbortRef.current) throw new Error("Cancelled");
-        const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
-          headers: { Authorization: `Bearer ${kieApiKey}` },
-        });
-        const j = await r.json();
-        const state = j.data?.state;
-        if (state === "success") {
-          const rj = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
-          return rj?.resultUrls?.[0] || rj?.url || "";
-        }
-        if (state === "fail") throw new Error("Grid generation failed");
-        polls++;
-        if (polls >= maxPolls) throw new Error("Timeout");
-        await new Promise((r) => setTimeout(r, 3000));
-        return pollGrid();
-      };
 
-      const gridImageUrl = await pollGrid();
-      if (!gridImageUrl) throw new Error("No grid image URL");
+        // Generate image via Kie AI
+        const imageUrl = await generateKieImage(
+          kieApiKey!,
+          anglePrompt,
+          sharedImages,
+          () => multiAngleAbortRef.current,
+        );
 
-      setMultiAngleState("splitting");
-      const blobs = await splitGridImage(gridImageUrl);
-
-      const uploadedUrls: string[] = [];
-      for (let i = 0; i < blobs.length; i++) {
-        const path = `${user!.id}/multi-angle/${Date.now()}_${i}.jpg`;
-        const { error } = await supabase.storage.from("product-images").upload(path, blobs[i], { contentType: "image/jpeg" });
-        if (error) {
-          console.error("Upload failed for split", i, error);
-          continue;
-        }
+        // Save to gallery immediately
+        const path = `${user!.id}/multi-angle/${Date.now()}_${idx}.jpg`;
+        await supabase.storage.from("product-images").upload(path, await (await fetch(imageUrl)).blob(), { contentType: "image/jpeg" });
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-        uploadedUrls.push(urlData.publicUrl);
 
         await supabase.from("generations").insert({
           user_id: user!.id,
           type: "ugc_image",
-          prompt: `Multi-angle: ${angles[i]?.label || `Panel ${i + 1}`}`,
+          prompt: `Multi-angle: ${angle.label}`,
           image_url: urlData.publicUrl,
-          character_id: selectedChar.id.startsWith("p") ? null : selectedChar.id,
+          character_id: selectedChar!.id.startsWith("p") ? null : selectedChar!.id,
           provider: "kie_ai",
           model: "nano-banana-pro",
           status: "completed",
           metadata: {
-            angle: angles[i]?.label || `Panel ${i + 1}`,
-            storyRole: angles[i]?.storyRole || "",
+            angle: angle.label,
+            storyRole: angle.storyRole,
             source: "multi_angle",
             productDNA: dna.category !== "other" ? dna : undefined,
           } as any,
         });
-      }
 
-      if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
-      setMultiAngleImages(uploadedUrls);
-      setMultiAngleState("completed");
-    } catch (err: any) {
-      if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
-      if (!multiAngleAbortRef.current) {
-        setMultiAngleState("idle");
-        toast({ title: "Multi-angle gagal", description: err.message || "Terjadi kesalahan", variant: "destructive" });
+        setShotStatuses((prev) => {
+          const next = [...prev];
+          next[idx] = { state: "completed", imageUrl: urlData.publicUrl };
+          return next;
+        });
+      } catch (err: any) {
+        if (multiAngleAbortRef.current) return;
+        setShotStatuses((prev) => {
+          const next = [...prev];
+          next[idx] = { state: "failed", error: err?.message || "Failed" };
+          return next;
+        });
       }
+    };
+
+    // Run all 6 in parallel
+    await Promise.allSettled(angles.map((angle, idx) => generateSingleAngle(angle, idx)));
+
+    if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
+    if (multiAngleAbortRef.current) {
+      setMultiAngleActive(false);
     }
+    // Keep multiAngleActive false only after all done — shots remain visible
+    setMultiAngleActive(false);
   };
 
   const cancelMultiAngle = () => {
     multiAngleAbortRef.current = true;
     if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
-    setMultiAngleState("idle");
+    setMultiAngleActive(false);
   };
 
   const resetMultiAngle = () => {
-    setMultiAngleState("idle");
-    setMultiAngleImages([]);
+    setMultiAngleActive(false);
+    setShotStatuses([]);
     setMultiAngleElapsed(0);
   };
+
+  // Computed multi-angle progress
+  const completedShots = shotStatuses.filter((s) => s.state === "completed").length;
+  const failedShots = shotStatuses.filter((s) => s.state === "failed").length;
+  const totalShots = shotStatuses.length;
+  const multiAngleDone = totalShots > 0 && !multiAngleActive && (completedShots + failedShots === totalShots);
+  const multiAngleHasResults = shotStatuses.some((s) => s.state === "completed");
 
   // Get current angle labels based on DNA
   const currentAngles = productDNA
@@ -669,6 +680,28 @@ CRITICAL RULES:
   /* ── Render ───────────────────────────────────────────────── */
   return (
     <div className="flex flex-col lg:flex-row lg:min-h-[calc(100vh-0px)] -mx-4 -my-4 lg:-mx-6 lg:-my-8">
+      {/* Navigation blocker dialog */}
+      <AlertDialog open={blocker.state === "blocked"}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Generasi sedang berjalan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Generasi sedang berjalan. Yakin mau pindah? Proses yang sedang berlangsung akan dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => blocker.reset?.()}>Tetap di sini</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              cancelGeneration();
+              cancelMultiAngle();
+              blocker.proceed?.();
+            }}>
+              Pindah & batalkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* LEFT PANEL */}
       <div className="w-full lg:w-[55%] overflow-y-auto px-4 lg:px-6 py-6 lg:py-8 space-y-6">
         {/* Header */}
@@ -1000,7 +1033,8 @@ CRITICAL RULES:
 
             {/* Multi-Angle Section */}
             <div className="w-full border-t border-border pt-4 mt-2">
-              {multiAngleState === "idle" && (
+              {/* Idle — no shots yet */}
+              {!multiAngleActive && shotStatuses.length === 0 && (
                 <div className="space-y-3">
                   <button
                     onClick={generateMultiAngle}
@@ -1018,72 +1052,96 @@ CRITICAL RULES:
                       ))}
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground/60 text-center">1 API call = 6 angles • ~Rp 150-500</p>
+                  <p className="text-[10px] text-muted-foreground/60 text-center">6 API calls paralel = 6 shots individual • ~Rp 900-3000</p>
                 </div>
               )}
 
-              {multiAngleState === "generating" && (
+              {/* Active or completed — show shot grid */}
+              {shotStatuses.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-xs text-muted-foreground text-center">Generating 6 angles...</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <div key={i} className="aspect-[3/4] rounded-lg bg-muted animate-pulse" />
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground font-mono">{Math.floor(multiAngleElapsed / 60)}:{String(multiAngleElapsed % 60).padStart(2, "0")}</span>
-                    <button
-                      onClick={cancelMultiAngle}
-                      className="text-[10px] text-destructive hover:underline"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
+                  {/* Progress header */}
+                  {multiAngleActive && (
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        Generating 6 angles... <span className="text-primary font-bold">({completedShots}/6 selesai)</span>
+                      </p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {Math.floor(multiAngleElapsed / 60)}:{String(multiAngleElapsed % 60).padStart(2, "0")}
+                        </span>
+                        <button onClick={cancelMultiAngle} className="text-[10px] text-destructive hover:underline">
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {multiAngleDone && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      ✅ {completedShots} selesai{failedShots > 0 ? ` • ❌ ${failedShots} gagal` : ""} — {multiAngleElapsed}s
+                    </p>
+                  )}
 
-              {multiAngleState === "splitting" && (
-                <div className="flex flex-col items-center gap-2 py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  <p className="text-xs text-muted-foreground">Splitting & saving ke gallery...</p>
-                </div>
-              )}
-
-              {multiAngleState === "completed" && multiAngleImages.length > 0 && (
-                <div className="space-y-3">
+                  {/* Shot grid */}
                   <div className="grid grid-cols-3 gap-2">
-                    {multiAngleImages.map((url, i) => (
-                      <div key={i} className="group relative">
-                        <img
-                          src={url}
-                          alt={currentAngles[i]?.label || `Panel ${i + 1}`}
-                          className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
-                        />
-                        <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                          <a
-                            href={url}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
-                          >
-                            <Download className="h-3.5 w-3.5" />
-                          </a>
-                          <span className="text-[9px] text-white/80">{currentAngles[i]?.label}</span>
-                          <span className="text-[8px] text-white/50">{currentAngles[i]?.storyRole}</span>
-                        </div>
+                    {shotStatuses.map((shot, i) => (
+                      <div key={i} className="relative group">
+                        {shot.state === "completed" && shot.imageUrl ? (
+                          <>
+                            <img
+                              src={shot.imageUrl}
+                              alt={currentAngles[i]?.label || `Shot ${i + 1}`}
+                              className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
+                            />
+                            <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                              <a
+                                href={shot.imageUrl}
+                                download
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </a>
+                              <span className="text-[9px] text-white/80">{currentAngles[i]?.label}</span>
+                              <span className="text-[8px] text-white/50">{currentAngles[i]?.storyRole}</span>
+                            </div>
+                            <div className="absolute top-1 right-1">
+                              <CheckCircle2 className="h-4 w-4 text-green-400" />
+                            </div>
+                          </>
+                        ) : shot.state === "failed" ? (
+                          <div className="w-full aspect-[3/4] rounded-lg border border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center gap-1">
+                            <XCircle className="h-5 w-5 text-destructive/60" />
+                            <span className="text-[8px] text-destructive/60 text-center px-1">{currentAngles[i]?.label}</span>
+                          </div>
+                        ) : shot.state === "generating" ? (
+                          <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center gap-2">
+                            <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                            <span className="text-[8px] text-muted-foreground text-center px-1">{currentAngles[i]?.label}</span>
+                          </div>
+                        ) : (
+                          <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/10 flex flex-col items-center justify-center gap-1">
+                            <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
+                            <span className="text-[8px] text-muted-foreground/40 text-center px-1">{currentAngles[i]?.label}</span>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-muted-foreground/60 text-center">
-                    Semua shot tersimpan di Gallery — bisa jadi Start Image di Buat Video
-                  </p>
-                  <button
-                    onClick={resetMultiAngle}
-                    className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
-                  >
-                    <RefreshCw className="h-3 w-3" /> Generate lagi
-                  </button>
+
+                  {multiAngleDone && (
+                    <>
+                      <p className="text-[10px] text-muted-foreground/60 text-center">
+                        Semua shot tersimpan di Gallery — bisa jadi Start Image di Buat Video
+                      </p>
+                      <button
+                        onClick={resetMultiAngle}
+                        className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
+                      >
+                        <RefreshCw className="h-3 w-3" /> Generate lagi
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
