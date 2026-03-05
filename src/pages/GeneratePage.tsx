@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useSearchParams, useLocation, useBlocker } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import {
   detectProductDNA,
@@ -241,9 +241,19 @@ const GeneratePage = () => {
   const multiAngleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const multiAngleAbortRef = useRef(false);
 
-  // Navigation blocker when generation is active
+  // Navigation blocker: warn on browser close/refresh
   const isGenerating = genState === "loading" || multiAngleActive;
-  const blocker = useBlocker(isGenerating);
+  const [showNavWarning, setShowNavWarning] = useState(false);
+
+  useEffect(() => {
+    if (!isGenerating) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isGenerating]);
 
   // Fetch custom characters
   useEffect(() => {
@@ -680,27 +690,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
   /* ── Render ───────────────────────────────────────────────── */
   return (
     <div className="flex flex-col lg:flex-row lg:min-h-[calc(100vh-0px)] -mx-4 -my-4 lg:-mx-6 lg:-my-8">
-      {/* Navigation blocker dialog */}
-      <AlertDialog open={blocker.state === "blocked"}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Generasi sedang berjalan</AlertDialogTitle>
-            <AlertDialogDescription>
-              Generasi sedang berjalan. Yakin mau pindah? Proses yang sedang berlangsung akan dibatalkan.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => blocker.reset?.()}>Tetap di sini</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              cancelGeneration();
-              cancelMultiAngle();
-              blocker.proceed?.();
-            }}>
-              Pindah & batalkan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Navigation blocker is handled via beforeunload */}
 
       {/* LEFT PANEL */}
       <div className="w-full lg:w-[55%] overflow-y-auto px-4 lg:px-6 py-6 lg:py-8 space-y-6">
