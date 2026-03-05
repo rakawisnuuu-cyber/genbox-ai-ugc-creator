@@ -51,11 +51,14 @@ export function buildVideoDirectorInstruction(opts: {
   dialogueText?: string | null;
   audioDirection?: string | null;
   characterDescription?: string;
+  contentTemplate?: string;
+  templateStructure?: string;
 }) {
   const {
     shotIndex, totalShots, duration, moduleType,
     previousPrompt, withDialogue, dialogueText,
     audioDirection, characterDescription,
+    contentTemplate, templateStructure,
   } = opts;
 
   const moduleDirections: Record<string, string> = {
@@ -82,9 +85,13 @@ export function buildVideoDirectorInstruction(opts: {
     ? `\nCharacter: ${characterDescription}`
     : "";
 
+  const templateSection = contentTemplate && templateStructure
+    ? `\n\n=== CONTENT TEMPLATE: ${contentTemplate.toUpperCase()} ===\n${templateStructure}\nCreate ONE continuous flowing scene covering this full narrative arc. No separate shots or cuts.`
+    : "";
+
   return `${FRAME_LOCK_SYSTEM}
 
 === SHOT CONTEXT ===
 Shot #${shotIndex + 1} of ${totalShots}. Duration: ${duration}s.
-${moduleDir}${charSection}${continuitySection}${dialogueSection}`;
+${moduleDir}${charSection}${continuitySection}${dialogueSection}${templateSection}`;
 }
