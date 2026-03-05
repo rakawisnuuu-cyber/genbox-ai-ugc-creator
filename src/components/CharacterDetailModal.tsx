@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { UserCircle, X, Download } from "lucide-react";
 import type { CharacterData } from "./CharacterCard";
@@ -12,6 +12,11 @@ interface CharacterDetailModalProps {
 
 const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDetailModalProps) => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+
+  // Reset lightbox when character changes or modal closes
+  useEffect(() => {
+    setLightboxUrl(null);
+  }, [character?.id, open]);
 
   if (!character) return null;
 

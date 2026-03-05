@@ -226,6 +226,15 @@ const GeneratePage = () => {
   const [prompt, setPrompt] = useState("");
   const [generatingPrompt, setGeneratingPrompt] = useState(false);
 
+  // Stored fields from generatePrompt JSON for visual consistency in multi-angle
+  const [baseSceneFields, setBaseSceneFields] = useState<{
+    scene_description: string;
+    background: string;
+    lighting: string;
+    character_action: string;
+    product_placement: string;
+  } | null>(null);
+
   // Generation state
   const [genState, setGenState] = useState<GenState>("idle");
   const [resultUrl, setResultUrl] = useState<string | null>(null);
@@ -459,6 +468,15 @@ Respond ONLY with valid JSON:
         const enhancedPrompt = `${parsed.final_prompt}\n\n${SKIN_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
         setPrompt(enhancedPrompt);
 
+        // Store scene fields for visual consistency in multi-angle
+        setBaseSceneFields({
+          scene_description: parsed.scene_description || "",
+          background: parsed.background || "",
+          lighting: parsed.lighting || "",
+          character_action: parsed.character_action || "",
+          product_placement: parsed.product_placement || "",
+        });
+
         if (productDNA && parsed.product_description && parsed.product_description.length > (productDNA.product_description?.length || 0)) {
           setProductDNA((prev) => prev ? { ...prev, product_description: parsed.product_description } : prev);
         }
@@ -579,9 +597,21 @@ Respond ONLY with valid JSON:
 
         // Build angle-specific prompt via Gemini
         let anglePrompt: string;
+        // Build visual consistency lock from stored base scene fields
+        const consistencyLock = baseSceneFields
+          ? `VISUAL CONSISTENCY LOCK — Every detail must match the base image:
+- Environment: ${baseSceneFields.background}
+- Outfit & appearance: ${baseSceneFields.scene_description}
+- Lighting: ${baseSceneFields.lighting}
+- Product: ${baseSceneFields.product_placement}
+Only the CAMERA ANGLE and POSE change per shot. Everything else — room, clothing, accessories, hair, lighting direction, color palette — must remain identical to the base image.`
+          : "";
+
         try {
           const promptResult = await geminiFetch(promptModel, geminiKey!, {
             contents: [{ parts: [{ text: `You are a UGC photo prompt expert. Create a SINGLE image prompt for this specific angle.
+
+${consistencyLock}
 
 Character: ${selectedChar!.name} — ${characterIdentity}
 Angle: ${angle.label} — ${angle.description}
@@ -592,6 +622,7 @@ ${consistencyBlock}
 RULES:
 - Show the EXACT same person as in the base image (same face, hair, skin tone, outfit)
 - Show the EXACT same product (matching description above)
+- The base image is the FIRST image input — match its environment, outfit, and lighting exactly
 - Photorealistic, 8K quality, natural lighting
 - ${SKIN_BLOCK}
 - ${QUALITY_BLOCK}
@@ -602,7 +633,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
           anglePrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
         } catch {
           // Fallback: use a simple constructed prompt
-          anglePrompt = `Photorealistic UGC photo. ${angle.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
+          anglePrompt = `${consistencyLock}\n\nPhotorealistic UGC photo. ${angle.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
         }
 
         if (multiAngleAbortRef.current) throw new Error("Cancelled");
