@@ -15,8 +15,16 @@ import {
   Volume2,
   Zap,
   Clapperboard,
+  MessageCircle,
+  Package,
+  ArrowRightLeft,
+  Sun,
+  ShoppingBag,
+  Eye,
+  Star,
+  AlertCircle,
 } from "lucide-react";
-import { generateVideoAndWait } from "@/lib/kie-video-generation";
+import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
@@ -25,8 +33,18 @@ import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Switch } from "@/components/ui/switch";
 import MultiShotCreator from "@/components/video/MultiShotCreator";
 import GenerationLoading from "@/components/GenerationLoading";
+import {
+  CONTENT_TEMPLATES,
+  type ContentTemplateKey,
+  type ContentTemplate,
+  getContentTemplate,
+  buildTimingDescription,
+  isRecommendedForCategory,
+  getModelBadge,
+} from "@/lib/content-templates";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
 type GenState = "idle" | "loading" | "completed" | "failed";
@@ -35,6 +53,8 @@ type VideoMode = "quick" | "multishot";
 interface GalleryImage {
   id: string;
   image_url: string;
+  prompt: string | null;
+  metadata: any;
   created_at: string;
 }
 
@@ -65,6 +85,12 @@ const MODEL_INFO: Record<VideoModel, { label: string; badge: string; badgeColor:
   },
 };
 
+// Icon mapper for template icons
+const ICON_MAP: Record<string, React.ElementType> = {
+  Zap, MessageCircle, Package, ArrowRightLeft, Sun, ShoppingBag, Eye,
+  Waves: Sparkles, // fallback
+};
+
 const VideoPage = () => {
   const { user } = useAuth();
   const { kieApiKey, geminiKey, keys } = useApiKeys();
@@ -77,12 +103,22 @@ const VideoPage = () => {
   // Source image
   const [sourcePreview, setSourcePreview] = useState<string | null>(null);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
+  const [sourceGenId, setSourceGenId] = useState<string | null>(null);
+  const [sourcePrompt, setSourcePrompt] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [detectedCategory, setDetectedCategory] = useState<string | null>(null);
 
-  // Gallery modal
-  const [galleryOpen, setGalleryOpen] = useState(false);
+  // Inline gallery
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryLoaded, setGalleryLoaded] = useState(false);
+
+  // Content template
+  const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplateKey>("problem_solution");
+
+  // Dialogue toggle
+  const [withDialogue, setWithDialogue] = useState(false);
+  const [dialogueText, setDialogueText] = useState("");
 
   // Settings
   const [videoModel, setVideoModel] = useState<VideoModel>("grok");
@@ -114,6 +150,26 @@ const VideoPage = () => {
     timerRef.current = null;
   };
 
+  /* ── Load gallery images on mount ─────────────────────────── */
+  useEffect(() => {
+    if (!user || galleryLoaded) return;
+    const load = async () => {
+      setGalleryLoading(true);
+      const { data } = await supabase
+        .from("generations")
+        .select("id, image_url, prompt, metadata, created_at")
+        .eq("user_id", user.id)
+        .not("image_url", "is", null)
+        .neq("type", "video")
+        .order("created_at", { ascending: false })
+        .limit(12);
+      setGalleryImages((data as GalleryImage[]) || []);
+      setGalleryLoading(false);
+      setGalleryLoaded(true);
+    };
+    load();
+  }, [user, galleryLoaded]);
+
   /* ── Source Image Upload ──────────────────────────────────── */
   const handleFileSelect = async (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
@@ -121,6 +177,9 @@ const VideoPage = () => {
       return;
     }
     setSourcePreview(URL.createObjectURL(file));
+    setSourceGenId(null);
+    setSourcePrompt(null);
+    setDetectedCategory(null);
     setUploading(true);
     const ext = file.name.split(".").pop();
     const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
@@ -144,29 +203,24 @@ const VideoPage = () => {
   const removeSource = () => {
     setSourcePreview(null);
     setSourceUrl(null);
+    setSourceGenId(null);
+    setSourcePrompt(null);
+    setDetectedCategory(null);
   };
 
-  /* ── Gallery Modal ───────────────────────────────────────── */
-  const openGallery = async () => {
-    if (!user) return;
-    setGalleryOpen(true);
-    setGalleryLoading(true);
-    const { data } = await supabase
-      .from("generations")
-      .select("id, image_url, created_at")
-      .eq("user_id", user.id)
-      .not("image_url", "is", null)
-      .neq("type", "video")
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setGalleryImages((data as GalleryImage[]) || []);
-    setGalleryLoading(false);
-  };
-
+  /* ── Select from inline gallery ──────────────────────────── */
   const selectFromGallery = (img: GalleryImage) => {
     setSourcePreview(img.image_url);
     setSourceUrl(img.image_url);
-    setGalleryOpen(false);
+    setSourceGenId(img.id);
+    setSourcePrompt(img.prompt);
+    // Try to detect category from metadata
+    const meta = img.metadata as any;
+    if (meta?.product_category) {
+      setDetectedCategory(meta.product_category);
+    } else {
+      setDetectedCategory(null);
+    }
   };
 
   /* ── Flash animation helper ─────────────────────────────── */
@@ -175,7 +229,7 @@ const VideoPage = () => {
     setTimeout(() => setPromptFlash(false), 300);
   };
 
-  /* ── Gemini Prompt Helper ────────────────────────────────── */
+  /* ── Gemini Prompt Enhancement (template-aware) ──────────── */
   const enhancePrompt = async (): Promise<string> => {
     if (!geminiKey || keys.gemini.status !== "valid") {
       toast({ title: "Gemini API key belum di-setup", description: "Buka Settings.", variant: "destructive" });
@@ -183,22 +237,46 @@ const VideoPage = () => {
     }
     setGeneratingPrompt(true);
     try {
-      const userContext = prompt.trim() || "product/person photo";
+      const template = getContentTemplate(selectedTemplate);
+      const timingInfo = template
+        ? buildTimingDescription(template, videoModel)
+        : null;
+
+      const targetDuration = timingInfo?.duration || (videoModel === "grok" ? 10 : 20);
+
       const { buildVideoDirectorInstruction } = await import("@/lib/frame-lock-prompt");
       const sysText = buildVideoDirectorInstruction({
         shotIndex: 0,
         totalShots: 1,
-        duration: 6,
-        moduleType: "demo",
-        withDialogue: false,
-        dialogueText: null,
-        audioDirection: null,
+        duration: targetDuration,
+        moduleType: template?.key || "demo",
+        withDialogue,
+        dialogueText: withDialogue && dialogueText.trim() ? dialogueText.trim() : null,
+        audioDirection: withDialogue ? "natural spoken dialogue, clear and intimate" : "ambient sounds only, no speech",
       });
-      console.log("=== VIDEO ENHANCE PROMPT ===", "Model:", promptModel);
+
+      // Build the content template section for the system prompt
+      const templateSection = timingInfo
+        ? `\n\n=== CONTENT TEMPLATE: ${template!.label.toUpperCase()} ===\n${timingInfo.description}\n\nCRITICAL: Create a SINGLE continuous video prompt covering this full narrative arc in one take. Describe one continuous flowing scene where the person naturally transitions through each beat. Do NOT describe separate shots or cuts. Target duration: ${targetDuration} seconds. Adjust all timing beats proportionally. Pacing must feel natural, not rushed.`
+        : "";
+
+      const dialogueSection = withDialogue && dialogueText.trim()
+        ? `\n\nInclude natural spoken dialogue in the video: "${dialogueText.trim()}"`
+        : "";
+
+      const sourceContext = sourcePrompt
+        ? `Source image context (from original generation): ${sourcePrompt}`
+        : prompt.trim() || "product/person photo";
+
+      const categoryContext = detectedCategory
+        ? `\nProduct category: ${detectedCategory}`
+        : "";
+
+      console.log("=== VIDEO ENHANCE PROMPT ===", "Model:", promptModel, "Template:", selectedTemplate);
       const json = await geminiFetch(promptModel, geminiKey!, {
-        systemInstruction: { parts: [{ text: sysText }] },
+        systemInstruction: { parts: [{ text: `${sysText}${templateSection}` }] },
         contents: [{
-          parts: [{ text: `Source image context: ${userContext}. Create a video prompt for a UGC-style TikTok clip.` }],
+          parts: [{ text: `${sourceContext}${categoryContext}${dialogueSection}\n\nCreate a video prompt for a UGC-style TikTok clip following the content template timing structure above. One continuous scene, natural transitions between beats.` }],
         }],
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -241,12 +319,16 @@ const VideoPage = () => {
       }
       setFinalPrompt(usedPrompt);
 
+      const template = getContentTemplate(selectedTemplate);
+      const timingInfo = template ? buildTimingDescription(template, videoModel) : null;
+      const duration = timingInfo?.duration || (videoModel === "grok" ? 10 : 6);
+
       const result = await generateVideoAndWait(
         {
           model: videoModel,
           prompt: usedPrompt,
           imageUrls: [sourceUrl],
-          duration: 6,
+          duration,
           aspectRatio,
           apiKey: kieApiKey,
         },
@@ -265,6 +347,11 @@ const VideoPage = () => {
         model: videoModel === "grok" ? "grok-imagine" : videoModel === "veo_fast" ? "veo3_fast" : "veo3",
         provider: "kie_ai",
         status: "completed",
+        metadata: {
+          content_template: selectedTemplate,
+          with_dialogue: withDialogue,
+          source_generation_id: sourceGenId,
+        },
       });
       if (saveError) {
         console.error("Save error:", saveError);
@@ -272,7 +359,6 @@ const VideoPage = () => {
       } else {
         sonnerToast.success("Video berhasil disimpan ke gallery!");
       }
-      console.log("Saved video URL:", resultVideoUrl);
     } catch (err: any) {
       stopTimer();
       if (!abortRef.current) {
@@ -300,7 +386,6 @@ const VideoPage = () => {
   if (mode === "multishot") {
     return (
       <div className="-mx-4 -my-4 lg:-mx-6 lg:-my-8">
-        {/* Mode Toggle */}
         <div className="px-4 lg:px-6 pt-6 lg:pt-8">
           <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit mx-auto sm:mx-0">
             <button
@@ -332,7 +417,7 @@ const VideoPage = () => {
           <div className="flex items-center justify-between flex-wrap gap-3 mb-1">
             <div>
               <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Buat Video</h1>
-              <p className="text-xs text-muted-foreground mt-1">Generate video UGC 5-8 detik dari gambar</p>
+              <p className="text-xs text-muted-foreground mt-1">Generate video UGC lengkap dari 1 gambar</p>
             </div>
             <div className="flex gap-1 bg-muted rounded-lg p-1">
               <button
@@ -352,7 +437,7 @@ const VideoPage = () => {
           </div>
         </div>
 
-        {/* Source Image */}
+        {/* Source Image — Inline Gallery + Upload */}
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Source Image</label>
           {sourcePreview ? (
@@ -366,9 +451,37 @@ const VideoPage = () => {
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 </div>
               )}
+              {sourceGenId && (
+                <span className="absolute bottom-2 left-2 text-[9px] bg-primary/80 text-primary-foreground px-1.5 py-0.5 rounded-full font-medium">
+                  dari Gallery
+                </span>
+              )}
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              {/* Inline gallery grid */}
+              {galleryLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              ) : galleryImages.length > 0 ? (
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-2">Pilih dari gallery terbaru:</p>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {galleryImages.map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => selectFromGallery(img)}
+                        className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
+                      >
+                        <img src={img.image_url!} alt="" className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Upload fallback */}
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={onDrop}
@@ -382,25 +495,94 @@ const VideoPage = () => {
                   };
                   inp.click();
                 }}
-                className="border-2 border-dashed border-border rounded-xl p-8 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
+                className="border-2 border-dashed border-border rounded-xl p-6 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer"
               >
-                <Upload className="h-8 w-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Upload gambar baru</p>
-                <p className="text-[11px] text-muted-foreground/60">JPEG, PNG, WebP — Maks 10MB</p>
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Atau upload gambar baru</p>
+                <p className="text-[10px] text-muted-foreground/60">JPEG, PNG, WebP — Maks 10MB</p>
               </div>
-              <button
-                onClick={openGallery}
-                className="inline-flex items-center gap-2 text-xs text-primary hover:underline"
-              >
-                <Images className="h-3.5 w-3.5" />
-                Pilih dari Gallery
-              </button>
             </div>
           )}
         </div>
 
-        {/* Video Model */}
+        {/* Content Template — "Gaya Konten" */}
         <div className="animate-fade-up" style={{ animationDelay: "150ms" }}>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">
+            Gaya Konten
+          </label>
+          {videoModel === "grok" && (
+            <p className="text-[10px] text-muted-foreground/70 mb-2 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Grok maks 10 detik — template dipadatkan otomatis
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {CONTENT_TEMPLATES.map((t) => {
+              const selected = selectedTemplate === t.key;
+              const IconComp = ICON_MAP[t.icon] || Sparkles;
+              const modelBadge = getModelBadge(t, videoModel);
+              const recommended = isRecommendedForCategory(t, detectedCategory);
+
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => { setSelectedTemplate(t.key); setPromptEnhanced(false); }}
+                  className={`text-left rounded-xl p-3 transition-all ${
+                    selected
+                      ? "border-2 border-primary bg-primary/5 ring-1 ring-primary/20"
+                      : "border border-border bg-card hover:border-muted-foreground/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <IconComp className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="text-[11px] font-bold text-foreground leading-tight">{t.label}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">{t.desc}</p>
+                  <div className="flex items-center gap-1 mt-2 flex-wrap">
+                    {recommended && (
+                      <span className="text-[9px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                        <Star className="h-2.5 w-2.5" /> Cocok
+                      </span>
+                    )}
+                    {modelBadge.variant === "recommended" && (
+                      <span className="text-[9px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full font-medium">
+                        {modelBadge.label}
+                      </span>
+                    )}
+                    {modelBadge.variant === "compact" && (
+                      <span className="text-[9px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded-full font-medium">
+                        {modelBadge.label}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Dialogue Toggle */}
+        <div className="animate-fade-up" style={{ animationDelay: "175ms" }}>
+          <div className="flex items-center justify-between">
+            <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Dialog</label>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground">{withDialogue ? "Dengan Dialog" : "Tanpa Dialog"}</span>
+              <Switch checked={withDialogue} onCheckedChange={(v) => { setWithDialogue(v); setPromptEnhanced(false); }} />
+            </div>
+          </div>
+          {withDialogue && (
+            <Textarea
+              value={dialogueText}
+              onChange={(e) => { setDialogueText(e.target.value); setPromptEnhanced(false); }}
+              rows={2}
+              placeholder='Opsional: tulis teks dialog, misal "Guys ini sumpah bagus banget..."'
+              className="mt-2 bg-muted/30 border-border text-xs"
+            />
+          )}
+        </div>
+
+        {/* Video Model */}
+        <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Video Model</label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {(["grok", "veo_fast", "veo_quality"] as VideoModel[]).map((m) => {
@@ -409,7 +591,7 @@ const VideoPage = () => {
               return (
                 <button
                   key={m}
-                  onClick={() => setVideoModel(m)}
+                  onClick={() => { setVideoModel(m); setPromptEnhanced(false); }}
                   className={`text-left rounded-xl p-3.5 transition-colors ${
                     selected
                       ? "border-2 border-primary bg-primary/5"
@@ -429,7 +611,7 @@ const VideoPage = () => {
         </div>
 
         {/* Aspect Ratio */}
-        <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
+        <div className="animate-fade-up" style={{ animationDelay: "225ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Aspect Ratio</label>
           <ToggleGroup type="single" value={aspectRatio} onValueChange={(v) => v && setAspectRatio(v as "9:16" | "16:9")} className="w-full sm:w-auto">
             <ToggleGroupItem value="9:16" className="text-xs px-4 flex-1 sm:flex-none">9:16 Portrait</ToggleGroupItem>
@@ -445,7 +627,7 @@ const VideoPage = () => {
             value={prompt}
             onChange={(e) => { setPrompt(e.target.value); setPromptEnhanced(false); }}
             rows={4}
-            placeholder="Deskripsikan gerakan yang kamu inginkan... Contoh: Person smiles and holds up the product, looking at camera naturally"
+            placeholder="Opsional: deskripsikan konteks tambahan, atau biarkan kosong untuk auto-generate dari template..."
             className={`bg-muted/30 border-border text-sm transition-all duration-300 ${promptFlash ? "border-green-500 ring-2 ring-green-500/30" : ""}`}
           />
           <button
@@ -456,11 +638,13 @@ const VideoPage = () => {
             {generatingPrompt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
             ENHANCE & GENERATE PROMPT
           </button>
-          <p className="text-[11px] text-muted-foreground/60 mt-1.5">Edit prompt untuk hasil yang lebih baik</p>
+          <p className="text-[11px] text-muted-foreground/60 mt-1.5">
+            Prompt akan di-enhance berdasarkan template "{getContentTemplate(selectedTemplate)?.label}"
+          </p>
         </div>
 
         {/* TikTok Note */}
-        <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
+        <div className="animate-fade-up" style={{ animationDelay: "275ms" }}>
           <div className="flex items-start gap-2 bg-primary/10 border border-primary/20 rounded-lg p-3">
             <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <p className="text-xs text-muted-foreground">
@@ -470,7 +654,7 @@ const VideoPage = () => {
         </div>
 
         {/* Cost + Generate */}
-        <div className="animate-fade-up" style={{ animationDelay: "350ms" }}>
+        <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
           <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4">
             <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <div>
@@ -499,7 +683,7 @@ const VideoPage = () => {
           <div className="flex flex-col items-center text-center animate-fade-in">
             <Film className="h-16 w-16 text-foreground/10 mb-4" />
             <p className="text-sm text-muted-foreground">Hasil video akan muncul di sini</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Pilih gambar, atur keyword, dan generate!</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Pilih gambar, atur gaya konten, dan generate!</p>
           </div>
         )}
 
@@ -529,6 +713,9 @@ const VideoPage = () => {
               <span className={`font-bold uppercase tracking-wider px-2 py-0.5 rounded-full text-[10px] ${info.badgeColor}`}>{info.label}</span>
               <span>•</span>
               <span>{elapsed}s</span>
+              <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full">
+                {getContentTemplate(selectedTemplate)?.label}
+              </span>
               <span className="inline-flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-[10px] font-medium">
                 <Volume2 className="h-3 w-3" /> Audio native
               </span>
@@ -598,37 +785,6 @@ const VideoPage = () => {
           </div>
         )}
       </div>
-
-      {/* Gallery Modal */}
-      {galleryOpen && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setGalleryOpen(false)}>
-          <div className="bg-card border border-border rounded-xl max-w-2xl w-full max-h-[80vh] overflow-hidden animate-scale-in" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="text-sm font-bold font-satoshi uppercase tracking-wider text-foreground">Pilih dari Gallery</h2>
-              <button onClick={() => setGalleryOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="p-4 overflow-y-auto max-h-[65vh]">
-              {galleryLoading ? (
-                <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-              ) : galleryImages.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-12">Belum ada gambar di gallery</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {galleryImages.map((img) => (
-                    <button
-                      key={img.id}
-                      onClick={() => selectFromGallery(img)}
-                      className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
-                    >
-                      <img src={img.image_url!} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
