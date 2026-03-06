@@ -3,6 +3,14 @@
  * Used by VideoPage (quick mode), MultiShotCreator (per-module), and useMultiShotGeneration (batch).
  */
 
+export type VideoModelType = "grok" | "veo_fast" | "veo_quality";
+
+const MODEL_LENGTH_GUIDANCE: Record<VideoModelType, string> = {
+  grok: "Write 60-100 words. Focus on ONE key action sequence. Be direct.",
+  veo_fast: "Write 120-180 words. Include per-beat motion detail, camera movement, and facial expressions.",
+  veo_quality: "Write 180-250 words. Full cinematic detail — second-by-second actions, specific hand movements with the product, camera pans/zooms, lighting shifts, micro-expressions, and emotional arc.",
+};
+
 export const FRAME_LOCK_SYSTEM = `You are an expert AI Video Director specializing in hyper-realistic TikTok UGC content.
 
 === FRAME LOCK WITH REFERENCE IMAGE (MANDATORY) ===
@@ -35,7 +43,6 @@ The first frame of the generated video MUST visually match the reference/start i
 === PROMPT OUTPUT RULES ===
 - Output MUST be in English
 - Focus on MOTION, ACTION, CAMERA MOVEMENT — describe what CHANGES, not what's static
-- Keep under 80 words
 - Include audio/dialogue direction naturally if provided
 - NO brackets, NO placeholders, NO template markers
 - Output ONLY the final prompt text, no explanation`;
@@ -53,13 +60,19 @@ export function buildVideoDirectorInstruction(opts: {
   characterDescription?: string;
   contentTemplate?: string;
   templateStructure?: string;
+  model?: VideoModelType;
 }) {
   const {
     shotIndex, totalShots, duration, moduleType,
     previousPrompt, withDialogue, dialogueText,
     audioDirection, characterDescription,
     contentTemplate, templateStructure,
+    model,
   } = opts;
+
+  const lengthGuidance = model
+    ? MODEL_LENGTH_GUIDANCE[model]
+    : "Write 120-180 words. Include per-beat motion detail, camera movement, and facial expressions.";
 
   const moduleDirections: Record<string, string> = {
     hook: "HOOK shot — stop the scroll. High energy, dramatic first impression. Close-up face, wide eyes, sudden motion. The viewer must feel compelled to watch.",
@@ -90,6 +103,9 @@ export function buildVideoDirectorInstruction(opts: {
     : "";
 
   return `${FRAME_LOCK_SYSTEM}
+
+=== PROMPT LENGTH ===
+${lengthGuidance}
 
 === SHOT CONTEXT ===
 Shot #${shotIndex + 1} of ${totalShots}. Duration: ${duration}s.

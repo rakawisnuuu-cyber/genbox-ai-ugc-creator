@@ -14,21 +14,20 @@ export type ContentTemplateKey =
   | "pov_style";
 
 export interface TimingBeat {
-  start: number;   // seconds
+  start: number;
   end: number;
-  action: string;  // what happens in this beat
+  action: string;
 }
 
 export interface ContentTemplate {
   key: ContentTemplateKey;
   label: string;
   desc: string;
-  icon: string; // lucide icon name
-  fullTiming: TimingBeat[];    // for veo (15-20s+)
-  compressedTiming: TimingBeat[]; // for grok (10s)
-  fullDuration: number;        // total seconds full
-  compressedDuration: number;  // total seconds compressed
-  /** Product categories this template excels at */
+  icon: string;
+  fullTiming: TimingBeat[];
+  compressedTiming: TimingBeat[];
+  fullDuration: number;
+  compressedDuration: number;
   recommendedFor: string[];
 }
 
@@ -41,18 +40,18 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 20,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 3, action: "Frustration/pain point expression, showing the problem clearly" },
-      { start: 3, end: 7, action: "Discovers product nearby, picks it up with curiosity, reads label" },
-      { start: 7, end: 13, action: "Uses/applies product, demonstrating it actively" },
-      { start: 13, end: 17, action: "Satisfied reaction, touches result area, genuine impressed look" },
-      { start: 17, end: 20, action: "Holds product toward camera with confident warm smile, CTA moment" },
+      { start: 0, end: 3, action: "Medium close-up on face. Person looks frustrated, sighs, touches problem area with fingers. Slight head shake, furrowed brows. Camera holds steady on face and upper body" },
+      { start: 3, end: 7, action: "Eyes shift to product nearby on table. Hand reaches out, picks up product with curiosity. Tilts it to read label, camera slowly pushes in on product in hand. Eyebrows lift with interest" },
+      { start: 7, end: 13, action: "Opens product cap with deliberate motion. Applies/uses product — hands actively working. Medium shot captures both face and hands. Expression shifts from focused concentration to pleasant surprise. Camera holds steady" },
+      { start: 13, end: 17, action: "Pulls back slightly. Eyes widen with genuine surprise, slow approving nod. Touches result area gently with fingertips. Lips curve into satisfied smile. Camera stays on face for authentic reaction" },
+      { start: 17, end: 20, action: "Direct eye contact with camera. Warm confident smile, holds product at chest level angled toward lens. Slight lean forward for intimacy. Slow subtle zoom in on face and product together" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Quick frustration/pain point" },
-      { start: 2, end: 4, action: "Discovers product, picks it up" },
-      { start: 4, end: 7, action: "Uses/applies product" },
-      { start: 7, end: 9, action: "Result reaction, satisfied" },
-      { start: 9, end: 10, action: "Product to camera CTA" },
+      { start: 0, end: 2, action: "Close-up frustrated expression, touches problem area, quick head shake. Camera tight on face" },
+      { start: 2, end: 4, action: "Hand grabs product from table, tilts to show label. Quick camera push-in on product" },
+      { start: 4, end: 7, action: "Opens and applies product with focused hands. Medium shot, face shows concentration then surprise" },
+      { start: 7, end: 9, action: "Eyes widen, approving nod, touches result. Genuine satisfied smile" },
+      { start: 9, end: 10, action: "Eye contact, holds product to camera, warm smile. Slight lean forward" },
     ],
     recommendedFor: ["skincare", "electronics", "health", "home"],
   },
@@ -64,17 +63,17 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 20,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 3, action: "Looks at camera like talking to a friend, picks up product casually" },
-      { start: 3, end: 8, action: "Shows product details, turns it around, points at features" },
-      { start: 8, end: 13, action: "Uses/demonstrates the product actively" },
-      { start: 13, end: 17, action: "Genuine impressed reaction, nodding approvingly" },
-      { start: 17, end: 20, action: "Holds up product with confident smile to camera" },
+      { start: 0, end: 3, action: "Medium close-up. Person casually picks up product from table, glances at camera like starting a conversation with a friend. Slight eyebrow raise, relaxed posture" },
+      { start: 3, end: 8, action: "Slow rotation of product in hand, camera subtly pushes in. Points at key feature on label with index finger, tilts product toward camera to show detail. Natural hand gestures while 'explaining'" },
+      { start: 8, end: 13, action: "Hands-on demo — opens cap, applies/uses product with deliberate motion. Camera holds steady medium shot capturing both face reaction and hands working. Expression shifts from neutral to pleasantly surprised" },
+      { start: 13, end: 17, action: "Genuine reaction beat — eyes widen slightly, slow approving nod, touches result area with fingertips. Camera stays on face for authentic emotion. Lips press together in impressed expression" },
+      { start: 17, end: 20, action: "Direct eye contact, warm confident smile, holds product at chest level angled toward camera. Slight lean forward for intimacy. Slow nod as if recommending to a friend" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Picks up product casually, looks at camera" },
-      { start: 2, end: 5, action: "Shows product details" },
-      { start: 5, end: 8, action: "Demonstrates product" },
-      { start: 8, end: 10, action: "Impressed nod to camera" },
+      { start: 0, end: 2, action: "Picks up product casually from table, glances at camera with friendly eyebrow raise. Medium close-up" },
+      { start: 2, end: 5, action: "Rotates product, points at feature with index finger, tilts toward camera. Subtle push-in" },
+      { start: 5, end: 8, action: "Opens and demonstrates product. Hands active, face shifts from neutral to surprised. Steady medium shot" },
+      { start: 8, end: 10, action: "Impressed nod to camera, holds product up with confident smile. Slight lean forward" },
     ],
     recommendedFor: ["fashion", "food", "health"],
   },
@@ -86,17 +85,17 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 20,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 3, action: "Hands on sealed package, building anticipation, excited expression" },
-      { start: 3, end: 8, action: "Opening package carefully, pulling product out, revealing it" },
-      { start: 8, end: 13, action: "Examining product up close, touching texture, turning it around" },
-      { start: 13, end: 17, action: "First use moment, applying/trying the product" },
-      { start: 17, end: 20, action: "Satisfied reaction looking at camera, holds product up" },
+      { start: 0, end: 3, action: "Close-up on hands resting on sealed package on table. Fingers tap package with anticipation. Camera slightly overhead angle. Face shows excited anticipation, biting lip" },
+      { start: 3, end: 8, action: "Hands carefully tear open packaging, pulling flaps apart. Peels back tissue paper. Camera pushes in as product is revealed. Hands lift product out slowly, eyes widen with genuine surprise" },
+      { start: 8, end: 13, action: "Holds product at eye level, examines up close. Fingers run along texture, turns it to see all sides. Camera follows product rotation. Impressed expression, slight 'wow' mouth shape" },
+      { start: 13, end: 17, action: "First use moment — opens product, applies/tries it. Camera widens to medium shot. Hands work deliberately, face shows focused concentration then delight" },
+      { start: 17, end: 20, action: "Satisfied reaction looking at camera, holds product beside face. Beaming smile, slow nod. Camera holds steady on face and product together" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Sealed package, anticipation" },
-      { start: 2, end: 5, action: "Opening reveal" },
-      { start: 5, end: 8, action: "Examining product closely" },
-      { start: 8, end: 10, action: "First use + satisfied reaction" },
+      { start: 0, end: 2, action: "Overhead close-up, hands on sealed package, excited expression. Fingers tap with anticipation" },
+      { start: 2, end: 5, action: "Tears open package, lifts product out. Camera pushes in on reveal moment. Eyes widen" },
+      { start: 5, end: 8, action: "Examines product closely, fingers touch texture, rotates it. Impressed expression" },
+      { start: 8, end: 10, action: "Quick first use, then holds product to camera with beaming smile" },
     ],
     recommendedFor: ["fashion", "electronics"],
   },
@@ -108,18 +107,18 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 20,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 3, action: "Show before state clearly, frustrated/disappointed expression" },
-      { start: 3, end: 7, action: "Introduce product with hope, pick it up and examine" },
-      { start: 7, end: 13, action: "Apply/use product carefully, showing the process" },
-      { start: 13, end: 17, action: "Reveal after result, amazed reaction, touching improved area" },
-      { start: 17, end: 20, action: "Confident smile at camera, product visible" },
+      { start: 0, end: 3, action: "Close-up showing 'before' state clearly. Person looks frustrated/disappointed, touches problem area. Camera tight on affected zone. Slight sigh, furrowed brows" },
+      { start: 3, end: 7, action: "Hand reaches for product with hopeful expression. Picks it up, reads label. Camera widens to medium shot. Eyebrows lift, nods slightly as if deciding to try" },
+      { start: 7, end: 13, action: "Applies/uses product carefully with deliberate hand movements. Close-up on application area, then widens to show face concentration. Methodical, focused motion" },
+      { start: 13, end: 17, action: "Time-skip feel — person touches result area with amazement. Eyes widen, jaw drops slightly. Camera pushes in on 'after' reveal. Genuine shock and delight on face" },
+      { start: 17, end: 20, action: "Confident radiant smile at camera. Product held beside face at chest level. Slow nod of approval. Camera holds on the transformed look" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Before state, frustrated" },
-      { start: 2, end: 4, action: "Picks up product" },
-      { start: 4, end: 7, action: "Uses product" },
-      { start: 7, end: 9, action: "After reveal, amazed" },
-      { start: 9, end: 10, action: "Smile CTA" },
+      { start: 0, end: 2, action: "Close-up before state, frustrated expression touching problem area. Tight camera" },
+      { start: 2, end: 4, action: "Reaches for product hopefully, picks it up. Camera widens" },
+      { start: 4, end: 7, action: "Applies product with focused deliberate hands. Close-up on application" },
+      { start: 7, end: 9, action: "After reveal — eyes widen, amazed expression. Camera pushes in on result" },
+      { start: 9, end: 10, action: "Confident smile at camera with product. Slow nod" },
     ],
     recommendedFor: ["skincare", "fashion", "health", "home"],
   },
@@ -131,17 +130,17 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 20,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 3, action: "Morning/activity start, natural waking up or beginning routine" },
-      { start: 3, end: 8, action: "Reaches for product naturally as part of routine" },
-      { start: 8, end: 13, action: "Uses product in natural context, comfortable and relaxed" },
-      { start: 13, end: 17, action: "Enjoys the moment, content expression, product effect visible" },
-      { start: 17, end: 20, action: "Glance at camera with natural smile, product visible in scene" },
+      { start: 0, end: 3, action: "Natural morning/activity establishing shot. Person stretches or begins routine, soft morning light. Camera wide then slowly pushes in. Relaxed, authentic energy" },
+      { start: 3, end: 8, action: "Hand reaches for product naturally on counter/table as part of routine. Picks it up without fanfare, familiar motion. Camera follows hand to product in smooth pan" },
+      { start: 8, end: 13, action: "Uses product in natural context — comfortable, practiced movements. Medium shot shows both face and hands. Relaxed expression, eyes half-closed in enjoyment" },
+      { start: 13, end: 17, action: "Enjoys the moment — content serene expression. Touches face/skin/result area with gentle satisfaction. Camera stays medium, warm lighting. Slight smile building" },
+      { start: 17, end: 20, action: "Natural glance at camera with warm knowing smile. Product visible in scene, not held up aggressively. Relaxed lean, intimate 'sharing a secret' energy" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Morning/activity start" },
-      { start: 2, end: 5, action: "Reaches for product naturally" },
-      { start: 5, end: 8, action: "Uses product" },
-      { start: 8, end: 10, action: "Enjoying + camera glance" },
+      { start: 0, end: 2, action: "Morning light, person begins routine naturally. Soft warm establishing shot" },
+      { start: 2, end: 5, action: "Hand reaches for product on counter, picks up with practiced familiarity. Camera pans to follow" },
+      { start: 5, end: 8, action: "Uses product with comfortable relaxed movements. Medium shot, gentle expression" },
+      { start: 8, end: 10, action: "Content smile, glances at camera warmly. Product visible, intimate energy" },
     ],
     recommendedFor: ["skincare", "food", "health"],
   },
@@ -153,18 +152,18 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 15,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 2, action: "Excited grab of product, high energy" },
-      { start: 2, end: 5, action: "Rapid show from multiple angles, turning product" },
-      { start: 5, end: 9, action: "Quick use/try-on demonstration" },
-      { start: 9, end: 12, action: "Impressed reaction, nodding enthusiastically" },
-      { start: 12, end: 15, action: "Product held to camera, excited expression" },
+      { start: 0, end: 2, action: "High energy grab — hand snatches product from bag/table with excited motion. Close-up on hand and product. Wide eyes, excited expression. Quick camera snap" },
+      { start: 2, end: 5, action: "Rapid product showcase — turns product fast showing front, back, side. Camera follows rotation closely. Points at key details with finger. Enthusiastic energy" },
+      { start: 5, end: 9, action: "Quick use/try-on demo — swift application or wearing. Hands move with confidence. Medium shot captures reaction — eyebrows up, impressed nod mid-action" },
+      { start: 9, end: 12, action: "Enthusiastic reaction — fast nod, wide smile, maybe a small excited gesture. Camera tightens on face for genuine emotion beat" },
+      { start: 12, end: 15, action: "Product held up to camera at face level with big smile. Energetic final pose. Slight tilt of product to catch light" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Excited grab" },
-      { start: 2, end: 4, action: "Show angles rapidly" },
-      { start: 4, end: 7, action: "Quick use" },
-      { start: 7, end: 9, action: "Impressed reaction" },
-      { start: 9, end: 10, action: "Product up to camera" },
+      { start: 0, end: 2, action: "Excited grab from bag/table. Close-up hand snatch, wide eyes. Quick energy" },
+      { start: 2, end: 4, action: "Rapid rotation showing all angles, points at detail. Camera follows close" },
+      { start: 4, end: 7, action: "Swift use/try-on. Confident hands, impressed mid-action expression" },
+      { start: 7, end: 9, action: "Fast enthusiastic nod, wide smile. Camera tight on face" },
+      { start: 9, end: 10, action: "Product up to camera, big smile, energetic pose" },
     ],
     recommendedFor: ["fashion", "food"],
   },
@@ -176,16 +175,16 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 15,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 3, action: "Extreme close-up of product texture, satisfying visual detail" },
-      { start: 3, end: 7, action: "Slow interaction — opening, squeezing, pouring, satisfying sounds implied" },
-      { start: 7, end: 11, action: "Application in slow motion, smooth deliberate movements" },
-      { start: 11, end: 15, action: "Pull back to reveal person with satisfied serene expression" },
+      { start: 0, end: 3, action: "Extreme macro close-up of product texture/surface. Camera barely moving, shallow depth of field. Every pore, grain, shimmer visible. Satisfying visual ASMR feel" },
+      { start: 3, end: 7, action: "Slow deliberate interaction — fingers opening cap, gentle squeeze releasing product, slow pour. Camera stays tight. Every motion unhurried and intentional. Tactile satisfaction" },
+      { start: 7, end: 11, action: "Slow-motion application — product spreading on skin/surface with smooth deliberate strokes. Close-up on texture meeting skin. Dreamy, meditative pacing" },
+      { start: 11, end: 15, action: "Gradual pull back revealing person with serene satisfied expression. Eyes peacefully closed then slowly opening. Soft lighting wraps around face. Camera eases to medium shot" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Close-up texture detail" },
-      { start: 2, end: 5, action: "Slow interaction, opening" },
-      { start: 5, end: 8, action: "Application moment" },
-      { start: 8, end: 10, action: "Reveal person, satisfied" },
+      { start: 0, end: 2, action: "Macro close-up on product texture, shallow depth of field. Satisfying detail" },
+      { start: 2, end: 5, action: "Slow deliberate open/squeeze/pour. Camera tight, every motion unhurried" },
+      { start: 5, end: 8, action: "Slow-motion application, smooth strokes. Close-up texture meeting skin" },
+      { start: 8, end: 10, action: "Pull back to reveal serene face, eyes open slowly. Soft lighting" },
     ],
     recommendedFor: ["skincare", "food"],
   },
@@ -197,16 +196,16 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 15,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 3, action: "POV hands reaching toward product on surface" },
-      { start: 3, end: 7, action: "Picking up product, examining from first-person view" },
-      { start: 7, end: 11, action: "Using product from close POV angle" },
-      { start: 11, end: 15, action: "Pull back to show face/person with product" },
+      { start: 0, end: 3, action: "First-person POV — hands reach toward product sitting on surface. Camera IS the eyes. Fingers extend, slight tremor of anticipation. Product fills center of frame" },
+      { start: 3, end: 7, action: "POV hands pick up product, bring it close to examine. Fingers rotate it, thumb runs across label. Camera tilts down following the hands. Detail inspection from personal angle" },
+      { start: 7, end: 11, action: "POV using product — hands open cap, apply/interact from first-person view. Close angle on hands working. Immediate personal connection to the action" },
+      { start: 11, end: 15, action: "Camera lifts to mirror/reflection revealing the person's face with product. Or pulls back to third-person showing person holding product with satisfied smile. Transition from POV to reveal" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Hands reaching for product" },
-      { start: 2, end: 5, action: "Pick up, examine" },
-      { start: 5, end: 8, action: "Using product" },
-      { start: 8, end: 10, action: "Reveal face" },
+      { start: 0, end: 2, action: "POV hands reaching toward product on surface. First-person angle, fingers extend" },
+      { start: 2, end: 5, action: "Picks up product, rotates in POV. Thumb on label, close examination" },
+      { start: 5, end: 8, action: "POV using product, hands open and apply. First-person intimate angle" },
+      { start: 8, end: 10, action: "Pull back revealing face with product, satisfied smile. POV to third-person transition" },
     ],
     recommendedFor: ["electronics", "home"],
   },
@@ -226,11 +225,10 @@ export function buildTimingDescription(
   const timing = useCompressed ? template.compressedTiming : template.fullTiming;
   const duration = useCompressed ? template.compressedDuration : template.fullDuration;
 
-  // For veo_quality, extend timing proportionally
   let scaledTiming = timing;
   let scaledDuration = duration;
   if (model === "veo_quality" && template.fullDuration <= 20) {
-    const scale = 1.25; // 25% more breathing room
+    const scale = 1.25;
     scaledDuration = Math.round(duration * scale);
     scaledTiming = timing.map((b) => ({
       start: Math.round(b.start * scale),
@@ -263,7 +261,6 @@ export function getModelBadge(
   model: "grok" | "veo_fast" | "veo_quality",
 ): { label: string; variant: "recommended" | "compact" | "none" } {
   if (model === "grok") {
-    // Short templates work better with Grok
     if (template.fullDuration <= 15) {
       return { label: "Recommended", variant: "recommended" };
     }

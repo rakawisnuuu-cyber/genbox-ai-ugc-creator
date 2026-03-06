@@ -23,6 +23,7 @@ import {
   Eye,
   Star,
   AlertCircle,
+  Shuffle,
 } from "lucide-react";
 import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +46,11 @@ import {
   isRecommendedForCategory,
   getModelBadge,
 } from "@/lib/content-templates";
+import {
+  getRandomHooks,
+  getRandomBodyScripts,
+  BODY_SCRIPTS,
+} from "@/lib/tiktok-hooks";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
 type GenState = "idle" | "loading" | "completed" | "failed";
@@ -85,11 +91,36 @@ const MODEL_INFO: Record<VideoModel, { label: string; badge: string; badgeColor:
   },
 };
 
-// Icon mapper for template icons
 const ICON_MAP: Record<string, React.ElementType> = {
   Zap, MessageCircle, Package, ArrowRightLeft, Sun, ShoppingBag, Eye,
-  Waves: Sparkles, // fallback
+  Waves: Sparkles,
 };
+
+/** Convert image URL to base64 data URI for Gemini inline image */
+async function imageUrlToBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    const mimeType = blob.type || "image/jpeg";
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        const base64 = result.split(",")[1];
+        if (base64) {
+          resolve({ mimeType, data: base64 });
+        } else {
+          resolve(null);
+        }
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 const VideoPage = () => {
   const { user } = useAuth();
@@ -116,9 +147,14 @@ const VideoPage = () => {
   // Content template
   const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplateKey>("problem_solution");
 
-  // Dialogue toggle
+  // Dialogue toggle + script builder
   const [withDialogue, setWithDialogue] = useState(false);
   const [dialogueText, setDialogueText] = useState("");
+  const [hookOptions, setHookOptions] = useState<string[]>([]);
+  const [bodyOptions, setBodyOptions] = useState<string[]>([]);
+  const [selectedHook, setSelectedHook] = useState("");
+  const [selectedBody, setSelectedBody] = useState("");
+  const [generatingScript, setGeneratingScript] = useState(false);
 
   // Settings
   const [videoModel, setVideoModel] = useState<VideoModel>("grok");
@@ -149,6 +185,31 @@ const VideoPage = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = null;
   };
+
+  /* ── Refresh hook/body suggestions when template changes ── */
+  const refreshHooks = useCallback(() => {
+    setHookOptions(getRandomHooks(selectedTemplate, 5));
+  }, [selectedTemplate]);
+
+  const refreshBodyScripts = useCallback(() => {
+    setBodyOptions(getRandomBodyScripts(selectedTemplate, 4));
+  }, [selectedTemplate]);
+
+  useEffect(() => {
+    refreshHooks();
+    refreshBodyScripts();
+    setSelectedHook("");
+    setSelectedBody("");
+  }, [selectedTemplate, refreshHooks, refreshBodyScripts]);
+
+  /* ── Sync dialogueText when hook/body selection changes ── */
+  useEffect(() => {
+    if (!withDialogue) return;
+    const parts = [selectedHook, selectedBody].filter(Boolean);
+    if (parts.length > 0) {
+      setDialogueText(parts.join(" "));
+    }
+  }, [selectedHook, selectedBody, withDialogue]);
 
   /* ── Load gallery images on mount ─────────────────────────── */
   useEffect(() => {
@@ -214,7 +275,6 @@ const VideoPage = () => {
     setSourceUrl(img.image_url);
     setSourceGenId(img.id);
     setSourcePrompt(img.prompt);
-    // Try to detect category from metadata
     const meta = img.metadata as any;
     if (meta?.product_category) {
       setDetectedCategory(meta.product_category);
@@ -229,7 +289,51 @@ const VideoPage = () => {
     setTimeout(() => setPromptFlash(false), 300);
   };
 
-  /* ── Gemini Prompt Enhancement (template-aware) ──────────── */
+  /* ── Generate full dialog script via Gemini ──────────────── */
+  const generateDialogScript = async () => {
+    if (!geminiKey || keys.gemini.status !== "valid") {
+      toast({ title: "Gemini API key belum di-setup", variant: "destructive" });
+      return;
+    }
+    setGeneratingScript(true);
+    try {
+      const template = getContentTemplate(selectedTemplate);
+      const templateLabel = template?.label || selectedTemplate;
+      const hookContext = selectedHook ? `Starting hook: "${selectedHook}"` : "";
+      const categoryContext = detectedCategory ? `Product category: ${detectedCategory}` : "";
+      const sourceContext = sourcePrompt ? `Product/scene context: ${sourcePrompt.substring(0, 200)}` : "";
+
+      const sysPrompt = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
+Write a 3-4 sentence TikTok dialog script in casual Indonesian (bahasa gaul).
+Structure: hook (attention grabber) → body (product experience) → CTA (soft recommendation).
+Make it sound like a real person talking naturally to their phone camera.
+Keep it under 40 words total. Output ONLY the script text, no explanation.`;
+
+      const userPrompt = `Content style: ${templateLabel}
+${hookContext}
+${categoryContext}
+${sourceContext}
+Write the full script now.`.trim();
+
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        systemInstruction: { parts: [{ text: sysPrompt }] },
+        contents: [{ parts: [{ text: userPrompt }] }],
+      });
+      const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      if (text) {
+        setDialogueText(text);
+        setSelectedHook("");
+        setSelectedBody("");
+        sonnerToast.success("Script generated!");
+      }
+    } catch (err: any) {
+      toast({ title: "Gagal generate script", description: err?.message, variant: "destructive" });
+    } finally {
+      setGeneratingScript(false);
+    }
+  };
+
+  /* ── Gemini Prompt Enhancement (template-aware + image) ──── */
   const enhancePrompt = async (): Promise<string> => {
     if (!geminiKey || keys.gemini.status !== "valid") {
       toast({ title: "Gemini API key belum di-setup", description: "Buka Settings.", variant: "destructive" });
@@ -253,9 +357,11 @@ const VideoPage = () => {
         withDialogue,
         dialogueText: withDialogue && dialogueText.trim() ? dialogueText.trim() : null,
         audioDirection: withDialogue ? "natural spoken dialogue, clear and intimate" : "ambient sounds only, no speech",
+        contentTemplate: template?.key,
+        templateStructure: timingInfo?.description,
+        model: videoModel,
       });
 
-      // Build the content template section for the system prompt
       const templateSection = timingInfo
         ? `\n\n=== CONTENT TEMPLATE: ${template!.label.toUpperCase()} ===\n${timingInfo.description}\n\nCRITICAL: Create a SINGLE continuous video prompt covering this full narrative arc in one take. Describe one continuous flowing scene where the person naturally transitions through each beat. Do NOT describe separate shots or cuts. Target duration: ${targetDuration} seconds. Adjust all timing beats proportionally. Pacing must feel natural, not rushed.`
         : "";
@@ -272,12 +378,29 @@ const VideoPage = () => {
         ? `\nProduct category: ${detectedCategory}`
         : "";
 
-      console.log("=== VIDEO ENHANCE PROMPT ===", "Model:", promptModel, "Template:", selectedTemplate);
+      // Build content parts — include source image as base64 if available
+      const contentParts: any[] = [];
+
+      if (sourceUrl) {
+        const imageData = await imageUrlToBase64(sourceUrl);
+        if (imageData) {
+          contentParts.push({
+            inlineData: { mimeType: imageData.mimeType, data: imageData.data },
+          });
+          contentParts.push({
+            text: "This is the source image. Describe the EXACT person, product, setting, and lighting you see — your prompt must match this image precisely.",
+          });
+        }
+      }
+
+      contentParts.push({
+        text: `${sourceContext}${categoryContext}${dialogueSection}\n\nCreate a video prompt for a UGC-style TikTok clip following the content template timing structure above. One continuous scene, natural transitions between beats.`,
+      });
+
+      console.log("=== VIDEO ENHANCE PROMPT ===", "Model:", promptModel, "Template:", selectedTemplate, "WithImage:", !!sourceUrl);
       const json = await geminiFetch(promptModel, geminiKey!, {
         systemInstruction: { parts: [{ text: `${sysText}${templateSection}` }] },
-        contents: [{
-          parts: [{ text: `${sourceContext}${categoryContext}${dialogueSection}\n\nCreate a video prompt for a UGC-style TikTok clip following the content template timing structure above. One continuous scene, natural transitions between beats.` }],
-        }],
+        contents: [{ parts: contentParts }],
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
       if (!text) {
@@ -561,7 +684,7 @@ const VideoPage = () => {
           </div>
         </div>
 
-        {/* Dialogue Toggle */}
+        {/* Dialogue Toggle + Script Builder */}
         <div className="animate-fade-up" style={{ animationDelay: "175ms" }}>
           <div className="flex items-center justify-between">
             <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium">Dialog</label>
@@ -571,13 +694,76 @@ const VideoPage = () => {
             </div>
           </div>
           {withDialogue && (
-            <Textarea
-              value={dialogueText}
-              onChange={(e) => { setDialogueText(e.target.value); setPromptEnhanced(false); }}
-              rows={2}
-              placeholder='Opsional: tulis teks dialog, misal "Guys ini sumpah bagus banget..."'
-              className="mt-2 bg-muted/30 border-border text-xs"
-            />
+            <div className="mt-3 space-y-3">
+              {/* Hook selector */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-medium text-muted-foreground">Hook:</span>
+                  <button onClick={refreshHooks} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
+                    <Shuffle className="h-3 w-3" /> Acak
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {hookOptions.map((hook, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedHook(selectedHook === hook ? "" : hook)}
+                      className={`text-[10px] px-2.5 py-1.5 rounded-full border transition-all leading-snug max-w-full text-left ${
+                        selectedHook === hook
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-border bg-card text-muted-foreground hover:border-muted-foreground/50"
+                      }`}
+                    >
+                      {hook}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Body selector */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-medium text-muted-foreground">Body:</span>
+                  <button onClick={refreshBodyScripts} className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors">
+                    <Shuffle className="h-3 w-3" /> Acak
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {bodyOptions.map((body, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedBody(selectedBody === body ? "" : body)}
+                      className={`text-[10px] px-2.5 py-1.5 rounded-full border transition-all leading-snug max-w-full text-left ${
+                        selectedBody === body
+                          ? "border-primary bg-primary/10 text-primary font-medium"
+                          : "border-border bg-card text-muted-foreground hover:border-muted-foreground/50"
+                      }`}
+                    >
+                      {body}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Combined preview textarea */}
+              <Textarea
+                value={dialogueText}
+                onChange={(e) => { setDialogueText(e.target.value); setSelectedHook(""); setSelectedBody(""); setPromptEnhanced(false); }}
+                rows={2}
+                placeholder="Pilih hook + body di atas, atau tulis sendiri..."
+                className="bg-muted/30 border-border text-xs"
+              />
+
+              {/* AI Generate Script button */}
+              <button
+                onClick={generateDialogScript}
+                disabled={generatingScript}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-primary/5 transition-colors disabled:opacity-50"
+              >
+                {generatingScript ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                Generate Full Script AI
+              </button>
+            </div>
           )}
         </div>
 
@@ -640,6 +826,7 @@ const VideoPage = () => {
           </button>
           <p className="text-[11px] text-muted-foreground/60 mt-1.5">
             Prompt akan di-enhance berdasarkan template "{getContentTemplate(selectedTemplate)?.label}"
+            {sourceUrl && " + source image"}
           </p>
         </div>
 
