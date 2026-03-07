@@ -66,15 +66,44 @@ interface ShotResult {
 }
 
 // ── GENBOX PROMPT SYSTEM CONSTANTS ──
-const REALISM_BASE = "Ultra-realistic photographic portrait, commercial photography, real-world studio photography, cinematic realism, lifelike details, true-to-life textures.";
 
-const LIGHTING_BLOCK = "Professional studio lighting setup: soft key light from 45 degrees creating gentle modeling on the face, fill light reducing harsh shadows, subtle rim light separating subject from background. Warm neutral tones that complement Southeast Asian skin. No harsh directional shadows, no artificial color cast. Clean, professional, flattering but natural.";
+const QUALITY_BLOCK = "Ultra-realistic photographic portrait, 8K resolution, photographic realism, natural shallow depth of field, tack-sharp focus on subject, natural color grading with warm tones complementing Southeast Asian skin, realistic contrast.";
 
-const SKIN_BLOCK = "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
+const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors.";
 
-const QUALITY_BLOCK = "8K resolution, ultra-high detail, photographic realism, sharp focus, natural color grading, realistic contrast, clean studio image quality.";
+const FACIAL_REALISM_BLOCK = "Face must have slight natural asymmetry — one eye marginally narrower, subtle lip unevenness, natural brow variation. Expression should have micro-tension — not a perfectly relaxed or perfectly smiling face, but the natural in-between states real faces hold. Avoid: perfectly symmetrical features, identical eye shapes, unnaturally even smile, doll-like proportions. NOTE: If a reference photo is provided, prioritize matching the reference face over these general asymmetry guidelines.";
 
-const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter.";
+const HAIR_GROOMING_BLOCK = "Hair should look casually groomed — brushed and shaped with controlled volume and natural movement, as if the person prepared before filming but didn't visit a salon. Good: soft straight hair tucked behind ear, loose controlled waves, low ponytail, half-tied hair, light blow-dry look. Avoid: messy unbrushed bed-hair, frizzy uncontrolled volume, AND also avoid editorial salon-perfect styling. Hair should signal 'I look presentable for camera' — not 'I just woke up' and not 'I came from a photoshoot.'";
+
+// ── Dynamic skin block based on imperfection level ──
+function getSkinBlock(imperfection: string): string {
+  switch (imperfection) {
+    case "perfect":
+      return "Skin is clean, breathable, and healthy. Balanced complexion with natural warmth. Minimal natural makeup. No exaggerated texture, no gritty detail, no beauty filter smoothing. Skin looks real but flattering.";
+    case "very_natural":
+      return "Skin shows real human texture — visible pores under close inspection, possible small moles or beauty marks, light natural undereye circles, minor tone variation. Minimal or no makeup. No editorial beauty realism exaggeration. Skin looks healthy and real.";
+    case "raw":
+      return "Highly realistic skin — clearly visible pores, minor blemishes, possible acne marks, natural undereye circles, uneven skin tone areas. No makeup. Raw candid photography feel. Real, imperfect, human.";
+    default: // "natural"
+      return "Skin is clean, breathable, and healthy with soft visible texture under good lighting. Balanced complexion with gentle natural variation. Slight natural oil sheen on T-zone. Minimal makeup: soft base, subtle lip tint. No hyper-textured skin, no over-sharpened pores, no beauty filter. Think: real person who takes care of their skin.";
+  }
+}
+
+// ── Dynamic lighting block based on environment ──
+function getLightingBlock(environment: string): string {
+  switch (environment) {
+    case "indoor_home":
+      return "Warm natural indoor lighting — mix of window daylight and warm room lights, soft natural shadows, cozy warm color temperature. Natural light falloff from windows. Lighting must keep face clearly visible.";
+    case "indoor_cafe":
+      return "Warm ambient cafe lighting — pendant lights overhead, warm tungsten tones, soft mixed lighting from windows and interior lights. Natural shadow direction.";
+    case "outdoor_urban":
+      return "Natural outdoor daylight — warm overcast or golden hour light, natural shadows from surroundings, ambient light bounce.";
+    case "outdoor_nature":
+      return "Natural outdoor light — soft diffused daylight, warm golden tones, natural dappled light through trees.";
+    default: // "simple" or "studio"
+      return "Professional studio lighting setup: soft key light from 45 degrees creating gentle modeling on the face, fill light reducing harsh shadows, subtle rim light separating subject from background. Warm neutral tones that complement Southeast Asian skin. No harsh directional shadows, no artificial color cast. Clean, professional, flattering but natural.";
+  }
+}
 
 // ── SKIN TONE PROMPT MAPPING ──
 const SKIN_TONE_PROMPTS: Record<string, string> = {
@@ -108,13 +137,13 @@ const SHOT_CONFIGS: Record<ShotKey, { label: string; model: string; camera: stri
   },
   profile_3_4: {
     label: "3/4 Profile", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, shallow depth of field.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture, shallow depth of field.",
     framing: "Head and shoulders, turned 45 degrees to the right, looking slightly past camera. Expression is calm, natural, thoughtful. Background is a smooth soft grey studio gradient, same as hero shot.",
     icon: RotateCcw,
   },
   talking: {
     label: "Talking", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/1.8 aperture.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture.",
     framing: "Chest-up direct angle, making direct eye contact. Expression is mid-sentence, mouth slightly open, animated, conversational — like speaking to camera in a product review. Background is the same smooth soft grey studio gradient.",
     icon: Mic,
   },
@@ -126,13 +155,13 @@ const SHOT_CONFIGS: Record<ShotKey, { label: string; model: string; camera: stri
   },
   skin_detail: {
     label: "Skin Detail", model: "nano-banana-pro",
-    camera: "Shot on a full-frame mirrorless camera, 85mm portrait lens, f/1.8 aperture, extreme close-up, face fills entire frame.",
+    camera: "Shot on a full-frame mirrorless camera, 85mm portrait lens, f/2.4 aperture, extreme close-up, face fills entire frame.",
     framing: "Face filling the entire frame from forehead to chin. Direct calm gaze, neutral relaxed expression. Background is completely blurred out of focus. Focus on realistic skin texture, pore detail, natural skin quality.",
     icon: Search,
   },
   product_interaction: {
     label: "Product", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, sharp focus on face and hands.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture, sharp focus on face and hands.",
     framing: "Chest-up with hands visible in frame, holding a generic small product (bottle or box shape). Natural engaged expression, looking at product or toward camera. Background is the same smooth soft grey studio gradient.",
     icon: Hand,
   },
@@ -169,19 +198,25 @@ function assemblePrompt(
   shotKey: ShotKey,
   identityBlock: string,
   consistencyAnchors: string[],
+  options?: { imperfection?: string; environment?: string; advancedContext?: string },
 ) {
   const cfg = SHOT_CONFIGS[shotKey];
-  return [
-    REALISM_BASE,
+  const imperfection = options?.imperfection || "natural";
+  const environment = options?.environment || "simple";
+  const parts = [
+    QUALITY_BLOCK,
     cfg.camera,
     identityBlock,
     `MANDATORY consistency anchors: ${consistencyAnchors.join(", ")}`,
-    cfg.framing,
-    LIGHTING_BLOCK,
-    SKIN_BLOCK,
-    QUALITY_BLOCK,
-    NEGATIVE_BLOCK,
-  ].join("\n\n");
+    FACIAL_REALISM_BLOCK,
+    HAIR_GROOMING_BLOCK,
+  ];
+  if (options?.advancedContext) parts.push(options.advancedContext);
+  parts.push(cfg.framing);
+  parts.push(getLightingBlock(environment));
+  parts.push(getSkinBlock(imperfection));
+  parts.push(NEGATIVE_BLOCK);
+  return parts.join("\n\n");
 }
 
 // ── HELPER: Poll a Kie AI task ──
@@ -349,7 +384,7 @@ export default function CreateCharacterPage() {
 
       const geminiData = await geminiFetch(promptModel, geminiKey!, {
         systemInstruction: {
-          parts: [{ text: "You are an expert at writing hyper-specific physical descriptions of people for AI image generation. Your descriptions must be extremely detailed and specific to ensure visual consistency across multiple generated images." }],
+          parts: [{ text: "You are an expert at writing hyper-specific physical descriptions of people for AI image generation. Your descriptions must be extremely detailed and specific to ensure visual consistency across multiple generated images. HAIR GROOMING GUIDANCE: Always describe hair as casually groomed — brushed and shaped with controlled volume and natural movement, as if the person prepared before filming but didn't visit a salon. Avoid describing messy unbrushed hair AND also avoid editorial salon-perfect styling. Hair should signal 'presentable for camera.'" }],
         },
         contents: [{ parts: geminiParts }],
         generationConfig: genConfig,
@@ -364,7 +399,7 @@ export default function CreateCharacterPage() {
       setGenPhase("hero");
       setShots((p) => ({ ...p, hero_portrait: { status: "generating", model: SHOT_CONFIGS.hero_portrait.model } }));
 
-      const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors);
+      const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors, { imperfection: form.imperfection, environment: form.environment, advancedContext });
       const heroImageInput: string[] = refUrl ? [refUrl] : [];
 
       const heroCreateRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
@@ -398,34 +433,46 @@ export default function CreateCharacterPage() {
 
       const remainingImageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
 
-      await Promise.all(
-        REMAINING_KEYS.map(async (key) => {
-          const cfg = SHOT_CONFIGS[key];
-          const shotPrompt = assemblePrompt(key, identityBlock, consistencyAnchors);
+      // Batch remaining shots in pairs of 2 with 2s delay between batches
+      const batches: ShotKey[][] = [];
+      for (let i = 0; i < REMAINING_KEYS.length; i += 2) {
+        batches.push(REMAINING_KEYS.slice(i, i + 2));
+      }
 
-          try {
-            const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: cfg.model,
-                input: { prompt: shotPrompt, image_input: remainingImageInput, aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
-              }),
-            });
-            const json = await res.json();
-            if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
-            const taskId = json.data.taskId as string;
+      for (const batch of batches) {
+        await Promise.all(
+          batch.map(async (key) => {
+            const cfg = SHOT_CONFIGS[key];
+            const shotPrompt = assemblePrompt(key, identityBlock, consistencyAnchors, { imperfection: form.imperfection, environment: form.environment, advancedContext });
 
-            const imageUrl = await pollTask(taskId, kieApiKey);
-            setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
-            finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
-          } catch {
-            setShots((p) => ({ ...p, [key]: { status: "failed", model: cfg.model } }));
-          }
-          done++;
-          setCompletedCount(done);
-        })
-      );
+            try {
+              const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: cfg.model,
+                  input: { prompt: shotPrompt, image_input: remainingImageInput, aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
+                }),
+              });
+              const json = await res.json();
+              if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
+              const taskId = json.data.taskId as string;
+
+              const imageUrl = await pollTask(taskId, kieApiKey);
+              setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
+              finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
+            } catch {
+              setShots((p) => ({ ...p, [key]: { status: "failed", model: cfg.model } }));
+            }
+            done++;
+            setCompletedCount(done);
+          })
+        );
+        // 2s delay between batches (skip after last batch)
+        if (batch !== batches[batches.length - 1]) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
 
       if (timerRef.current) clearInterval(timerRef.current);
 
