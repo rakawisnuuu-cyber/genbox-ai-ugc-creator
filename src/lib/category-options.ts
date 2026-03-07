@@ -93,6 +93,8 @@ const POSE_SKINCARE: RichOption[] = [
   { label: "Selfie dengan Produk", description: "phone-angle selfie, one hand holding product" },
   { label: "Before Skincare", description: "looking at product curiously, about to start routine" },
   { label: "Showing Hasil", description: "touching face proudly, glowing skin result pose" },
+  { label: "Record Skincare Routine", description: "applying product while looking at phone camera propped on tripod or shelf, tutorial-style recording, natural bathroom lighting, phone screen visible in frame" },
+  { label: "Tunjukin Produk ke Kamera", description: "holding product next to face angled toward phone camera, close-up product showcase, one hand near face for scale, casual selfie grip on phone with other hand" },
 ];
 
 const POSE_FASHION: RichOption[] = [
@@ -101,6 +103,8 @@ const POSE_FASHION: RichOption[] = [
   { label: "Walking Confident", description: "mid-stride, natural movement, street style pose" },
   { label: "Detail Styling", description: "adjusting sleeve, collar, or accessory with one hand" },
   { label: "Sitting Casual", description: "seated cross-legged or on chair, relaxed showing outfit drape" },
+  { label: "Mirror Selfie OOTD", description: "classic mirror selfie with phone visible in hand, showing full outfit head to toe, typical OOTD content style, phone at chest level, natural mirror reflection" },
+  { label: "Tunjukin ke Kamera", description: "holding clothing item or accessory up toward camera at arm's length, excited expression, like showing haul to followers, slightly leaning forward with enthusiasm" },
 ];
 
 const POSE_FOOD: RichOption[] = [
@@ -109,6 +113,8 @@ const POSE_FOOD: RichOption[] = [
   { label: "Cooking Action", description: "stirring, pouring, plating in kitchen" },
   { label: "Cheers/Toast", description: "holding drink up, celebratory casual moment" },
   { label: "Taste Reaction", description: "mid-chew or just tasted, genuine satisfied expression" },
+  { label: "Foto Sebelum Makan", description: "phone held above food in typical overhead food photo pose, both hands visible framing the shot, looking down at food, classic Instagram food content moment" },
+  { label: "Nyobain Sambil Record", description: "eating or drinking while glancing at phone camera propped nearby, casual review moment, mid-chew with surprised happy expression, phone on small tripod visible" },
 ];
 
 const POSE_ELECTRONICS: RichOption[] = [
@@ -117,6 +123,8 @@ const POSE_ELECTRONICS: RichOption[] = [
   { label: "Casual Usage", description: "relaxed using device on couch or desk" },
   { label: "Size Comparison", description: "holding device next to hand, face, or another object for scale" },
   { label: "Feature Showcase", description: "pointing at specific feature, demonstrating functionality" },
+  { label: "Unboxing di Meja", description: "sitting at desk opening package, camera angle from front like recording unboxing video, packaging materials scattered, excited expression looking between product and camera" },
+  { label: "Tunjukin Fitur", description: "pointing at specific feature on device with index finger, phone propped up recording from front, tutorial pose, slightly leaning toward camera to show detail" },
 ];
 
 const POSE_HEALTH: RichOption[] = [
@@ -125,6 +133,8 @@ const POSE_HEALTH: RichOption[] = [
   { label: "Mixing/Preparing", description: "shaking bottle or mixing powder, preparation moment" },
   { label: "Taking Supplement", description: "about to drink or swallow, daily ritual moment" },
   { label: "Active Lifestyle", description: "outdoor or gym setting, product as part of active life" },
+  { label: "Selfie Pagi Routine", description: "morning selfie holding supplement with glass of water, bathroom or bedroom mirror visible behind, phone in one hand, natural just-woke-up energy" },
+  { label: "Gym Selfie", description: "gym mirror selfie post-workout, holding product in one hand, phone visible in other hand, slightly sweaty, workout clothes, gym equipment blurred in mirror reflection" },
 ];
 
 const POSE_HOME: RichOption[] = [
@@ -133,6 +143,8 @@ const POSE_HOME: RichOption[] = [
   { label: "Styling Placement", description: "arranging product in room, interior styling moment" },
   { label: "Before/After", description: "showing messy then organized space transformation" },
   { label: "Detail Touch", description: "touching material, opening drawer, showing craftsmanship" },
+  { label: "Before After Record", description: "standing next to product, phone on tripod visible in frame, gesturing like presenting in a video, enthusiastic expression, pointing at the product" },
+  { label: "Review Santai", description: "sitting on floor or sofa with product nearby, talking-to-camera casual angle, relaxed cross-legged position, hands gesturing naturally while explaining, phone propped at eye level" },
 ];
 
 const POSE_OTHER: RichOption[] = [
@@ -141,6 +153,8 @@ const POSE_OTHER: RichOption[] = [
   { label: "Menggunakan Produk", description: "actively using product in natural context" },
   { label: "Unboxing", description: "opening package, first impression reaction" },
   { label: "Review", description: "examining product closely, reviewer pose" },
+  { label: "Record Review", description: "sitting casually with product, phone on tripod recording from front, talking-to-camera angle, natural gesturing while explaining product" },
+  { label: "Tunjukin ke Kamera", description: "holding product up toward camera at arm's length, excited expression, like showing to followers, slightly leaning forward" },
 ];
 
 const POSE_MAP: Record<ProductCategory, RichOption[]> = {
