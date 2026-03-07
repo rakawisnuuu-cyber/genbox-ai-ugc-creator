@@ -80,6 +80,84 @@ const ROLE_COLORS: Record<string, string> = {
   Convert: "bg-amber-500/20 text-amber-400 border-amber-500/30",
 };
 
+/** Templates with heavy dialog → recommend Veo all */
+const DIALOG_HEAVY_TEMPLATES: ContentTemplateKey[] = ["problem_solution", "review_jujur", "quick_haul"];
+/** Templates mostly visual → mixed recommendation */
+const VISUAL_HEAVY_TEMPLATES: ContentTemplateKey[] = ["asmr_aesthetic", "pov_style"];
+
+function getModelRecommendation(template: ContentTemplateKey): { text: string; variant: "dialog" | "visual" | "hemat" } {
+  if (DIALOG_HEAVY_TEMPLATES.includes(template)) {
+    return {
+      text: "Rekomendasi: Veo Fast untuk semua frame (audio + lip sync) — ~Rp 24.000 total",
+      variant: "dialog",
+    };
+  }
+  if (VISUAL_HEAVY_TEMPLATES.includes(template)) {
+    return {
+      text: "Rekomendasi: Grok untuk frame tanpa dialog, Veo untuk frame dengan dialog — ~Rp 12.000 total",
+      variant: "visual",
+    };
+  }
+  return {
+    text: "Hemat: Grok semua frame (tanpa audio) — ~Rp 8.000 total",
+    variant: "hemat",
+  };
+}
+
+/** Smart dialog suggestions per frame role and product category */
+const DEMO_DIALOGS: Record<string, string> = {
+  skincare: "Aku coba pake langsung ya di kulit aku...",
+  fashion: "Aku coba pakai nih, liat deh hasilnya...",
+  food: "Kita cobain rasanya langsung ya...",
+  electronics: "Aku nyalain dulu nih, kita liat fiturnya...",
+  health: "Aku minum langsung ya, biasa tiap pagi...",
+  home: "Aku coba pasang langsung ya...",
+  other: "Aku coba langsung ya biar kalian liat...",
+};
+
+const PROOF_DIALOGS = [
+  "Hasilnya ternyata beneran kerasa bedanya...",
+  "Wah beneran kerasa bedanya sih ini...",
+  "Oke aku kaget sih, hasilnya sebagus ini...",
+  "Ini beneran di luar ekspektasi aku...",
+];
+
+const CTA_DIALOGS = [
+  "Worth it sih, kalian coba deh!",
+  "Link di bio ya! Cobain deh.",
+  "Aku recommend banget sih ini. Cek link di bio!",
+  "Kalian harus coba ini sih, worth it banget.",
+];
+
+function getSmartDialogSuggestion(
+  role: string,
+  templateKey: ContentTemplateKey,
+  productCategory?: string,
+): string {
+  switch (role) {
+    case "Hook": {
+      const hooks = getRandomHooks(templateKey, 1);
+      return hooks[0] || "";
+    }
+    case "Build": {
+      const bodies = getRandomBodyScripts(templateKey, 1);
+      return bodies[0] || "";
+    }
+    case "Demo": {
+      const cat = (productCategory || "other").toLowerCase();
+      return DEMO_DIALOGS[cat] || DEMO_DIALOGS.other;
+    }
+    case "Proof": {
+      return PROOF_DIALOGS[Math.floor(Math.random() * PROOF_DIALOGS.length)];
+    }
+    case "Convert": {
+      return CTA_DIALOGS[Math.floor(Math.random() * CTA_DIALOGS.length)];
+    }
+    default:
+      return "";
+  }
+}
+
 /** Convert image URL to base64 for Gemini */
 async function imageUrlToBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
   try {
