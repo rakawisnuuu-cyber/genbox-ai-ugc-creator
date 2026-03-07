@@ -280,6 +280,11 @@ export default function CreateCharacterPage() {
   const [zoomedShot, setZoomedShot] = useState<{url: string, label: string} | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Hero-first: store identity data for later variation generation
+  const [identityData, setIdentityData] = useState<{ identityBlock: string; consistencyAnchors: string[]; advancedContext: string } | null>(null);
+  const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
+  const [generatingSingleShot, setGeneratingSingleShot] = useState<ShotKey | null>(null);
+
   // Reference photo state
   const [refPreview, setRefPreview] = useState<string | null>(null);
   const [refUrl, setRefUrl] = useState<string | null>(null);
@@ -332,7 +337,7 @@ export default function CreateCharacterPage() {
     setRefUrl(null);
   };
 
-  // ── GENERATION FLOW ──
+  // ── GENERATION FLOW — HERO ONLY ──
   const handleGenerate = async () => {
     if (!form.name.trim()) { toast({ title: "Nama wajib diisi", variant: "destructive" }); return; }
     if (!kieApiKey || !geminiKey) {
@@ -395,7 +400,10 @@ export default function CreateCharacterPage() {
       const identityBlock: string = identityJson.identity_block;
       const consistencyAnchors: string[] = identityJson.consistency_anchors || [];
 
-      // ── STEP 2: Generate hero portrait ──
+      // Store identity data for later variation generation
+      setIdentityData({ identityBlock, consistencyAnchors, advancedContext });
+
+      // ── STEP 2: Generate hero portrait ONLY ──
       setGenPhase("hero");
       setShots((p) => ({ ...p, hero_portrait: { status: "generating", model: SHOT_CONFIGS.hero_portrait.model } }));
 
@@ -420,31 +428,79 @@ export default function CreateCharacterPage() {
       setShots((p) => ({ ...p, hero_portrait: { status: "success", url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model } }));
       setCompletedCount(1);
 
-      // ── STEP 3: Generate remaining 5 shots ──
-      setGenPhase("variations");
-      REMAINING_KEYS.forEach((k) => {
-        setShots((p) => ({ ...p, [k]: { status: "generating", model: SHOT_CONFIGS[k].model } }));
-      });
+      if (timerRef.current) clearInterval(timerRef.current);
 
-      let done = 1;
-      const finalResults: Record<string, { url: string; taskId: string; model: string }> = {
-        hero_portrait: { url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model },
-      };
+      // ── STEP 3: Save character immediately with hero only ──
+      setGenPhase("saving");
+      const { data, error } = await supabase.from("characters").insert({
+        user_id: user!.id,
+        name: form.name,
+        gender: form.gender,
+        type: form.gender === "female" ? "Wanita" : "Pria",
+        age_range: form.age_range,
+        style: form.outfit_style,
+        tags: [form.gender === "female" ? "Wanita" : "Pria", form.age_range, form.outfit_style],
+        description: identityBlock.substring(0, 200),
+        config: form as any,
+        identity_prompt: identityBlock,
+        hero_image_url: heroUrl,
+        thumbnail_url: heroUrl,
+        reference_images: [heroUrl],
+        shot_metadata: { hero_portrait: { url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model } } as any,
+        gradient_from: "emerald-900/40",
+        gradient_to: "teal-900/40",
+        is_preset: false,
+        reference_photo_url: refUrl || "",
+      } as any).select("id").single();
 
-      const remainingImageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
-
-      // Batch remaining shots in pairs of 2 with 2s delay between batches
-      const batches: ShotKey[][] = [];
-      for (let i = 0; i < REMAINING_KEYS.length; i += 2) {
-        batches.push(REMAINING_KEYS.slice(i, i + 2));
+      if (!error && data) {
+        setSavedId(data.id);
+        toast({ title: "Karakter berhasil dibuat!", description: "Hero portrait siap digunakan. Generate variasi kapan saja." });
+      } else {
+        toast({ title: "Gagal menyimpan", description: error?.message, variant: "destructive" });
       }
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+      if (timerRef.current) clearInterval(timerRef.current);
+    } finally {
+      setIsGenerating(false);
+      setGenPhase("idle");
+    }
+  };
 
+  // ── GENERATE ALL 5 VARIATIONS ──
+  const handleGenerateVariations = async () => {
+    if (!kieApiKey || !identityData || !savedId) return;
+    const heroUrl = shots.hero_portrait.url;
+    if (!heroUrl) return;
+
+    setIsGeneratingVariations(true);
+    setGenPhase("variations");
+    setCompletedCount(1);
+    setElapsed(0);
+    timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+
+    REMAINING_KEYS.forEach((k) => {
+      setShots((p) => ({ ...p, [k]: { status: "generating", model: SHOT_CONFIGS[k].model } }));
+    });
+
+    let done = 1;
+    const finalResults: Record<string, { url: string; taskId: string; model: string }> = {};
+    const remainingImageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
+
+    const batches: ShotKey[][] = [];
+    for (let i = 0; i < REMAINING_KEYS.length; i += 2) {
+      batches.push(REMAINING_KEYS.slice(i, i + 2));
+    }
+
+    try {
       for (const batch of batches) {
         await Promise.all(
           batch.map(async (key) => {
             const cfg = SHOT_CONFIGS[key];
-            const shotPrompt = assemblePrompt(key, identityBlock, consistencyAnchors, { imperfection: form.imperfection, environment: form.environment, advancedContext });
-
+            const shotPrompt = assemblePrompt(key, identityData.identityBlock, identityData.consistencyAnchors, {
+              imperfection: form.imperfection, environment: form.environment, advancedContext: identityData.advancedContext,
+            });
             try {
               const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
                 method: "POST",
@@ -457,7 +513,6 @@ export default function CreateCharacterPage() {
               const json = await res.json();
               if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
               const taskId = json.data.taskId as string;
-
               const imageUrl = await pollTask(taskId, kieApiKey);
               setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
               finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
@@ -468,7 +523,6 @@ export default function CreateCharacterPage() {
             setCompletedCount(done);
           })
         );
-        // 2s delay between batches (skip after last batch)
         if (batch !== batches[batches.length - 1]) {
           await new Promise((r) => setTimeout(r, 2000));
         }
@@ -476,43 +530,80 @@ export default function CreateCharacterPage() {
 
       if (timerRef.current) clearInterval(timerRef.current);
 
-      // ── STEP 4: Save ──
-      setGenPhase("saving");
-      if (finalResults.hero_portrait?.url) {
-        const { data, error } = await supabase.from("characters").insert({
-          user_id: user!.id,
-          name: form.name,
-          gender: form.gender,
-          type: form.gender === "female" ? "Wanita" : "Pria",
-          age_range: form.age_range,
-          style: form.outfit_style,
-          tags: [form.gender === "female" ? "Wanita" : "Pria", form.age_range, form.outfit_style],
-          description: identityBlock.substring(0, 200),
-          config: form as any,
-          identity_prompt: identityBlock,
-          hero_image_url: finalResults.hero_portrait.url,
-          thumbnail_url: finalResults.hero_portrait.url,
-          reference_images: SHOT_KEYS.map((k) => finalResults[k]?.url || "").filter(Boolean),
-          shot_metadata: finalResults as any,
-          gradient_from: "emerald-900/40",
-          gradient_to: "teal-900/40",
-          is_preset: false,
-          reference_photo_url: refUrl || "",
-        } as any).select("id").single();
+      // Update existing character with variation data
+      const allUrls = [heroUrl, ...REMAINING_KEYS.map((k) => finalResults[k]?.url).filter(Boolean)];
+      const allMetadata = {
+        hero_portrait: { url: heroUrl, taskId: shots.hero_portrait.taskId, model: SHOT_CONFIGS.hero_portrait.model },
+        ...finalResults,
+      };
 
-        if (!error && data) {
-          setSavedId(data.id);
-          toast({ title: "Karakter berhasil dibuat!" });
-        }
-      } else {
-        toast({ title: "Hero portrait gagal", description: "Coba lagi.", variant: "destructive" });
-      }
+      await supabase.from("characters").update({
+        reference_images: allUrls,
+        shot_metadata: allMetadata as any,
+      } as any).eq("id", savedId);
+
+      toast({ title: "Variasi selesai!", description: `${Object.keys(finalResults).length} variasi berhasil di-generate.` });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: "Error variasi", description: e.message, variant: "destructive" });
       if (timerRef.current) clearInterval(timerRef.current);
     } finally {
-      setIsGenerating(false);
+      setIsGeneratingVariations(false);
       setGenPhase("idle");
+    }
+  };
+
+  // ── GENERATE SINGLE SHOT ──
+  const handleGenerateSingleShot = async (key: ShotKey) => {
+    if (!kieApiKey || !identityData || !savedId) return;
+    const heroUrl = shots.hero_portrait.url;
+    if (!heroUrl) return;
+
+    setGeneratingSingleShot(key);
+    setShots((p) => ({ ...p, [key]: { status: "generating", model: SHOT_CONFIGS[key].model } }));
+
+    const imageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
+    const shotPrompt = assemblePrompt(key, identityData.identityBlock, identityData.consistencyAnchors, {
+      imperfection: form.imperfection, environment: form.environment, advancedContext: identityData.advancedContext,
+    });
+
+    try {
+      const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: SHOT_CONFIGS[key].model,
+          input: { prompt: shotPrompt, image_input: imageInput, aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
+        }),
+      });
+      const json = await res.json();
+      if (json.code !== 200) throw new Error("Task creation failed");
+      const taskId = json.data.taskId as string;
+      const imageUrl = await pollTask(taskId, kieApiKey);
+
+      setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: SHOT_CONFIGS[key].model } }));
+
+      // Update character record
+      const currentShots = { ...shots };
+      currentShots[key] = { status: "success", url: imageUrl, taskId, model: SHOT_CONFIGS[key].model };
+      const allUrls = SHOT_KEYS.map((k) => currentShots[k]?.url).filter(Boolean) as string[];
+      const shotMeta: any = {};
+      SHOT_KEYS.forEach((k) => {
+        if (currentShots[k]?.url) {
+          shotMeta[k] = { url: currentShots[k].url, taskId: currentShots[k].taskId, model: currentShots[k].model };
+        }
+      });
+
+      await supabase.from("characters").update({
+        reference_images: allUrls,
+        shot_metadata: shotMeta,
+      } as any).eq("id", savedId);
+
+      toast({ title: `${SHOT_CONFIGS[key].label} selesai!` });
+    } catch (e: any) {
+      setShots((p) => ({ ...p, [key]: { status: "failed", model: SHOT_CONFIGS[key].model } }));
+      toast({ title: "Gagal", description: e.message, variant: "destructive" });
+    } finally {
+      setGeneratingSingleShot(null);
     }
   };
 
@@ -530,12 +621,17 @@ export default function CreateCharacterPage() {
   const progressLabel = (() => {
     switch (genPhase) {
       case "identity": return "Membuat identity prompt...";
-      case "hero": return "Membuat hero portrait... (1/6)";
-      case "variations": return `Generating variasi... (${completedCount}/6)`;
+      case "hero": return "Membuat hero portrait...";
+      case "variations": return `Generating variasi... (${completedCount - 1}/5)`;
       case "saving": return "Menyimpan karakter...";
       default: return "";
     }
   })();
+
+  const heroDone = shots.hero_portrait.status === "success";
+  const allVariationsDone = REMAINING_KEYS.every((k) => shots[k].status === "success");
+  const anyVariationGenerating = REMAINING_KEYS.some((k) => shots[k].status === "generating");
+  const variationsDoneCount = REMAINING_KEYS.filter((k) => shots[k].status === "success").length;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -851,7 +947,7 @@ export default function CreateCharacterPage() {
           </div>
 
           {/* Progress */}
-          {isGenerating && (
+          {(isGenerating || isGeneratingVariations) && (
             <div className="mb-4 space-y-2 animate-fade-in">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-2">
@@ -860,7 +956,7 @@ export default function CreateCharacterPage() {
                 </span>
                 <span>{elapsed}s</span>
               </div>
-              <Progress value={(completedCount / 6) * 100} className="h-2 bg-secondary" />
+              <Progress value={isGeneratingVariations ? ((completedCount - 1) / 5) * 100 : genPhase === "hero" ? 50 : genPhase === "saving" ? 90 : 10} className="h-2 bg-secondary" />
             </div>
           )}
 
@@ -872,10 +968,21 @@ export default function CreateCharacterPage() {
               const Icon = cfg.icon;
               const isPro = cfg.model === "nano-banana-pro";
               const isHero = key === "hero_portrait";
+              const isVariation = !isHero;
+              const canClickToGenerate = isVariation && heroDone && savedId && shot.status === "idle" && !isGeneratingVariations && !generatingSingleShot;
+
               return (
-                <div key={key} className={`relative aspect-[3/4] bg-muted/50 border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden ${isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
+                <div
+                  key={key}
+                  className={`relative aspect-[3/4] bg-muted/50 border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden transition-all ${
+                    isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" :
+                    canClickToGenerate ? "border-dashed border-muted-foreground/20 hover:border-primary/40 cursor-pointer" :
+                    "border-border"
+                  }`}
+                  onClick={canClickToGenerate ? () => handleGenerateSingleShot(key) : undefined}
+                >
                   {shot.status === "success" && shot.url ? (
-                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={() => setZoomedShot({url: shot.url!, label: cfg.label})} />
+                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={(e) => { e.stopPropagation(); setZoomedShot({url: shot.url!, label: cfg.label}); }} />
                   ) : shot.status === "generating" ? (
                     <div className="absolute inset-0 generation-mesh flex items-center justify-center">
                       <Loader2 className="w-6 h-6 text-primary/60 animate-spin" />
@@ -883,10 +990,15 @@ export default function CreateCharacterPage() {
                   ) : shot.status === "failed" ? (
                     <AlertCircle className="w-6 h-6 text-destructive" />
                   ) : (
-                    <Icon className="w-6 h-6 text-muted-foreground/30" />
+                    <Icon className={`w-6 h-6 ${canClickToGenerate ? "text-muted-foreground/50" : "text-muted-foreground/30"}`} />
                   )}
                   {shot.status !== "success" && (
-                    <span className="text-[11px] text-muted-foreground/30 uppercase tracking-wider text-center px-1">{cfg.label}</span>
+                    <span className={`text-[11px] uppercase tracking-wider text-center px-1 ${canClickToGenerate ? "text-muted-foreground/50" : "text-muted-foreground/30"}`}>
+                      {cfg.label}
+                    </span>
+                  )}
+                  {canClickToGenerate && (
+                    <span className="text-[9px] text-primary/60 mt-1">Klik untuk generate</span>
                   )}
                   {shot.status === "success" && shot.url && (
                     <>
@@ -913,16 +1025,45 @@ export default function CreateCharacterPage() {
             })}
           </div>
 
-          {/* Cost indicator */}
+          {/* Cost indicator — dynamic */}
           <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4 text-xs text-muted-foreground">
             <Zap className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <div>
-              <p>Estimasi: ~64 credits (~Rp 5.120) untuk 6 gambar</p>
-              <p className="text-[11px] text-muted-foreground/50 mt-0.5">2x Nano Banana Pro (hero + detail) + 4x Nano Banana 2 (sisanya)</p>
+              {!heroDone ? (
+                <>
+                  <p>Estimasi: ~Rp 1.600 untuk hero portrait</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">1x Nano Banana Pro • Variasi opsional setelahnya</p>
+                </>
+              ) : allVariationsDone ? (
+                <>
+                  <p>Hero ✓ • {variationsDoneCount} variasi ✓</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">Semua shot selesai</p>
+                </>
+              ) : (
+                <>
+                  <p>Hero ✓ {variationsDoneCount > 0 ? `• ${variationsDoneCount}/5 variasi ✓` : ""}</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                    {5 - variationsDoneCount} variasi tersisa (+~Rp {((5 - variationsDoneCount) * 700).toLocaleString("id-ID")})
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Generate / success buttons */}
+          {/* Generate 5 variations button */}
+          {heroDone && savedId && !allVariationsDone && !isGeneratingVariations && (
+            <Button
+              onClick={handleGenerateVariations}
+              variant="outline"
+              disabled={!!generatingSingleShot}
+              className="w-full py-3 font-bold uppercase tracking-wider mb-3 border-primary/30 text-primary hover:bg-primary/10"
+            >
+              <ImageIcon className="w-4 h-4 mr-2" />
+              Generate {5 - variationsDoneCount} Variasi (+~Rp {((5 - variationsDoneCount) * 700).toLocaleString("id-ID")})
+            </Button>
+          )}
+
+          {/* Main action buttons */}
           {savedId ? (
             <div className="space-y-2 animate-fade-in">
               <Button onClick={() => navigate(`/generate?characterId=${savedId}`)} className="w-full py-3.5 font-bold uppercase tracking-wider">
@@ -934,7 +1075,7 @@ export default function CreateCharacterPage() {
             </div>
           ) : (
             <Button onClick={handleGenerate} disabled={isGenerating || (mode === "simple" && !selectedVibe)} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
-              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter"}
+              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter (~Rp 1.600)"}
             </Button>
           )}
         </div>
