@@ -194,7 +194,13 @@ const VideoPage = () => {
   // Navigation state from storyboard
   const navState = location.state as any;
   const fromStoryboard = navState?.fromStoryboard === true;
-  const productCategory: string = navState?.productCategory || navState?.productDna?.category || "other";
+  const productCategory: string = navState?.productCategory || navState?.productDna?.category || navState?.productDNA?.category || "other";
+  const productDNA = navState?.productDNA || navState?.productDna || null;
+  const productContextLine = productDNA
+    ? `Product: ${productDNA.product_description || productDNA.category || "consumer product"} (category: ${productDNA.category || "other"}/${productDNA.sub_category || "general"}). Dialog and prompt MUST reference THIS specific product only. Do NOT mention other product types.`
+    : navState?.productCategory
+      ? `Product category: ${navState.productCategory}. Reference this product type specifically.`
+      : "";
 
   // Source image (standalone mode)
   const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
