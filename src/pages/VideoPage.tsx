@@ -363,7 +363,7 @@ Output ONLY the script text.`,
     });
 
     const contentParts: any[] = [];
-    // Include source image for visual reference
+    // Include source image for visual reference (base64 for Gemini Vision)
     const imgUrl = frame.sourceImageUrl || sourceUrl;
     if (imgUrl) {
       const b64 = await imageUrlToBase64(imgUrl);
@@ -372,8 +372,20 @@ Output ONLY the script text.`,
         contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
       }
     }
+
+    const prevBeatDesc = idx > 0 ? beats[idx - 1]?.description : "";
+    const productDesc = navState?.productDna?.product_description || navState?.productCategory || "consumer product";
+
     contentParts.push({
-      text: `Storyboard beat: ${beat.label} (${beat.beat}) — ${beat.description}\nContent template: ${template?.label}\nGenerate the video prompt for this specific beat.`,
+      text: `Generate a video prompt for frame ${idx + 1} (${beat.label}) of a '${template?.label}' UGC video.
+Reference image is attached — match the person, outfit, environment, and lighting exactly.
+Beat description: ${beat.description}
+${frame.dialogue.trim() ? `Dialog to include: '${frame.dialogue.trim()}'` : "No dialog for this frame."}
+Product: ${productDesc}
+${idx > 0 ? `This frame follows frame ${idx} which showed: '${prevBeatDesc}'. Create natural continuity.` : "This is the opening frame."}
+The subject behaves like a TikTok content creator — spontaneous, casual, not posed.
+Storyboard beat timing: ${beat.beat}
+Content template: ${template?.label}`,
     });
 
     try {
