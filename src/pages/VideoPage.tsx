@@ -19,7 +19,8 @@ import {
   getContentTemplate,
 } from "@/lib/content-templates";
 import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
-import { getRandomHooks, getRandomBodyScripts, BODY_SCRIPTS } from "@/lib/tiktok-hooks";
+import { getRandomHooks, getRandomBodyScripts } from "@/lib/tiktok-hooks";
+import { Lock } from "lucide-react";
 import {
   Upload,
   X,
