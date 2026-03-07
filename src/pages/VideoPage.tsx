@@ -20,7 +20,6 @@ import {
 } from "@/lib/content-templates";
 import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
 import { getRandomHooks, getRandomBodyScripts } from "@/lib/tiktok-hooks";
-import { Lock } from "lucide-react";
 import {
   Upload,
   X,
@@ -31,10 +30,7 @@ import {
   RefreshCw,
   Loader2,
   Play,
-  SkipForward,
-  Volume2,
-  VolumeX,
-  Zap,
+  Lock,
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
