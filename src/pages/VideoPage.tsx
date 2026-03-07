@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
-import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
+import { generateVideoAndWait } from "@/lib/kie-video-generation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
