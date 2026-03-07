@@ -1059,7 +1059,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
                 onUpscale={(k, u, f) => upscale(k, u, f)}
               />
               <button
-                onClick={() => { setGenState("idle"); setResultUrl(null); resetMultiAngle(); }}
+                onClick={() => { setGenState("idle"); setResultUrl(null); resetStoryboard(); }}
                 className="border border-border text-muted-foreground text-xs py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 hover:text-foreground transition-colors"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
