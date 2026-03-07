@@ -246,20 +246,10 @@ const VideoPage = () => {
   // Initialize frames when template changes or setup begins
   const initializeFrames = useCallback(() => {
     const newFrames: FrameState[] = beats.map((beat, i) => {
-      const hasDialogue = beat.storyRole === "Hook" || beat.storyRole === "Convert" || beat.storyRole === "Build";
+      // Smart dialog suggestion based on story role + product category
+      const defaultDialogue = getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory);
+      const hasDialogue = !!defaultDialogue.trim();
       const defaultModel: VideoModel = hasDialogue ? "veo_fast" : "grok";
-
-      // Auto-suggest dialog
-      let defaultDialogue = "";
-      if (beat.storyRole === "Hook") {
-        const hooks = getRandomHooks(selectedTemplate, 1);
-        defaultDialogue = hooks[0] || "";
-      } else if (beat.storyRole === "Build" || beat.storyRole === "Demo") {
-        const bodies = getRandomBodyScripts(selectedTemplate, 1);
-        defaultDialogue = bodies[0] || "";
-      } else if (beat.storyRole === "Convert") {
-        defaultDialogue = "Link di bio ya! Cobain deh.";
-      }
 
       // Source image: storyboard image if available, else source image
       const frameSource = fromStoryboard && storyboardImages[i]
@@ -281,7 +271,7 @@ const VideoPage = () => {
     });
     setFrames(newFrames);
     setSetupDone(true);
-  }, [beats, selectedTemplate, fromStoryboard, storyboardImages, sourceUrl]);
+  }, [beats, selectedTemplate, fromStoryboard, storyboardImages, sourceUrl, productCategory]);
 
   // Auto-init from storyboard
   useEffect(() => {
