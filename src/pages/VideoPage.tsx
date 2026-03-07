@@ -31,6 +31,8 @@ import {
   Loader2,
   Play,
   Lock,
+  Link2,
+  Unlink,
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
