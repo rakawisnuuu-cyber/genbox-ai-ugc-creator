@@ -433,34 +433,46 @@ export default function CreateCharacterPage() {
 
       const remainingImageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
 
-      await Promise.all(
-        REMAINING_KEYS.map(async (key) => {
-          const cfg = SHOT_CONFIGS[key];
-          const shotPrompt = assemblePrompt(key, identityBlock, consistencyAnchors);
+      // Batch remaining shots in pairs of 2 with 2s delay between batches
+      const batches: ShotKey[][] = [];
+      for (let i = 0; i < REMAINING_KEYS.length; i += 2) {
+        batches.push(REMAINING_KEYS.slice(i, i + 2));
+      }
 
-          try {
-            const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-              method: "POST",
-              headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                model: cfg.model,
-                input: { prompt: shotPrompt, image_input: remainingImageInput, aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
-              }),
-            });
-            const json = await res.json();
-            if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
-            const taskId = json.data.taskId as string;
+      for (const batch of batches) {
+        await Promise.all(
+          batch.map(async (key) => {
+            const cfg = SHOT_CONFIGS[key];
+            const shotPrompt = assemblePrompt(key, identityBlock, consistencyAnchors, { imperfection: form.imperfection, environment: form.environment, advancedContext });
 
-            const imageUrl = await pollTask(taskId, kieApiKey);
-            setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
-            finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
-          } catch {
-            setShots((p) => ({ ...p, [key]: { status: "failed", model: cfg.model } }));
-          }
-          done++;
-          setCompletedCount(done);
-        })
-      );
+            try {
+              const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+                method: "POST",
+                headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: cfg.model,
+                  input: { prompt: shotPrompt, image_input: remainingImageInput, aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
+                }),
+              });
+              const json = await res.json();
+              if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
+              const taskId = json.data.taskId as string;
+
+              const imageUrl = await pollTask(taskId, kieApiKey);
+              setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
+              finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
+            } catch {
+              setShots((p) => ({ ...p, [key]: { status: "failed", model: cfg.model } }));
+            }
+            done++;
+            setCompletedCount(done);
+          })
+        );
+        // 2s delay between batches (skip after last batch)
+        if (batch !== batches[batches.length - 1]) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
 
       if (timerRef.current) clearInterval(timerRef.current);
 
