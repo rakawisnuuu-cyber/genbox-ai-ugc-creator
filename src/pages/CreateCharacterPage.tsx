@@ -640,35 +640,14 @@ export default function CreateCharacterPage() {
           <div>
             <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase mb-1">Buat Karakter Baru</h1>
             <p className="text-sm text-muted-foreground mb-4">Kustomisasi karakter AI untuk konten UGC kamu</p>
-
-            {/* Mode Toggle */}
-            <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
-              <button
-                onClick={() => setMode("simple")}
-                className={`text-xs font-medium px-4 py-2 rounded-md transition-colors ${mode === "simple" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                <Sparkles className="h-3.5 w-3.5 inline mr-1.5" />
-                Simple
-              </button>
-              <button
-                onClick={() => setMode("advanced")}
-                className={`text-xs font-medium px-4 py-2 rounded-md transition-colors ${mode === "advanced" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                <SlidersHorizontal className="h-3.5 w-3.5 inline mr-1.5" />
-                Advanced
-              </button>
-            </div>
           </div>
 
-          {/* Reference Photo Upload — shared between modes */}
+          {/* Reference Photo Upload */}
           <FormGroup label="Referensi Wajah (Opsional)">
             {refPreview ? (
               <div className="relative inline-block">
                 <img src={refPreview} alt="Reference" className="h-[120px] w-[120px] rounded-xl object-cover border border-border" />
-                <button
-                  onClick={removeRef}
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
-                >
+                <button onClick={removeRef} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
                   <X className="h-3 w-3" />
                 </button>
                 {refUploading && (
@@ -680,19 +659,11 @@ export default function CreateCharacterPage() {
             ) : (
               <div
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleRefUpload(file);
-                }}
+                onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) handleRefUpload(file); }}
                 onClick={() => {
                   const inp = document.createElement("input");
-                  inp.type = "file";
-                  inp.accept = "image/jpeg,image/png,image/webp";
-                  inp.onchange = (ev) => {
-                    const f = (ev.target as HTMLInputElement).files?.[0];
-                    if (f) handleRefUpload(f);
-                  };
+                  inp.type = "file"; inp.accept = "image/jpeg,image/png,image/webp";
+                  inp.onchange = (ev) => { const f = (ev.target as HTMLInputElement).files?.[0]; if (f) handleRefUpload(f); };
                   inp.click();
                 }}
                 className="border-2 border-dashed border-border rounded-xl p-6 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
@@ -705,14 +676,19 @@ export default function CreateCharacterPage() {
             <p className="text-[11px] text-muted-foreground/60 mt-2 leading-relaxed">
               Upload foto close-up wajah untuk hasil karakter yang lebih mirip.
             </p>
+            {refPreview && selectedVibe && (
+              <p className="text-[11px] text-primary/70 mt-1">
+                Preset sebagai styling guide — wajah akan dicocokkan dengan foto referensi.
+              </p>
+            )}
           </FormGroup>
 
-          {/* Name — shared */}
+          {/* Name */}
           <FormGroup label="Nama Karakter">
             <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Contoh: Sarah Hijab" className="bg-muted/50 border-border" />
           </FormGroup>
 
-          {/* Gender — shared */}
+          {/* Gender */}
           <FormGroup label="Gender">
             <div className="flex gap-2">
               {(["female", "male"] as Gender[]).map((g) => (
@@ -724,201 +700,148 @@ export default function CreateCharacterPage() {
             </div>
           </FormGroup>
 
-          {/* ── SIMPLE MODE: Vibe Pack Grid ── */}
-          {mode === "simple" && (
-            <div className="space-y-3 animate-fade-in">
-              <label className="block text-xs uppercase tracking-widest text-muted-foreground font-medium">Pilih Gaya Karakter</label>
-              <div className="grid grid-cols-2 gap-3">
-                {VIBE_PACKS.map((pack) => {
-                  const isSelected = selectedVibe === pack.id;
-                  return (
-                    <button
-                      key={pack.id}
-                      onClick={() => applyVibePack(pack)}
-                      className={`text-left rounded-xl overflow-hidden transition-all ${
-                        isSelected
-                          ? "border-2 border-primary ring-1 ring-primary/20"
-                          : "border border-border hover:border-muted-foreground/30"
-                      }`}
-                    >
-                      {/* Gradient preview */}
-                      <div
-                        className="h-24 w-full"
-                        style={{ background: pack.previewGradient }}
-                      />
-                      <div className="p-3 bg-card">
-                        <p className="text-sm font-bold text-foreground">{pack.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{pack.description}</p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {pack.tags.map((tag) => (
-                            <span key={tag} className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full">{tag}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+          {/* ── QUICK PRESETS ── */}
+          <div className="space-y-2">
+            <label className="block text-xs uppercase tracking-widest text-muted-foreground font-medium">Quick Preset</label>
+            {selectedVibe && (
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[11px] bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  Preset: {vibeSelected?.name} {presetEdited ? "(edited)" : "✓"}
+                </span>
+                <button onClick={() => { setSelectedVibe(null); setPresetEdited(false); }} className="text-[11px] text-muted-foreground hover:text-foreground">✕ Reset</button>
               </div>
-
-              {/* Customize link */}
-              {selectedVibe && (
-                <button
-                  onClick={customizeFromVibe}
-                  className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-1"
-                >
-                  <SlidersHorizontal className="h-3 w-3" />
-                  Sesuaikan detail
-                </button>
-              )}
+            )}
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+              {VIBE_PACKS.map((pack) => {
+                const isSelected = selectedVibe === pack.id;
+                return (
+                  <button
+                    key={pack.id}
+                    onClick={() => applyVibePack(pack)}
+                    className={`shrink-0 flex items-center gap-2 rounded-lg px-3 py-2 transition-all text-left ${
+                      isSelected
+                        ? "bg-primary/10 border border-primary/30 ring-1 ring-primary/10"
+                        : "bg-muted/50 border border-border hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-md shrink-0" style={{ background: pack.previewGradient }} />
+                    <div>
+                      <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{pack.name}</p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1 max-w-[100px]">{pack.description}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
 
-          {/* ── ADVANCED MODE: All form fields ── */}
-          {mode === "advanced" && (
-            <div className="space-y-6 animate-fade-in">
-              {/* Age Range */}
-              <FormGroup label="Rentang Usia">
-                <Select value={form.ageRangeNew} onValueChange={(v) => set("ageRangeNew", v)}>
+          {/* ── ALL FORM FIELDS (always visible) ── */}
+          <div className="space-y-6">
+            <FormGroup label="Rentang Usia">
+              <Select value={form.ageRangeNew} onValueChange={(v) => set("ageRangeNew", v)}>
+                <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                <SelectContent>{AGE_RANGES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormGroup>
+
+            <FormGroup label="Warna Kulit">
+              <div className="flex gap-4">
+                {SKIN_TONES.map((t) => (
+                  <button key={t.hex} onClick={() => set("skin_tone", t.label)} className="flex flex-col items-center gap-1.5">
+                    <div className={`w-9 h-9 rounded-full transition-all ${form.skin_tone === t.label ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: t.hex }} />
+                    <span className="text-[11px] text-muted-foreground">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+            </FormGroup>
+
+            <FormGroup label="Bentuk Wajah">
+              <Select value={form.face_shape} onValueChange={(v) => set("face_shape", v)}>
+                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                <SelectContent>{["Oval", "Bulat", "Kotak", "Hati", "Lonjong"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormGroup>
+
+            <FormGroup label="Warna Mata">
+              <Select value={form.eye_color} onValueChange={(v) => set("eye_color", v)}>
+                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                <SelectContent>{["Coklat Tua", "Coklat Madu", "Hitam", "Coklat Terang"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormGroup>
+
+            <FormGroup label="Gaya Rambut">
+              <Select value={form.hair_style} onValueChange={(v) => set("hair_style", v)}>
+                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                <SelectContent>{HAIR_STYLES[form.gender].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormGroup>
+
+            <FormGroup label="Warna Rambut">
+              <Select value={form.hair_color} onValueChange={(v) => set("hair_color", v)}>
+                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                <SelectContent>{["Hitam", "Coklat Tua", "Coklat Madu", "Highlighted"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormGroup>
+
+            <FormGroup label="Ekspresi">
+              <Select value={form.expression} onValueChange={(v) => set("expression", v)}>
+                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                <SelectContent>{["Hangat & Ramah", "Percaya Diri", "Kalem Profesional", "Energik Ceria", "Lembut Natural"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormGroup>
+
+            <FormGroup label="Gaya Outfit">
+              <Select value={form.outfit_style} onValueChange={(v) => set("outfit_style", v)}>
+                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                <SelectContent>{["Casual Modern", "Smart Casual", "Hijab Modern", "Streetwear", "Athletic", "Professional", "Beauty/Glam"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormGroup>
+
+            <FormGroup label="Kondisi Kulit">
+              <Select value={form.skin_condition} onValueChange={(v) => set("skin_condition", v)}>
+                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                <SelectContent>{["Bersih Natural", "Sedikit Freckles", "Glowing Sehat", "Matte Clean"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </FormGroup>
+
+            {/* ── DETAIL LANJUTAN ── */}
+            <div className="border-t border-border pt-6 space-y-6">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Detail Lanjutan</p>
+
+              <FormGroup label="Tipe Tubuh">
+                <Select value={form.bodyType} onValueChange={(v) => set("bodyType", v)}>
                   <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {AGE_RANGES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{BODY_TYPES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </FormGroup>
 
-              {/* Skin Tone */}
-              <FormGroup label="Warna Kulit">
-                <div className="flex gap-4">
-                  {SKIN_TONES.map((t) => (
-                    <button key={t.hex} onClick={() => set("skin_tone", t.label)} className="flex flex-col items-center gap-1.5">
-                      <div className={`w-9 h-9 rounded-full transition-all ${form.skin_tone === t.label ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: t.hex }} />
-                      <span className="text-[11px] text-muted-foreground">{t.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </FormGroup>
-
-              {/* Face Shape */}
-              <FormGroup label="Bentuk Wajah">
-                <Select value={form.face_shape} onValueChange={(v) => set("face_shape", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                  <SelectContent>
-                    {["Oval", "Bulat", "Kotak", "Hati", "Lonjong"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
+              <FormGroup label="Level Imperfeksi Kulit">
+                <Select value={form.imperfection} onValueChange={(v) => set("imperfection", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>{IMPERFECTION_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </FormGroup>
 
-              {/* Eye Color */}
-              <FormGroup label="Warna Mata">
-                <Select value={form.eye_color} onValueChange={(v) => set("eye_color", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                  <SelectContent>
-                    {["Coklat Tua", "Coklat Madu", "Hitam", "Coklat Terang"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
+              <FormGroup label="Lingkungan Detail">
+                <Select value={form.environment} onValueChange={(v) => set("environment", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>{ENVIRONMENT_DETAILS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
               </FormGroup>
 
-              {/* Hair Style */}
-              <FormGroup label="Gaya Rambut">
-                <Select value={form.hair_style} onValueChange={(v) => set("hair_style", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                  <SelectContent>
-                    {HAIR_STYLES[form.gender].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
+              <FormGroup label="Micro Detail">
+                <Select value={form.microDetail} onValueChange={(v) => set("microDetail", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>{MICRO_DETAIL_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                 </Select>
-              </FormGroup>
-
-              {/* Hair Color */}
-              <FormGroup label="Warna Rambut">
-                <Select value={form.hair_color} onValueChange={(v) => set("hair_color", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                  <SelectContent>
-                    {["Hitam", "Coklat Tua", "Coklat Madu", "Highlighted"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FormGroup>
-
-              {/* Expression */}
-              <FormGroup label="Ekspresi">
-                <Select value={form.expression} onValueChange={(v) => set("expression", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                  <SelectContent>
-                    {["Hangat & Ramah", "Percaya Diri", "Kalem Profesional", "Energik Ceria", "Lembut Natural"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FormGroup>
-
-              {/* Outfit Style */}
-              <FormGroup label="Gaya Outfit">
-                <Select value={form.outfit_style} onValueChange={(v) => set("outfit_style", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                  <SelectContent>
-                    {["Casual Modern", "Smart Casual", "Hijab Modern", "Streetwear", "Athletic", "Professional", "Beauty/Glam"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FormGroup>
-
-              {/* Skin Condition */}
-              <FormGroup label="Kondisi Kulit">
-                <Select value={form.skin_condition} onValueChange={(v) => set("skin_condition", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                  <SelectContent>
-                    {["Bersih Natural", "Sedikit Freckles", "Glowing Sehat", "Matte Clean"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FormGroup>
-
-              {/* ── NEW ADVANCED FIELDS ── */}
-              <div className="border-t border-border pt-6 space-y-6">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Detail Lanjutan</p>
-
-                {/* Body Type */}
-                <FormGroup label="Tipe Tubuh">
-                  <Select value={form.bodyType} onValueChange={(v) => set("bodyType", v)}>
-                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {BODY_TYPES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </FormGroup>
-
-                {/* Imperfection Level */}
-                <FormGroup label="Level Imperfeksi Kulit">
-                  <Select value={form.imperfection} onValueChange={(v) => set("imperfection", v)}>
-                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {IMPERFECTION_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </FormGroup>
-
-                {/* Environment Detail */}
-                <FormGroup label="Lingkungan Detail">
-                  <Select value={form.environment} onValueChange={(v) => set("environment", v)}>
-                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ENVIRONMENT_DETAILS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </FormGroup>
-
-                {/* Micro Detail */}
-                <FormGroup label="Micro Detail">
-                  <Select value={form.microDetail} onValueChange={(v) => set("microDetail", v)}>
-                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {MICRO_DETAIL_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </FormGroup>
-              </div>
-
-              {/* Custom Notes */}
-              <FormGroup label="Catatan Tambahan (Opsional)">
-                <Textarea value={form.custom_notes} onChange={(e) => set("custom_notes", e.target.value)} rows={3} placeholder="Detail tambahan..." className="bg-muted/50 border-border" />
               </FormGroup>
             </div>
-          )}
+
+            <FormGroup label="Catatan Tambahan (Opsional)">
+              <Textarea value={form.custom_notes} onChange={(e) => set("custom_notes", e.target.value)} rows={3} placeholder="Detail tambahan..." className="bg-muted/50 border-border" />
+            </FormGroup>
+          </div>
         </div>
 
         {/* ── RIGHT COLUMN: PREVIEW ── */}
