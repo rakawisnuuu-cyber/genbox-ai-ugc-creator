@@ -283,7 +283,15 @@ const GalleryPage = () => {
               <span>{detailItem.model}</span>
               <span>{format(new Date(detailItem.created_at), "dd MMM yyyy HH:mm")}</span>
             </div>
-            <button onClick={() => setDetailItem(null)} className="text-xs text-muted-foreground hover:text-foreground">Tutup</button>
+            <div className="flex items-center justify-between">
+              <button onClick={() => setDetailItem(null)} className="text-xs text-muted-foreground hover:text-foreground">Tutup</button>
+              <button
+                onClick={() => { setDeleteTarget(detailItem); }}
+                className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1"
+              >
+                <Trash2 className="h-3 w-3" /> Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}
