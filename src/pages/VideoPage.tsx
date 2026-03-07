@@ -289,31 +289,36 @@ const VideoPage = () => {
     setFrames((prev) => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
   };
 
-  // Combine frame idx with next frame (idx+1)
+  // Combine frame idx with the next available frame
   const combineWithNext = (idx: number) => {
     setFrames((prev) => {
       const next = prev.slice();
       const parentFrame = next[idx];
-      const nextIdx = idx + 1;
       // Check: max 3 frames combined total
       const currentMergedCount = parentFrame.mergedFrames.length + 1; // +1 for self
-      if (currentMergedCount >= 3 || nextIdx >= next.length) return prev;
-      // Can't combine if next frame is already merged into something else
-      if (next[nextIdx].mergedInto !== null) return prev;
-      // Can't combine if next frame is a parent with merges
-      if (next[nextIdx].mergedFrames.length > 0) return prev;
+      if (currentMergedCount >= 3) return prev;
 
-      // Merge next into parent
+      // Find the next available frame (after all currently merged ones)
+      const lastIdx = parentFrame.mergedFrames.length > 0
+        ? Math.max(...parentFrame.mergedFrames)
+        : idx;
+      const targetIdx = lastIdx + 1;
+
+      if (targetIdx >= next.length) return prev;
+      if (next[targetIdx].mergedInto !== null) return prev;
+      if (next[targetIdx].mergedFrames.length > 0) return prev;
+
+      // Merge target into parent
       next[idx] = {
         ...parentFrame,
-        mergedFrames: [...parentFrame.mergedFrames, nextIdx],
-        dialogue: [parentFrame.dialogue, next[nextIdx].dialogue].filter(Boolean).join(" "),
+        mergedFrames: [...parentFrame.mergedFrames, targetIdx],
+        dialogue: [parentFrame.dialogue, next[targetIdx].dialogue].filter(Boolean).join(" "),
         prompt: "", // clear prompt so it regenerates with combined context
         status: "idle",
         videoUrl: null,
       };
-      next[nextIdx] = {
-        ...next[nextIdx],
+      next[targetIdx] = {
+        ...next[targetIdx],
         mergedInto: idx,
         skipped: true,
       };
