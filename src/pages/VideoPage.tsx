@@ -817,22 +817,56 @@ Content template: ${template?.label}`,
           )}
         </div>
 
+        {/* Product Detection Banner */}
+        {(productInfo.product_description || detectingProduct) && (
+          <div className={`rounded-xl px-4 py-2.5 border text-[11px] flex items-center gap-2 ${
+            detectingProduct
+              ? "bg-muted/30 border-border text-muted-foreground"
+              : "bg-primary/5 border-primary/20 text-foreground"
+          }`}>
+            {detectingProduct ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                <span>Mendeteksi produk...</span>
+              </>
+            ) : (
+              <>
+                <span>🏷️</span>
+                <span>
+                  <span className="font-medium">Produk:</span> {productInfo.product_description}
+                  {productInfo.category && (
+                    <span className="text-muted-foreground"> ({productInfo.category}/{productInfo.sub_category || "general"})</span>
+                  )}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Template Selector */}
         <div>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Template Konten</label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {CONTENT_TEMPLATES.map((t) => {
               const isSelected = selectedTemplate === t.key;
+              const isRecommended = productInfo.category ? isRecommendedForCategory(t, productInfo.category) : false;
               return (
                 <button
                   key={t.key}
                   onClick={() => setSelectedTemplate(t.key)}
-                  className={`text-left rounded-xl p-3 transition-all ${
+                  className={`text-left rounded-xl p-3 transition-all relative ${
                     isSelected
                       ? "border-2 border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border border-border bg-card hover:border-muted-foreground/30"
+                      : isRecommended
+                        ? "border border-primary/40 bg-primary/5 hover:border-primary/60"
+                        : "border border-border bg-card hover:border-muted-foreground/30"
                   }`}
                 >
+                  {isRecommended && !isSelected && (
+                    <span className="absolute -top-1.5 -right-1.5 text-[7px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+                      ✦ REC
+                    </span>
+                  )}
                   <p className="text-[11px] font-bold text-foreground">{t.label}</p>
                   <p className="text-[9px] text-muted-foreground line-clamp-2 mt-0.5">{t.desc}</p>
                 </button>
