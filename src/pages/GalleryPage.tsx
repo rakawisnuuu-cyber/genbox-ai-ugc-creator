@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpscale } from "@/hooks/useUpscale";
-import { Download, Images, Loader2, Play, Copy, Film } from "lucide-react";
+import { Download, Images, Loader2, Play, Copy, Film, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
