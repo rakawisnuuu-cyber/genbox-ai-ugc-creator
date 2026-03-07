@@ -52,6 +52,10 @@ interface FrameState {
   errorMsg: string;
   elapsed: number;
   expanded: boolean;
+  /** Indices of frames combined INTO this one (e.g. [1] means F0+F1) */
+  mergedFrames: number[];
+  /** If this frame is absorbed into another, store the parent index */
+  mergedInto: number | null;
 }
 
 interface GalleryImage {
