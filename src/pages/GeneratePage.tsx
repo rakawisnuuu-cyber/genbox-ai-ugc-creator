@@ -575,107 +575,115 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
   const canGenerate = !!productUrl && !!selectedChar && !!prompt.trim() && genState !== "loading";
 
-  /* ── Multi-Angle: 6 Parallel Individual API Calls ─────────── */
-  const generateMultiAngle = async () => {
-    if (!kieApiKey || !geminiKey || !resultUrl || !selectedChar) return;
+  /* ── Storyboard: 5 Narrative Shots ──────────────────────────── */
+  const generateStoryboard = async () => {
+    if (!kieApiKey || !geminiKey || !resultUrl || !selectedChar || !storyboardTemplate) return;
     const dna = productDNA || EMPTY_DNA;
-    const angles = getAnglesByCategory(dna.category, dna.sub_category);
+    const beats = getStoryboardBeats(storyboardTemplate);
+    const templateObj = CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate);
 
-    multiAngleAbortRef.current = false;
-    setMultiAngleActive(true);
-    setShotStatuses(angles.map(() => ({ state: "pending" as const })));
-    setMultiAngleElapsed(0);
-    multiAngleTimerRef.current = setInterval(() => setMultiAngleElapsed((p) => p + 1), 1000);
+    storyboardAbortRef.current = false;
+    setStoryboardActive(true);
+    setShotStatuses(beats.map(() => ({ state: "pending" as const })));
+    setStoryboardElapsed(0);
+    storyboardTimerRef.current = setInterval(() => setStoryboardElapsed((p) => p + 1), 1000);
 
     const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
     const consistencyBlock = buildProductConsistencyBlock(dna);
 
-    // Build image inputs shared by all shots
     const sharedImages: string[] = [];
-    if (resultUrl) sharedImages.push(resultUrl); // Base generated result as PRIMARY
-    if (productUrl) sharedImages.push(productUrl); // Original product photo
+    if (resultUrl) sharedImages.push(resultUrl);
+    if (productUrl) sharedImages.push(productUrl);
     if (selectedChar.reference_photo_url) sharedImages.push(selectedChar.reference_photo_url);
     if (selectedChar.hero_image_url && !selectedChar.id.startsWith("p")) sharedImages.push(selectedChar.hero_image_url);
 
-    // Generate per-shot prompts via Gemini in parallel, then generate images
-    const generateSingleAngle = async (angle: ReturnType<typeof getAnglesByCategory>[0], idx: number) => {
+    const consistencyLock = baseSceneFields
+      ? `VISUAL CONSISTENCY LOCK — Every detail must match the base image (Frame 0):
+- Environment: ${baseSceneFields.background}
+- Outfit & appearance: ${baseSceneFields.scene_description}
+- Lighting: ${baseSceneFields.lighting}
+- Product: ${baseSceneFields.product_placement}
+Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything else — room, clothing, accessories, hair, lighting direction, color palette — must remain identical to the base image.`
+      : "";
+
+    const generateSingleBeat = async (beat: StoryboardBeat, idx: number) => {
       try {
-        // Update status to generating
         setShotStatuses((prev) => {
           const next = [...prev];
           next[idx] = { state: "generating" };
           return next;
         });
 
-        // Build angle-specific prompt via Gemini
-        let anglePrompt: string;
-        // Build visual consistency lock from stored base scene fields
-        const consistencyLock = baseSceneFields
-          ? `VISUAL CONSISTENCY LOCK — Every detail must match the base image:
-- Environment: ${baseSceneFields.background}
-- Outfit & appearance: ${baseSceneFields.scene_description}
-- Lighting: ${baseSceneFields.lighting}
-- Product: ${baseSceneFields.product_placement}
-Only the CAMERA ANGLE and POSE change per shot. Everything else — room, clothing, accessories, hair, lighting direction, color palette — must remain identical to the base image.`
-          : "";
+        const prevBeat = idx > 0 ? beats[idx - 1] : null;
+        let beatPrompt: string;
 
         try {
           const promptResult = await geminiFetch(promptModel, geminiKey!, {
-            contents: [{ parts: [{ text: `You are a UGC photo prompt expert. Create a SINGLE image prompt for this specific angle.
+            contents: [{ parts: [{ text: `You are a UGC storyboard prompt expert. Create a SINGLE image prompt for this narrative beat.
 
 ${consistencyLock}
 
-Character: ${selectedChar!.name} — ${characterIdentity}
-Angle: ${angle.label} — ${angle.description}
-Story Role: ${angle.storyRole}
+This is storyboard frame ${idx + 1}/5 for a '${templateObj?.label || storyboardTemplate}' video.
+The base image (Frame 0) is the visual reference — match its person, outfit, environment, and lighting exactly.
+${prevBeat ? `Previous beat was: '${prevBeat.label}' — ${prevBeat.description}` : "This is the first storyboard frame after the base image."}
+This frame should feel like the natural next moment in the sequence.
 
+Character: ${selectedChar!.name} — ${characterIdentity}
+Beat: ${beat.label} (${beat.beat})
+Story Role: ${beat.storyRole}
+Direction: ${beat.description}
+
+Product DNA:
+Category: ${dna.category} / ${dna.sub_category}
+Product: ${dna.product_description}
 ${consistencyBlock}
 
+ADAPT the beat action to this specific product type. For example, 'Demo' with skincare means applying serum on cheek, with fashion means trying on the item, with electronics means pressing buttons and showing screen. The narrative beat stays the same, the specific product interaction changes.
+
 RULES:
-- Show the EXACT same person as in the base image (same face, hair, skin tone, outfit)
-- Show the EXACT same product (matching description above)
-- The base image is the FIRST image input — match its environment, outfit, and lighting exactly
-- Photorealistic, 8K quality, natural lighting
+- Show the EXACT same person as in the base image
+- Show the EXACT same product
+- Match base image environment, outfit, and lighting exactly
 - ${SKIN_BLOCK}
+- ${UGC_STYLE_BLOCK}
 - ${QUALITY_BLOCK}
 - ${NEGATIVE_BLOCK}
 
 Output ONLY the final prompt text, no JSON, no explanation.` }] }],
           });
-          anglePrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+          beatPrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
         } catch {
-          // Fallback: use a simple constructed prompt
-          anglePrompt = `${consistencyLock}\n\nPhotorealistic UGC photo. ${angle.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
+          beatPrompt = `${consistencyLock}\n\nPhotorealistic UGC photo. ${beat.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
         }
 
-        if (multiAngleAbortRef.current) throw new Error("Cancelled");
+        if (storyboardAbortRef.current) throw new Error("Cancelled");
 
-        // Generate image via Kie AI
         const imageUrl = await generateKieImage(
           kieApiKey!,
-          anglePrompt,
+          beatPrompt,
           sharedImages,
-          () => multiAngleAbortRef.current,
+          () => storyboardAbortRef.current,
         );
 
-        // Save to gallery immediately
-        const path = `${user!.id}/multi-angle/${Date.now()}_${idx}.jpg`;
+        const path = `${user!.id}/storyboard/${Date.now()}_${idx}.jpg`;
         await supabase.storage.from("product-images").upload(path, await (await fetch(imageUrl)).blob(), { contentType: "image/jpeg" });
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
 
         await supabase.from("generations").insert({
           user_id: user!.id,
           type: "ugc_image",
-          prompt: `Multi-angle: ${angle.label}`,
+          prompt: `Storyboard: ${beat.label}`,
           image_url: urlData.publicUrl,
           character_id: selectedChar!.id.startsWith("p") ? null : selectedChar!.id,
           provider: "kie_ai",
           model: "nano-banana-pro",
           status: "completed",
           metadata: {
-            angle: angle.label,
-            storyRole: angle.storyRole,
-            source: "multi_angle",
+            beat: beat.label,
+            storyRole: beat.storyRole,
+            template: storyboardTemplate,
+            frameIndex: idx + 1,
+            source: "storyboard",
             productDNA: dna.category !== "other" ? dna : undefined,
           } as any,
         });
@@ -686,7 +694,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
           return next;
         });
       } catch (err: any) {
-        if (multiAngleAbortRef.current) return;
+        if (storyboardAbortRef.current) return;
         setShotStatuses((prev) => {
           const next = [...prev];
           next[idx] = { state: "failed", error: err?.message || "Failed" };
@@ -695,40 +703,34 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
       }
     };
 
-    // Run all 6 in parallel
-    await Promise.allSettled(angles.map((angle, idx) => generateSingleAngle(angle, idx)));
+    // Run all 5 in parallel
+    await Promise.allSettled(beats.map((beat, idx) => generateSingleBeat(beat, idx)));
 
-    if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
-    if (multiAngleAbortRef.current) {
-      setMultiAngleActive(false);
-    }
-    // Keep multiAngleActive false only after all done — shots remain visible
-    setMultiAngleActive(false);
+    if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
+    setStoryboardActive(false);
   };
 
-  const cancelMultiAngle = () => {
-    multiAngleAbortRef.current = true;
-    if (multiAngleTimerRef.current) clearInterval(multiAngleTimerRef.current);
-    setMultiAngleActive(false);
+  const cancelStoryboard = () => {
+    storyboardAbortRef.current = true;
+    if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
+    setStoryboardActive(false);
   };
 
-  const resetMultiAngle = () => {
-    setMultiAngleActive(false);
+  const resetStoryboard = () => {
+    setStoryboardActive(false);
     setShotStatuses([]);
-    setMultiAngleElapsed(0);
+    setStoryboardElapsed(0);
+    setStoryboardTemplate(null);
   };
 
-  // Computed multi-angle progress
+  // Computed storyboard progress
   const completedShots = shotStatuses.filter((s) => s.state === "completed").length;
   const failedShots = shotStatuses.filter((s) => s.state === "failed").length;
   const totalShots = shotStatuses.length;
-  const multiAngleDone = totalShots > 0 && !multiAngleActive && (completedShots + failedShots === totalShots);
-  const multiAngleHasResults = shotStatuses.some((s) => s.state === "completed");
+  const storyboardDone = totalShots > 0 && !storyboardActive && (completedShots + failedShots === totalShots);
 
-  // Get current angle labels based on DNA
-  const currentAngles = productDNA
-    ? getAnglesByCategory(productDNA.category, productDNA.sub_category)
-    : getAnglesByCategory("other");
+  // Current beats for selected template
+  const currentBeats = storyboardTemplate ? getStoryboardBeats(storyboardTemplate) : [];
 
   /* ── Render ───────────────────────────────────────────────── */
   return (
