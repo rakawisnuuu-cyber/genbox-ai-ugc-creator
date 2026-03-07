@@ -18,6 +18,7 @@ import {
   CONTENT_TEMPLATES,
   type ContentTemplateKey,
   getContentTemplate,
+  isRecommendedForCategory,
 } from "@/lib/content-templates";
 import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
 import { getRandomHooks, getRandomBodyScripts } from "@/lib/tiktok-hooks";
