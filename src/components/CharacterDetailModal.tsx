@@ -21,8 +21,9 @@ interface CharacterDetailModalProps {
   onDelete?: (character: CharacterData) => void;
 }
 
-const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDetailModalProps) => {
+const CharacterDetailModal = ({ character, open, onClose, onUse, onDelete }: CharacterDetailModalProps) => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Reset lightbox when character changes or modal closes
   useEffect(() => {
