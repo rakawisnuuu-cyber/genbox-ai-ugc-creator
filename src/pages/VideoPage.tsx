@@ -549,7 +549,7 @@ Content template: ${template?.label}`,
     batchCancelRef.current = false;
     setBatchGenerating(true);
 
-    const activeFrames = frames.map((f, i) => ({ ...f, idx: i })).filter((f) => !f.skipped);
+    const batchFrames = frames.map((f, i) => ({ ...f, idx: i })).filter((f) => !f.skipped && f.mergedInto === null);
 
     for (let n = 0; n < activeFrames.length; n++) {
       if (batchCancelRef.current) break;
