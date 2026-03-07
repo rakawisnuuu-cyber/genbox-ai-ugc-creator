@@ -8,6 +8,8 @@ export interface VibePackConfig {
   hairStyle?: string;
   ageRange?: string;
   bodyType?: string;
+  imperfection?: string;
+  environment?: string;
 }
 
 export interface VibePack {
