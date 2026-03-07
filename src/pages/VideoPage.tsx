@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
+import { getActionChips, getShuffledChips } from "@/lib/action-chips";
 import { generateVideoAndWait } from "@/lib/kie-video-generation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,6 +45,8 @@ type FrameStatus = "idle" | "generating" | "completed" | "failed";
 interface FrameState {
   sourceImageUrl: string | null;
   dialogue: string;
+  action: string;
+  actionChips: string[];
   prompt: string;
   model: VideoModel;
   skipped: boolean;
@@ -268,6 +271,8 @@ const VideoPage = () => {
       return {
         sourceImageUrl: frameSource,
         dialogue: defaultDialogue,
+        action: beat.description,
+        actionChips: getActionChips(beat.storyRole, productCategory),
         prompt: "",
         model: defaultModel,
         skipped: false,
@@ -347,6 +352,8 @@ const VideoPage = () => {
           mergedInto: null,
           skipped: false,
           dialogue: getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory),
+          action: beat.description,
+          actionChips: getActionChips(beat.storyRole, productCategory),
           status: "idle",
           videoUrl: null,
           prompt: "",
@@ -357,6 +364,8 @@ const VideoPage = () => {
         ...parent,
         mergedFrames: [],
         dialogue: getSmartDialogSuggestion(beats[idx].storyRole, selectedTemplate, productCategory),
+        action: beats[idx].description,
+        actionChips: getActionChips(beats[idx].storyRole, productCategory),
         prompt: "",
         status: "idle",
         videoUrl: null,
@@ -486,6 +495,7 @@ Reference image is attached — match the person, outfit, environment, and light
 ${beatDescriptions}
 
 The person naturally transitions from the first action to the next within one take. No cuts, one flowing scene.
+Primary movement/action: ${frame.action.trim() || allBeats.map((b) => b.description).join("; ")}
 ${frame.dialogue.trim() ? `Dialog: '${frame.dialogue.trim()}'` : "No dialog."}
 Product: ${productDesc}
 The subject behaves like a TikTok content creator — spontaneous, casual, not posed.`,
@@ -495,6 +505,7 @@ The subject behaves like a TikTok content creator — spontaneous, casual, not p
         text: `Generate a video prompt for frame ${idx + 1} (${beat.label}) of a '${template?.label}' UGC video.
 Reference image is attached — match the person, outfit, environment, and lighting exactly.
 Beat description: ${beat.description}
+Primary movement/action: ${frame.action.trim() || beat.description}
 ${frame.dialogue.trim() ? `Dialog to include: '${frame.dialogue.trim()}'` : "No dialog for this frame."}
 Product: ${productDesc}
 ${idx > 0 ? `This frame follows frame ${idx} which showed: '${prevBeatDesc}'. Create natural continuity.` : "This is the opening frame."}
@@ -980,6 +991,35 @@ Content template: ${template?.label}`,
                       className="text-[10px] text-primary hover:underline"
                     >
                       Ganti
+                    </button>
+                  </div>
+                </div>
+
+                {/* Gerakan / Action */}
+                <div>
+                  <label className="text-[10px] text-muted-foreground font-medium block mb-1">Gerakan:</label>
+                  <Textarea
+                    value={frame.action}
+                    onChange={(e) => updateFrame(idx, { action: e.target.value })}
+                    rows={2}
+                    placeholder="Deskripsi gerakan/aksi untuk frame ini..."
+                    className="bg-muted/30 border-border text-[11px] mb-2"
+                  />
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    {frame.actionChips.map((chip, ci) => (
+                      <button
+                        key={ci}
+                        onClick={() => updateFrame(idx, { action: chip })}
+                        className="text-[9px] px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/15 transition-colors"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => updateFrame(idx, { actionChips: getShuffledChips(beat.storyRole, productCategory) })}
+                      className="text-[9px] px-2 py-1 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors flex items-center gap-0.5"
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" /> Acak
                     </button>
                   </div>
                 </div>
