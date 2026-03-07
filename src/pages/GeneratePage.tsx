@@ -250,12 +250,13 @@ const GeneratePage = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const abortRef = useRef(false);
 
-  // Multi-angle state (6 individual shots)
-  const [multiAngleActive, setMultiAngleActive] = useState(false);
+  // Storyboard state
+  const [storyboardTemplate, setStoryboardTemplate] = useState<ContentTemplateKey | null>(null);
+  const [storyboardActive, setStoryboardActive] = useState(false);
   const [shotStatuses, setShotStatuses] = useState<ShotStatus[]>([]);
-  const [multiAngleElapsed, setMultiAngleElapsed] = useState(0);
-  const multiAngleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const multiAngleAbortRef = useRef(false);
+  const [storyboardElapsed, setStoryboardElapsed] = useState(0);
+  const storyboardTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const storyboardAbortRef = useRef(false);
 
   // Navigation blocker: warn on browser close/refresh
   const isGenerating = genState === "loading" || multiAngleActive;
