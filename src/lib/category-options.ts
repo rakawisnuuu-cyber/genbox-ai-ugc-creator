@@ -13,59 +13,59 @@ export interface RichOption {
 /* ─── ENVIRONMENTS ────────────────────────────────────────────── */
 
 const ENV_SKINCARE: RichOption[] = [
-  { label: "Bathroom Mewah", description: "High-end modern bathroom with polished marble walls, warm ambient lighting, and multiple rectangular mirrors with soft LED backlighting creating depth and repetition" },
-  { label: "Vanity Setup", description: "Elegant vanity table with round Hollywood mirror, soft warm bulbs, organized skincare bottles, rose gold accents, cotton pads and small plants" },
-  { label: "Kamar Pagi", description: "Bright airy bedroom in morning golden hour light streaming through sheer white curtains, crisp white bedding, minimal nightstand with a glass of water" },
-  { label: "Spa Vibes", description: "Zen spa-inspired setting with warm wood tones, rolled white towels, eucalyptus branches, soft candlelight, natural stone surfaces" },
-  { label: "Minimalist Studio", description: "Clean pure white cyclorama studio with soft diffused lighting from both sides, zero distractions, professional product photography feel" },
+  { label: "Bathroom Mewah", description: "High-end modern bathroom with polished marble walls, warm ambient lighting, and multiple rectangular mirrors with soft LED backlighting creating depth and repetition. A used hand towel slightly folded on the counter, a toothbrush in a ceramic cup, partially used soap dispenser with a small water droplet on the nozzle" },
+  { label: "Vanity Setup", description: "Elegant vanity table with round Hollywood mirror, soft warm bulbs, organized skincare bottles, rose gold accents, cotton pads and small plants. A few cotton pads scattered near the mirror base, one skincare bottle cap left open, phone laying face-down nearby with charging cable visible" },
+  { label: "Kamar Pagi", description: "Bright airy bedroom in morning golden hour light streaming through sheer white curtains, crisp white bedding, minimal nightstand with a glass of water. Pillow slightly dented from sleeping, phone on nightstand with charger cable visible, a half-full glass of water with slight condensation" },
+  { label: "Spa Vibes", description: "Zen spa-inspired setting with warm wood tones, rolled white towels, eucalyptus branches, soft candlelight, natural stone surfaces. One towel slightly unrolled at the edge, a candle with wax drip visible, small water droplets on the stone surface near a recently used bowl" },
+  { label: "Minimalist Studio", description: "Clean white cyclorama studio with soft diffused lighting from both sides, professional product photography feel. A small equipment case visible at the edge of frame, a reflector stand slightly tilted, tape mark on the floor where subject should stand" },
 ];
 
 const ENV_FASHION: RichOption[] = [
-  { label: "Walk-in Closet", description: "Spacious modern walk-in closet with warm wood shelving, soft recessed lighting, neatly organized clothing racks, full-length mirror with brass frame" },
-  { label: "Urban Street", description: "Clean urban sidewalk with soft overcast daylight, blurred city background with cafes and greenery, natural street photography feel" },
-  { label: "Coffee Shop", description: "Trendy industrial coffee shop interior with exposed brick, warm pendant lighting, wooden tables, large windows with natural light" },
-  { label: "Mirror Studio", description: "Large floor-to-ceiling mirror in a bright minimal room, natural daylight from side windows, clean white or light gray walls" },
-  { label: "Rooftop Golden Hour", description: "City rooftop terrace during golden hour, warm backlit glow, blurred skyline background, modern railing and potted plants" },
+  { label: "Walk-in Closet", description: "Spacious modern walk-in closet with warm wood shelving, soft recessed lighting, neatly organized clothing racks, full-length mirror with brass frame. One hanger slightly crooked on the rack, a pair of shoes not perfectly aligned on the shelf, a tote bag hanging from a hook on the door" },
+  { label: "Urban Street", description: "Clean urban sidewalk with soft overcast daylight, blurred city background with cafes and greenery, natural street photography feel. A parked bicycle partially visible at frame edge, a crumpled receipt near the curb, other pedestrians softly blurred in the background" },
+  { label: "Coffee Shop", description: "Trendy industrial coffee shop interior with exposed brick, warm pendant lighting, wooden tables, large windows with natural light. Other customers blurred in background, a used napkin on the next table, condensation on an iced drink glass left behind, a laptop charger plugged into a wall outlet" },
+  { label: "Mirror Studio", description: "Large floor-to-ceiling mirror in a bright minimal room, natural daylight from side windows, clean white or light gray walls. A small smudge on the mirror surface, tape marks on floor from previous photoshoot, a water bottle sitting on the floor near the wall" },
+  { label: "Rooftop Golden Hour", description: "City rooftop terrace during golden hour, warm backlit glow, blurred skyline background, modern railing and potted plants. One potted plant with a slightly wilted leaf, a forgotten coffee cup on the ledge, some dried leaves collected in a corner near the railing" },
 ];
 
 const ENV_FOOD: RichOption[] = [
-  { label: "Dapur Modern", description: "Bright modern kitchen with white marble countertops, warm pendant lighting, copper utensils hanging, fresh herbs in small pots, steam-friendly warm atmosphere" },
-  { label: "Dining Table", description: "Beautifully set wooden dining table with linen napkins, ceramic plates, soft overhead pendant light, cozy dinner party atmosphere" },
-  { label: "Outdoor Brunch", description: "Sun-dappled outdoor terrace with wrought iron bistro table, fresh flowers, dappled tree shade, Mediterranean brunch aesthetic" },
-  { label: "Street Food Stall", description: "Vibrant Indonesian street food stall with warm tungsten bulbs, steam rising, colorful ingredients displayed, authentic night market feel" },
-  { label: "Minimal Flat Lay", description: "Clean marble or light wood surface shot from directly above, styled with minimal props like a fork, linen cloth, and fresh herb sprig" },
+  { label: "Dapur Modern", description: "Bright modern kitchen with white marble countertops, warm pendant lighting, copper utensils hanging, fresh herbs in small pots, steam-friendly warm atmosphere. A few crumbs near the cutting board, a slightly stained kitchen towel draped over the oven handle, an open recipe book propped against the backsplash" },
+  { label: "Dining Table", description: "Beautifully set wooden dining table with linen napkins, ceramic plates, soft overhead pendant light, cozy dinner party atmosphere. A water glass with lip mark on the rim, a bread crumb trail near one plate, a slightly pushed-back chair suggesting someone just got up" },
+  { label: "Outdoor Brunch", description: "Sun-dappled outdoor terrace with wrought iron bistro table, fresh flowers, dappled tree shade, Mediterranean brunch aesthetic. A fallen petal from the flower arrangement on the table, a slightly tilted glass, a bird visible blurred in the distant sky" },
+  { label: "Street Food Stall", description: "Vibrant Indonesian street food stall with warm tungsten bulbs, steam rising, colorful ingredients displayed, authentic night market feel. Plastic stools slightly uneven on the ground, a stack of used plates near the wash area, hand-written price signs with slightly smudged marker" },
+  { label: "Minimal Flat Lay", description: "Clean marble or light wood surface shot from directly above, styled with minimal props like a fork, linen cloth, and fresh herb sprig. A tiny sauce splatter near the plate edge, the linen cloth with a natural wrinkle fold, a fingerprint smudge on the marble surface" },
 ];
 
 const ENV_ELECTRONICS: RichOption[] = [
-  { label: "Desk Setup", description: "Clean modern desk setup with ultrawide monitor, mechanical keyboard, warm desk lamp, cable-managed workspace, dark wood or white minimal aesthetic" },
-  { label: "Sofa Casual", description: "Modern living room with comfortable gray sofa, soft ambient lighting, coffee table with a mug, relaxed casual tech-use environment" },
-  { label: "Commuter", description: "Public transit or airport lounge setting, modern seating, natural overhead lighting, person using device while traveling" },
-  { label: "Studio Unboxing", description: "Clean tabletop with plain dark background, dramatic top-down key light, product packaging visible, YouTube-style unboxing setup" },
-  { label: "Outdoor Active", description: "Park bench or outdoor setting with natural daylight, trees blurred in background, casual on-the-go tech usage" },
+  { label: "Desk Setup", description: "Clean modern desk setup with ultrawide monitor, mechanical keyboard, warm desk lamp, cable-managed workspace, dark wood or white minimal aesthetic. A sticky note on monitor edge, slightly tangled cable near keyboard, coffee mug with ring stain on a coaster" },
+  { label: "Sofa Casual", description: "Modern living room with comfortable gray sofa, soft ambient lighting, coffee table with a mug, relaxed casual tech-use environment. A throw blanket bunched up on one side of the sofa, a remote control between cushions, a pair of slippers on the floor nearby" },
+  { label: "Commuter", description: "Public transit or airport lounge setting, modern seating, natural overhead lighting, person using device while traveling. A backpack leaning against the seat leg, earphone case on the armrest, a boarding pass or ticket peeking from a jacket pocket" },
+  { label: "Studio Unboxing", description: "Clean tabletop with plain dark background, dramatic top-down key light, product packaging visible, YouTube-style unboxing setup. Packaging foam peanuts scattered near the box, a box cutter laid on the table, the shipping label partially peeled off" },
+  { label: "Outdoor Active", description: "Park bench or outdoor setting with natural daylight, trees blurred in background, casual on-the-go tech usage. A water bottle next to the person on the bench, fallen leaves near the bench legs, a jogger softly blurred passing in the background" },
 ];
 
 const ENV_HEALTH: RichOption[] = [
-  { label: "Gym Locker", description: "Modern gym locker room with clean wooden bench, natural light from high windows, gym bag visible, post-workout energy feel" },
-  { label: "Dapur Sehat", description: "Bright clean kitchen with fruits on counter, blender visible, morning sunlight, healthy lifestyle aesthetic" },
-  { label: "Jogging Path", description: "Scenic outdoor jogging path with morning mist, trees lining both sides, soft golden morning light, active lifestyle setting" },
-  { label: "Kamar Pagi Routine", description: "Minimal bright bedroom nightstand with water glass, supplements neatly arranged, morning light through window, daily habit feel" },
-  { label: "Yoga Studio", description: "Calm yoga studio with light wood floor, large windows, green plants, soft natural light, wellness and balance atmosphere" },
+  { label: "Gym Locker", description: "Modern gym locker room with clean wooden bench, natural light from high windows, gym bag visible, post-workout energy feel. A slightly damp towel draped over the bench end, an open locker with shoes visible inside, a water bottle with condensation droplets" },
+  { label: "Dapur Sehat", description: "Bright clean kitchen with fruits on counter, blender visible, morning sunlight, healthy lifestyle aesthetic. A banana peel near the blender base, a few drops of smoothie on the counter, a phone propped up showing a recipe" },
+  { label: "Jogging Path", description: "Scenic outdoor jogging path with morning mist, trees lining both sides, soft golden morning light, active lifestyle setting. A few fallen leaves on the path, another jogger blurred far in the distance, a park bench with a forgotten water bottle" },
+  { label: "Kamar Pagi Routine", description: "Minimal bright bedroom nightstand with water glass, supplements neatly arranged, morning light through window, daily habit feel. Phone on nightstand with alarm visible, slightly rumpled pillow behind, a book with a bookmark sticking out on the nightstand" },
+  { label: "Yoga Studio", description: "Calm yoga studio with light wood floor, large windows, green plants, soft natural light, wellness and balance atmosphere. A yoga mat slightly unrolled at one corner, a water bottle and towel near the mat edge, natural scuff marks on the wooden floor" },
 ];
 
 const ENV_HOME: RichOption[] = [
-  { label: "Living Room Modern", description: "Contemporary living room with neutral tones, large windows with sheer curtains, modular sofa, indoor plants, warm afternoon light" },
-  { label: "Kamar Kost", description: "Small but tidy Indonesian kost room with white walls, single bed, small desk, warm string lights, relatable young adult space" },
-  { label: "Apartment Balcony", description: "Small apartment balcony with potted plants, city view blurred in background, afternoon golden light, cozy urban living" },
-  { label: "Ruang Kerja", description: "Home office corner with floating shelf, small desk, laptop, warm desk lamp, organized and productive aesthetic" },
-  { label: "Kamar Anak", description: "Bright cheerful kids room with pastel colors, toys neatly arranged, soft carpet, playful but organized" },
+  { label: "Living Room Modern", description: "Contemporary living room with neutral tones, large windows with sheer curtains, modular sofa, indoor plants, warm afternoon light. A TV remote on the sofa armrest, a magazine left open on the coffee table, one throw pillow slightly askew" },
+  { label: "Kamar Kost", description: "Small but tidy Indonesian kost room with white walls, single bed, small desk, warm string lights, relatable young adult space. Some clothes draped over desk chair, a charger plugged into wall, instant noodle cup on desk corner, slightly messy but real" },
+  { label: "Apartment Balcony", description: "Small apartment balcony with potted plants, city view blurred in background, afternoon golden light, cozy urban living. A dried leaf in one of the pots, a coffee cup left on the railing ledge, flip-flops by the balcony door threshold" },
+  { label: "Ruang Kerja", description: "Home office corner with floating shelf, small desk, laptop, warm desk lamp, organized and productive aesthetic. A few sticky notes on the wall, a pen left uncapped on the desk, phone charger cable draped from desk edge" },
+  { label: "Kamar Anak", description: "Bright cheerful kids room with pastel colors, toys neatly arranged, soft carpet, playful but organized. One toy car slightly out of place on the carpet, a crayon left on the floor, a small blanket half-draped off the bed" },
 ];
 
 const ENV_OTHER: RichOption[] = [
-  { label: "Studio Putih", description: "Clean pure white cyclorama studio with soft diffused lighting, professional product photography feel" },
-  { label: "Outdoor Cafe", description: "Trendy outdoor cafe with warm natural light, blurred greenery background, wooden furniture" },
-  { label: "Kamar Tidur", description: "Cozy bedroom with warm lighting, clean bedding, natural window light" },
-  { label: "Dapur Modern", description: "Bright modern kitchen with marble countertops, warm pendant lighting, clean aesthetic" },
-  { label: "Taman", description: "Beautiful garden setting with lush greenery, natural daylight, flowers and plants" },
+  { label: "Studio Putih", description: "Clean white cyclorama studio with soft diffused lighting, professional product photography feel. A small tape mark on the floor, equipment cable visible at the very edge of frame, a reflector slightly tilted in the background" },
+  { label: "Outdoor Cafe", description: "Trendy outdoor cafe with warm natural light, blurred greenery background, wooden furniture. A used sugar packet on the table, slight condensation on a glass, another patron blurred walking past in the background" },
+  { label: "Kamar Tidur", description: "Cozy bedroom with warm lighting, clean bedding, natural window light. A phone charging on the nightstand, pillow with a slight indent, a pair of socks near the bed edge" },
+  { label: "Dapur Modern", description: "Bright modern kitchen with marble countertops, warm pendant lighting, clean aesthetic. A kitchen towel hanging slightly off the oven handle, a fruit bowl with one overripe banana, a small water ring on the counter" },
+  { label: "Taman", description: "Beautiful garden setting with lush greenery, natural daylight, flowers and plants. A garden hose coiled near a pot, a few fallen petals on the stone path, a small watering can left near the flowers" },
 ];
 
 const ENV_MAP: Record<ProductCategory, RichOption[]> = {
