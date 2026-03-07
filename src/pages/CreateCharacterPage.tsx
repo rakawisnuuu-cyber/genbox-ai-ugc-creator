@@ -261,9 +261,9 @@ export default function CreateCharacterPage() {
   const { model: promptModel } = usePromptModel();
   const { upscale, getState: getUpscaleState } = useUpscale();
 
-  // Mode & vibe
-  const [mode, setMode] = useState<CreationMode>("simple");
+  // Preset tracking
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
+  const [presetEdited, setPresetEdited] = useState(false);
 
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
   const [isGenerating, setIsGenerating] = useState(false);
