@@ -944,7 +944,15 @@ Content template: ${template?.label}`,
         </button>
       </div>
 
-      {/* Model Recommendation Banner */}
+      {/* Product Info Banner (compact) */}
+      {productInfo.product_description && (
+        <div className="rounded-xl px-4 py-2 border border-primary/20 bg-primary/5 text-[11px] flex items-center gap-2">
+          <span>🏷️</span>
+          <span className="font-medium text-foreground">{productInfo.product_description}</span>
+          <span className="text-muted-foreground">({productInfo.category}/{productInfo.sub_category || "general"})</span>
+        </div>
+      )}
+
       <div className={`rounded-xl px-4 py-3 border text-[11px] ${
         modelRec.variant === "dialog"
           ? "bg-blue-500/5 border-blue-500/20 text-blue-400"
