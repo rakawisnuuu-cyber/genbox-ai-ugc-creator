@@ -591,11 +591,8 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
     const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
     const consistencyBlock = buildProductConsistencyBlock(dna);
 
-    const sharedImages: string[] = [];
-    if (resultUrl) sharedImages.push(resultUrl);
-    if (productUrl) sharedImages.push(productUrl);
-    if (selectedChar.reference_photo_url) sharedImages.push(selectedChar.reference_photo_url);
-    if (selectedChar.hero_image_url && !selectedChar.id.startsWith("p")) sharedImages.push(selectedChar.hero_image_url);
+    // Image inputs are now built per-frame inside generateSingleBeat
+    // (base image + previous frame + product — no character hero/reference URLs needed)
 
     const consistencyLock = baseSceneFields
       ? `VISUAL CONSISTENCY LOCK — Every detail must match the base image (Frame 0):
