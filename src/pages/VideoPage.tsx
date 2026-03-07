@@ -453,6 +453,10 @@ const VideoPage = () => {
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
     setSourceUrl(urlData.publicUrl);
     setUploading(false);
+    // Auto-detect product if no productInfo yet
+    if (!productInfo.product_description) {
+      detectProductFromImage(urlData.publicUrl);
+    }
   };
 
   // Generate script AI per frame
