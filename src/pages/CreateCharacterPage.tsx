@@ -198,19 +198,25 @@ function assemblePrompt(
   shotKey: ShotKey,
   identityBlock: string,
   consistencyAnchors: string[],
+  options?: { imperfection?: string; environment?: string; advancedContext?: string },
 ) {
   const cfg = SHOT_CONFIGS[shotKey];
-  return [
-    REALISM_BASE,
+  const imperfection = options?.imperfection || "natural";
+  const environment = options?.environment || "simple";
+  const parts = [
+    QUALITY_BLOCK,
     cfg.camera,
     identityBlock,
     `MANDATORY consistency anchors: ${consistencyAnchors.join(", ")}`,
-    cfg.framing,
-    LIGHTING_BLOCK,
-    SKIN_BLOCK,
-    QUALITY_BLOCK,
-    NEGATIVE_BLOCK,
-  ].join("\n\n");
+    FACIAL_REALISM_BLOCK,
+    HAIR_GROOMING_BLOCK,
+  ];
+  if (options?.advancedContext) parts.push(options.advancedContext);
+  parts.push(cfg.framing);
+  parts.push(getLightingBlock(environment));
+  parts.push(getSkinBlock(imperfection));
+  parts.push(NEGATIVE_BLOCK);
+  return parts.join("\n\n");
 }
 
 // ── HELPER: Poll a Kie AI task ──
