@@ -271,6 +271,8 @@ const VideoPage = () => {
       return {
         sourceImageUrl: frameSource,
         dialogue: defaultDialogue,
+        action: beat.description,
+        actionChips: getActionChips(beat.storyRole, productCategory),
         prompt: "",
         model: defaultModel,
         skipped: false,
