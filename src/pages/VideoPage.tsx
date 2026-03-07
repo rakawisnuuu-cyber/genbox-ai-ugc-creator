@@ -270,6 +270,8 @@ const VideoPage = () => {
         errorMsg: "",
         elapsed: 0,
         expanded: i === 0,
+        mergedFrames: [],
+        mergedInto: null,
       };
     });
     setFrames(newFrames);
