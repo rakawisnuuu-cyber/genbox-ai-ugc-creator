@@ -610,13 +610,11 @@ export default function CreateCharacterPage() {
 
   // ── SUMMARY PILLS ──
   const vibeSelected = VIBE_PACKS.find((v) => v.id === selectedVibe);
-  const pills = mode === "simple" && vibeSelected
-    ? vibeSelected.tags
-    : [
-        form.gender === "female" ? "Wanita" : "Pria",
-        form.age_range, form.skin_tone, form.face_shape, form.eye_color,
-        form.hair_style, form.hair_color, form.expression, form.outfit_style, form.skin_condition,
-      ].filter(Boolean);
+  const pills = [
+    form.gender === "female" ? "Wanita" : "Pria",
+    form.age_range, form.skin_tone, form.face_shape, form.eye_color,
+    form.hair_style, form.hair_color, form.expression, form.outfit_style, form.skin_condition,
+  ].filter(Boolean);
 
   // ── Progress label ──
   const progressLabel = (() => {
