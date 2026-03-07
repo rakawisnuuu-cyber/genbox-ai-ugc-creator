@@ -31,6 +31,8 @@ import {
   Loader2,
   Play,
   Lock,
+  Link2,
+  Unlink,
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
@@ -50,6 +52,10 @@ interface FrameState {
   errorMsg: string;
   elapsed: number;
   expanded: boolean;
+  /** Indices of frames combined INTO this one (e.g. [1] means F0+F1) */
+  mergedFrames: number[];
+  /** If this frame is absorbed into another, store the parent index */
+  mergedInto: number | null;
 }
 
 interface GalleryImage {
@@ -264,6 +270,8 @@ const VideoPage = () => {
         errorMsg: "",
         elapsed: 0,
         expanded: i === 0,
+        mergedFrames: [],
+        mergedInto: null,
       };
     });
     setFrames(newFrames);
@@ -279,6 +287,76 @@ const VideoPage = () => {
 
   const updateFrame = (idx: number, patch: Partial<FrameState>) => {
     setFrames((prev) => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
+  };
+
+  // Combine frame idx with the next available frame
+  const combineWithNext = (idx: number) => {
+    setFrames((prev) => {
+      const next = prev.slice();
+      const parentFrame = next[idx];
+      // Check: max 3 frames combined total
+      const currentMergedCount = parentFrame.mergedFrames.length + 1; // +1 for self
+      if (currentMergedCount >= 3) return prev;
+
+      // Find the next available frame (after all currently merged ones)
+      const lastIdx = parentFrame.mergedFrames.length > 0
+        ? Math.max(...parentFrame.mergedFrames)
+        : idx;
+      const targetIdx = lastIdx + 1;
+
+      if (targetIdx >= next.length) return prev;
+      if (next[targetIdx].mergedInto !== null) return prev;
+      if (next[targetIdx].mergedFrames.length > 0) return prev;
+
+      // Merge target into parent
+      next[idx] = {
+        ...parentFrame,
+        mergedFrames: [...parentFrame.mergedFrames, targetIdx],
+        dialogue: [parentFrame.dialogue, next[targetIdx].dialogue].filter(Boolean).join(" "),
+        prompt: "", // clear prompt so it regenerates with combined context
+        status: "idle",
+        videoUrl: null,
+      };
+      next[targetIdx] = {
+        ...next[targetIdx],
+        mergedInto: idx,
+        skipped: true,
+      };
+      return next;
+    });
+  };
+
+  // Split a combined frame — restore all merged frames
+  const splitFrame = (idx: number) => {
+    setFrames((prev) => {
+      const next = prev.slice();
+      const parent = next[idx];
+      const mergedIndices = parent.mergedFrames;
+
+      // Restore each merged frame
+      for (const mi of mergedIndices) {
+        const beat = beats[mi];
+        next[mi] = {
+          ...next[mi],
+          mergedInto: null,
+          skipped: false,
+          dialogue: getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory),
+          status: "idle",
+          videoUrl: null,
+          prompt: "",
+        };
+      }
+      // Restore parent
+      next[idx] = {
+        ...parent,
+        mergedFrames: [],
+        dialogue: getSmartDialogSuggestion(beats[idx].storyRole, selectedTemplate, productCategory),
+        prompt: "",
+        status: "idle",
+        videoUrl: null,
+      };
+      return next;
+    });
   };
 
   // Upload handler
@@ -371,10 +449,27 @@ Output ONLY the script text.`,
     }
 
     const prevBeatDesc = idx > 0 ? beats[idx - 1]?.description : "";
-    const productDesc = navState?.productDna?.product_description || navState?.productCategory || "consumer product";
+    const productDesc = navState?.productDNA?.product_description || navState?.productCategory || "consumer product";
+    const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
+    const isCombined = mergedBeats.length > 0;
 
-    contentParts.push({
-      text: `Generate a video prompt for frame ${idx + 1} (${beat.label}) of a '${template?.label}' UGC video.
+    if (isCombined) {
+      const allBeats = [beat, ...mergedBeats];
+      const beatDescriptions = allBeats.map((b, i) => `Beat ${i + 1} (${b.storyRole}): ${b.description}`).join("\n");
+      contentParts.push({
+        text: `Create a single 8-second continuous video prompt covering ${allBeats.length} story beats in sequence for a '${template?.label}' UGC video.
+Reference image is attached — match the person, outfit, environment, and lighting exactly.
+
+${beatDescriptions}
+
+The person naturally transitions from the first action to the next within one take. No cuts, one flowing scene.
+${frame.dialogue.trim() ? `Dialog: '${frame.dialogue.trim()}'` : "No dialog."}
+Product: ${productDesc}
+The subject behaves like a TikTok content creator — spontaneous, casual, not posed.`,
+      });
+    } else {
+      contentParts.push({
+        text: `Generate a video prompt for frame ${idx + 1} (${beat.label}) of a '${template?.label}' UGC video.
 Reference image is attached — match the person, outfit, environment, and lighting exactly.
 Beat description: ${beat.description}
 ${frame.dialogue.trim() ? `Dialog to include: '${frame.dialogue.trim()}'` : "No dialog for this frame."}
@@ -383,7 +478,8 @@ ${idx > 0 ? `This frame follows frame ${idx} which showed: '${prevBeatDesc}'. Cr
 The subject behaves like a TikTok content creator — spontaneous, casual, not posed.
 Storyboard beat timing: ${beat.beat}
 Content template: ${template?.label}`,
-    });
+      });
+    }
 
     try {
       const json = await geminiFetch(promptModel, geminiKey!, {
@@ -476,15 +572,15 @@ Content template: ${template?.label}`,
     batchCancelRef.current = false;
     setBatchGenerating(true);
 
-    const activeFrames = frames.map((f, i) => ({ ...f, idx: i })).filter((f) => !f.skipped);
+    const batchFrames = frames.map((f, i) => ({ ...f, idx: i })).filter((f) => !f.skipped && f.mergedInto === null);
 
-    for (let n = 0; n < activeFrames.length; n++) {
+    for (let n = 0; n < batchFrames.length; n++) {
       if (batchCancelRef.current) break;
-      const { idx } = activeFrames[n];
+      const { idx } = batchFrames[n];
       setBatchCurrentFrame(idx);
       await generateFrame(idx);
       // 3s delay between frames
-      if (n < activeFrames.length - 1 && !batchCancelRef.current) {
+      if (n < batchFrames.length - 1 && !batchCancelRef.current) {
         await new Promise((r) => setTimeout(r, 3000));
       }
     }
@@ -497,14 +593,15 @@ Content template: ${template?.label}`,
     batchCancelRef.current = true;
   };
 
-  // Computed
+  // Computed — exclude merged-into frames from active
   const anyGenerating = frames.some((f) => f.status === "generating");
-  const activeFrames = frames.filter((f) => !f.skipped);
+  const activeFrames = frames.filter((f) => !f.skipped && f.mergedInto === null);
   const totalCost = activeFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
-  const completedFrames = frames.filter((f) => f.status === "completed");
-  const skippedCount = frames.filter((f) => f.skipped).length;
-  const failedCount = frames.filter((f) => f.status === "failed").length;
-  const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.status === "completed");
+  const completedFrames = frames.filter((f) => f.status === "completed" && f.mergedInto === null);
+  const skippedCount = frames.filter((f) => f.skipped && f.mergedInto === null).length;
+  const mergedCount = frames.filter((f) => f.mergedInto !== null).length;
+  const failedCount = frames.filter((f) => f.status === "failed" && f.mergedInto === null).length;
+  const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.mergedInto !== null || f.status === "completed");
   const totalDuration = activeFrames.reduce((s, f) => {
     if (f.status !== "completed") return s;
     return s + (f.model === "grok" ? 10 : 8);
@@ -733,14 +830,31 @@ Content template: ${template?.label}`,
       {frames.map((frame, idx) => {
         const beat = beats[idx];
         if (!beat) return null;
+
+        // If this frame is merged into another, show collapsed indicator
+        if (frame.mergedInto !== null) {
+          return (
+            <div key={idx} className="border border-dashed border-border rounded-xl px-4 py-2 opacity-40 flex items-center gap-2">
+              <Link2 className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">
+                F{idx + 1} ({beat.label}) — digabungkan ke F{frame.mergedInto + 1}
+              </span>
+            </div>
+          );
+        }
+
         const roleColor = ROLE_COLORS[beat.storyRole] || "bg-muted text-muted-foreground";
         const modelInfo = MODEL_LABELS[frame.model];
+        const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
+        const isCombined = mergedBeats.length > 0;
+        const allBeatLabels = [beat, ...mergedBeats];
+        const canCombineMore = frame.mergedFrames.length + 1 < 3; // max 3
 
         return (
           <div
             key={idx}
             className={`border rounded-xl overflow-hidden transition-all ${
-              frame.skipped ? "opacity-40 border-border" : frame.status === "completed" ? "border-green-500/30 bg-green-500/5" : "border-border bg-card"
+              frame.skipped ? "opacity-40 border-border" : frame.status === "completed" ? "border-green-500/30 bg-green-500/5" : isCombined ? "border-primary/30 bg-primary/5" : "border-border bg-card"
             }`}
           >
             {/* Frame Header */}
@@ -749,15 +863,21 @@ Content template: ${template?.label}`,
               onClick={() => updateFrame(idx, { expanded: !frame.expanded })}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-bold text-foreground shrink-0">F{idx + 1}</span>
-                <span className="text-xs text-muted-foreground truncate">{beat.label}</span>
-                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${roleColor}`}>
-                  {beat.storyRole}
+                <span className="text-sm font-bold text-foreground shrink-0">
+                  {isCombined ? `F${idx + 1}+${frame.mergedFrames.map((m) => m + 1).join("+")}` : `F${idx + 1}`}
                 </span>
-                <span className="text-[9px] text-muted-foreground/60 shrink-0">{beat.beat}</span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {isCombined ? allBeatLabels.map((b) => b.label.split("—")[0].trim()).join(" + ") : beat.label}
+                </span>
+                {allBeatLabels.map((b, bi) => (
+                  <span key={bi} className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${ROLE_COLORS[b.storyRole] || roleColor}`}>
+                    {b.storyRole}
+                  </span>
+                ))}
                 {frame.status === "completed" && <span className="text-[9px] text-green-400 font-medium shrink-0">✓</span>}
                 {frame.status === "generating" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
                 {frame.status === "failed" && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
+                {isCombined && <Link2 className="h-3 w-3 text-primary shrink-0" />}
               </div>
               <div className="flex items-center gap-2">
                 {/* Skip toggle */}
@@ -776,8 +896,28 @@ Content template: ${template?.label}`,
             {/* Expanded content */}
             {frame.expanded && !frame.skipped && (
               <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-                {/* Beat description */}
-                <p className="text-[10px] text-muted-foreground italic">{beat.description}</p>
+                {/* Beat description(s) */}
+                {isCombined ? (
+                  <div className="space-y-1">
+                    {allBeatLabels.map((b, bi) => (
+                      <p key={bi} className="text-[10px] text-muted-foreground italic">
+                        <span className="font-medium text-foreground not-italic">{b.storyRole}:</span> {b.description}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground italic">{beat.description}</p>
+                )}
+
+                {/* Split button for combined frames */}
+                {isCombined && (
+                  <button
+                    onClick={() => splitFrame(idx)}
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Unlink className="h-3 w-3" /> Pisahkan kembali
+                  </button>
+                )}
 
                 {/* Source image */}
                 <div>
@@ -970,6 +1110,31 @@ Content template: ${template?.label}`,
                     </button>
                   )
                 )}
+
+                {/* Combine with next frame link */}
+                {!isCombined && idx < frames.length - 1 && frames[idx + 1]?.mergedInto === null && !frames[idx + 1]?.mergedFrames.length && !frame.skipped && frame.status !== "generating" && (
+                  <button
+                    onClick={() => combineWithNext(idx)}
+                    className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors mt-1"
+                  >
+                    <Link2 className="h-3 w-3" /> Gabungkan dengan frame berikutnya ↓
+                  </button>
+                )}
+                {isCombined && canCombineMore && (() => {
+                  const lastMerged = frame.mergedFrames[frame.mergedFrames.length - 1];
+                  const nextAfterMerged = lastMerged + 1;
+                  if (nextAfterMerged < frames.length && frames[nextAfterMerged]?.mergedInto === null && !frames[nextAfterMerged]?.mergedFrames.length) {
+                    return (
+                      <button
+                        onClick={() => combineWithNext(idx)}
+                        className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                      >
+                        <Link2 className="h-3 w-3" /> Gabungkan frame berikutnya juga ↓
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
           </div>
