@@ -17,7 +17,7 @@ import {
 import {
   Camera, RotateCcw, Mic, PersonStanding, Search, Hand,
   Zap, CheckCircle2, Loader2, AlertCircle, X, Download, Upload, ImageIcon,
-  SlidersHorizontal, Sparkles,
+  Sparkles,
 } from "lucide-react";
 import UpscaleButton from "@/components/UpscaleButton";
 import {
