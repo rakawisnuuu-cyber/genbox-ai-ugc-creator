@@ -194,7 +194,13 @@ const VideoPage = () => {
   // Navigation state from storyboard
   const navState = location.state as any;
   const fromStoryboard = navState?.fromStoryboard === true;
-  const productCategory: string = navState?.productCategory || navState?.productDna?.category || "other";
+  const productCategory: string = navState?.productCategory || navState?.productDna?.category || navState?.productDNA?.category || "other";
+  const productDNA = navState?.productDNA || navState?.productDna || null;
+  const productContextLine = productDNA
+    ? `Product: ${productDNA.product_description || productDNA.category || "consumer product"} (category: ${productDNA.category || "other"}/${productDNA.sub_category || "general"}). Dialog and prompt MUST reference THIS specific product only. Do NOT mention other product types.`
+    : navState?.productCategory
+      ? `Product category: ${navState.productCategory}. Reference this product type specifically.`
+      : "";
 
   // Source image (standalone mode)
   const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
@@ -402,6 +408,7 @@ const VideoPage = () => {
         const allBeats = [beat, ...mergedBeats];
         const beatDescList = allBeats.map((b) => `'${b.label}' — ${b.description}`).join(", then naturally flowing into ");
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
+${productContextLine}
 Write a 2-3 sentence TikTok dialog covering ${allBeats.length} story beats in sequence: first ${beatDescList}.
 The dialog should transition smoothly between all beats in one natural spoken flow.
 Keep it under 30 words total, casual Indonesian.
@@ -409,6 +416,7 @@ Output ONLY the script text.`;
         contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
       } else {
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
+${productContextLine}
 Write a 1-2 sentence TikTok dialog in casual Indonesian for the '${beat.label}' part of a '${template?.label}' video.
 Previous frame's dialog was: '${prevDialog}'.
 This should flow naturally as the next thing the person would say.
@@ -464,7 +472,7 @@ Output ONLY the script text.`;
     }
 
     const prevBeatDesc = idx > 0 ? beats[idx - 1]?.description : "";
-    const productDesc = navState?.productDNA?.product_description || navState?.productCategory || "consumer product";
+    const productDesc = productDNA?.product_description || navState?.productCategory || "consumer product";
     const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
     const isCombined = mergedBeats.length > 0;
 
