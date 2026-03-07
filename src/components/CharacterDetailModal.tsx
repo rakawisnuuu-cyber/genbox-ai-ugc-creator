@@ -118,6 +118,14 @@ const CharacterDetailModal = ({ character, open, onClose, onUse, onDelete }: Cha
             >
               TUTUP
             </button>
+            {onDelete && !character.is_preset && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="border border-destructive/30 text-destructive font-bold text-sm py-2.5 px-3 rounded-lg hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
