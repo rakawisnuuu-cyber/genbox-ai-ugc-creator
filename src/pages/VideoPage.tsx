@@ -289,6 +289,71 @@ const VideoPage = () => {
     setFrames((prev) => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
   };
 
+  // Combine frame idx with next frame (idx+1)
+  const combineWithNext = (idx: number) => {
+    setFrames((prev) => {
+      const next = prev.slice();
+      const parentFrame = next[idx];
+      const nextIdx = idx + 1;
+      // Check: max 3 frames combined total
+      const currentMergedCount = parentFrame.mergedFrames.length + 1; // +1 for self
+      if (currentMergedCount >= 3 || nextIdx >= next.length) return prev;
+      // Can't combine if next frame is already merged into something else
+      if (next[nextIdx].mergedInto !== null) return prev;
+      // Can't combine if next frame is a parent with merges
+      if (next[nextIdx].mergedFrames.length > 0) return prev;
+
+      // Merge next into parent
+      next[idx] = {
+        ...parentFrame,
+        mergedFrames: [...parentFrame.mergedFrames, nextIdx],
+        dialogue: [parentFrame.dialogue, next[nextIdx].dialogue].filter(Boolean).join(" "),
+        prompt: "", // clear prompt so it regenerates with combined context
+        status: "idle",
+        videoUrl: null,
+      };
+      next[nextIdx] = {
+        ...next[nextIdx],
+        mergedInto: idx,
+        skipped: true,
+      };
+      return next;
+    });
+  };
+
+  // Split a combined frame — restore all merged frames
+  const splitFrame = (idx: number) => {
+    setFrames((prev) => {
+      const next = prev.slice();
+      const parent = next[idx];
+      const mergedIndices = parent.mergedFrames;
+
+      // Restore each merged frame
+      for (const mi of mergedIndices) {
+        const beat = beats[mi];
+        next[mi] = {
+          ...next[mi],
+          mergedInto: null,
+          skipped: false,
+          dialogue: getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory),
+          status: "idle",
+          videoUrl: null,
+          prompt: "",
+        };
+      }
+      // Restore parent
+      next[idx] = {
+        ...parent,
+        mergedFrames: [],
+        dialogue: getSmartDialogSuggestion(beats[idx].storyRole, selectedTemplate, productCategory),
+        prompt: "",
+        status: "idle",
+        videoUrl: null,
+      };
+      return next;
+    });
+  };
+
   // Upload handler
   const handleFileSelect = async (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
