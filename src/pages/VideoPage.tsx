@@ -551,13 +551,13 @@ Content template: ${template?.label}`,
 
     const batchFrames = frames.map((f, i) => ({ ...f, idx: i })).filter((f) => !f.skipped && f.mergedInto === null);
 
-    for (let n = 0; n < activeFrames.length; n++) {
+    for (let n = 0; n < batchFrames.length; n++) {
       if (batchCancelRef.current) break;
-      const { idx } = activeFrames[n];
+      const { idx } = batchFrames[n];
       setBatchCurrentFrame(idx);
       await generateFrame(idx);
       // 3s delay between frames
-      if (n < activeFrames.length - 1 && !batchCancelRef.current) {
+      if (n < batchFrames.length - 1 && !batchCancelRef.current) {
         await new Promise((r) => setTimeout(r, 3000));
       }
     }
