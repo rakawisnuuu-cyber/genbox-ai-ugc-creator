@@ -55,6 +55,20 @@ const GalleryPage = () => {
   const [loading, setLoading] = useState(true);
   const [detailItem, setDetailItem] = useState<Generation | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Generation | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Generation | null>(null);
+
+  const handleDelete = async (item: Generation) => {
+    const { error } = await supabase.from("generations").delete().eq("id", item.id);
+    if (error) {
+      toast.error("Gagal menghapus: " + error.message);
+    } else {
+      toast.success("Item dihapus");
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      if (detailItem?.id === item.id) setDetailItem(null);
+      if (selectedVideo?.id === item.id) setSelectedVideo(null);
+    }
+    setDeleteTarget(null);
+  };
 
   const fetchItems = useCallback(async () => {
     if (!user) return;
