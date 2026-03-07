@@ -994,13 +994,22 @@ Content template: ${template?.label}`,
           )}
         </div>
 
-        {batchGenerating && (
+        {batchGenerating && batchCurrentFrame >= 0 && (
           <div className="space-y-1.5">
             <p className="text-[11px] text-muted-foreground">
-              Generating Frame {batchCurrentFrame + 1}/5...
+              Generating Frame {batchCurrentFrame + 1}/{activeFrames.length} — {beats[batchCurrentFrame]?.storyRole}... ({formatTime(frames[batchCurrentFrame]?.elapsed || 0)})
             </p>
             <Progress value={(completedFrames.length / activeFrames.length) * 100} className="h-1.5" />
           </div>
+        )}
+
+        {!batchGenerating && completedFrames.length > 0 && (
+          <p className="text-[10px] text-muted-foreground">
+            {completedFrames.length}/{frames.length} selesai ✓
+            {skippedCount > 0 ? ` · ${skippedCount} di-skip` : ""}
+            {failedCount > 0 ? ` · ${failedCount} gagal` : ""}
+            {` · ${formatRupiah(actualCost)} total`}
+          </p>
         )}
 
         <button
