@@ -505,6 +505,7 @@ The subject behaves like a TikTok content creator — spontaneous, casual, not p
         text: `Generate a video prompt for frame ${idx + 1} (${beat.label}) of a '${template?.label}' UGC video.
 Reference image is attached — match the person, outfit, environment, and lighting exactly.
 Beat description: ${beat.description}
+Primary movement/action: ${frame.action.trim() || beat.description}
 ${frame.dialogue.trim() ? `Dialog to include: '${frame.dialogue.trim()}'` : "No dialog for this frame."}
 Product: ${productDesc}
 ${idx > 0 ? `This frame follows frame ${idx} which showed: '${prevBeatDesc}'. Create natural continuity.` : "This is the opening frame."}
