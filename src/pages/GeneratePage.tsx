@@ -418,6 +418,8 @@ const GeneratePage = () => {
       parts.push({
         text: `You are an expert UGC (user-generated content) prompt builder for AI image generation. Create a structured JSON prompt for a realistic product UGC photo.
 
+STYLE DIRECTION: This is UGC (user-generated content) for TikTok/Instagram affiliate marketing. The photo should look like it was taken by the person themselves with a phone camera — natural, relatable, not professionally art-directed. Think content creator, not fashion magazine. Shot on smartphone, casual angle, slightly imperfect framing. The person is a real affiliate marketer or content creator reviewing/using a product in their daily life.
+
 Character: ${selectedChar.name}
 Character Identity: ${characterIdentity}
 Background: ${bgRich || "not specified"}
@@ -430,14 +432,14 @@ ${categoryInstruction}
 Respond ONLY with valid JSON:
 {
   "product_description": "Exact description of the product from the image — shape, color, packaging, label text if visible, size",
-  "scene_description": "Full scene description combining character + product + setting",
-  "character_action": "Specific action with the product matching the category direction above",
+  "scene_description": "Full scene description combining character + product + setting — must feel like UGC, not editorial",
+  "character_action": "Specific action with the product matching the category direction above — natural, not posed",
   "product_placement": "Exactly how the product appears — which hand holds it, position relative to face, angle of label",
-  "lighting": "Lighting setup that complements the scene — must have natural falloff, brighter near light sources, gradually darker in corners",
+  "lighting": "Natural lighting — phone camera HDR, daylight from windows, warm ambient. NOT studio lighting",
   "background": "Background/environment details — must feel like a REAL lived-in space, not a 3D render",
   "environment_details": "Specific lived-in details and imperfections in the environment that make it feel real — e.g. phone charger on nightstand, half-drunk glass of water, slightly wrinkled fabric, visible power outlet, a bag on a chair",
-  "camera": "Camera angle, distance, lens — use natural shallow depth of field",
-  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera, AND environment realism details. The product description must match the uploaded image precisely. Environment must look like a real photo, not CGI."
+  "camera": "Smartphone camera angle — selfie, tripod, or friend-holding-phone. Natural shallow depth of field",
+  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera, AND environment realism details. The photo must look like authentic UGC content shot on a phone by a content creator, NOT a professional photoshoot or stock photo."
 }
 
 ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D render. Include 2-3 small everyday objects or imperfections that make it feel lived-in (phone charger, half-drunk glass, slightly wrinkled fabric, visible power outlet). Use natural depth of field — background slightly blurred. No perfectly symmetrical rooms.`,
