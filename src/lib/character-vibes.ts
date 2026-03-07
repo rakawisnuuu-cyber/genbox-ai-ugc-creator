@@ -76,6 +76,9 @@ export const VIBE_PACKS: VibePack[] = [
       lighting: "studio softbox lighting, professional portrait setup",
       setting: "office environment or studio backdrop, clean professional",
       ageRange: "25-35",
+      imperfection: "perfect",
+      environment: "studio",
+      bodyType: "average",
     },
   },
   {
