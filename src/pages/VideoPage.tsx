@@ -495,6 +495,7 @@ Reference image is attached — match the person, outfit, environment, and light
 ${beatDescriptions}
 
 The person naturally transitions from the first action to the next within one take. No cuts, one flowing scene.
+Primary movement/action: ${frame.action.trim() || allBeats.map((b) => b.description).join("; ")}
 ${frame.dialogue.trim() ? `Dialog: '${frame.dialogue.trim()}'` : "No dialog."}
 Product: ${productDesc}
 The subject behaves like a TikTok content creator — spontaneous, casual, not posed.`,
