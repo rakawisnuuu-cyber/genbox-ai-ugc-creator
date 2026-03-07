@@ -137,13 +137,13 @@ const SHOT_CONFIGS: Record<ShotKey, { label: string; model: string; camera: stri
   },
   profile_3_4: {
     label: "3/4 Profile", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, shallow depth of field.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture, shallow depth of field.",
     framing: "Head and shoulders, turned 45 degrees to the right, looking slightly past camera. Expression is calm, natural, thoughtful. Background is a smooth soft grey studio gradient, same as hero shot.",
     icon: RotateCcw,
   },
   talking: {
     label: "Talking", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/1.8 aperture.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture.",
     framing: "Chest-up direct angle, making direct eye contact. Expression is mid-sentence, mouth slightly open, animated, conversational — like speaking to camera in a product review. Background is the same smooth soft grey studio gradient.",
     icon: Mic,
   },
@@ -155,13 +155,13 @@ const SHOT_CONFIGS: Record<ShotKey, { label: string; model: string; camera: stri
   },
   skin_detail: {
     label: "Skin Detail", model: "nano-banana-pro",
-    camera: "Shot on a full-frame mirrorless camera, 85mm portrait lens, f/1.8 aperture, extreme close-up, face fills entire frame.",
+    camera: "Shot on a full-frame mirrorless camera, 85mm portrait lens, f/2.4 aperture, extreme close-up, face fills entire frame.",
     framing: "Face filling the entire frame from forehead to chin. Direct calm gaze, neutral relaxed expression. Background is completely blurred out of focus. Focus on realistic skin texture, pore detail, natural skin quality.",
     icon: Search,
   },
   product_interaction: {
     label: "Product", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, sharp focus on face and hands.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture, sharp focus on face and hands.",
     framing: "Chest-up with hands visible in frame, holding a generic small product (bottle or box shape). Natural engaged expression, looking at product or toward camera. Background is the same smooth soft grey studio gradient.",
     icon: Hand,
   },
