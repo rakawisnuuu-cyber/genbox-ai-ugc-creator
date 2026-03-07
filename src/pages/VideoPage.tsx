@@ -265,6 +265,11 @@ const VideoPage = () => {
     setDetectingProduct(false);
   };
 
+  // Source image (standalone mode)
+  const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
+  const [sourcePreview, setSourcePreview] = useState<string | null>(navState?.sourceImage || null);
+  const [uploading, setUploading] = useState(false);
+
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplateKey>(
     navState?.template || "problem_solution"
