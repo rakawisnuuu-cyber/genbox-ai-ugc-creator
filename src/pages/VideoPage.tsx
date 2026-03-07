@@ -472,7 +472,7 @@ Output ONLY the script text.`;
     }
 
     const prevBeatDesc = idx > 0 ? beats[idx - 1]?.description : "";
-    const productDesc = navState?.productDNA?.product_description || navState?.productCategory || "consumer product";
+    const productDesc = productDNA?.product_description || navState?.productCategory || "consumer product";
     const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
     const isCombined = mergedBeats.length > 0;
 
