@@ -945,22 +945,34 @@ Content template: ${template?.label}`,
                       <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
                       <p className="text-[10px] text-destructive">{frame.errorMsg || "Gagal"}</p>
                     </div>
-                    <button
-                      onClick={() => generateFrame(idx)}
-                      className="text-xs py-2 px-4 rounded-lg bg-primary text-primary-foreground"
-                    >
-                      Coba Lagi
-                    </button>
+                    {anyGenerating ? (
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground p-2">
+                        <Lock className="h-3 w-3" /> Tunggu frame lain selesai...
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => generateFrame(idx)}
+                        className="text-xs py-2 px-4 rounded-lg bg-primary text-primary-foreground"
+                      >
+                        Coba Lagi
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <button
-                    onClick={() => generateFrame(idx)}
-                    disabled={batchGenerating}
-                    className="w-full text-xs py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-                  >
-                    <Film className="h-3.5 w-3.5" />
-                    Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
-                  </button>
+                  anyGenerating ? (
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground p-2 rounded-lg bg-muted/20">
+                      <Lock className="h-3 w-3" /> Tunggu frame sebelumnya selesai...
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => generateFrame(idx)}
+                      disabled={batchGenerating}
+                      className="w-full text-xs py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                    >
+                      <Film className="h-3.5 w-3.5" />
+                      Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
+                    </button>
+                  )
                 )}
               </div>
             )}
