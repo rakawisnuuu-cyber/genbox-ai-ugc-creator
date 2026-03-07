@@ -449,10 +449,27 @@ Output ONLY the script text.`,
     }
 
     const prevBeatDesc = idx > 0 ? beats[idx - 1]?.description : "";
-    const productDesc = navState?.productDna?.product_description || navState?.productCategory || "consumer product";
+    const productDesc = navState?.productDNA?.product_description || navState?.productCategory || "consumer product";
+    const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
+    const isCombined = mergedBeats.length > 0;
 
-    contentParts.push({
-      text: `Generate a video prompt for frame ${idx + 1} (${beat.label}) of a '${template?.label}' UGC video.
+    if (isCombined) {
+      const allBeats = [beat, ...mergedBeats];
+      const beatDescriptions = allBeats.map((b, i) => `Beat ${i + 1} (${b.storyRole}): ${b.description}`).join("\n");
+      contentParts.push({
+        text: `Create a single 8-second continuous video prompt covering ${allBeats.length} story beats in sequence for a '${template?.label}' UGC video.
+Reference image is attached — match the person, outfit, environment, and lighting exactly.
+
+${beatDescriptions}
+
+The person naturally transitions from the first action to the next within one take. No cuts, one flowing scene.
+${frame.dialogue.trim() ? `Dialog: '${frame.dialogue.trim()}'` : "No dialog."}
+Product: ${productDesc}
+The subject behaves like a TikTok content creator — spontaneous, casual, not posed.`,
+      });
+    } else {
+      contentParts.push({
+        text: `Generate a video prompt for frame ${idx + 1} (${beat.label}) of a '${template?.label}' UGC video.
 Reference image is attached — match the person, outfit, environment, and lighting exactly.
 Beat description: ${beat.description}
 ${frame.dialogue.trim() ? `Dialog to include: '${frame.dialogue.trim()}'` : "No dialog for this frame."}
@@ -461,7 +478,8 @@ ${idx > 0 ? `This frame follows frame ${idx} which showed: '${prevBeatDesc}'. Cr
 The subject behaves like a TikTok content creator — spontaneous, casual, not posed.
 Storyboard beat timing: ${beat.beat}
 Content template: ${template?.label}`,
-    });
+      });
+    }
 
     try {
       const json = await geminiFetch(promptModel, geminiKey!, {
