@@ -1087,6 +1087,31 @@ Content template: ${template?.label}`,
                     </button>
                   )
                 )}
+
+                {/* Combine with next frame link */}
+                {!isCombined && idx < frames.length - 1 && frames[idx + 1]?.mergedInto === null && !frames[idx + 1]?.mergedFrames.length && !frame.skipped && frame.status !== "generating" && (
+                  <button
+                    onClick={() => combineWithNext(idx)}
+                    className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors mt-1"
+                  >
+                    <Link2 className="h-3 w-3" /> Gabungkan dengan frame berikutnya ↓
+                  </button>
+                )}
+                {isCombined && canCombineMore && (() => {
+                  const lastMerged = frame.mergedFrames[frame.mergedFrames.length - 1];
+                  const nextAfterMerged = lastMerged + 1;
+                  if (nextAfterMerged < frames.length && frames[nextAfterMerged]?.mergedInto === null && !frames[nextAfterMerged]?.mergedFrames.length) {
+                    return (
+                      <button
+                        onClick={() => combineWithNext(idx)}
+                        className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                      >
+                        <Link2 className="h-3 w-3" /> Gabungkan frame berikutnya juga ↓
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
           </div>
