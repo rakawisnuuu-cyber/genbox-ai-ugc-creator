@@ -384,7 +384,7 @@ export default function CreateCharacterPage() {
 
       const geminiData = await geminiFetch(promptModel, geminiKey!, {
         systemInstruction: {
-          parts: [{ text: "You are an expert at writing hyper-specific physical descriptions of people for AI image generation. Your descriptions must be extremely detailed and specific to ensure visual consistency across multiple generated images." }],
+          parts: [{ text: "You are an expert at writing hyper-specific physical descriptions of people for AI image generation. Your descriptions must be extremely detailed and specific to ensure visual consistency across multiple generated images. HAIR GROOMING GUIDANCE: Always describe hair as casually groomed — brushed and shaped with controlled volume and natural movement, as if the person prepared before filming but didn't visit a salon. Avoid describing messy unbrushed hair AND also avoid editorial salon-perfect styling. Hair should signal 'presentable for camera.'" }],
         },
         contents: [{ parts: geminiParts }],
         generationConfig: genConfig,
