@@ -1066,116 +1066,182 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
               </button>
             </div>
 
-            {/* Multi-Angle Section */}
+            {/* Video Storyboard Section */}
             <div className="w-full border-t border-border pt-4 mt-2">
-              {/* Idle — no shots yet */}
-              {!multiAngleActive && shotStatuses.length === 0 && (
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-3">Video Storyboard</p>
+
+              {/* Template picker */}
+              {!storyboardActive && shotStatuses.length === 0 && (
                 <div className="space-y-3">
-                  <button
-                    onClick={generateMultiAngle}
-                    className="w-full border border-primary text-primary font-bold text-xs py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-                  >
-                    <Grid3X3 className="h-4 w-4" />
-                    Generate Multi-Angle (6 shots)
-                  </button>
-                  {productDNA && (
-                    <div className="grid grid-cols-3 gap-1">
-                      {currentAngles.map((a, i) => (
-                        <div key={i} className="text-[9px] text-muted-foreground/60 text-center truncate" title={a.description}>
-                          {a.label}
-                        </div>
-                      ))}
+                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+                    {CONTENT_TEMPLATES.map((t) => {
+                      const isSelected = storyboardTemplate === t.key;
+                      return (
+                        <button
+                          key={t.key}
+                          onClick={() => setStoryboardTemplate(t.key)}
+                          className={`shrink-0 text-left rounded-lg px-3 py-2 transition-all ${
+                            isSelected
+                              ? "bg-primary/10 border border-primary/30 ring-1 ring-primary/10"
+                              : "bg-muted/30 border border-border hover:border-muted-foreground/30"
+                          }`}
+                        >
+                          <p className={`text-[11px] font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{t.label}</p>
+                          <p className="text-[9px] text-muted-foreground line-clamp-1 max-w-[90px]">{t.desc}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Beat preview */}
+                  {storyboardTemplate && (
+                    <div className="space-y-2">
+                      <div className="flex gap-1.5 overflow-x-auto pb-1">
+                        {currentBeats.map((beat, i) => (
+                          <div key={i} className="shrink-0 w-[100px] border border-border rounded-lg p-2 bg-muted/10">
+                            <div className="flex items-center gap-1 mb-1">
+                              <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
+                                {beat.storyRole}
+                              </span>
+                            </div>
+                            <p className="text-[10px] font-semibold text-foreground">{beat.label}</p>
+                            <p className="text-[8px] text-muted-foreground/60">{beat.beat}</p>
+                            <p className="text-[8px] text-muted-foreground line-clamp-3 mt-1">{beat.description}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={generateStoryboard}
+                        className="w-full border border-primary text-primary font-bold text-xs py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        <Film className="h-4 w-4" />
+                        Generate Storyboard (5 shots ~Rp 2.400)
+                      </button>
+                      <p className="text-[10px] text-muted-foreground/60 text-center">5 API calls paralel • Base image sebagai referensi visual</p>
                     </div>
                   )}
-                  <p className="text-[10px] text-muted-foreground/60 text-center">6 API calls paralel = 6 shots individual • ~Rp 900-3000</p>
+
+                  {!storyboardTemplate && (
+                    <p className="text-[10px] text-muted-foreground/60 text-center">Pilih template video untuk generate storyboard</p>
+                  )}
                 </div>
               )}
 
-              {/* Active or completed — show shot grid */}
+              {/* Active or completed — horizontal timeline */}
               {shotStatuses.length > 0 && (
                 <div className="space-y-3">
-                  {/* Progress header */}
-                  {multiAngleActive && (
+                  {storyboardActive && (
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-muted-foreground">
-                        Generating 6 angles... <span className="text-primary font-bold">({completedShots}/6 selesai)</span>
+                        Generating storyboard... <span className="text-primary font-bold">({completedShots}/5 selesai)</span>
                       </p>
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] text-muted-foreground font-mono">
-                          {Math.floor(multiAngleElapsed / 60)}:{String(multiAngleElapsed % 60).padStart(2, "0")}
+                          {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
                         </span>
-                        <button onClick={cancelMultiAngle} className="text-[10px] text-destructive hover:underline">
+                        <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">
                           Cancel
                         </button>
                       </div>
                     </div>
                   )}
-                  {multiAngleDone && (
+                  {storyboardDone && (
                     <p className="text-xs text-muted-foreground text-center">
-                      ✅ {completedShots} selesai{failedShots > 0 ? ` • ❌ ${failedShots} gagal` : ""} — {multiAngleElapsed}s
+                      ✅ {completedShots} selesai{failedShots > 0 ? ` • ❌ ${failedShots} gagal` : ""} — {storyboardElapsed}s
                     </p>
                   )}
 
-                  {/* Shot grid */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {shotStatuses.map((shot, i) => (
-                      <div key={i} className="relative group">
-                        {shot.state === "completed" && shot.imageUrl ? (
-                          <>
-                            <img
-                              src={shot.imageUrl}
-                              alt={currentAngles[i]?.label || `Shot ${i + 1}`}
-                              className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
-                            />
-                            <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
-                              <a
-                                href={shot.imageUrl}
-                                download
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center"
-                              >
-                                <Download className="h-3.5 w-3.5" />
-                              </a>
-                              <span className="text-[9px] text-white/80">{currentAngles[i]?.label}</span>
-                              <span className="text-[8px] text-white/50">{currentAngles[i]?.storyRole}</span>
+                  {/* Timeline: Base + 5 beats */}
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {/* Base frame */}
+                    <div className="shrink-0 w-[90px]">
+                      <img
+                        src={resultUrl!}
+                        alt="Base"
+                        className="w-full aspect-[3/4] object-cover rounded-lg border-2 border-primary/30"
+                      />
+                      <p className="text-[9px] text-primary font-semibold text-center mt-1">Base</p>
+                      <p className="text-[8px] text-muted-foreground/60 text-center">Frame 0</p>
+                    </div>
+
+                    {/* Beat frames */}
+                    {shotStatuses.map((shot, i) => {
+                      const beat = currentBeats[i];
+                      return (
+                        <div key={i} className="shrink-0 w-[90px] relative group">
+                          {shot.state === "completed" && shot.imageUrl ? (
+                            <>
+                              <img
+                                src={shot.imageUrl}
+                                alt={beat?.label || `Frame ${i + 1}`}
+                                className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
+                              />
+                              <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                                  <Download className="h-3 w-3" />
+                                </a>
+                              </div>
+                              <div className="absolute top-1 right-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-400" /></div>
+                            </>
+                          ) : shot.state === "failed" ? (
+                            <div className="w-full aspect-[3/4] rounded-lg border border-destructive/30 bg-destructive/5 flex items-center justify-center">
+                              <XCircle className="h-4 w-4 text-destructive/60" />
                             </div>
-                            <div className="absolute top-1 right-1">
-                              <CheckCircle2 className="h-4 w-4 text-green-400" />
+                          ) : shot.state === "generating" ? (
+                            <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex items-center justify-center">
+                              <Loader2 className="h-4 w-4 text-primary animate-spin" />
                             </div>
-                          </>
-                        ) : shot.state === "failed" ? (
-                          <div className="w-full aspect-[3/4] rounded-lg border border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center gap-1">
-                            <XCircle className="h-5 w-5 text-destructive/60" />
-                            <span className="text-[8px] text-destructive/60 text-center px-1">{currentAngles[i]?.label}</span>
+                          ) : (
+                            <div className="w-full aspect-[3/4] rounded-lg border border-dashed border-border bg-muted/10 flex items-center justify-center">
+                              <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
+                            </div>
+                          )}
+                          <div className="mt-1 text-center">
+                            {beat && (
+                              <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
+                                {beat.storyRole}
+                              </span>
+                            )}
+                            <p className="text-[9px] text-foreground font-medium mt-0.5 truncate">{beat?.label || `Frame ${i + 1}`}</p>
+                            <p className="text-[7px] text-muted-foreground/60">{beat?.beat}</p>
                           </div>
-                        ) : shot.state === "generating" ? (
-                          <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center gap-2">
-                            <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                            <span className="text-[8px] text-muted-foreground text-center px-1">{currentAngles[i]?.label}</span>
-                          </div>
-                        ) : (
-                          <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/10 flex flex-col items-center justify-center gap-1">
-                            <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
-                            <span className="text-[8px] text-muted-foreground/40 text-center px-1">{currentAngles[i]?.label}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {multiAngleDone && (
-                    <>
+                  {storyboardDone && (
+                    <div className="space-y-2">
                       <p className="text-[10px] text-muted-foreground/60 text-center">
-                        Semua shot tersimpan di Gallery — bisa jadi Start Image di Buat Video
+                        Storyboard ini bisa langsung dijadikan video di Buat Video → pilih template yang sama
                       </p>
                       <button
-                        onClick={resetMultiAngle}
+                        onClick={() => {
+                          const storyboardImages = shotStatuses
+                            .filter((s) => s.state === "completed" && s.imageUrl)
+                            .map((s) => s.imageUrl!);
+                          navigate("/video", {
+                            state: {
+                              fromStoryboard: true,
+                              template: storyboardTemplate,
+                              storyboardImages,
+                              sourceImage: storyboardImages[0],
+                            },
+                          });
+                        }}
+                        className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+                      >
+                        <Play className="h-3.5 w-3.5" />
+                        Buat Video dari Storyboard →
+                      </button>
+                      <button
+                        onClick={resetStoryboard}
                         className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
                       >
                         <RefreshCw className="h-3 w-3" /> Generate lagi
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               )}
