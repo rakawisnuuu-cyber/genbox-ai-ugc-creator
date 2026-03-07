@@ -22,7 +22,8 @@ const ENV_SKINCARE: RichOption[] = [
 
 const ENV_FASHION: RichOption[] = [
   { label: "Walk-in Closet", description: "Spacious modern walk-in closet with warm wood shelving, soft recessed lighting, neatly organized clothing racks, full-length mirror with brass frame. One hanger slightly crooked on the rack, a pair of shoes not perfectly aligned on the shelf, a tote bag hanging from a hook on the door" },
-  { label: "Urban Street", description: "Clean urban sidewalk with soft overcast daylight, blurred city background with cafes and greenery, natural street photography feel. A parked bicycle partially visible at frame edge, a crumpled receipt near the curb, other pedestrians softly blurred in the background" },
+  { label: "Urban Street", description: "Busy city sidewalk with modern glass buildings, tropical street trees, warm humid overcast daylight, other pedestrians blurred in background, wide pedestrian path, natural street photography feel with real urban energy. A parked motorcycle partially visible at frame edge, a street vendor cart blurred in the distance, other pedestrians softly blurred walking past" },
+  { label: "Cafe Kekinian", description: "Trendy modern cafe with terrazzo or concrete tables, tropical plants as decor, neon signage on wall, iced drink on table, warm interior lighting mixed with window daylight, Instagram-worthy spot that feels authentic. Other customers blurred in background, a used napkin on the next table, condensation on iced drink glass, a phone charging cable on the table" },
   { label: "Coffee Shop", description: "Trendy industrial coffee shop interior with exposed brick, warm pendant lighting, wooden tables, large windows with natural light. Other customers blurred in background, a used napkin on the next table, condensation on an iced drink glass left behind, a laptop charger plugged into a wall outlet" },
   { label: "Mirror Studio", description: "Large floor-to-ceiling mirror in a bright minimal room, natural daylight from side windows, clean white or light gray walls. A small smudge on the mirror surface, tape marks on floor from previous photoshoot, a water bottle sitting on the floor near the wall" },
   { label: "Rooftop Golden Hour", description: "City rooftop terrace during golden hour, warm backlit glow, blurred skyline background, modern railing and potted plants. One potted plant with a slightly wilted leaf, a forgotten coffee cup on the ledge, some dried leaves collected in a corner near the railing" },
@@ -41,13 +42,13 @@ const ENV_ELECTRONICS: RichOption[] = [
   { label: "Sofa Casual", description: "Modern living room with comfortable gray sofa, soft ambient lighting, coffee table with a mug, relaxed casual tech-use environment. A throw blanket bunched up on one side of the sofa, a remote control between cushions, a pair of slippers on the floor nearby" },
   { label: "Commuter", description: "Public transit or airport lounge setting, modern seating, natural overhead lighting, person using device while traveling. A backpack leaning against the seat leg, earphone case on the armrest, a boarding pass or ticket peeking from a jacket pocket" },
   { label: "Studio Unboxing", description: "Clean tabletop with plain dark background, dramatic top-down key light, product packaging visible, YouTube-style unboxing setup. Packaging foam peanuts scattered near the box, a box cutter laid on the table, the shipping label partially peeled off" },
-  { label: "Outdoor Active", description: "Park bench or outdoor setting with natural daylight, trees blurred in background, casual on-the-go tech usage. A water bottle next to the person on the bench, fallen leaves near the bench legs, a jogger softly blurred passing in the background" },
+  { label: "Outdoor Active", description: "Outdoor seating area or park bench with tropical trees, warm natural daylight, casual on-the-go tech usage, urban background blurred. A water bottle next to the person on the bench, a motorcycle parked in the blurred background, other people walking past softly out of focus" },
 ];
 
 const ENV_HEALTH: RichOption[] = [
   { label: "Gym Locker", description: "Modern gym locker room with clean wooden bench, natural light from high windows, gym bag visible, post-workout energy feel. A slightly damp towel draped over the bench end, an open locker with shoes visible inside, a water bottle with condensation droplets" },
   { label: "Dapur Sehat", description: "Bright clean kitchen with fruits on counter, blender visible, morning sunlight, healthy lifestyle aesthetic. A banana peel near the blender base, a few drops of smoothie on the counter, a phone propped up showing a recipe" },
-  { label: "Jogging Path", description: "Scenic outdoor jogging path with morning mist, trees lining both sides, soft golden morning light, active lifestyle setting. A few fallen leaves on the path, another jogger blurred far in the distance, a park bench with a forgotten water bottle" },
+  { label: "Jogging Path", description: "City park jogging path with tropical trees, warm morning light, other joggers blurred in distance, wide paved path with greenery on sides. A few fallen leaves on the path, another jogger blurred far in the distance, a park bench with a forgotten water bottle" },
   { label: "Kamar Pagi Routine", description: "Minimal bright bedroom nightstand with water glass, supplements neatly arranged, morning light through window, daily habit feel. Phone on nightstand with alarm visible, slightly rumpled pillow behind, a book with a bookmark sticking out on the nightstand" },
   { label: "Yoga Studio", description: "Calm yoga studio with light wood floor, large windows, green plants, soft natural light, wellness and balance atmosphere. A yoga mat slightly unrolled at one corner, a water bottle and towel near the mat edge, natural scuff marks on the wooden floor" },
 ];
@@ -92,6 +93,8 @@ const POSE_SKINCARE: RichOption[] = [
   { label: "Selfie dengan Produk", description: "phone-angle selfie, one hand holding product" },
   { label: "Before Skincare", description: "looking at product curiously, about to start routine" },
   { label: "Showing Hasil", description: "touching face proudly, glowing skin result pose" },
+  { label: "Record Skincare Routine", description: "applying product while looking at phone camera propped on tripod or shelf, tutorial-style recording, natural bathroom lighting, phone screen visible in frame" },
+  { label: "Tunjukin Produk ke Kamera", description: "holding product next to face angled toward phone camera, close-up product showcase, one hand near face for scale, casual selfie grip on phone with other hand" },
 ];
 
 const POSE_FASHION: RichOption[] = [
@@ -100,6 +103,8 @@ const POSE_FASHION: RichOption[] = [
   { label: "Walking Confident", description: "mid-stride, natural movement, street style pose" },
   { label: "Detail Styling", description: "adjusting sleeve, collar, or accessory with one hand" },
   { label: "Sitting Casual", description: "seated cross-legged or on chair, relaxed showing outfit drape" },
+  { label: "Mirror Selfie OOTD", description: "classic mirror selfie with phone visible in hand, showing full outfit head to toe, typical OOTD content style, phone at chest level, natural mirror reflection" },
+  { label: "Tunjukin ke Kamera", description: "holding clothing item or accessory up toward camera at arm's length, excited expression, like showing haul to followers, slightly leaning forward with enthusiasm" },
 ];
 
 const POSE_FOOD: RichOption[] = [
@@ -108,6 +113,8 @@ const POSE_FOOD: RichOption[] = [
   { label: "Cooking Action", description: "stirring, pouring, plating in kitchen" },
   { label: "Cheers/Toast", description: "holding drink up, celebratory casual moment" },
   { label: "Taste Reaction", description: "mid-chew or just tasted, genuine satisfied expression" },
+  { label: "Foto Sebelum Makan", description: "phone held above food in typical overhead food photo pose, both hands visible framing the shot, looking down at food, classic Instagram food content moment" },
+  { label: "Nyobain Sambil Record", description: "eating or drinking while glancing at phone camera propped nearby, casual review moment, mid-chew with surprised happy expression, phone on small tripod visible" },
 ];
 
 const POSE_ELECTRONICS: RichOption[] = [
@@ -116,6 +123,8 @@ const POSE_ELECTRONICS: RichOption[] = [
   { label: "Casual Usage", description: "relaxed using device on couch or desk" },
   { label: "Size Comparison", description: "holding device next to hand, face, or another object for scale" },
   { label: "Feature Showcase", description: "pointing at specific feature, demonstrating functionality" },
+  { label: "Unboxing di Meja", description: "sitting at desk opening package, camera angle from front like recording unboxing video, packaging materials scattered, excited expression looking between product and camera" },
+  { label: "Tunjukin Fitur", description: "pointing at specific feature on device with index finger, phone propped up recording from front, tutorial pose, slightly leaning toward camera to show detail" },
 ];
 
 const POSE_HEALTH: RichOption[] = [
@@ -124,6 +133,8 @@ const POSE_HEALTH: RichOption[] = [
   { label: "Mixing/Preparing", description: "shaking bottle or mixing powder, preparation moment" },
   { label: "Taking Supplement", description: "about to drink or swallow, daily ritual moment" },
   { label: "Active Lifestyle", description: "outdoor or gym setting, product as part of active life" },
+  { label: "Selfie Pagi Routine", description: "morning selfie holding supplement with glass of water, bathroom or bedroom mirror visible behind, phone in one hand, natural just-woke-up energy" },
+  { label: "Gym Selfie", description: "gym mirror selfie post-workout, holding product in one hand, phone visible in other hand, slightly sweaty, workout clothes, gym equipment blurred in mirror reflection" },
 ];
 
 const POSE_HOME: RichOption[] = [
@@ -132,6 +143,8 @@ const POSE_HOME: RichOption[] = [
   { label: "Styling Placement", description: "arranging product in room, interior styling moment" },
   { label: "Before/After", description: "showing messy then organized space transformation" },
   { label: "Detail Touch", description: "touching material, opening drawer, showing craftsmanship" },
+  { label: "Before After Record", description: "standing next to product, phone on tripod visible in frame, gesturing like presenting in a video, enthusiastic expression, pointing at the product" },
+  { label: "Review Santai", description: "sitting on floor or sofa with product nearby, talking-to-camera casual angle, relaxed cross-legged position, hands gesturing naturally while explaining, phone propped at eye level" },
 ];
 
 const POSE_OTHER: RichOption[] = [
@@ -140,6 +153,8 @@ const POSE_OTHER: RichOption[] = [
   { label: "Menggunakan Produk", description: "actively using product in natural context" },
   { label: "Unboxing", description: "opening package, first impression reaction" },
   { label: "Review", description: "examining product closely, reviewer pose" },
+  { label: "Record Review", description: "sitting casually with product, phone on tripod recording from front, talking-to-camera angle, natural gesturing while explaining product" },
+  { label: "Tunjukin ke Kamera", description: "holding product up toward camera at arm's length, excited expression, like showing to followers, slightly leaning forward" },
 ];
 
 const POSE_MAP: Record<ProductCategory, RichOption[]> = {
