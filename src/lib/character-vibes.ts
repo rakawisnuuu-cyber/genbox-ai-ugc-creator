@@ -96,6 +96,9 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "city street, graffiti wall, urban environment",
       hairStyle: "Messy Textured",
       ageRange: "18-25",
+      imperfection: "natural",
+      environment: "outdoor_urban",
+      bodyType: "athletic",
     },
   },
   {
