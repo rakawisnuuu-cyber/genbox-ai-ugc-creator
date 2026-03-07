@@ -352,6 +352,8 @@ const VideoPage = () => {
           mergedInto: null,
           skipped: false,
           dialogue: getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory),
+          action: beat.description,
+          actionChips: getActionChips(beat.storyRole, productCategory),
           status: "idle",
           videoUrl: null,
           prompt: "",
