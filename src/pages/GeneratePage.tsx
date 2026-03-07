@@ -69,37 +69,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { CharacterData } from "@/components/CharacterCard";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useApiKeys } from "@/hooks/useApiKeys";
-import { usePromptModel } from "@/hooks/usePromptModel";
-import { useUpscale } from "@/hooks/useUpscale";
-import { useToast } from "@/hooks/use-toast";
-import UpscaleButton from "@/components/UpscaleButton";
-import GenerationLoading from "@/components/GenerationLoading";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import type { CharacterData } from "@/components/CharacterCard";
+
+
 
 /* ── GENBOX Realism Blocks ──────────────────────────────────── */
 const SKIN_BLOCK = "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
