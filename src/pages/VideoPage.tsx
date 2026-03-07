@@ -807,14 +807,31 @@ Content template: ${template?.label}`,
       {frames.map((frame, idx) => {
         const beat = beats[idx];
         if (!beat) return null;
+
+        // If this frame is merged into another, show collapsed indicator
+        if (frame.mergedInto !== null) {
+          return (
+            <div key={idx} className="border border-dashed border-border rounded-xl px-4 py-2 opacity-40 flex items-center gap-2">
+              <Link2 className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">
+                F{idx + 1} ({beat.label}) — digabungkan ke F{frame.mergedInto + 1}
+              </span>
+            </div>
+          );
+        }
+
         const roleColor = ROLE_COLORS[beat.storyRole] || "bg-muted text-muted-foreground";
         const modelInfo = MODEL_LABELS[frame.model];
+        const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
+        const isCombined = mergedBeats.length > 0;
+        const allBeatLabels = [beat, ...mergedBeats];
+        const canCombineMore = frame.mergedFrames.length + 1 < 3; // max 3
 
         return (
           <div
             key={idx}
             className={`border rounded-xl overflow-hidden transition-all ${
-              frame.skipped ? "opacity-40 border-border" : frame.status === "completed" ? "border-green-500/30 bg-green-500/5" : "border-border bg-card"
+              frame.skipped ? "opacity-40 border-border" : frame.status === "completed" ? "border-green-500/30 bg-green-500/5" : isCombined ? "border-primary/30 bg-primary/5" : "border-border bg-card"
             }`}
           >
             {/* Frame Header */}
@@ -823,15 +840,21 @@ Content template: ${template?.label}`,
               onClick={() => updateFrame(idx, { expanded: !frame.expanded })}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-bold text-foreground shrink-0">F{idx + 1}</span>
-                <span className="text-xs text-muted-foreground truncate">{beat.label}</span>
-                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${roleColor}`}>
-                  {beat.storyRole}
+                <span className="text-sm font-bold text-foreground shrink-0">
+                  {isCombined ? `F${idx + 1}+${frame.mergedFrames.map((m) => m + 1).join("+")}` : `F${idx + 1}`}
                 </span>
-                <span className="text-[9px] text-muted-foreground/60 shrink-0">{beat.beat}</span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {isCombined ? allBeatLabels.map((b) => b.label.split("—")[0].trim()).join(" + ") : beat.label}
+                </span>
+                {allBeatLabels.map((b, bi) => (
+                  <span key={bi} className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${ROLE_COLORS[b.storyRole] || roleColor}`}>
+                    {b.storyRole}
+                  </span>
+                ))}
                 {frame.status === "completed" && <span className="text-[9px] text-green-400 font-medium shrink-0">✓</span>}
                 {frame.status === "generating" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
                 {frame.status === "failed" && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
+                {isCombined && <Link2 className="h-3 w-3 text-primary shrink-0" />}
               </div>
               <div className="flex items-center gap-2">
                 {/* Skip toggle */}
@@ -850,8 +873,28 @@ Content template: ${template?.label}`,
             {/* Expanded content */}
             {frame.expanded && !frame.skipped && (
               <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-                {/* Beat description */}
-                <p className="text-[10px] text-muted-foreground italic">{beat.description}</p>
+                {/* Beat description(s) */}
+                {isCombined ? (
+                  <div className="space-y-1">
+                    {allBeatLabels.map((b, bi) => (
+                      <p key={bi} className="text-[10px] text-muted-foreground italic">
+                        <span className="font-medium text-foreground not-italic">{b.storyRole}:</span> {b.description}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground italic">{beat.description}</p>
+                )}
+
+                {/* Split button for combined frames */}
+                {isCombined && (
+                  <button
+                    onClick={() => splitFrame(idx)}
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Unlink className="h-3 w-3" /> Pisahkan kembali
+                  </button>
+                )}
 
                 {/* Source image */}
                 <div>
