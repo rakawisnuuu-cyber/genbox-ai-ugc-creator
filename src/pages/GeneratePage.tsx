@@ -1218,15 +1218,20 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
                       </p>
                       <button
                         onClick={() => {
-                          const storyboardImages = shotStatuses
+                          const storyboardImgs = shotStatuses
                             .filter((s) => s.state === "completed" && s.imageUrl)
                             .map((s) => s.imageUrl!);
                           navigate("/video", {
                             state: {
                               fromStoryboard: true,
                               template: storyboardTemplate,
-                              storyboardImages,
-                              sourceImage: storyboardImages[0],
+                              storyboardImages: storyboardImgs,
+                              sourceImage: resultUrl || storyboardImgs[0],
+                              baseImageUrl: resultUrl,
+                              productDNA: productDNA || null,
+                              productCategory: productDNA?.category || "other",
+                              characterId: selectedChar?.id?.startsWith("p") ? null : selectedChar?.id || null,
+                              characterIdentity: selectedChar?.identity_prompt || selectedChar?.description || null,
                             },
                           });
                         }}

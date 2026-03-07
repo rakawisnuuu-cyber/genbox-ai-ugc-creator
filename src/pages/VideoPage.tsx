@@ -2,13 +2,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
-import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
+import { generateVideoAndWait } from "@/lib/kie-video-generation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { usePromptModel } from "@/hooks/usePromptModel";
 import { useToast } from "@/hooks/use-toast";
-import { toast as sonnerToast } from "sonner";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,7 @@ import {
   getContentTemplate,
 } from "@/lib/content-templates";
 import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
-import { getRandomHooks, getRandomBodyScripts, BODY_SCRIPTS } from "@/lib/tiktok-hooks";
+import { getRandomHooks, getRandomBodyScripts } from "@/lib/tiktok-hooks";
 import {
   Upload,
   X,
@@ -30,10 +30,7 @@ import {
   RefreshCw,
   Loader2,
   Play,
-  SkipForward,
-  Volume2,
-  VolumeX,
-  Zap,
+  Lock,
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
@@ -501,14 +498,18 @@ Content template: ${template?.label}`,
   };
 
   // Computed
+  const anyGenerating = frames.some((f) => f.status === "generating");
   const activeFrames = frames.filter((f) => !f.skipped);
   const totalCost = activeFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
   const completedFrames = frames.filter((f) => f.status === "completed");
+  const skippedCount = frames.filter((f) => f.skipped).length;
+  const failedCount = frames.filter((f) => f.status === "failed").length;
   const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.status === "completed");
   const totalDuration = activeFrames.reduce((s, f) => {
     if (f.status !== "completed") return s;
     return s + (f.model === "grok" ? 10 : 8);
   }, 0);
+  const actualCost = completedFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
 
   // Sequential player
   const [playingAll, setPlayingAll] = useState(false);
@@ -940,22 +941,34 @@ Content template: ${template?.label}`,
                       <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
                       <p className="text-[10px] text-destructive">{frame.errorMsg || "Gagal"}</p>
                     </div>
-                    <button
-                      onClick={() => generateFrame(idx)}
-                      className="text-xs py-2 px-4 rounded-lg bg-primary text-primary-foreground"
-                    >
-                      Coba Lagi
-                    </button>
+                    {anyGenerating ? (
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground p-2">
+                        <Lock className="h-3 w-3" /> Tunggu frame lain selesai...
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => generateFrame(idx)}
+                        className="text-xs py-2 px-4 rounded-lg bg-primary text-primary-foreground"
+                      >
+                        Coba Lagi
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <button
-                    onClick={() => generateFrame(idx)}
-                    disabled={batchGenerating}
-                    className="w-full text-xs py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-                  >
-                    <Film className="h-3.5 w-3.5" />
-                    Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
-                  </button>
+                  anyGenerating ? (
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground p-2 rounded-lg bg-muted/20">
+                      <Lock className="h-3 w-3" /> Tunggu frame sebelumnya selesai...
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => generateFrame(idx)}
+                      disabled={batchGenerating}
+                      className="w-full text-xs py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                    >
+                      <Film className="h-3.5 w-3.5" />
+                      Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
+                    </button>
+                  )
                 )}
               </div>
             )}
@@ -977,13 +990,22 @@ Content template: ${template?.label}`,
           )}
         </div>
 
-        {batchGenerating && (
+        {batchGenerating && batchCurrentFrame >= 0 && (
           <div className="space-y-1.5">
             <p className="text-[11px] text-muted-foreground">
-              Generating Frame {batchCurrentFrame + 1}/5...
+              Generating Frame {batchCurrentFrame + 1}/{activeFrames.length} — {beats[batchCurrentFrame]?.storyRole}... ({formatTime(frames[batchCurrentFrame]?.elapsed || 0)})
             </p>
             <Progress value={(completedFrames.length / activeFrames.length) * 100} className="h-1.5" />
           </div>
+        )}
+
+        {!batchGenerating && completedFrames.length > 0 && (
+          <p className="text-[10px] text-muted-foreground">
+            {completedFrames.length}/{frames.length} selesai ✓
+            {skippedCount > 0 ? ` · ${skippedCount} di-skip` : ""}
+            {failedCount > 0 ? ` · ${failedCount} gagal` : ""}
+            {` · ${formatRupiah(actualCost)} total`}
+          </p>
         )}
 
         <button

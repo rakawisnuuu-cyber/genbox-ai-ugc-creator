@@ -1,6 +1,6 @@
 /**
  * Frame Lock Video Director — shared system instructions for all video prompt enhancement.
- * Used by VideoPage (quick mode), MultiShotCreator (per-module), and useMultiShotGeneration (batch).
+ * Used by VideoPage (storyboard-driven frame-by-frame generation).
  */
 
 export type VideoModelType = "grok" | "veo_fast" | "veo_quality";
