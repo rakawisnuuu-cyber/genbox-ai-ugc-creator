@@ -502,14 +502,18 @@ Content template: ${template?.label}`,
   };
 
   // Computed
+  const anyGenerating = frames.some((f) => f.status === "generating");
   const activeFrames = frames.filter((f) => !f.skipped);
   const totalCost = activeFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
   const completedFrames = frames.filter((f) => f.status === "completed");
+  const skippedCount = frames.filter((f) => f.skipped).length;
+  const failedCount = frames.filter((f) => f.status === "failed").length;
   const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.status === "completed");
   const totalDuration = activeFrames.reduce((s, f) => {
     if (f.status !== "completed") return s;
     return s + (f.model === "grok" ? 10 : 8);
   }, 0);
+  const actualCost = completedFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
 
   // Sequential player
   const [playingAll, setPlayingAll] = useState(false);
