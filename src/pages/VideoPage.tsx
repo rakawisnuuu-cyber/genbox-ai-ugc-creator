@@ -18,6 +18,7 @@ import {
   CONTENT_TEMPLATES,
   type ContentTemplateKey,
   getContentTemplate,
+  isRecommendedForCategory,
 } from "@/lib/content-templates";
 import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
 import { getRandomHooks, getRandomBodyScripts } from "@/lib/tiktok-hooks";
@@ -197,13 +198,72 @@ const VideoPage = () => {
   // Navigation state from storyboard
   const navState = location.state as any;
   const fromStoryboard = navState?.fromStoryboard === true;
-  const productCategory: string = navState?.productCategory || navState?.productDna?.category || navState?.productDNA?.category || "other";
-  const productDNA = navState?.productDNA || navState?.productDna || null;
-  const productContextLine = productDNA
-    ? `Product: ${productDNA.product_description || productDNA.category || "consumer product"} (category: ${productDNA.category || "other"}/${productDNA.sub_category || "general"}). Dialog and prompt MUST reference THIS specific product only. Do NOT mention other product types.`
-    : navState?.productCategory
-      ? `Product category: ${navState.productCategory}. Reference this product type specifically.`
+
+  // ─── First-class product info state ───
+  interface ProductInfo {
+    category: string;
+    sub_category: string;
+    product_description: string;
+  }
+  const [productInfo, setProductInfo] = useState<ProductInfo>({
+    category: "",
+    sub_category: "",
+    product_description: "",
+  });
+  const [detectingProduct, setDetectingProduct] = useState(false);
+
+  // Load productInfo from storyboard navigation state
+  useEffect(() => {
+    const dna = navState?.productDNA || navState?.productDna;
+    if (dna && (dna.category || dna.product_description)) {
+      setProductInfo({
+        category: dna.category || "",
+        sub_category: dna.sub_category || "",
+        product_description: dna.product_description || "",
+      });
+    } else if (navState?.productCategory) {
+      setProductInfo((prev) => ({ ...prev, category: navState.productCategory }));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Derived values from productInfo
+  const productCategory = productInfo.category || "other";
+  const productContextLine = productInfo.product_description
+    ? `Product: ${productInfo.product_description} (category: ${productInfo.category || "other"}/${productInfo.sub_category || "general"}). Dialog and prompt MUST reference THIS specific product only. Do NOT mention other product types.`
+    : productInfo.category
+      ? `Product category: ${productInfo.category}. Reference this product type specifically.`
       : "";
+
+  /** Auto-detect product from image via Gemini */
+  const detectProductFromImage = async (imageUrl: string) => {
+    if (!geminiKey || keys.gemini.status !== "valid") return;
+    setDetectingProduct(true);
+    try {
+      const b64 = await imageUrlToBase64(imageUrl);
+      if (!b64) { setDetectingProduct(false); return; }
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: b64.mimeType, data: b64.data } },
+            { text: `What product is in this image? Return JSON only, no explanation: { "category": "skincare|fashion|food|electronics|health|home|other", "sub_category": "specific type like kebaya, face serum, sneakers", "product_description": "detailed visual description of the product" }` },
+          ],
+        }],
+      });
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed.category || parsed.product_description) {
+        setProductInfo({
+          category: (parsed.category || "other").toLowerCase(),
+          sub_category: parsed.sub_category || "",
+          product_description: parsed.product_description || "",
+        });
+      }
+    } catch (e) {
+      console.error("Product detection failed:", e);
+    }
+    setDetectingProduct(false);
+  };
 
   // Source image (standalone mode)
   const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
@@ -393,6 +453,10 @@ const VideoPage = () => {
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
     setSourceUrl(urlData.publicUrl);
     setUploading(false);
+    // Auto-detect product if no productInfo yet
+    if (!productInfo.product_description) {
+      detectProductFromImage(urlData.publicUrl);
+    }
   };
 
   // Generate script AI per frame
@@ -481,7 +545,7 @@ Output ONLY the script text.`;
     }
 
     const prevBeatDesc = idx > 0 ? beats[idx - 1]?.description : "";
-    const productDesc = productDNA?.product_description || navState?.productCategory || "consumer product";
+    const productDesc = productInfo.product_description || productInfo.category || "consumer product";
     const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
     const isCombined = mergedBeats.length > 0;
 
@@ -720,7 +784,11 @@ Content template: ${template?.label}`,
                     {galleryImages.slice(0, 12).map((img) => (
                       <button
                         key={img.id}
-                        onClick={() => { setSourcePreview(img.image_url); setSourceUrl(img.image_url); }}
+                        onClick={() => {
+                          setSourcePreview(img.image_url);
+                          setSourceUrl(img.image_url);
+                          if (!productInfo.product_description) detectProductFromImage(img.image_url);
+                        }}
                         className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
                       >
                         <img src={img.image_url} alt="" className="w-full h-full object-cover" />
@@ -749,22 +817,56 @@ Content template: ${template?.label}`,
           )}
         </div>
 
+        {/* Product Detection Banner */}
+        {(productInfo.product_description || detectingProduct) && (
+          <div className={`rounded-xl px-4 py-2.5 border text-[11px] flex items-center gap-2 ${
+            detectingProduct
+              ? "bg-muted/30 border-border text-muted-foreground"
+              : "bg-primary/5 border-primary/20 text-foreground"
+          }`}>
+            {detectingProduct ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                <span>Mendeteksi produk...</span>
+              </>
+            ) : (
+              <>
+                <span>🏷️</span>
+                <span>
+                  <span className="font-medium">Produk:</span> {productInfo.product_description}
+                  {productInfo.category && (
+                    <span className="text-muted-foreground"> ({productInfo.category}/{productInfo.sub_category || "general"})</span>
+                  )}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
         {/* Template Selector */}
         <div>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Template Konten</label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {CONTENT_TEMPLATES.map((t) => {
               const isSelected = selectedTemplate === t.key;
+              const isRecommended = productInfo.category ? isRecommendedForCategory(t, productInfo.category) : false;
               return (
                 <button
                   key={t.key}
                   onClick={() => setSelectedTemplate(t.key)}
-                  className={`text-left rounded-xl p-3 transition-all ${
+                  className={`text-left rounded-xl p-3 transition-all relative ${
                     isSelected
                       ? "border-2 border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : "border border-border bg-card hover:border-muted-foreground/30"
+                      : isRecommended
+                        ? "border border-primary/40 bg-primary/5 hover:border-primary/60"
+                        : "border border-border bg-card hover:border-muted-foreground/30"
                   }`}
                 >
+                  {isRecommended && !isSelected && (
+                    <span className="absolute -top-1.5 -right-1.5 text-[7px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+                      ✦ REC
+                    </span>
+                  )}
                   <p className="text-[11px] font-bold text-foreground">{t.label}</p>
                   <p className="text-[9px] text-muted-foreground line-clamp-2 mt-0.5">{t.desc}</p>
                 </button>
@@ -842,7 +944,15 @@ Content template: ${template?.label}`,
         </button>
       </div>
 
-      {/* Model Recommendation Banner */}
+      {/* Product Info Banner (compact) */}
+      {productInfo.product_description && (
+        <div className="rounded-xl px-4 py-2 border border-primary/20 bg-primary/5 text-[11px] flex items-center gap-2">
+          <span>🏷️</span>
+          <span className="font-medium text-foreground">{productInfo.product_description}</span>
+          <span className="text-muted-foreground">({productInfo.category}/{productInfo.sub_category || "general"})</span>
+        </div>
+      )}
+
       <div className={`rounded-xl px-4 py-3 border text-[11px] ${
         modelRec.variant === "dialog"
           ? "bg-blue-500/5 border-blue-500/20 text-blue-400"
