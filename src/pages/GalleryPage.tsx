@@ -180,6 +180,13 @@ const GalleryPage = () => {
                       <Play className="w-5 h-5 text-black ml-0.5" fill="black" />
                     </div>
                   </div>
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/20 hover:bg-destructive/40 text-destructive rounded-lg p-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                   {/* VIDEO badge */}
                   <div className="absolute top-2 left-2">
                     <span className="text-[10px] font-bold bg-primary/90 text-primary-foreground px-2 py-0.5 rounded-full">VIDEO</span>
