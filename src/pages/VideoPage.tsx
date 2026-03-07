@@ -45,6 +45,8 @@ type FrameStatus = "idle" | "generating" | "completed" | "failed";
 interface FrameState {
   sourceImageUrl: string | null;
   dialogue: string;
+  action: string;
+  actionChips: string[];
   prompt: string;
   model: VideoModel;
   skipped: boolean;
