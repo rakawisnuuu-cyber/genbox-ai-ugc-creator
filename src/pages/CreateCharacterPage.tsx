@@ -280,6 +280,11 @@ export default function CreateCharacterPage() {
   const [zoomedShot, setZoomedShot] = useState<{url: string, label: string} | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Hero-first: store identity data for later variation generation
+  const [identityData, setIdentityData] = useState<{ identityBlock: string; consistencyAnchors: string[]; advancedContext: string } | null>(null);
+  const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
+  const [generatingSingleShot, setGeneratingSingleShot] = useState<ShotKey | null>(null);
+
   // Reference photo state
   const [refPreview, setRefPreview] = useState<string | null>(null);
   const [refUrl, setRefUrl] = useState<string | null>(null);
