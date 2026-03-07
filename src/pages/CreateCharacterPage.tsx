@@ -996,7 +996,7 @@ export default function CreateCharacterPage() {
               </Button>
             </div>
           ) : (
-            <Button onClick={handleGenerate} disabled={isGenerating || (mode === "simple" && !selectedVibe)} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
+            <Button onClick={handleGenerate} disabled={isGenerating} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
               {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter (~Rp 1.600)"}
             </Button>
           )}
