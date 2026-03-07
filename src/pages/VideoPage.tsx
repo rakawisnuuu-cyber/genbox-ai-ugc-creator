@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { usePromptModel } from "@/hooks/usePromptModel";
 import { useToast } from "@/hooks/use-toast";
-import { toast as sonnerToast } from "sonner";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
