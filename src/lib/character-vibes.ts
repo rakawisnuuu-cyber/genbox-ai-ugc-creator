@@ -8,6 +8,8 @@ export interface VibePackConfig {
   hairStyle?: string;
   ageRange?: string;
   bodyType?: string;
+  imperfection?: string;
+  environment?: string;
 }
 
 export interface VibePack {
@@ -35,6 +37,9 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "lifestyle indoor, cozy warm environment",
       hairStyle: "Hijab Modern",
       ageRange: "20-28",
+      imperfection: "natural",
+      environment: "indoor_home",
+      bodyType: "average",
     },
   },
   {
@@ -52,6 +57,9 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "clean minimalist interior, neutral tones",
       hairStyle: "Lurus Panjang",
       ageRange: "20-28",
+      imperfection: "natural",
+      environment: "simple",
+      bodyType: "petite",
     },
   },
   {
@@ -68,6 +76,9 @@ export const VIBE_PACKS: VibePack[] = [
       lighting: "studio softbox lighting, professional portrait setup",
       setting: "office environment or studio backdrop, clean professional",
       ageRange: "25-35",
+      imperfection: "perfect",
+      environment: "studio",
+      bodyType: "average",
     },
   },
   {
@@ -85,6 +96,9 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "city street, graffiti wall, urban environment",
       hairStyle: "Messy Textured",
       ageRange: "18-25",
+      imperfection: "natural",
+      environment: "outdoor_urban",
+      bodyType: "athletic",
     },
   },
   {
@@ -101,6 +115,9 @@ export const VIBE_PACKS: VibePack[] = [
       lighting: "window light, soft diffused, slightly warm",
       setting: "minimalist interior, clean space, neutral palette room",
       ageRange: "20-30",
+      imperfection: "natural",
+      environment: "simple",
+      bodyType: "petite",
     },
   },
   {
@@ -118,7 +135,9 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "home environment — kitchen, living room, or cozy interior",
       hairStyle: "Ponytail Rapi",
       ageRange: "28-38",
-      bodyType: "Average/Medium",
+      bodyType: "average",
+      imperfection: "natural",
+      environment: "indoor_home",
     },
   },
 ];
