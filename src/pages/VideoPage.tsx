@@ -198,18 +198,72 @@ const VideoPage = () => {
   // Navigation state from storyboard
   const navState = location.state as any;
   const fromStoryboard = navState?.fromStoryboard === true;
-  const productCategory: string = navState?.productCategory || navState?.productDna?.category || navState?.productDNA?.category || "other";
-  const productDNA = navState?.productDNA || navState?.productDna || null;
-  const productContextLine = productDNA
-    ? `Product: ${productDNA.product_description || productDNA.category || "consumer product"} (category: ${productDNA.category || "other"}/${productDNA.sub_category || "general"}). Dialog and prompt MUST reference THIS specific product only. Do NOT mention other product types.`
-    : navState?.productCategory
-      ? `Product category: ${navState.productCategory}. Reference this product type specifically.`
+
+  // ─── First-class product info state ───
+  interface ProductInfo {
+    category: string;
+    sub_category: string;
+    product_description: string;
+  }
+  const [productInfo, setProductInfo] = useState<ProductInfo>({
+    category: "",
+    sub_category: "",
+    product_description: "",
+  });
+  const [detectingProduct, setDetectingProduct] = useState(false);
+
+  // Load productInfo from storyboard navigation state
+  useEffect(() => {
+    const dna = navState?.productDNA || navState?.productDna;
+    if (dna && (dna.category || dna.product_description)) {
+      setProductInfo({
+        category: dna.category || "",
+        sub_category: dna.sub_category || "",
+        product_description: dna.product_description || "",
+      });
+    } else if (navState?.productCategory) {
+      setProductInfo((prev) => ({ ...prev, category: navState.productCategory }));
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Derived values from productInfo
+  const productCategory = productInfo.category || "other";
+  const productContextLine = productInfo.product_description
+    ? `Product: ${productInfo.product_description} (category: ${productInfo.category || "other"}/${productInfo.sub_category || "general"}). Dialog and prompt MUST reference THIS specific product only. Do NOT mention other product types.`
+    : productInfo.category
+      ? `Product category: ${productInfo.category}. Reference this product type specifically.`
       : "";
 
-  // Source image (standalone mode)
-  const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
-  const [sourcePreview, setSourcePreview] = useState<string | null>(navState?.sourceImage || null);
-  const [uploading, setUploading] = useState(false);
+  /** Auto-detect product from image via Gemini */
+  const detectProductFromImage = async (imageUrl: string) => {
+    if (!geminiKey || keys.gemini.status !== "valid") return;
+    setDetectingProduct(true);
+    try {
+      const b64 = await imageUrlToBase64(imageUrl);
+      if (!b64) { setDetectingProduct(false); return; }
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: b64.mimeType, data: b64.data } },
+            { text: `What product is in this image? Return JSON only, no explanation: { "category": "skincare|fashion|food|electronics|health|home|other", "sub_category": "specific type like kebaya, face serum, sneakers", "product_description": "detailed visual description of the product" }` },
+          ],
+        }],
+      });
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+      if (parsed.category || parsed.product_description) {
+        setProductInfo({
+          category: (parsed.category || "other").toLowerCase(),
+          sub_category: parsed.sub_category || "",
+          product_description: parsed.product_description || "",
+        });
+      }
+    } catch (e) {
+      console.error("Product detection failed:", e);
+    }
+    setDetectingProduct(false);
+  };
 
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplateKey>(
