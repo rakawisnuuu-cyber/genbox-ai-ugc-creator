@@ -191,6 +191,7 @@ const VideoPage = () => {
   // Navigation state from storyboard
   const navState = location.state as any;
   const fromStoryboard = navState?.fromStoryboard === true;
+  const productCategory: string = navState?.productCategory || navState?.productDna?.category || "other";
 
   // Source image (standalone mode)
   const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
@@ -223,6 +224,7 @@ const VideoPage = () => {
 
   const beats = getStoryboardBeats(selectedTemplate);
   const storyboardImages: string[] = navState?.storyboardImages || [];
+  const modelRec = getModelRecommendation(selectedTemplate);
 
   // Load gallery
   useEffect(() => {
