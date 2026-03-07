@@ -37,6 +37,9 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "lifestyle indoor, cozy warm environment",
       hairStyle: "Hijab Modern",
       ageRange: "20-28",
+      imperfection: "natural",
+      environment: "indoor_home",
+      bodyType: "average",
     },
   },
   {
