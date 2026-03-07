@@ -606,6 +606,18 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything else — room, clothing, accessories, hair, lighting direction, color palette — must remain identical to the base image.`
       : "";
 
+    // Convert base image to base64 once for Gemini vision
+    let baseImageBase64 = "";
+    try {
+      baseImageBase64 = await imageUrlToBase64(resultUrl);
+      console.log("[storyboard] Base image converted to base64 for Gemini vision");
+    } catch (e) {
+      console.warn("[storyboard] Failed to convert base image to base64, falling back to text-only", e);
+    }
+
+    // Track completed frame URLs for chaining into subsequent Kie AI calls
+    const completedFrameUrls: (string | null)[] = beats.map(() => null);
+
     const generateSingleBeat = async (beat: StoryboardBeat, idx: number) => {
       try {
         setShotStatuses((prev) => {
@@ -618,13 +630,26 @@ Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything 
         let beatPrompt: string;
 
         try {
-          const promptResult = await geminiFetch(promptModel, geminiKey!, {
-            contents: [{ parts: [{ text: `You are a UGC storyboard prompt expert. Create a SINGLE image prompt for this narrative beat.
+          // Build Gemini parts: base image (vision) + text prompt
+          const geminiParts: any[] = [];
+
+          // Include base image as inlineData so Gemini can SEE it
+          if (baseImageBase64) {
+            geminiParts.push({
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: baseImageBase64,
+              },
+            });
+          }
+
+          geminiParts.push({ text: `You are a UGC storyboard prompt expert. Create a SINGLE image prompt for this narrative beat.
+
+THIS IS THE BASE IMAGE (attached above). Your prompt MUST match this EXACT person, outfit, room, and product. Study every detail: face shape, skin tone, hair style/color, clothing colors and patterns, accessories, room layout, furniture, wall color, lighting direction, product shape and packaging.
 
 ${consistencyLock}
 
 This is storyboard frame ${idx + 1}/5 for a '${templateObj?.label || storyboardTemplate}' video.
-The base image (Frame 0) is the visual reference — match its person, outfit, environment, and lighting exactly.
 ${prevBeat ? `Previous beat was: '${prevBeat.label}' — ${prevBeat.description}` : "This is the first storyboard frame after the base image."}
 This frame should feel like the natural next moment in the sequence.
 
@@ -641,15 +666,20 @@ ${consistencyBlock}
 ADAPT the beat action to this specific product type. For example, 'Demo' with skincare means applying serum on cheek, with fashion means trying on the item, with electronics means pressing buttons and showing screen. The narrative beat stays the same, the specific product interaction changes.
 
 RULES:
-- Show the EXACT same person as in the base image
+- Describe the EXACT same person you see in the attached base image — same face, skin, hair, body type
+- Describe the EXACT same outfit, accessories, and jewelry
+- Describe the EXACT same room/environment and lighting
 - Show the EXACT same product
-- Match base image environment, outfit, and lighting exactly
+- Only the POSE, EXPRESSION, and PRODUCT INTERACTION change
 - ${SKIN_BLOCK}
 - ${UGC_STYLE_BLOCK}
 - ${QUALITY_BLOCK}
 - ${NEGATIVE_BLOCK}
 
-Output ONLY the final prompt text, no JSON, no explanation.` }] }],
+Output ONLY the final prompt text, no JSON, no explanation.` });
+
+          const promptResult = await geminiFetch(promptModel, geminiKey!, {
+            contents: [{ parts: geminiParts }],
           });
           beatPrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
         } catch {
@@ -658,16 +688,27 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
 
         if (storyboardAbortRef.current) throw new Error("Cancelled");
 
+        // Build image inputs: base image + previous frame (if exists) + product image
+        // Max 3 images, no character hero/reference — base image already has the character
+        const frameImages: string[] = [resultUrl];
+        // Chain previous completed frame for visual continuity
+        const prevFrameUrl = idx > 0 ? completedFrameUrls[idx - 1] : null;
+        if (prevFrameUrl) frameImages.push(prevFrameUrl);
+        if (productUrl && frameImages.length < 3) frameImages.push(productUrl);
+
         const imageUrl = await generateKieImage(
           kieApiKey!,
           beatPrompt,
-          sharedImages,
+          frameImages.slice(0, 3),
           () => storyboardAbortRef.current,
         );
 
         const path = `${user!.id}/storyboard/${Date.now()}_${idx}.jpg`;
         await supabase.storage.from("product-images").upload(path, await (await fetch(imageUrl)).blob(), { contentType: "image/jpeg" });
         const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+
+        // Store completed URL for chaining
+        completedFrameUrls[idx] = urlData.publicUrl;
 
         await supabase.from("generations").insert({
           user_id: user!.id,
@@ -703,8 +744,15 @@ Output ONLY the final prompt text, no JSON, no explanation.` }] }],
       }
     };
 
-    // Run all 5 in parallel
-    await Promise.allSettled(beats.map((beat, idx) => generateSingleBeat(beat, idx)));
+    // Sequential generation with 2s delay between frames (avoid rate limits)
+    for (let i = 0; i < beats.length; i++) {
+      if (storyboardAbortRef.current) break;
+      await generateSingleBeat(beats[i], i);
+      // 2 second delay between frames to avoid Kie AI rate limiting
+      if (i < beats.length - 1 && !storyboardAbortRef.current) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
 
     if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
     setStoryboardActive(false);
