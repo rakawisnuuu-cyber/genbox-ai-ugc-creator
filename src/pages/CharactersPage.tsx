@@ -164,6 +164,10 @@ const CharactersPage = () => {
           setSelected(null);
           handleUse(c);
         }}
+        onDelete={(c) => {
+          setSelected(null);
+          handleDelete(c);
+        }}
       />
     </div>
   );
