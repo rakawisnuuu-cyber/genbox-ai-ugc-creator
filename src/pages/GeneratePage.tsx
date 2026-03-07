@@ -18,6 +18,8 @@ import {
   findOption,
   type RichOption,
 } from "@/lib/category-options";
+import { CONTENT_TEMPLATES, type ContentTemplateKey } from "@/lib/content-templates";
+import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
 import {
   Upload,
   X,
@@ -30,11 +32,43 @@ import {
   UserCircle,
   Loader2,
   Link as LinkIcon,
-  Grid3X3,
+  Film,
   ScanSearch,
   CheckCircle2,
   XCircle,
+  Play,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useApiKeys } from "@/hooks/useApiKeys";
+import { usePromptModel } from "@/hooks/usePromptModel";
+import { useUpscale } from "@/hooks/useUpscale";
+import { useToast } from "@/hooks/use-toast";
+import UpscaleButton from "@/components/UpscaleButton";
+import GenerationLoading from "@/components/GenerationLoading";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectGroup,
+  SelectLabel,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import type { CharacterData } from "@/components/CharacterCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
