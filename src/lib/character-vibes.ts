@@ -115,6 +115,9 @@ export const VIBE_PACKS: VibePack[] = [
       lighting: "window light, soft diffused, slightly warm",
       setting: "minimalist interior, clean space, neutral palette room",
       ageRange: "20-30",
+      imperfection: "natural",
+      environment: "simple",
+      bodyType: "petite",
     },
   },
   {
