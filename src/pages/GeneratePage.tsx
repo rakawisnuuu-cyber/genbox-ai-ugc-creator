@@ -259,8 +259,7 @@ const GeneratePage = () => {
   const storyboardAbortRef = useRef(false);
 
   // Navigation blocker: warn on browser close/refresh
-  const isGenerating = genState === "loading" || multiAngleActive;
-  const [showNavWarning, setShowNavWarning] = useState(false);
+  const isGenerating = genState === "loading" || storyboardActive;
 
   useEffect(() => {
     if (!isGenerating) return;
