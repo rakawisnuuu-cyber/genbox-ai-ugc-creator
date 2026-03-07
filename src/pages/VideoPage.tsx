@@ -390,21 +390,36 @@ const VideoPage = () => {
     const beat = beats[idx];
     const template = getContentTemplate(selectedTemplate);
     const prevDialog = idx > 0 ? frames[idx - 1]?.dialogue : "";
+    const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
+    const isCombined = mergedBeats.length > 0;
 
     updateFrame(idx, { dialogue: "..." });
     try {
-      const json = await geminiFetch(promptModel, geminiKey!, {
-        systemInstruction: {
-          parts: [{
-            text: `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
+      let systemText: string;
+      let contentText: string;
+
+      if (isCombined) {
+        const allBeats = [beat, ...mergedBeats];
+        const beatDescList = allBeats.map((b) => `'${b.label}' — ${b.description}`).join(", then naturally flowing into ");
+        systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
+Write a 2-3 sentence TikTok dialog covering ${allBeats.length} story beats in sequence: first ${beatDescList}.
+The dialog should transition smoothly between all beats in one natural spoken flow.
+Keep it under 30 words total, casual Indonesian.
+Output ONLY the script text.`;
+        contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
+      } else {
+        systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 Write a 1-2 sentence TikTok dialog in casual Indonesian for the '${beat.label}' part of a '${template?.label}' video.
 Previous frame's dialog was: '${prevDialog}'.
 This should flow naturally as the next thing the person would say.
 Keep it under 20 words, punchy and natural.
-Output ONLY the script text.`,
-          }],
-        },
-        contents: [{ parts: [{ text: `Beat: ${beat.storyRole} — ${beat.description}` }] }],
+Output ONLY the script text.`;
+        contentText = `Beat: ${beat.storyRole} — ${beat.description}`;
+      }
+
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        systemInstruction: { parts: [{ text: systemText }] },
+        contents: [{ parts: [{ text: contentText }] }],
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       updateFrame(idx, { dialogue: text || frame.dialogue });
