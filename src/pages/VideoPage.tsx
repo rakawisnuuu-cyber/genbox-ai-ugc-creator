@@ -80,6 +80,84 @@ const ROLE_COLORS: Record<string, string> = {
   Convert: "bg-amber-500/20 text-amber-400 border-amber-500/30",
 };
 
+/** Templates with heavy dialog → recommend Veo all */
+const DIALOG_HEAVY_TEMPLATES: ContentTemplateKey[] = ["problem_solution", "review_jujur", "quick_haul"];
+/** Templates mostly visual → mixed recommendation */
+const VISUAL_HEAVY_TEMPLATES: ContentTemplateKey[] = ["asmr_aesthetic", "pov_style"];
+
+function getModelRecommendation(template: ContentTemplateKey): { text: string; variant: "dialog" | "visual" | "hemat" } {
+  if (DIALOG_HEAVY_TEMPLATES.includes(template)) {
+    return {
+      text: "Rekomendasi: Veo Fast untuk semua frame (audio + lip sync) — ~Rp 24.000 total",
+      variant: "dialog",
+    };
+  }
+  if (VISUAL_HEAVY_TEMPLATES.includes(template)) {
+    return {
+      text: "Rekomendasi: Grok untuk frame tanpa dialog, Veo untuk frame dengan dialog — ~Rp 12.000 total",
+      variant: "visual",
+    };
+  }
+  return {
+    text: "Hemat: Grok semua frame (tanpa audio) — ~Rp 8.000 total",
+    variant: "hemat",
+  };
+}
+
+/** Smart dialog suggestions per frame role and product category */
+const DEMO_DIALOGS: Record<string, string> = {
+  skincare: "Aku coba pake langsung ya di kulit aku...",
+  fashion: "Aku coba pakai nih, liat deh hasilnya...",
+  food: "Kita cobain rasanya langsung ya...",
+  electronics: "Aku nyalain dulu nih, kita liat fiturnya...",
+  health: "Aku minum langsung ya, biasa tiap pagi...",
+  home: "Aku coba pasang langsung ya...",
+  other: "Aku coba langsung ya biar kalian liat...",
+};
+
+const PROOF_DIALOGS = [
+  "Hasilnya ternyata beneran kerasa bedanya...",
+  "Wah beneran kerasa bedanya sih ini...",
+  "Oke aku kaget sih, hasilnya sebagus ini...",
+  "Ini beneran di luar ekspektasi aku...",
+];
+
+const CTA_DIALOGS = [
+  "Worth it sih, kalian coba deh!",
+  "Link di bio ya! Cobain deh.",
+  "Aku recommend banget sih ini. Cek link di bio!",
+  "Kalian harus coba ini sih, worth it banget.",
+];
+
+function getSmartDialogSuggestion(
+  role: string,
+  templateKey: ContentTemplateKey,
+  productCategory?: string,
+): string {
+  switch (role) {
+    case "Hook": {
+      const hooks = getRandomHooks(templateKey, 1);
+      return hooks[0] || "";
+    }
+    case "Build": {
+      const bodies = getRandomBodyScripts(templateKey, 1);
+      return bodies[0] || "";
+    }
+    case "Demo": {
+      const cat = (productCategory || "other").toLowerCase();
+      return DEMO_DIALOGS[cat] || DEMO_DIALOGS.other;
+    }
+    case "Proof": {
+      return PROOF_DIALOGS[Math.floor(Math.random() * PROOF_DIALOGS.length)];
+    }
+    case "Convert": {
+      return CTA_DIALOGS[Math.floor(Math.random() * CTA_DIALOGS.length)];
+    }
+    default:
+      return "";
+  }
+}
+
 /** Convert image URL to base64 for Gemini */
 async function imageUrlToBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
   try {
@@ -113,6 +191,7 @@ const VideoPage = () => {
   // Navigation state from storyboard
   const navState = location.state as any;
   const fromStoryboard = navState?.fromStoryboard === true;
+  const productCategory: string = navState?.productCategory || navState?.productDna?.category || "other";
 
   // Source image (standalone mode)
   const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
@@ -145,6 +224,7 @@ const VideoPage = () => {
 
   const beats = getStoryboardBeats(selectedTemplate);
   const storyboardImages: string[] = navState?.storyboardImages || [];
+  const modelRec = getModelRecommendation(selectedTemplate);
 
   // Load gallery
   useEffect(() => {
@@ -166,20 +246,10 @@ const VideoPage = () => {
   // Initialize frames when template changes or setup begins
   const initializeFrames = useCallback(() => {
     const newFrames: FrameState[] = beats.map((beat, i) => {
-      const hasDialogue = beat.storyRole === "Hook" || beat.storyRole === "Convert" || beat.storyRole === "Build";
+      // Smart dialog suggestion based on story role + product category
+      const defaultDialogue = getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory);
+      const hasDialogue = !!defaultDialogue.trim();
       const defaultModel: VideoModel = hasDialogue ? "veo_fast" : "grok";
-
-      // Auto-suggest dialog
-      let defaultDialogue = "";
-      if (beat.storyRole === "Hook") {
-        const hooks = getRandomHooks(selectedTemplate, 1);
-        defaultDialogue = hooks[0] || "";
-      } else if (beat.storyRole === "Build" || beat.storyRole === "Demo") {
-        const bodies = getRandomBodyScripts(selectedTemplate, 1);
-        defaultDialogue = bodies[0] || "";
-      } else if (beat.storyRole === "Convert") {
-        defaultDialogue = "Link di bio ya! Cobain deh.";
-      }
 
       // Source image: storyboard image if available, else source image
       const frameSource = fromStoryboard && storyboardImages[i]
@@ -201,7 +271,7 @@ const VideoPage = () => {
     });
     setFrames(newFrames);
     setSetupDone(true);
-  }, [beats, selectedTemplate, fromStoryboard, storyboardImages, sourceUrl]);
+  }, [beats, selectedTemplate, fromStoryboard, storyboardImages, sourceUrl, productCategory]);
 
   // Auto-init from storyboard
   useEffect(() => {
@@ -293,7 +363,7 @@ Output ONLY the script text.`,
     });
 
     const contentParts: any[] = [];
-    // Include source image for visual reference
+    // Include source image for visual reference (base64 for Gemini Vision)
     const imgUrl = frame.sourceImageUrl || sourceUrl;
     if (imgUrl) {
       const b64 = await imageUrlToBase64(imgUrl);
@@ -302,8 +372,20 @@ Output ONLY the script text.`,
         contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
       }
     }
+
+    const prevBeatDesc = idx > 0 ? beats[idx - 1]?.description : "";
+    const productDesc = navState?.productDna?.product_description || navState?.productCategory || "consumer product";
+
     contentParts.push({
-      text: `Storyboard beat: ${beat.label} (${beat.beat}) — ${beat.description}\nContent template: ${template?.label}\nGenerate the video prompt for this specific beat.`,
+      text: `Generate a video prompt for frame ${idx + 1} (${beat.label}) of a '${template?.label}' UGC video.
+Reference image is attached — match the person, outfit, environment, and lighting exactly.
+Beat description: ${beat.description}
+${frame.dialogue.trim() ? `Dialog to include: '${frame.dialogue.trim()}'` : "No dialog for this frame."}
+Product: ${productDesc}
+${idx > 0 ? `This frame follows frame ${idx} which showed: '${prevBeatDesc}'. Create natural continuity.` : "This is the opening frame."}
+The subject behaves like a TikTok content creator — spontaneous, casual, not posed.
+Storyboard beat timing: ${beat.beat}
+Content template: ${template?.label}`,
     });
 
     try {
@@ -626,6 +708,24 @@ Output ONLY the script text.`,
         >
           ← Kembali
         </button>
+      </div>
+
+      {/* Model Recommendation Banner */}
+      <div className={`rounded-xl px-4 py-3 border text-[11px] ${
+        modelRec.variant === "dialog"
+          ? "bg-blue-500/5 border-blue-500/20 text-blue-400"
+          : modelRec.variant === "visual"
+          ? "bg-amber-500/5 border-amber-500/20 text-amber-400"
+          : "bg-green-500/5 border-green-500/20 text-green-400"
+      }`}>
+        💡 {modelRec.text}
+      </div>
+
+      {/* Dialog Tip */}
+      <div className="rounded-xl px-4 py-2.5 border border-border bg-muted/20">
+        <p className="text-[10px] text-muted-foreground">
+          💬 <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
+        </p>
       </div>
 
       {/* 5 Frame Cards */}
