@@ -570,14 +570,15 @@ Content template: ${template?.label}`,
     batchCancelRef.current = true;
   };
 
-  // Computed
+  // Computed — exclude merged-into frames from active
   const anyGenerating = frames.some((f) => f.status === "generating");
-  const activeFrames = frames.filter((f) => !f.skipped);
+  const activeFrames = frames.filter((f) => !f.skipped && f.mergedInto === null);
   const totalCost = activeFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
-  const completedFrames = frames.filter((f) => f.status === "completed");
-  const skippedCount = frames.filter((f) => f.skipped).length;
-  const failedCount = frames.filter((f) => f.status === "failed").length;
-  const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.status === "completed");
+  const completedFrames = frames.filter((f) => f.status === "completed" && f.mergedInto === null);
+  const skippedCount = frames.filter((f) => f.skipped && f.mergedInto === null).length;
+  const mergedCount = frames.filter((f) => f.mergedInto !== null).length;
+  const failedCount = frames.filter((f) => f.status === "failed" && f.mergedInto === null).length;
+  const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.mergedInto !== null || f.status === "completed");
   const totalDuration = activeFrames.reduce((s, f) => {
     if (f.status !== "completed") return s;
     return s + (f.model === "grok" ? 10 : 8);
