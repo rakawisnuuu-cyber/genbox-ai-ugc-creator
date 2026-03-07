@@ -213,6 +213,13 @@ const GalleryPage = () => {
                   {item.upscale_factor && (
                     <span className="absolute top-2 left-2 bg-primary/20 text-primary text-[9px] rounded-full px-1.5 py-0.5 font-medium">{item.upscale_factor}x</span>
                   )}
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/20 hover:bg-destructive/40 text-destructive rounded-lg p-1.5 z-10"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     {item.image_url && (
