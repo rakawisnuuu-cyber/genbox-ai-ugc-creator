@@ -351,7 +351,6 @@ const GalleryPage = () => {
           )}
         </DialogContent>
       </Dialog>
-    </div>
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
