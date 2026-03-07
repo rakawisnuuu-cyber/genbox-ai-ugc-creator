@@ -135,7 +135,9 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "home environment — kitchen, living room, or cozy interior",
       hairStyle: "Ponytail Rapi",
       ageRange: "28-38",
-      bodyType: "Average/Medium",
+      bodyType: "average",
+      imperfection: "natural",
+      environment: "indoor_home",
     },
   },
 ];
