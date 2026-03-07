@@ -995,6 +995,35 @@ Content template: ${template?.label}`,
                   </div>
                 </div>
 
+                {/* Gerakan / Action */}
+                <div>
+                  <label className="text-[10px] text-muted-foreground font-medium block mb-1">Gerakan:</label>
+                  <Textarea
+                    value={frame.action}
+                    onChange={(e) => updateFrame(idx, { action: e.target.value })}
+                    rows={2}
+                    placeholder="Deskripsi gerakan/aksi untuk frame ini..."
+                    className="bg-muted/30 border-border text-[11px] mb-2"
+                  />
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    {frame.actionChips.map((chip, ci) => (
+                      <button
+                        key={ci}
+                        onClick={() => updateFrame(idx, { action: chip })}
+                        className="text-[9px] px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/15 transition-colors"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => updateFrame(idx, { actionChips: getShuffledChips(beat.storyRole, productCategory) })}
+                      className="text-[9px] px-2 py-1 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors flex items-center gap-0.5"
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" /> Acak
+                    </button>
+                  </div>
+                </div>
+
                 {/* Dialog */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
