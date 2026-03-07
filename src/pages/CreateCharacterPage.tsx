@@ -621,12 +621,17 @@ export default function CreateCharacterPage() {
   const progressLabel = (() => {
     switch (genPhase) {
       case "identity": return "Membuat identity prompt...";
-      case "hero": return "Membuat hero portrait... (1/6)";
-      case "variations": return `Generating variasi... (${completedCount}/6)`;
+      case "hero": return "Membuat hero portrait...";
+      case "variations": return `Generating variasi... (${completedCount - 1}/5)`;
       case "saving": return "Menyimpan karakter...";
       default: return "";
     }
   })();
+
+  const heroDone = shots.hero_portrait.status === "success";
+  const allVariationsDone = REMAINING_KEYS.every((k) => shots[k].status === "success");
+  const anyVariationGenerating = REMAINING_KEYS.some((k) => shots[k].status === "generating");
+  const variationsDoneCount = REMAINING_KEYS.filter((k) => shots[k].status === "success").length;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
