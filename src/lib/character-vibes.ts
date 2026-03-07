@@ -57,6 +57,9 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "clean minimalist interior, neutral tones",
       hairStyle: "Lurus Panjang",
       ageRange: "20-28",
+      imperfection: "natural",
+      environment: "simple",
+      bodyType: "petite",
     },
   },
   {
