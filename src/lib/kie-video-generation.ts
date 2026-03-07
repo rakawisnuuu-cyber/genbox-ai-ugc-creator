@@ -171,17 +171,40 @@ async function pollTask(
       const flag = j.data?.successFlag;
       if (flag === 1) {
         // Try multiple known fields for the video URL
-        let url = j.data?.videoUrl || j.data?.resultUrl || j.data?.video_url || "";
+        const responseData =
+          typeof j.data?.response === "string"
+            ? (() => {
+                try {
+                  return JSON.parse(j.data.response);
+                } catch {
+                  return null;
+                }
+              })()
+            : j.data?.response;
+
+        let url =
+          j.data?.videoUrl ||
+          j.data?.resultUrl ||
+          j.data?.video_url ||
+          responseData?.videoUrl ||
+          responseData?.resultUrl ||
+          responseData?.video_url ||
+          responseData?.resultUrls?.[0] ||
+          responseData?.url ||
+          "";
+
         // Check inside resultJson if present
         if (!url && j.data?.resultJson) {
           const rj = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
           url = rj?.videoUrl || rj?.resultUrls?.[0] || rj?.video_url || rj?.url || "";
         }
+
         // Check inside output if present
         if (!url && j.data?.output) {
           const out = typeof j.data.output === "string" ? JSON.parse(j.data.output) : j.data.output;
-          url = out?.videoUrl || out?.video_url || out?.url || "";
+          url = out?.videoUrl || out?.video_url || out?.url || out?.resultUrls?.[0] || "";
         }
+
         console.log("[kie] Veo success. Extracted URL:", url, "Full data:", JSON.stringify(j.data));
         if (!url) throw new Error("No video URL in Veo result. Raw: " + JSON.stringify(j.data).slice(0, 300));
         return url;
