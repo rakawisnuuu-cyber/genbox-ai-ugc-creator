@@ -32,7 +32,6 @@ import {
 
 // ── TYPES ──
 type Gender = "female" | "male";
-type CreationMode = "simple" | "advanced";
 
 interface FormData {
   name: string;
