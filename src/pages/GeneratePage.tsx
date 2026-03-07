@@ -69,8 +69,9 @@ import type { CharacterData } from "@/components/CharacterCard";
 
 /* ── GENBOX Realism Blocks ──────────────────────────────────── */
 const SKIN_BLOCK = "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
-const QUALITY_BLOCK = "8K resolution, ultra-high detail, photographic realism, sharp focus, natural color grading, realistic contrast, clean studio image quality.";
-const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter.";
+const QUALITY_BLOCK = "8K resolution, shot on Sony A7III or iPhone 15 Pro, natural shallow depth of field with subject in sharp focus and background softly blurred, natural color grading with slight warm tint, realistic contrast, subtle lens vignette at edges, natural grain texture. Looks like a real photo taken by a content creator, not a CGI render.";
+const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter, no perfectly symmetrical rooms, no impossibly clean environments, no plastic-looking surfaces, no floating objects without shadows, no uniform flat lighting across entire scene, no AI-typical repeated patterns on walls or floors, no sterile empty rooms.";
+const ENV_REALISM_BLOCK = "Environment must look like a REAL lived-in space photographed with a phone or mirrorless camera. Include subtle signs of real life: a phone charger on a nightstand, a half-drunk glass of water, slightly wrinkled bedsheet corner, a book left open, shoes by the door, a bag on a chair. Background should have natural depth of field — slightly soft/blurred behind the subject, not everything in razor-sharp focus. Walls should have subtle natural texture variation, not perfectly flat rendered surfaces. Lighting should have natural falloff — brighter near windows, gradually darker in corners. No unnaturally symmetrical rooms, no impossibly clean surfaces, no repeated tile patterns, no plastic-looking materials, no floating furniture, no missing shadows.";
 
 /* ── Helper: convert image URL to base64 ────────────────────── */
 async function imageUrlToBase64(url: string): Promise<string> {
@@ -431,11 +432,14 @@ Respond ONLY with valid JSON:
   "scene_description": "Full scene description combining character + product + setting",
   "character_action": "Specific action with the product matching the category direction above",
   "product_placement": "Exactly how the product appears — which hand holds it, position relative to face, angle of label",
-  "lighting": "Lighting setup that complements the scene",
-  "background": "Background/environment details",
-  "camera": "Camera angle, distance, lens",
-  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera. The product description must match the uploaded image precisely."
-}`,
+  "lighting": "Lighting setup that complements the scene — must have natural falloff, brighter near light sources, gradually darker in corners",
+  "background": "Background/environment details — must feel like a REAL lived-in space, not a 3D render",
+  "environment_details": "Specific lived-in details and imperfections in the environment that make it feel real — e.g. phone charger on nightstand, half-drunk glass of water, slightly wrinkled fabric, visible power outlet, a bag on a chair",
+  "camera": "Camera angle, distance, lens — use natural shallow depth of field",
+  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera, AND environment realism details. The product description must match the uploaded image precisely. Environment must look like a real photo, not CGI."
+}
+
+ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D render. Include 2-3 small everyday objects or imperfections that make it feel lived-in (phone charger, half-drunk glass, slightly wrinkled fabric, visible power outlet). Use natural depth of field — background slightly blurred. No perfectly symmetrical rooms.`,
       });
 
       console.log("=== GEMINI PROMPT GENERATE ===");
@@ -465,7 +469,7 @@ Respond ONLY with valid JSON:
       try {
         const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
         const parsed = JSON.parse(cleaned);
-        const enhancedPrompt = `${parsed.final_prompt}\n\n${SKIN_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
+        const enhancedPrompt = `${parsed.final_prompt}\n\n${SKIN_BLOCK}\n\n${ENV_REALISM_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
         setPrompt(enhancedPrompt);
 
         // Store scene fields for visual consistency in multi-angle
