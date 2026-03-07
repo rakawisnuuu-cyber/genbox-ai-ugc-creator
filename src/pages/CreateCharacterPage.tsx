@@ -947,7 +947,7 @@ export default function CreateCharacterPage() {
           </div>
 
           {/* Progress */}
-          {isGenerating && (
+          {(isGenerating || isGeneratingVariations) && (
             <div className="mb-4 space-y-2 animate-fade-in">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-2">
@@ -956,7 +956,7 @@ export default function CreateCharacterPage() {
                 </span>
                 <span>{elapsed}s</span>
               </div>
-              <Progress value={(completedCount / 6) * 100} className="h-2 bg-secondary" />
+              <Progress value={isGeneratingVariations ? ((completedCount - 1) / 5) * 100 : genPhase === "hero" ? 50 : genPhase === "saving" ? 90 : 10} className="h-2 bg-secondary" />
             </div>
           )}
 
@@ -968,10 +968,21 @@ export default function CreateCharacterPage() {
               const Icon = cfg.icon;
               const isPro = cfg.model === "nano-banana-pro";
               const isHero = key === "hero_portrait";
+              const isVariation = !isHero;
+              const canClickToGenerate = isVariation && heroDone && savedId && shot.status === "idle" && !isGeneratingVariations && !generatingSingleShot;
+
               return (
-                <div key={key} className={`relative aspect-[3/4] bg-muted/50 border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden ${isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
+                <div
+                  key={key}
+                  className={`relative aspect-[3/4] bg-muted/50 border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden transition-all ${
+                    isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" :
+                    canClickToGenerate ? "border-dashed border-muted-foreground/20 hover:border-primary/40 cursor-pointer" :
+                    "border-border"
+                  }`}
+                  onClick={canClickToGenerate ? () => handleGenerateSingleShot(key) : undefined}
+                >
                   {shot.status === "success" && shot.url ? (
-                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={() => setZoomedShot({url: shot.url!, label: cfg.label})} />
+                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={(e) => { e.stopPropagation(); setZoomedShot({url: shot.url!, label: cfg.label}); }} />
                   ) : shot.status === "generating" ? (
                     <div className="absolute inset-0 generation-mesh flex items-center justify-center">
                       <Loader2 className="w-6 h-6 text-primary/60 animate-spin" />
@@ -979,10 +990,15 @@ export default function CreateCharacterPage() {
                   ) : shot.status === "failed" ? (
                     <AlertCircle className="w-6 h-6 text-destructive" />
                   ) : (
-                    <Icon className="w-6 h-6 text-muted-foreground/30" />
+                    <Icon className={`w-6 h-6 ${canClickToGenerate ? "text-muted-foreground/50" : "text-muted-foreground/30"}`} />
                   )}
                   {shot.status !== "success" && (
-                    <span className="text-[11px] text-muted-foreground/30 uppercase tracking-wider text-center px-1">{cfg.label}</span>
+                    <span className={`text-[11px] uppercase tracking-wider text-center px-1 ${canClickToGenerate ? "text-muted-foreground/50" : "text-muted-foreground/30"}`}>
+                      {cfg.label}
+                    </span>
+                  )}
+                  {canClickToGenerate && (
+                    <span className="text-[9px] text-primary/60 mt-1">Klik untuk generate</span>
                   )}
                   {shot.status === "success" && shot.url && (
                     <>
@@ -1009,16 +1025,45 @@ export default function CreateCharacterPage() {
             })}
           </div>
 
-          {/* Cost indicator */}
+          {/* Cost indicator — dynamic */}
           <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4 text-xs text-muted-foreground">
             <Zap className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <div>
-              <p>Estimasi: ~64 credits (~Rp 5.120) untuk 6 gambar</p>
-              <p className="text-[11px] text-muted-foreground/50 mt-0.5">2x Nano Banana Pro (hero + detail) + 4x Nano Banana 2 (sisanya)</p>
+              {!heroDone ? (
+                <>
+                  <p>Estimasi: ~Rp 1.600 untuk hero portrait</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">1x Nano Banana Pro • Variasi opsional setelahnya</p>
+                </>
+              ) : allVariationsDone ? (
+                <>
+                  <p>Hero ✓ • {variationsDoneCount} variasi ✓</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">Semua shot selesai</p>
+                </>
+              ) : (
+                <>
+                  <p>Hero ✓ {variationsDoneCount > 0 ? `• ${variationsDoneCount}/5 variasi ✓` : ""}</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                    {5 - variationsDoneCount} variasi tersisa (+~Rp {((5 - variationsDoneCount) * 700).toLocaleString("id-ID")})
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Generate / success buttons */}
+          {/* Generate 5 variations button */}
+          {heroDone && savedId && !allVariationsDone && !isGeneratingVariations && (
+            <Button
+              onClick={handleGenerateVariations}
+              variant="outline"
+              disabled={!!generatingSingleShot}
+              className="w-full py-3 font-bold uppercase tracking-wider mb-3 border-primary/30 text-primary hover:bg-primary/10"
+            >
+              <ImageIcon className="w-4 h-4 mr-2" />
+              Generate {5 - variationsDoneCount} Variasi (+~Rp {((5 - variationsDoneCount) * 700).toLocaleString("id-ID")})
+            </Button>
+          )}
+
+          {/* Main action buttons */}
           {savedId ? (
             <div className="space-y-2 animate-fade-in">
               <Button onClick={() => navigate(`/generate?characterId=${savedId}`)} className="w-full py-3.5 font-bold uppercase tracking-wider">
@@ -1030,7 +1075,7 @@ export default function CreateCharacterPage() {
             </div>
           ) : (
             <Button onClick={handleGenerate} disabled={isGenerating || (mode === "simple" && !selectedVibe)} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
-              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter"}
+              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter (~Rp 1.600)"}
             </Button>
           )}
         </div>
