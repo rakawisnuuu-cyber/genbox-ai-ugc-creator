@@ -18,6 +18,7 @@ interface CharacterDetailModalProps {
   open: boolean;
   onClose: () => void;
   onUse: (character: CharacterData) => void;
+  onDelete?: (character: CharacterData) => void;
 }
 
 const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDetailModalProps) => {
