@@ -42,7 +42,7 @@ const ENV_ELECTRONICS: RichOption[] = [
   { label: "Sofa Casual", description: "Modern living room with comfortable gray sofa, soft ambient lighting, coffee table with a mug, relaxed casual tech-use environment. A throw blanket bunched up on one side of the sofa, a remote control between cushions, a pair of slippers on the floor nearby" },
   { label: "Commuter", description: "Public transit or airport lounge setting, modern seating, natural overhead lighting, person using device while traveling. A backpack leaning against the seat leg, earphone case on the armrest, a boarding pass or ticket peeking from a jacket pocket" },
   { label: "Studio Unboxing", description: "Clean tabletop with plain dark background, dramatic top-down key light, product packaging visible, YouTube-style unboxing setup. Packaging foam peanuts scattered near the box, a box cutter laid on the table, the shipping label partially peeled off" },
-  { label: "Outdoor Active", description: "Park bench or outdoor setting with natural daylight, trees blurred in background, casual on-the-go tech usage. A water bottle next to the person on the bench, fallen leaves near the bench legs, a jogger softly blurred passing in the background" },
+  { label: "Outdoor Active", description: "Outdoor seating area or park bench with tropical trees, warm natural daylight, casual on-the-go tech usage, urban background blurred. A water bottle next to the person on the bench, a motorcycle parked in the blurred background, other people walking past softly out of focus" },
 ];
 
 const ENV_HEALTH: RichOption[] = [
