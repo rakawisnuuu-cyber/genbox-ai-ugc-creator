@@ -784,7 +784,11 @@ Content template: ${template?.label}`,
                     {galleryImages.slice(0, 12).map((img) => (
                       <button
                         key={img.id}
-                        onClick={() => { setSourcePreview(img.image_url); setSourceUrl(img.image_url); }}
+                        onClick={() => {
+                          setSourcePreview(img.image_url);
+                          setSourceUrl(img.image_url);
+                          if (!productInfo.product_description) detectProductFromImage(img.image_url);
+                        }}
                         className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
                       >
                         <img src={img.image_url} alt="" className="w-full h-full object-cover" />
