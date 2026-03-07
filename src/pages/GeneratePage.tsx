@@ -432,11 +432,14 @@ Respond ONLY with valid JSON:
   "scene_description": "Full scene description combining character + product + setting",
   "character_action": "Specific action with the product matching the category direction above",
   "product_placement": "Exactly how the product appears — which hand holds it, position relative to face, angle of label",
-  "lighting": "Lighting setup that complements the scene",
-  "background": "Background/environment details",
-  "camera": "Camera angle, distance, lens",
-  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera. The product description must match the uploaded image precisely."
-}`,
+  "lighting": "Lighting setup that complements the scene — must have natural falloff, brighter near light sources, gradually darker in corners",
+  "background": "Background/environment details — must feel like a REAL lived-in space, not a 3D render",
+  "environment_details": "Specific lived-in details and imperfections in the environment that make it feel real — e.g. phone charger on nightstand, half-drunk glass of water, slightly wrinkled fabric, visible power outlet, a bag on a chair",
+  "camera": "Camera angle, distance, lens — use natural shallow depth of field",
+  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera, AND environment realism details. The product description must match the uploaded image precisely. Environment must look like a real photo, not CGI."
+}
+
+ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D render. Include 2-3 small everyday objects or imperfections that make it feel lived-in (phone charger, half-drunk glass, slightly wrinkled fabric, visible power outlet). Use natural depth of field — background slightly blurred. No perfectly symmetrical rooms.`,
       });
 
       console.log("=== GEMINI PROMPT GENERATE ===");
