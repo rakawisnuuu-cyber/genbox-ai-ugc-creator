@@ -289,11 +289,15 @@ export default function CreateCharacterPage() {
   const [refUrl, setRefUrl] = useState<string | null>(null);
   const [refUploading, setRefUploading] = useState(false);
 
-  const set = (key: keyof FormData, val: string) => setForm((p) => ({ ...p, [key]: val }));
+  const set = (key: keyof FormData, val: string) => {
+    setForm((p) => ({ ...p, [key]: val }));
+    if (selectedVibe) setPresetEdited(true);
+  };
 
-  // ── Apply vibe pack to form ──
+  // ── Apply vibe pack to form (pre-fills all fields, keeps them visible) ──
   const applyVibePack = (pack: VibePack) => {
     setSelectedVibe(pack.id);
+    setPresetEdited(false);
     setForm((prev) => ({
       ...prev,
       expression: pack.config.expression,
@@ -301,12 +305,10 @@ export default function CreateCharacterPage() {
       skin_condition: pack.config.skinDetail,
       hair_style: pack.config.hairStyle || prev.hair_style,
       custom_notes: `[Vibe: ${pack.name}] Hijab: ${pack.config.hijab}. Lighting: ${pack.config.lighting}. Setting: ${pack.config.setting}.`,
+      imperfection: pack.config.imperfection || prev.imperfection,
+      environment: pack.config.environment || prev.environment,
+      bodyType: pack.config.bodyType || prev.bodyType,
     }));
-  };
-
-  // ── Customize: switch to advanced with pack values pre-filled ──
-  const customizeFromVibe = () => {
-    setMode("advanced");
   };
 
   // ── Reference photo upload ──
