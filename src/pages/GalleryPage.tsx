@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpscale } from "@/hooks/useUpscale";
-import { Download, Images, Loader2, Play, Copy, Film } from "lucide-react";
+import { Download, Images, Loader2, Play, Copy, Film, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -12,6 +12,16 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type Tab = "semua" | "gambar" | "video" | "karakter";
 
@@ -45,6 +55,20 @@ const GalleryPage = () => {
   const [loading, setLoading] = useState(true);
   const [detailItem, setDetailItem] = useState<Generation | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Generation | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Generation | null>(null);
+
+  const handleDelete = async (item: Generation) => {
+    const { error } = await supabase.from("generations").delete().eq("id", item.id);
+    if (error) {
+      toast.error("Gagal menghapus: " + error.message);
+    } else {
+      toast.success("Item dihapus");
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      if (detailItem?.id === item.id) setDetailItem(null);
+      if (selectedVideo?.id === item.id) setSelectedVideo(null);
+    }
+    setDeleteTarget(null);
+  };
 
   const fetchItems = useCallback(async () => {
     if (!user) return;
@@ -156,6 +180,13 @@ const GalleryPage = () => {
                       <Play className="w-5 h-5 text-black ml-0.5" fill="black" />
                     </div>
                   </div>
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/20 hover:bg-destructive/40 text-destructive rounded-lg p-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                   {/* VIDEO badge */}
                   <div className="absolute top-2 left-2">
                     <span className="text-[10px] font-bold bg-primary/90 text-primary-foreground px-2 py-0.5 rounded-full">VIDEO</span>
@@ -182,6 +213,13 @@ const GalleryPage = () => {
                   {item.upscale_factor && (
                     <span className="absolute top-2 left-2 bg-primary/20 text-primary text-[9px] rounded-full px-1.5 py-0.5 font-medium">{item.upscale_factor}x</span>
                   )}
+                  {/* Delete button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/20 hover:bg-destructive/40 text-destructive rounded-lg p-1.5 z-10"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     {item.image_url && (
@@ -245,7 +283,15 @@ const GalleryPage = () => {
               <span>{detailItem.model}</span>
               <span>{format(new Date(detailItem.created_at), "dd MMM yyyy HH:mm")}</span>
             </div>
-            <button onClick={() => setDetailItem(null)} className="text-xs text-muted-foreground hover:text-foreground">Tutup</button>
+            <div className="flex items-center justify-between">
+              <button onClick={() => setDetailItem(null)} className="text-xs text-muted-foreground hover:text-foreground">Tutup</button>
+              <button
+                onClick={() => { setDeleteTarget(detailItem); }}
+                className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1"
+              >
+                <Trash2 className="h-3 w-3" /> Hapus
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -305,6 +351,22 @@ const GalleryPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus item ini?</AlertDialogTitle>
+            <AlertDialogDescription>Item yang dihapus tidak bisa dikembalikan.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteTarget && handleDelete(deleteTarget)}>
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
