@@ -364,6 +364,8 @@ const VideoPage = () => {
         ...parent,
         mergedFrames: [],
         dialogue: getSmartDialogSuggestion(beats[idx].storyRole, selectedTemplate, productCategory),
+        action: beats[idx].description,
+        actionChips: getActionChips(beats[idx].storyRole, productCategory),
         prompt: "",
         status: "idle",
         videoUrl: null,
