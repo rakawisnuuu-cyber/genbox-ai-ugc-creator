@@ -37,6 +37,7 @@ import {
   CheckCircle2,
   XCircle,
   Play,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1193,7 +1194,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                   )}
                   {storyboardDone && (
                     <p className="text-xs text-muted-foreground text-center">
-                      ✅ {completedShots} selesai{failedShots > 0 ? ` • ❌ ${failedShots} gagal` : ""} — {storyboardElapsed}s
+                      <CheckCircle2 className="inline h-3.5 w-3.5 text-green-400 mr-1" /> {completedShots} selesai{failedShots > 0 ? <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" /> {failedShots} gagal</> : ""} — {storyboardElapsed}s
                     </p>
                   )}
 
@@ -1259,7 +1260,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                   {storyboardDone && (
                     <div className="space-y-2">
                       <p className="text-[10px] text-muted-foreground/60 text-center">
-                        Storyboard ini bisa langsung dijadikan video di Buat Video → pilih template yang sama
+                        Storyboard ini bisa langsung dijadikan video di Buat Video — pilih template yang sama
                       </p>
                       <button
                         onClick={() => {
@@ -1283,7 +1284,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                         className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
                       >
                         <Play className="h-3.5 w-3.5" />
-                        Buat Video dari Storyboard →
+                        Buat Video dari Storyboard <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={resetStoryboard}

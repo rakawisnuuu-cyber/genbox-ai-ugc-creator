@@ -83,7 +83,7 @@ const handleDownload = async (url: string, filename?: string) => {
     return;
   } catch { /* XHR failed */ }
 
-  toast.info("Tidak bisa download otomatis. Klik kanan gambar → 'Save image as...'");
+  toast.info("Tidak bisa download otomatis. Klik kanan gambar — 'Save image as...'");
   window.open(url, "_blank");
 };
 

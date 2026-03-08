@@ -39,6 +39,9 @@ import {
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
+  Lightbulb,
+  MessageSquare,
+  Clapperboard,
 } from "lucide-react";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
@@ -468,7 +471,7 @@ Rules:
       }
 
       setStoryboardPlanned(true);
-      toast({ title: "Storyboard berhasil direncanakan! ✨", description: "Edit setiap frame sesuai kebutuhan." });
+      toast({ title: "Storyboard berhasil direncanakan!", description: "Edit setiap frame sesuai kebutuhan." });
     } catch (e: any) {
       console.error("Plan storyboard failed:", e);
       toast({
@@ -1103,13 +1106,13 @@ Content template: ${template?.label}`,
           ? "bg-amber-500/5 border-amber-500/20 text-amber-400"
           : "bg-green-500/5 border-green-500/20 text-green-400"
       }`}>
-        💡 {modelRec.text}
+        <Lightbulb className="inline h-3.5 w-3.5 mr-1" /> {modelRec.text}
       </div>
 
       {/* Dialog Tip */}
       <div className="rounded-xl px-4 py-2.5 border border-border bg-muted/20">
         <p className="text-[10px] text-muted-foreground">
-          💬 <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
+          <MessageSquare className="inline h-3 w-3 mr-1" /> <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
         </p>
       </div>
 
@@ -1563,7 +1566,7 @@ Content template: ${template?.label}`,
       {allDone && completedVideos.length > 0 && (
         <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 space-y-4">
           <div>
-            <p className="text-sm font-bold text-foreground">🎬 Semua Frame Selesai!</p>
+            <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Clapperboard className="h-4 w-4" /> Semua Frame Selesai!</p>
             <p className="text-[11px] text-muted-foreground">
               Total: {totalDuration}s ({completedVideos.length} × {completedVideos.length > 0 ? (completedVideos[0].model === "grok" ? "10s" : "8s") : "8s"})
             </p>

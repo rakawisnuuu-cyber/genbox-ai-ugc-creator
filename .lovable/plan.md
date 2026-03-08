@@ -1,40 +1,74 @@
 
+Goal: fix multi-shot generation failures and make model behavior consistent by reusing one shared generation/polling path across quick + multi-shot.
 
-# Remove Emojis from Dashboard
+1) Root cause found (current failing run)
+- The failing multi-shot run is not primarily a polling bug.
+- Network responses show Grok task creation returns:
+  - `{"code":500,"msg":"duration is not within the range of allowed options"}`
+- Multi-shot currently sends module durations like 2/3/4/7s to Grok.
+- Grok image-to-video accepts limited duration values (6 or 10), so creation fails before polling.
+- Error display is misleading because code reads `message` but API returns `msg`, so user sees generic “Failed to create Grok task”.
 
-Scan found emojis and arrow symbols (`→`, `✨`, `✅`, `❌`, `💡`, `🎬`) used as visible UI text across dashboard pages. Here's the cleanup plan:
+2) Implementation plan (what to build)
+- Create a shared video generation client (single source of truth) used by:
+  - `src/pages/VideoPage.tsx` (quick mode)
+  - `src/hooks/useMultiShotGeneration.ts` (multi-shot mode)
+- Move all Kie logic into shared functions:
+  - task creation payload by model (Grok / Veo Fast / Veo Quality)
+  - polling endpoint + status parsing
+  - timeout + retry policy (including 404 retry cap)
+  - consistent URL extraction from result payloads
+  - consistent API error extraction (`msg || message || code`)
+- Remove duplicated inline generation logic from both call sites.
 
-## Files to Edit
+3) Grok duration compatibility fix (critical)
+- Add duration normalization for Grok before createTask:
+  - map to allowed values only (6 or 10)
+  - recommended mapping: `<8 => 6`, `>=8 => 10`
+- Apply this in shared generator so both quick and multi-shot stay valid.
+- In Step 2 module editor, add Grok-specific UX guard:
+  - when model is Grok, show helper text “Durasi Grok hanya 6/10 detik”
+  - prevent silently invalid durations (either enforce picker options or show normalized final value per shot).
 
-### 1. `src/pages/GeneratePage.tsx`
-- Line 1196: `✅ {completedShots} selesai{...} ❌ ${failedShots} gagal` — Replace `✅` with Lucide `CheckCircle2` icon, `❌` with `XCircle` icon
-- Line 1262: `"...Buat Video → pilih template..."` — Replace `→` with `—` or remove
-- Line 1286: `"Buat Video dari Storyboard →"` — Replace `→` with Lucide `ArrowRight` icon
+4) Polling/404 hardening
+- Keep Veo polling on `/api/v1/veo/record-info?taskId=...` and Grok on `/api/v1/jobs/recordInfo?taskId=...` in shared client.
+- Add explicit debug logs in shared poller:
+  - model, taskId, poll URL, HTTP status, parsed state
+- Stop polling after 5 consecutive 404s with clear actionable error.
+- Keep model-specific timeout windows:
+  - Grok 3m, Veo Fast 5m, Veo Quality 10m.
 
-### 2. `src/pages/VideoPage.tsx`
-- Line 471: `"Storyboard berhasil direncanakan! ✨"` — Remove `✨`
-- Line 1106: `💡 {modelRec.text}` — Replace `💡` with Lucide `Lightbulb` icon
-- Line 1566: `🎬 Semua Frame Selesai!` — Replace `🎬` with Lucide `Film` or `Clapperboard` icon
+5) Multi-shot integration details
+- `generateSingleShot` in `useMultiShotGeneration.ts` becomes a thin wrapper:
+  - build image inputs + continuity image references
+  - call shared `generateVideoAndWait(...)`
+- Keep existing sequential behavior (continue next shot on failure).
+- Preserve shot-level retry/regenerate flow and status updates (no UX regression).
 
-### 3. `src/pages/GalleryPage.tsx`
-- Line 95: `toast.info("...Klik kanan gambar → 'Save image as...'")`— Replace `→` with `—`
-- Line 192: `→ Buat Video` button text — Replace `→` with Lucide `ArrowRight` icon
+6) Check “other modules” / regressions
+- Verify no breakage in:
+  - Quick video generation (`/video` quick mode)
+  - Multi-shot initial run
+  - Shot regenerate + “Save & Regenerate”
+  - Model switching between Grok / Veo Fast / Veo Quality
+  - Module insert/delete/reorder path still updates and generates correctly
+- Validate error toasts now show real provider messages (e.g., invalid duration).
 
-### 4. `src/components/GalleryContent.tsx`
-- Line 86: Same toast pattern `→` — Replace with `—`
+Technical details (concise)
+- New shared file (example): `src/lib/kie-video-generation.ts`
+- Exposed API (example):
+  - `normalizeDurationForModel(model, duration)`
+  - `createVideoTask(params)`
+  - `pollVideoTask(params)`
+  - `generateVideoAndWait(params)` (used by both quick + multi-shot)
+- Parsing rules:
+  - Grok success: `jobs/recordInfo` + `data.state === "success"` + parse `resultJson`
+  - Veo success: `veo/record-info` + `data.successFlag === 1`
+- Error normalization:
+  - throw `msg || message || "Unknown generation error"` so UI shows true cause.
 
-### 5. `src/pages/CreateCharacterPage.tsx`
-- Line 345: `"Buka Settings → API Keys..."` — Replace `→` with `—`
-
-### 6. `src/pages/BlueprintPage.tsx`
-- Lines 5-7: `→` in description strings — Replace with `—`
-
-### 7. `src/components/FiturSection.tsx`
-- Line 80: `"Gunakan →"` — Replace `→` with Lucide `ArrowRight` icon (this is in the landing page feature section but still uses emoji-style arrow)
-
-## Not Touched
-- Code comments with `→` (not user-facing)
-- `MultiShotCreator.tsx` (explicitly excluded per prior instructions)
-- `HeroSection.tsx` CTA arrow (design intentional, uses `<span>` separated arrow)
-- Any business logic, API calls, or state management
-
+Validation matrix after implementation
+- Grok multi-shot (5 shots with mixed durations): creation succeeds, no duration 500.
+- Veo Fast multi-shot: no repeated 404 loop, completes with valid URL.
+- Veo Quality single-shot: completes within timeout window.
+- At least one failed case (intentional invalid key) returns clear message in UI.

@@ -77,7 +77,7 @@ function CharacterShowcaseStack() {
                     transition={{ delay: 0.2, duration: 0.3 }}
                   >
                     <div className="flex h-8 flex-1 items-center justify-center rounded-lg bg-white/20">
-                      <span className="text-[10px] font-semibold text-white/80">Gunakan →</span>
+                      <span className="text-[10px] font-semibold text-white/80 flex items-center gap-1">Gunakan <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
                     </div>
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="opacity-50">
