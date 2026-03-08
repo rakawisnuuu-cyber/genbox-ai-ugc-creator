@@ -492,7 +492,7 @@ export default function CreateCharacterPage() {
 
     let done = 1;
     const finalResults: Record<string, { url: string; taskId: string; model: string }> = {};
-    const remainingImageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
+    const remainingImageInput: string[] = refUrls.length > 0 ? [...refUrls, heroUrl] : [heroUrl];
 
     const batches: ShotKey[][] = [];
     for (let i = 0; i < REMAINING_KEYS.length; i += 2) {
