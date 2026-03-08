@@ -688,6 +688,7 @@ Output ONLY the script text.`;
       audioDirection: frame.dialogue.trim() ? "natural spoken dialogue, clear and intimate" : "ambient sounds only",
       contentTemplate: selectedTemplate,
       model: frame.model,
+      environmentDescription: environmentDesc || undefined,
     });
 
     const contentParts: any[] = [];
