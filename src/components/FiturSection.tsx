@@ -313,15 +313,15 @@ const FeatureRow = ({
     </div>
 
     {/* Content — alternating sides on desktop */}
-    <div className={`flex flex-col gap-8 pl-12 lg:flex-row lg:items-center lg:gap-16 lg:pl-0 ${reversed ? "lg:flex-row-reverse" : ""}`}>
+    <div className={`flex flex-col gap-8 pl-12 lg:flex-row lg:items-center lg:gap-12 lg:pl-0 ${reversed ? "lg:flex-row-reverse" : ""}`}>
       {/* Text side */}
-      <div className={`flex-1 ${reversed ? "lg:text-right lg:pl-16" : "lg:pr-16 lg:text-right"}`}>
+      <div className={`flex-1 ${reversed ? "lg:text-left lg:pl-12" : "lg:pr-12 lg:text-right"}`}>
         <span className="font-mono text-[48px] font-bold leading-none text-primary">{num}</span>
         <h3 className="mt-2 font-satoshi text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h3>
         <p className="mt-2 font-body text-base text-muted-foreground">{desc}</p>
       </div>
       {/* Visual side */}
-      <div className={`flex-1 ${reversed ? "lg:pr-16" : "lg:pl-16"}`}>
+      <div className={`flex-1 ${reversed ? "lg:pr-12 lg:flex lg:justify-end" : "lg:pl-12"}`}>
         <div className="w-full max-w-sm">{visual}</div>
       </div>
     </div>
