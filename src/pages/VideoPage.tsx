@@ -1063,12 +1063,22 @@ Content template: ${template?.label}`,
             {getContentTemplate(selectedTemplate)?.label} • {activeFrames.length} frame • Est. {formatRupiah(totalCost)}
           </p>
         </div>
-        <button
-          onClick={() => { setSetupDone(false); setFrames([]); }}
-          className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ← Kembali
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { setSetupDone(false); setFrames([]); setStoryboardPlanned(false); }}
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Kembali
+          </button>
+          <button
+            onClick={planStoryboard}
+            disabled={planningStoryboard}
+            className="text-[11px] text-primary hover:underline flex items-center gap-1 disabled:opacity-40"
+          >
+            {planningStoryboard ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+            Plan ulang
+          </button>
+        </div>
       </div>
 
       {/* Product Info Banner (compact) */}
