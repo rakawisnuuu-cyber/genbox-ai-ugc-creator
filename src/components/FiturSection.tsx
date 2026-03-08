@@ -1,4 +1,4 @@
-import { Sparkles, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 /* ── Mock UI Components ─────────────────────────────── */
@@ -13,7 +13,7 @@ const MockCharacterGrid = () => {
     { label: "Gen-Z Style", gradient: "from-fuchsia-500 to-pink-400" },
   ];
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
       <div className="grid grid-cols-3 gap-4">
         {chars.map((c) => (
           <div key={c.label} className="flex flex-col items-center gap-2">
@@ -22,7 +22,7 @@ const MockCharacterGrid = () => {
           </div>
         ))}
       </div>
-      <button className="mt-4 w-full rounded-lg border border-border py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
+      <button className="mt-4 w-full rounded-lg border border-border/60 py-2 text-xs font-semibold tracking-wider text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground">
         Pilih Karakter →
       </button>
     </div>
@@ -30,26 +30,31 @@ const MockCharacterGrid = () => {
 };
 
 const MockBeforeAfter = () => (
-  <div className="rounded-xl border border-border bg-card p-5">
+  <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
     <div className="flex items-center gap-3">
       <div className="flex flex-1 flex-col items-center gap-2">
         <div className="h-32 w-full rounded-lg bg-secondary" />
         <span className="text-[11px] text-muted-foreground">Produk</span>
       </div>
-      <Sparkles size={20} className="shrink-0 text-primary" />
+      <div className="relative flex h-6 w-6 items-center justify-center">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+        </span>
+      </div>
       <div className="flex flex-1 flex-col items-center gap-2">
         <div className="h-32 w-full rounded-lg bg-gradient-to-br from-primary/20 to-primary/5" />
         <span className="text-[11px] text-muted-foreground">UGC</span>
       </div>
     </div>
-    <button className="mt-4 w-full rounded-lg bg-primary py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-[hsl(var(--lime-hover))]">
+    <button className="mt-4 w-full rounded-lg bg-primary py-2 text-xs font-bold tracking-wider text-primary-foreground transition-colors hover:bg-[hsl(var(--lime-hover))]">
       Generate →
     </button>
   </div>
 );
 
 const MockVideoPlayer = () => (
-  <div className="rounded-xl border border-border bg-card p-5">
+  <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
     <div className="relative flex h-44 items-center justify-center rounded-lg bg-secondary">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/90">
         <div className="ml-0.5 h-0 w-0 border-y-[8px] border-l-[14px] border-y-transparent border-l-primary-foreground" />
@@ -68,18 +73,18 @@ const MockVideoPlayer = () => (
 );
 
 const MockChatUI = () => (
-  <div className="rounded-xl border border-border bg-card p-5">
+  <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
     <div className="space-y-3">
       <div className="ml-auto max-w-[80%] rounded-xl rounded-br-sm bg-secondary px-4 py-2.5">
         <p className="text-sm text-foreground">Serum wajah, botol kaca, di meja kayu</p>
       </div>
-      <div className="mr-auto max-w-[90%] rounded-xl rounded-bl-sm border border-border bg-card px-4 py-2.5">
+      <div className="mr-auto max-w-[90%] rounded-xl rounded-bl-sm border border-border/60 bg-card/80 px-4 py-2.5">
         <p className="font-mono text-xs leading-relaxed text-muted-foreground">
           Professional UGC photo of Indonesian woman holding glass serum bottle...
         </p>
       </div>
     </div>
-    <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2">
+    <div className="mt-4 flex items-center gap-2 rounded-lg border border-border/60 bg-secondary px-3 py-2">
       <span className="flex-1 text-xs text-muted-foreground">Deskripsikan produk...</span>
       <Send size={14} className="text-primary" />
     </div>
@@ -91,28 +96,28 @@ const MockChatUI = () => (
 const features = [
   {
     num: "01",
-    title: "PILIH KARAKTER SESUAI TARGET MARKET",
+    title: "Pilih Karakter Sesuai Target Market",
     desc: "Ada 10+ karakter — hijab casual, urban trendy, ibu muda, dan lainnya. Tinggal pilih yang paling cocok buat audience kamu.",
     visual: <MockCharacterGrid />,
     reversed: false,
   },
   {
     num: "02",
-    title: "GENERATE GAMBAR UGC YANG CONVERT",
+    title: "Generate Gambar UGC yang Convert",
     desc: "Upload foto produk, pilih karakter dan pose. AI langsung generate gambar UGC yang kelihatan kayak difoto beneran pakai iPhone.",
     visual: <MockBeforeAfter />,
     reversed: true,
   },
   {
     num: "03",
-    title: "JADIKAN VIDEO SIAP POSTING",
+    title: "Jadikan Video Siap Posting",
     desc: "Ubah gambar UGC jadi video 5-15 detik. Langsung bisa upload ke TikTok dan Instagram Reels.",
     visual: <MockVideoPlayer />,
     reversed: false,
   },
   {
     num: "04",
-    title: "AI YANG NGERTI PRODUK KAMU",
+    title: "AI yang Ngerti Produk Kamu",
     desc: "Cukup deskripsikan produk pakai Bahasa Indonesia, AI otomatis bikin prompt terbaik. Gak perlu ribet belajar prompt engineering.",
     visual: <MockChatUI />,
     reversed: true,
@@ -145,7 +150,7 @@ const FeatureRow = ({
     {/* Text */}
     <div className="flex-1">
       <span className="font-mono text-[48px] font-bold leading-none text-primary">{num}</span>
-      <h3 className="mt-3 font-satoshi text-xl font-bold uppercase tracking-wide text-foreground sm:text-2xl">
+      <h3 className="mt-3 font-satoshi text-xl font-bold tracking-tight text-foreground sm:text-2xl">
         {title}
       </h3>
       <p className="mt-3 max-w-md font-body text-base text-muted-foreground">{desc}</p>
@@ -161,31 +166,30 @@ const FiturSection = () => {
   const { ref, isVisible } = useScrollReveal(0.15);
 
   return (
-    <section id="fitur" ref={ref} className="relative z-10 px-4 py-10 sm:py-14">
+    <section id="fitur" ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
       <div className="mx-auto max-w-5xl">
         {/* Badge */}
         <div className="flex justify-center">
           <div
-            className={`flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+            className={`flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary ${isVisible ? "animate-fade-up" : "opacity-0"}`}
             style={{ animationDelay: "0.1s" }}
           >
-            <Sparkles size={14} />
-            FITUR UTAMA
+            Fitur Utama
           </div>
         </div>
 
         {/* Heading */}
         <h2
-          className={`mx-auto mt-6 max-w-[700px] text-center font-satoshi text-[28px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mx-auto mt-6 max-w-[700px] text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{
             animationDelay: "0.2s",
-            background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
+            background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 56%) 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}
         >
-          SEMUA YANG KAMU BUTUHKAN UNTUK KONTEN UGC
+          Semua yang Kamu Butuhkan untuk Konten UGC
         </h2>
 
         {/* Feature Rows */}

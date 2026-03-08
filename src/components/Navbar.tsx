@@ -12,18 +12,26 @@ const navLinks = [
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
     <>
       <nav
-        className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50"
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-background/85 backdrop-blur-2xl border-b border-border/60"
+            : "bg-transparent border-b border-transparent"
+        }`}
         style={{
           transform: mounted ? "translateY(0)" : "translateY(-100%)",
-          transition: "transform 0.4s ease-out",
+          transition: "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s, border-color 0.3s",
         }}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -36,7 +44,7 @@ const Navbar = () => {
               <a
                 key={l.href}
                 href={l.href}
-                className="text-sm uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground"
+                className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 {l.label}
               </a>
@@ -46,9 +54,9 @@ const Navbar = () => {
           <div className="flex items-center gap-4">
             <Link
               to="/login"
-              className="hidden rounded-lg bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-all hover:bg-[hsl(var(--lime-hover))] hover:-translate-y-px md:inline-block"
+              className="hidden rounded-lg bg-primary px-5 py-2.5 text-xs font-bold tracking-wider text-primary-foreground transition-all hover:bg-[hsl(var(--lime-hover))] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] md:inline-block"
             >
-              MASUK
+              Masuk
             </Link>
             <button
               onClick={() => setOpen(!open)}
@@ -69,7 +77,7 @@ const Navbar = () => {
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="text-2xl font-satoshi font-bold uppercase tracking-wider text-foreground"
+              className="text-2xl font-satoshi font-bold tracking-tight text-foreground"
             >
               {l.label}
             </a>
@@ -77,9 +85,9 @@ const Navbar = () => {
           <Link
             to="/login"
             onClick={() => setOpen(false)}
-            className="mt-4 rounded-lg bg-primary px-8 py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground"
+            className="mt-4 rounded-lg bg-primary px-8 py-3 text-sm font-bold tracking-wider text-primary-foreground"
           >
-            MASUK
+            Masuk
           </Link>
         </div>
       )}

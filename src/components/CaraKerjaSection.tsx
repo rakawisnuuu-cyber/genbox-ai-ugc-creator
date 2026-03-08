@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Upload, ImagePlus, Download } from "lucide-react";
+import { Upload, ImagePlus, Download, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 function useCountUp(target: number, visible: boolean, duration = 800) {
@@ -19,8 +19,8 @@ function useCountUp(target: number, visible: boolean, duration = 800) {
 }
 
 const StepUploadVisual = () => (
-  <div className="mx-auto max-w-[240px] rounded-xl border border-border bg-card p-6">
-    <div className="flex h-28 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border">
+  <div className="mx-auto max-w-[240px] rounded-2xl border border-border/60 bg-card/80 p-6">
+    <div className="flex h-28 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/60">
       <div className="animate-float">
         <Upload size={24} className="text-muted-foreground" />
       </div>
@@ -46,7 +46,7 @@ const StepCharacterVisual = () => {
     "from-fuchsia-500 to-pink-400",
   ];
   return (
-    <div className="mx-auto max-w-[240px] rounded-xl border border-border bg-card p-6">
+    <div className="mx-auto max-w-[240px] rounded-2xl border border-border/60 bg-card/80 p-6">
       <div className="grid grid-cols-3 gap-3">
         {gradients.map((g, i) => (
           <div
@@ -60,11 +60,11 @@ const StepCharacterVisual = () => {
 };
 
 const StepGenerateVisual = () => (
-  <div className="mx-auto max-w-[240px] rounded-xl border border-border bg-card p-6">
+  <div className="mx-auto max-w-[240px] rounded-2xl border border-border/60 bg-card/80 p-6">
     <div className="flex h-28 flex-col items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
       <Sparkles size={28} className="text-primary animate-pulse-subtle" />
     </div>
-    <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground">
+    <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 text-xs font-bold tracking-wider text-primary-foreground">
       <Download size={14} />
       Download
     </button>
@@ -89,33 +89,32 @@ const CaraKerjaSection = () => {
     <section
       id="cara-kerja"
       ref={ref}
-      className="relative z-10 px-4 py-10 sm:py-14"
-      style={{ background: "linear-gradient(180deg, hsl(0 0% 4%) 0%, hsl(0 0% 5%) 100%)" }}
+      className="relative z-10 px-4 py-16 sm:py-24"
+      style={{ background: "linear-gradient(180deg, hsl(220 10% 4%) 0%, hsl(220 10% 5%) 100%)" }}
     >
       <div className="mx-auto max-w-5xl">
         {/* Badge */}
         <div className="flex justify-center">
           <div
-            className={`flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+            className={`flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary ${isVisible ? "animate-fade-up" : "opacity-0"}`}
             style={{ animationDelay: "0.1s" }}
           >
-            <Sparkles size={14} />
-            CARA KERJA
+            Cara Kerja
           </div>
         </div>
 
         {/* Heading */}
         <h2
-          className={`mt-5 text-center font-satoshi text-[28px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mt-5 text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{
             animationDelay: "0.2s",
-            background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
+            background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 56%) 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}
         >
-          3 LANGKAH MUDAH
+          3 Langkah Mudah
         </h2>
         <p
           className={`mt-3 text-center font-body text-base text-muted-foreground sm:text-lg ${isVisible ? "animate-fade-up" : "opacity-0"}`}
@@ -138,7 +137,7 @@ const CaraKerjaSection = () => {
                     backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--primary)) 0px, hsl(var(--primary)) 4px, transparent 4px, transparent 12px)",
                     backgroundSize: "20px 2px",
                     animation: isVisible
-                      ? `fade-slide-right 0.6s ease-out ${0.6 + i * 0.2}s forwards, dash-march 1.5s linear ${0.6 + i * 0.2 + 0.6}s infinite`
+                      ? `fade-slide-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${0.6 + i * 0.2}s forwards, dash-march 1.5s linear ${0.6 + i * 0.2 + 0.6}s infinite`
                       : "none",
                     opacity: isVisible ? undefined : 0,
                   }}
@@ -155,15 +154,15 @@ const CaraKerjaSection = () => {
                 style={{
                   animationDelay: `${0.3 + i * 0.15}s`,
                   animation: isVisible
-                    ? `fade-up 0.6s ease-out ${0.3 + i * 0.15}s forwards, step-highlight 0.8s ease-out ${0.3 + i * 0.3}s forwards`
+                    ? `fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.15}s forwards, step-highlight 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.3}s forwards`
                     : "none",
                   opacity: 0,
-                  borderRadius: "0.75rem",
+                  borderRadius: "1rem",
                 }}
               >
                 {/* Mobile vertical line */}
                 {i < steps.length - 1 && (
-                  <div className="absolute -bottom-6 left-1/2 h-6 -translate-x-1/2 border-l-2 border-dashed border-border md:hidden" />
+                  <div className="absolute -bottom-6 left-1/2 h-6 -translate-x-1/2 border-l-2 border-dashed border-border/60 md:hidden" />
                 )}
                 <span className="font-mono text-[48px] font-bold leading-none text-primary">
                   {String(countNums[i]).padStart(2, "0")}

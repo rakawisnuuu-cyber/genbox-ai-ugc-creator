@@ -33,16 +33,30 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-8">
-        {/* Logo */}
-        <p className="text-center font-satoshi text-xl font-bold tracking-[0.1em] text-foreground">
-          GENBOX
-        </p>
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-4">
+      {/* Ambient glow */}
+      <div
+        className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full opacity-[0.05]"
+        style={{
+          background: "radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative w-full max-w-md rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm p-8 shadow-[0_8px_40px_-12px_hsl(0_0%_0%/0.5)]">
+        {/* Logo with dot indicator */}
+        <div className="flex items-center justify-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-primary" />
+          <p className="font-satoshi text-xl font-bold tracking-[0.1em] text-foreground">
+            GENBOX
+          </p>
+        </div>
 
         <h1 className="mt-6 text-center font-satoshi text-2xl font-bold text-foreground">
           Masuk ke Dashboard
         </h1>
+        <p className="mt-1.5 text-center text-sm text-muted-foreground">
+          Mulai buat konten UGC dengan AI
+        </p>
 
         <form onSubmit={handleLogin} className="mt-8 space-y-5">
           {/* Email */}
@@ -54,7 +68,7 @@ const Login = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-border bg-[hsl(0_0%_10%)] px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors"
+              className="w-full rounded-lg border border-border/60 bg-secondary/50 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
               placeholder="email@contoh.com"
               autoComplete="email"
             />
@@ -70,7 +84,7 @@ const Login = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-border bg-[hsl(0_0%_10%)] px-4 py-3 pr-11 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors"
+                className="w-full rounded-lg border border-border/60 bg-secondary/50 px-4 py-3 pr-11 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
                 placeholder="••••••••"
                 autoComplete="current-password"
               />
@@ -89,10 +103,10 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold uppercase tracking-wider text-primary-foreground transition-all hover:brightness-110 hover:-translate-y-px disabled:opacity-60 disabled:pointer-events-none"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-semibold tracking-wider text-primary-foreground transition-all hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] disabled:opacity-60 disabled:pointer-events-none"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            MASUK
+            Masuk
           </button>
         </form>
       </div>

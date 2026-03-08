@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Sparkles, Lightbulb } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Lightbulb } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 type ModelType = "IMAGE" | "VIDEO" | "MUSIC" | "PROMPT";
@@ -115,24 +115,23 @@ const ApiCostSection = () => {
   const filtered = activeTab === "ALL" ? models : models.filter((m) => m.type === activeTab);
 
   return (
-    <section id="api-cost" className="relative py-10 sm:py-14 overflow-hidden">
+    <section id="api-cost" className="relative py-16 sm:py-24 overflow-hidden">
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Badge */}
         <div
           className={`flex justify-center mb-6 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.1s" }}
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            BIAYA API TRANSPARAN
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
+            Biaya API Transparan
           </span>
         </div>
 
         <h2
-          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold uppercase tracking-wide text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          KAMU YANG KONTROL BIAYA
+          Kamu yang Kontrol Biaya
         </h2>
         <p
           className={`mt-4 text-center text-base text-muted-foreground max-w-xl mx-auto ${isVisible ? "animate-fade-up" : "opacity-0"}`}
@@ -152,8 +151,8 @@ const ApiCostSection = () => {
               onClick={() => setActiveTab(t)}
               className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
                 activeTab === t
-                  ? "bg-primary text-primary-foreground scale-105"
-                  : "border border-border text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border/60 text-muted-foreground hover:text-foreground"
               }`}
             >
               {t}
@@ -163,26 +162,26 @@ const ApiCostSection = () => {
 
         {/* Table */}
         <div
-          className={`mt-8 overflow-hidden rounded-xl border border-border bg-card ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mt-8 overflow-hidden rounded-2xl border border-border/60 bg-card/80 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.4s" }}
         >
           <div className="overflow-x-auto scrollbar-none">
             <table className="w-full min-w-[700px] text-sm">
               <thead>
-                <tr className="bg-[hsl(0_0%_10%)]">
-                  <th className="sticky left-0 z-10 bg-[hsl(0_0%_10%)] min-w-[200px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                <tr className="bg-secondary/50">
+                  <th className="sticky left-0 z-10 bg-secondary/50 min-w-[200px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Model Name
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Provider
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Type
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Credits
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Est. Price
                   </th>
                 </tr>
@@ -192,7 +191,7 @@ const ApiCostSection = () => {
                   <tr
                     key={m.name}
                     className={`${
-                      i % 2 === 0 ? "bg-[hsl(0_0%_8%)]" : "bg-[hsl(0_0%_6.7%)]"
+                      i % 2 === 0 ? "bg-card/60" : "bg-card/30"
                     } transition-colors hover:bg-secondary/60`}
                   >
                     <td className="sticky left-0 z-10 min-w-[200px] px-4 py-3 bg-inherit">
@@ -228,9 +227,9 @@ const ApiCostSection = () => {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-border px-4 py-3">
-            <span className="text-[11px] text-[hsl(0_0%_40%)]">{filtered.length} MODELS LOADED</span>
-            <span className="flex items-center gap-2 text-[11px] text-[hsl(0_0%_40%)]">
+          <div className="flex items-center justify-between border-t border-border/60 px-4 py-3">
+            <span className="text-[11px] text-muted-foreground/50">{filtered.length} MODELS LOADED</span>
+            <span className="flex items-center gap-2 text-[11px] text-muted-foreground/50">
               LIVE API FEED
               <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse-subtle" />
             </span>
@@ -240,19 +239,19 @@ const ApiCostSection = () => {
         {/* Cost Simulator */}
         <div
           ref={simRef}
-          className={`mt-12 rounded-xl border border-border bg-card p-6 sm:p-8 ${simVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mt-12 rounded-2xl border border-border/60 bg-card/80 p-6 sm:p-8 ${simVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          <h3 className="flex items-center justify-center gap-2 font-satoshi text-lg font-bold uppercase tracking-wider text-foreground">
+          <h3 className="flex items-center justify-center gap-2 font-satoshi text-lg font-bold tracking-tight text-foreground">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
               <Lightbulb size={16} className="text-primary" />
             </span>
-            SIMULASI BIAYA BULANAN
+            Simulasi Biaya Bulanan
           </h3>
 
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
             {simCards.map((c) => (
-              <div key={c.title} className="rounded-xl border border-border bg-secondary/50 p-5">
+              <div key={c.title} className="rounded-2xl border border-border/60 bg-secondary/50 p-5">
                 <p className="font-satoshi text-base font-bold text-foreground">{c.title}</p>
                 <p className="mt-2 text-xs text-muted-foreground">{c.desc}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{c.models}</p>
