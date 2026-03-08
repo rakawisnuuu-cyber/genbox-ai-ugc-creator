@@ -117,10 +117,27 @@ const HeroSection = () => {
         </p>
       </div>
 
+      {/* Video Demo */}
+      <div
+        className="animate-fade-up relative z-10 mt-16 w-full max-w-2xl mx-auto px-4"
+        style={{ animationDelay: "0.55s" }}
+      >
+        <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden shadow-[0_8px_40px_-12px_hsl(0_0%_0%/0.5)]">
+          <video
+            src="/videos/hero-ugc-demo.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full aspect-[9/16] max-h-[520px] object-cover"
+          />
+        </div>
+      </div>
+
       {/* Showcase section */}
       <div
-        className="animate-fade-up relative z-10 mt-16 w-full max-w-4xl mx-auto pb-12"
-        style={{ animationDelay: "0.6s" }}
+        className="animate-fade-up relative z-10 mt-12 w-full max-w-4xl mx-auto pb-12"
+        style={{ animationDelay: "0.65s" }}
       >
         <p className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/40">
           Hasil generate dari GENBOX
