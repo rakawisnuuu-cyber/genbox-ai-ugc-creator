@@ -5,12 +5,16 @@ import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 /* ── Feature 01: Character Showcase Stack ─────────── */
 
 const characters = [
-  { name: "Hijab Casual", desc: "Wanita · 20-25 · Modern", gradient: "from-emerald-600 to-teal-400" },
-  { name: "Urban Trendy", desc: "Pria · 22-28 · Streetwear", gradient: "from-violet-600 to-purple-400" },
-  { name: "Ibu Muda", desc: "Wanita · 25-35 · Friendly", gradient: "from-rose-500 to-pink-400" },
-  { name: "Gen-Z Creator", desc: "Pria/Wanita · 17-22 · Trendy", gradient: "from-cyan-500 to-sky-400" },
-  { name: "Beauty Enthusiast", desc: "Wanita · 20-30 · Glowing", gradient: "from-fuchsia-500 to-pink-400" },
-  { name: "Bapak UMKM", desc: "Pria · 35-50 · Profesional", gradient: "from-slate-500 to-zinc-400" },
+  { name: "Hijab Casual", desc: "Wanita · 20-25 · Modern", gradient: "from-emerald-600 to-teal-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg" },
+  { name: "Urban Trendy", desc: "Pria · 22-28 · Streetwear", gradient: "from-violet-600 to-purple-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg" },
+  { name: "Ibu Muda", desc: "Wanita · 25-35 · Friendly", gradient: "from-rose-500 to-pink-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20Muda.jpeg" },
+  { name: "Gen-Z Creator", desc: "Pria/Wanita · 17-22 · Trendy", gradient: "from-cyan-500 to-sky-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Gen-Z%20Creator.jpeg" },
+  { name: "Beauty Enthusiast", desc: "Wanita · 20-30 · Glowing", gradient: "from-fuchsia-500 to-pink-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Beauty%20Enthusiast.jpeg" },
+  { name: "Bapak UMKM", desc: "Pria · 35-50 · Profesional", gradient: "from-slate-500 to-zinc-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Bapak%20UMKM.jpeg" },
+  { name: "Mahasiswa", desc: "Pria/Wanita · 18-22 · Energik", gradient: "from-amber-500 to-orange-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Mahasiswa.jpeg" },
+  { name: "Office Worker", desc: "Pria/Wanita · 25-35 · Smart Casual", gradient: "from-gray-500 to-neutral-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Office%20Worker.jpeg" },
+  { name: "Ibu PKK", desc: "Wanita · 35-50 · Ramah", gradient: "from-green-500 to-lime-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20PKK.jpeg" },
+  { name: "Cowok Gym", desc: "Pria · 22-30 · Athletic", gradient: "from-red-500 to-orange-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Cowok%20Gym.jpeg" },
 ];
 
 function CharacterShowcaseStack() {
@@ -55,15 +59,12 @@ function CharacterShowcaseStack() {
           >
             <div className={`rounded-2xl bg-gradient-to-br ${char.gradient} overflow-hidden border border-white/10 shadow-2xl`}>
               <div className="relative h-[180px] overflow-hidden">
+                {char.image && (
+                  <img src={char.image} alt={char.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute right-3 top-3">
                   <span className="rounded-md bg-black/30 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/50 backdrop-blur-sm">Preset</span>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="opacity-20">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
                 </div>
               </div>
               <div className="bg-black/20 p-4 backdrop-blur-sm">
