@@ -198,7 +198,7 @@ const DashboardLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className="mt-12 min-h-screen lg:ml-[232px] lg:mt-0">
+      <main className="mt-12 min-h-[100dvh] lg:ml-[232px] lg:mt-0">
         {/* Keep-alive pages: always mounted, toggled via display */}
         <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
           <GeneratePage />
