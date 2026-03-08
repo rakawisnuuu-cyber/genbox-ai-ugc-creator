@@ -138,6 +138,7 @@ const MultiShotCreator = () => {
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
   const [needsRestitch, setNeedsRestitch] = useState(false);
   const [deleteConfirmIdx, setDeleteConfirmIdx] = useState<number | null>(null);
+  const [environmentDesc, setEnvironmentDesc] = useState<string>("");
 
   // Character info for generation
   const selectedChar = characters.find((c) => c.id === characterId);
