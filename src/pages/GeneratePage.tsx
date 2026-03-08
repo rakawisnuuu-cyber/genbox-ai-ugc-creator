@@ -620,7 +620,7 @@ Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything 
       try {
         setShotStatuses((prev) => {
           const next = [...prev];
-          next[idx] = { state: "generating" };
+          next[idx] = { state: "prompting" };
           return next;
         });
 
