@@ -235,13 +235,13 @@ const VideoPage = () => {
       ? `Product category: ${productInfo.category}. Reference this product type specifically.`
       : "";
 
-  /** Auto-detect product from image via Gemini */
-  const detectProductFromImage = async (imageUrl: string) => {
+  /** Auto-detect product from image via Gemini — uses stored base64 or falls back to URL */
+  const detectProductFromImage = async (b64Override?: { mimeType: string; data: string } | null) => {
     if (!geminiKey || keys.gemini.status !== "valid") return;
+    const b64 = b64Override || imageAsBase64;
+    if (!b64) { return; }
     setDetectingProduct(true);
     try {
-      const b64 = await imageUrlToBase64(imageUrl);
-      if (!b64) { setDetectingProduct(false); return; }
       const json = await geminiFetch(promptModel, geminiKey!, {
         contents: [{
           parts: [
@@ -270,6 +270,8 @@ const VideoPage = () => {
   const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
   const [sourcePreview, setSourcePreview] = useState<string | null>(navState?.sourceImage || null);
   const [uploading, setUploading] = useState(false);
+  // Stored base64 from FileReader (CORS-free) for Gemini calls
+  const [imageAsBase64, setImageAsBase64] = useState<{ mimeType: string; data: string } | null>(null);
 
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplateKey>(
@@ -377,11 +379,13 @@ const VideoPage = () => {
 
       const contentParts: any[] = [];
 
-      // Try to include source image as base64
-      const imgUrl = sourceUrl;
+      // Use stored base64 from FileReader (CORS-free), fall back to URL fetch
       let imageIncluded = false;
-      if (imgUrl) {
-        const b64 = await imageUrlToBase64(imgUrl);
+      if (imageAsBase64) {
+        contentParts.push({ inlineData: { mimeType: imageAsBase64.mimeType, data: imageAsBase64.data } });
+        imageIncluded = true;
+      } else if (sourceUrl) {
+        const b64 = await imageUrlToBase64(sourceUrl);
         if (b64) {
           contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
           imageIncluded = true;
@@ -563,6 +567,21 @@ Rules:
     }
     setSourcePreview(URL.createObjectURL(file));
     setUploading(true);
+
+    // Convert File to base64 immediately (CORS-free)
+    const b64 = await new Promise<{ mimeType: string; data: string } | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        const mimeType = result.split(",")[0].split(":")[1].split(";")[0];
+        const data = result.split(",")[1];
+        resolve(data ? { mimeType, data } : null);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+    if (b64) setImageAsBase64(b64);
+
     const ext = file.name.split(".").pop();
     const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(path, file);
@@ -574,9 +593,9 @@ Rules:
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
     setSourceUrl(urlData.publicUrl);
     setUploading(false);
-    // Auto-detect product if no productInfo yet
-    if (!productInfo.product_description) {
-      detectProductFromImage(urlData.publicUrl);
+    // Auto-detect product using the locally-captured base64
+    if (!productInfo.product_description && b64) {
+      detectProductFromImage(b64);
     }
   };
 
@@ -655,13 +674,18 @@ Output ONLY the script text.`;
     });
 
     const contentParts: any[] = [];
-    // Include source image for visual reference (base64 for Gemini Vision)
-    const imgUrl = frame.sourceImageUrl || sourceUrl;
-    if (imgUrl) {
-      const b64 = await imageUrlToBase64(imgUrl);
-      if (b64) {
-        contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
-        contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+    // Use stored base64 (CORS-free) for visual reference, fall back to URL fetch
+    if (imageAsBase64) {
+      contentParts.push({ inlineData: { mimeType: imageAsBase64.mimeType, data: imageAsBase64.data } });
+      contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+    } else {
+      const imgUrl = frame.sourceImageUrl || sourceUrl;
+      if (imgUrl) {
+        const b64 = await imageUrlToBase64(imgUrl);
+        if (b64) {
+          contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
+          contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+        }
       }
     }
 
@@ -908,7 +932,7 @@ Content template: ${template?.label}`,
                         onClick={() => {
                           setSourcePreview(img.image_url);
                           setSourceUrl(img.image_url);
-                          if (!productInfo.product_description) detectProductFromImage(img.image_url);
+                          setImageAsBase64(null); // Gallery images can't be converted (CORS) — Plan Storyboard handles detection
                         }}
                         className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
                       >
