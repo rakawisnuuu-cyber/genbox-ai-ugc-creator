@@ -46,7 +46,7 @@ const MAX_404_RETRIES = 5;
 
 // ── Error helper ────────────────────────────────────────────────────
 function extractError(json: any, fallback: string): string {
-  return json?.msg || json?.message || json?.error || fallback;
+  return json?.errorMessage || json?.msg || json?.message || json?.error || fallback;
 }
 
 // ── Task creation ───────────────────────────────────────────────────
