@@ -101,7 +101,7 @@ const HeroSection = () => {
             href="#harga"
             className="flex h-12 items-center rounded-lg bg-primary px-6 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--lime-hover))]"
           >
-            Beli Sekarang — Rp 249.000 <span className="ml-1.5">→</span>
+            Beli Sekarang — Rp 149.000 <span className="ml-1.5">→</span>
           </a>
           <button className="flex h-12 items-center gap-2 rounded-lg border border-foreground/20 bg-transparent px-6 text-sm font-bold tracking-wider text-foreground transition-colors hover:bg-foreground/5">
             Lihat Demo
