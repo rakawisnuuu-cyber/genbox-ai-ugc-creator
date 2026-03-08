@@ -37,6 +37,7 @@ import {
   CheckCircle2,
   XCircle,
   Play,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
