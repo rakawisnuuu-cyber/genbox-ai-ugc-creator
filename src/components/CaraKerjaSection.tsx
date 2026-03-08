@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Upload, Users, Sparkles, Film, Play, Download, ChevronRight, Pause } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
-import caraKerjaUgc from "@/assets/cara-kerja-ugc.jpeg";
+import caraKerjaUgc from "@/assets/cara-kerja-ugc-new.jpeg";
 
 /* ── Preset character thumbnails ── */
 const characterImages = [
@@ -15,7 +15,7 @@ const characterImages = [
 ];
 
 /* ── Showcase video for step 5 ── */
-const SHOWCASE_VIDEO = "https://uxrxrsdasgvygoeavozp.supabase.co/storage/v1/object/public/showcase-videos/video-1.mp4";
+const SHOWCASE_VIDEO = "/showcase/cara-kerja-video.mp4";
 
 /* ── Animated counter ── */
 function useCountUp(target: number, visible: boolean, duration = 700) {
@@ -161,7 +161,6 @@ const StepVideo = () => {
       <video
         ref={videoRef}
         src={SHOWCASE_VIDEO}
-        muted
         loop
         playsInline
         preload="metadata"
