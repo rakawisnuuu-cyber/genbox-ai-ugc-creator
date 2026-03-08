@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLocation, useNavigate } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
