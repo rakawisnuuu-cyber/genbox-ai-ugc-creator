@@ -702,7 +702,7 @@ Output ONLY the script text.`;
         const b64 = await imageUrlToBase64(imgUrl);
         if (b64) {
           contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
-          contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+          contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY. Do NOT reinterpret any visual element." });
         }
       }
     }
