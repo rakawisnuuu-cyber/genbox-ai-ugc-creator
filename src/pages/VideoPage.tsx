@@ -792,11 +792,18 @@ Content template: ${template?.label}`,
       const beat = beats[idx];
       const duration = frame.model === "grok" ? 10 : 8;
 
+      // Build image URLs — use dual input for Veo when distinct frame image exists
+      const isVeo = frame.model === "veo_fast" || frame.model === "veo_quality";
+      const hasDistinctFrameImage = frame.sourceImageUrl && frame.sourceImageUrl !== sourceUrl;
+      const videoImageUrls = (isVeo && hasDistinctFrameImage && sourceUrl)
+        ? [sourceUrl, frame.sourceImageUrl!]
+        : [imgUrl];
+
       const result = await generateVideoAndWait(
         {
           model: frame.model,
           prompt: usedPrompt,
-          imageUrls: [imgUrl],
+          imageUrls: videoImageUrls,
           duration,
           aspectRatio,
           apiKey: kieApiKey,

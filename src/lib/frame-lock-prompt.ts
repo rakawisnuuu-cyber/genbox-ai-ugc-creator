@@ -64,7 +64,17 @@ The environment in frame 1 must be IDENTICAL to the environment in the final fra
 - Focus on MOTION, ACTION, CAMERA MOVEMENT — describe what CHANGES, not what's static
 - Include audio/dialogue direction naturally if provided
 - NO brackets, NO placeholders, NO template markers
-- Output ONLY the final prompt text, no explanation`;
+- Output ONLY the final prompt text, no explanation
+
+=== UGC STYLE DIRECTION ===
+This is a TikTok UGC (user-generated content) video by an Indonesian content creator or affiliate marketer.
+The video must feel like authentic self-filmed content — NOT a commercial, NOT a cinematic production.
+- Shot on smartphone (iPhone/Samsung), natural phone camera look with slight HDR processing
+- Casual, spontaneous energy — the person talks to camera like talking to a friend
+- Natural imperfect framing, slight phone camera sway is acceptable
+- Warm natural lighting, not studio-lit
+- The environment should feel real and lived-in, not a set
+- The person's behavior should be relatable and genuine, like a real TikTok creator reviewing a product`;
 
 /** Build context-aware system instruction for a specific shot */
 export function buildVideoDirectorInstruction(opts: {
