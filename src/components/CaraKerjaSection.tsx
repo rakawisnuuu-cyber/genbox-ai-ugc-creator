@@ -31,7 +31,7 @@ const characterImages = [
 
 const StepUploadVisual = () => (
   <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-4 overflow-hidden">
-    <div className="relative h-32 rounded-lg overflow-hidden">
+    <div className="relative h-48 rounded-lg overflow-hidden">
       <img src={caraKerjaProduct} alt="Foto Produk" className="h-full w-full object-cover" />
       <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
         <div className="animate-float rounded-full bg-background/80 p-3 shadow-lg">
@@ -56,7 +56,7 @@ const StepCharacterVisual = () => (
       {characterImages.map((img, i) => (
         <div
           key={i}
-          className={`relative mx-auto h-12 w-12 overflow-hidden rounded-full ${i === 1 ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "ring-1 ring-border/30"}`}
+          className={`relative mx-auto h-16 w-16 overflow-hidden rounded-full ${i === 1 ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "ring-1 ring-border/30"}`}
         >
           <img src={img} alt="Character" className="h-full w-full object-cover object-top" loading="lazy" />
         </div>
@@ -67,7 +67,7 @@ const StepCharacterVisual = () => (
 
 const StepGenerateVisual = () => (
   <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-4">
-    <div className="relative h-32 overflow-hidden rounded-lg">
+    <div className="relative h-48 overflow-hidden rounded-lg">
       <img src={caraKerjaUgc} alt="Hasil UGC" className="h-full w-full object-cover object-top" />
       <div className="absolute inset-0 flex items-center justify-center bg-background/20">
         <Sparkles size={24} className="text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] animate-pulse-subtle" />
