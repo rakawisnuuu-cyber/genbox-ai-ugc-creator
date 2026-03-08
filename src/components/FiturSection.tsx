@@ -59,15 +59,12 @@ function CharacterShowcaseStack() {
           >
             <div className={`rounded-2xl bg-gradient-to-br ${char.gradient} overflow-hidden border border-white/10 shadow-2xl`}>
               <div className="relative h-[180px] overflow-hidden">
+                {char.image && (
+                  <img src={char.image} alt={char.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute right-3 top-3">
                   <span className="rounded-md bg-black/30 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/50 backdrop-blur-sm">Preset</span>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="opacity-20">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
                 </div>
               </div>
               <div className="bg-black/20 p-4 backdrop-blur-sm">
