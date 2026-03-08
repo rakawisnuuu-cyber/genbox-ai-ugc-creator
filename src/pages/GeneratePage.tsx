@@ -984,7 +984,73 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
         {/* Pilih Karakter */}
         <div className="animate-fade-up" style={{ animationDelay: "150ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Pilih Karakter</label>
-          <Select value={selectedCharId} onValueChange={onCharSelect}>
+
+          {/* Pakai Foto Sendiri */}
+          {!ownPhotoPreview ? (
+            <button
+              type="button"
+              onClick={() => {
+                const inp = document.createElement("input");
+                inp.type = "file";
+                inp.accept = "image/jpeg,image/png,image/webp";
+                inp.onchange = (e) => {
+                  const f = (e.target as HTMLInputElement).files?.[0];
+                  if (f) handleOwnPhotoSelect(f);
+                };
+                inp.click();
+              }}
+              className="w-full border-2 border-dashed border-border rounded-xl p-4 bg-background hover:border-primary/30 transition-colors flex items-center gap-3 cursor-pointer mb-3"
+            >
+              <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <Camera className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-foreground">Pakai Foto Sendiri</p>
+                <p className="text-[11px] text-muted-foreground">Upload foto kamu — AI akan analisis & cocokkan</p>
+              </div>
+            </button>
+          ) : (
+            <div className="border border-border rounded-xl p-3 bg-card mb-3">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <img src={ownPhotoPreview} alt="Foto sendiri" className="h-12 w-12 rounded-full object-cover shrink-0" />
+                  {(ownPhotoUploading || ownPhotoAnalyzing) && (
+                    <div className="absolute inset-0 rounded-full bg-background/60 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {ownPhotoUploading ? (
+                    <p className="text-xs text-muted-foreground">Mengupload foto...</p>
+                  ) : ownPhotoAnalyzing ? (
+                    <p className="text-xs text-muted-foreground">AI sedang menganalisis...</p>
+                  ) : selectedChar?.id === "__own_photo__" ? (
+                    <>
+                      <p className="text-sm font-semibold text-foreground">{selectedChar.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[selectedChar.type, selectedChar.age_range, selectedChar.style].filter(Boolean).join(" • ")}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Foto terupload</p>
+                  )}
+                </div>
+                <button onClick={removeOwnPhoto} className="p-1 rounded-md hover:bg-secondary transition-colors">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[11px] text-muted-foreground">atau pilih karakter</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <Select value={selectedCharId === "__own_photo__" ? "" : selectedCharId} onValueChange={onCharSelect}>
             <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border">
               <SelectValue placeholder="Pilih karakter..." />
             </SelectTrigger>
@@ -994,7 +1060,11 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                 {PRESETS.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     <span className="flex items-center gap-2">
-                      <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                      {c.hero_image_url ? (
+                        <img src={c.hero_image_url} alt={c.name} className="h-5 w-5 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
                       {c.name}
                     </span>
                   </SelectItem>
