@@ -19,6 +19,7 @@ import CreateCharacterPage from "./pages/CreateCharacterPage";
 import VideoPage from "./pages/VideoPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
+import CheckoutPage from "./pages/CheckoutPage";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
             <Route
               element={
                 <ProtectedRoute>
