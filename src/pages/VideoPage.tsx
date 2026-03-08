@@ -674,13 +674,18 @@ Output ONLY the script text.`;
     });
 
     const contentParts: any[] = [];
-    // Include source image for visual reference (base64 for Gemini Vision)
-    const imgUrl = frame.sourceImageUrl || sourceUrl;
-    if (imgUrl) {
-      const b64 = await imageUrlToBase64(imgUrl);
-      if (b64) {
-        contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
-        contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+    // Use stored base64 (CORS-free) for visual reference, fall back to URL fetch
+    if (imageAsBase64) {
+      contentParts.push({ inlineData: { mimeType: imageAsBase64.mimeType, data: imageAsBase64.data } });
+      contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+    } else {
+      const imgUrl = frame.sourceImageUrl || sourceUrl;
+      if (imgUrl) {
+        const b64 = await imageUrlToBase64(imgUrl);
+        if (b64) {
+          contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
+          contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+        }
       }
     }
 
