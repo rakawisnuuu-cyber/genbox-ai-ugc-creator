@@ -291,9 +291,113 @@ const GeneratePage = () => {
 
   // Handle character select change
   const onCharSelect = (id: string) => {
+    // Clear own photo when selecting from dropdown
+    setOwnPhotoPreview(null);
+    setOwnPhotoUrl(null);
+    setOwnPhotoUploading(false);
+    setOwnPhotoAnalyzing(false);
     setSelectedCharId(id);
     const found = [...PRESETS, ...customChars].find((c) => c.id === id) || null;
     setSelectedChar(found);
+  };
+
+  // Remove own photo
+  const removeOwnPhoto = () => {
+    setOwnPhotoPreview(null);
+    setOwnPhotoUrl(null);
+    setOwnPhotoUploading(false);
+    setOwnPhotoAnalyzing(false);
+    if (selectedChar?.id === "__own_photo__") {
+      setSelectedCharId("");
+      setSelectedChar(null);
+    }
+  };
+
+  // Handle own photo upload
+  const handleOwnPhotoSelect = async (file: File) => {
+    if (!user) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File terlalu besar", description: "Maksimal 10MB", variant: "destructive" });
+      return;
+    }
+    setOwnPhotoPreview(URL.createObjectURL(file));
+    setOwnPhotoUploading(true);
+    setOwnPhotoAnalyzing(false);
+
+    // Clear dropdown selection
+    setSelectedCharId("__own_photo__");
+
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/own-photo/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("character-packs").upload(path, file);
+    if (error) {
+      toast({ title: "Upload gagal", description: error.message, variant: "destructive" });
+      setOwnPhotoUploading(false);
+      removeOwnPhoto();
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("character-packs").getPublicUrl(path);
+    const uploadedUrl = urlData.publicUrl;
+    setOwnPhotoUrl(uploadedUrl);
+    setOwnPhotoUploading(false);
+
+    // Analyze with Gemini Vision
+    setOwnPhotoAnalyzing(true);
+    let charData: CharacterData;
+    try {
+      if (!geminiKey || keys.gemini.status !== "valid") throw new Error("No Gemini key");
+      const base64 = await fileToBase64(file);
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: file.type || "image/jpeg", data: base64 } },
+            { text: `Analyze this person's photo for a UGC character profile. Return JSON only:
+{
+  "name": "Short descriptive name based on their look, e.g. 'Hijab Modern', 'Cowok Casual', 'Ibu Muda' (2-3 words max, Indonesian)",
+  "gender": "Pria or Wanita",
+  "age_range": "estimated age range like 20-25",
+  "style": "one word style descriptor like Modern, Casual, Sporty, Elegant",
+  "identity_prompt": "Detailed description of this EXACT person: ethnicity, skin tone, face shape, eye shape, nose, lips, hair style/color/length, any distinctive features. Be very specific so AI can recreate this exact person."
+}` },
+          ],
+        }],
+        generationConfig: { responseMimeType: "application/json" },
+      });
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+      charData = {
+        id: "__own_photo__",
+        name: parsed.name || "Foto Saya",
+        type: parsed.gender || "Pria/Wanita",
+        age_range: parsed.age_range || "20-30",
+        style: parsed.style || "Natural",
+        description: parsed.identity_prompt || "Karakter dari foto upload",
+        gradient_from: "from-violet-900/40",
+        gradient_to: "to-purple-900/40",
+        is_preset: false,
+        hero_image_url: uploadedUrl,
+        reference_photo_url: uploadedUrl,
+        identity_prompt: parsed.identity_prompt || undefined,
+      };
+    } catch (err) {
+      console.warn("Gemini analysis failed, using fallback:", err);
+      charData = {
+        id: "__own_photo__",
+        name: "Foto Saya",
+        type: "Pria/Wanita",
+        age_range: "20-30",
+        style: "Natural",
+        description: "Karakter dari foto upload pengguna",
+        gradient_from: "from-violet-900/40",
+        gradient_to: "to-purple-900/40",
+        is_preset: false,
+        hero_image_url: uploadedUrl,
+        reference_photo_url: uploadedUrl,
+      };
+    }
+    setOwnPhotoAnalyzing(false);
+    setSelectedChar(charData);
   };
 
   /* ── Product DNA Detection ───────────────────────────────────── */
