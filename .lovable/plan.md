@@ -1,74 +1,48 @@
 
-Goal: fix multi-shot generation failures and make model behavior consistent by reusing one shared generation/polling path across quick + multi-shot.
 
-1) Root cause found (current failing run)
-- The failing multi-shot run is not primarily a polling bug.
-- Network responses show Grok task creation returns:
-  - `{"code":500,"msg":"duration is not within the range of allowed options"}`
-- Multi-shot currently sends module durations like 2/3/4/7s to Grok.
-- Grok image-to-video accepts limited duration values (6 or 10), so creation fails before polling.
-- Error display is misleading because code reads `message` but API returns `msg`, so user sees generic “Failed to create Grok task”.
+## Fitur Section — Numbered Timeline Layout
 
-2) Implementation plan (what to build)
-- Create a shared video generation client (single source of truth) used by:
-  - `src/pages/VideoPage.tsx` (quick mode)
-  - `src/hooks/useMultiShotGeneration.ts` (multi-shot mode)
-- Move all Kie logic into shared functions:
-  - task creation payload by model (Grok / Veo Fast / Veo Quality)
-  - polling endpoint + status parsing
-  - timeout + retry policy (including 404 retry cap)
-  - consistent URL extraction from result payloads
-  - consistent API error extraction (`msg || message || code`)
-- Remove duplicated inline generation logic from both call sites.
+Redesign the `FeatureRow` component and section layout to use a vertical timeline style.
 
-3) Grok duration compatibility fix (critical)
-- Add duration normalization for Grok before createTask:
-  - map to allowed values only (6 or 10)
-  - recommended mapping: `<8 => 6`, `>=8 => 10`
-- Apply this in shared generator so both quick and multi-shot stay valid.
-- In Step 2 module editor, add Grok-specific UX guard:
-  - when model is Grok, show helper text “Durasi Grok hanya 6/10 detik”
-  - prevent silently invalid durations (either enforce picker options or show normalized final value per shot).
+### Layout Structure
 
-4) Polling/404 hardening
-- Keep Veo polling on `/api/v1/veo/record-info?taskId=...` and Grok on `/api/v1/jobs/recordInfo?taskId=...` in shared client.
-- Add explicit debug logs in shared poller:
-  - model, taskId, poll URL, HTTP status, parsed state
-- Stop polling after 5 consecutive 404s with clear actionable error.
-- Keep model-specific timeout windows:
-  - Grok 3m, Veo Fast 5m, Veo Quality 10m.
+```text
+         Timeline
+            │
+   ┌────────┼────────────────────┐
+   │  01    │   [Visual]         │
+   │  Title │                    │
+   │  Desc  │                    │
+   │        ●────────            │
+   │        │                    │
+   │  [Visual]    02             │
+   │              Title          │
+   │        ●──── Desc           │
+   │        │                    │
+   │  03    │   [Visual]         │
+   │  Title │                    │
+   │  Desc  ●────────            │
+   └────────┼────────────────────┘
+            │
+```
 
-5) Multi-shot integration details
-- `generateSingleShot` in `useMultiShotGeneration.ts` becomes a thin wrapper:
-  - build image inputs + continuity image references
-  - call shared `generateVideoAndWait(...)`
-- Keep existing sequential behavior (continue next shot on failure).
-- Preserve shot-level retry/regenerate flow and status updates (no UX regression).
+### Changes to `src/components/FiturSection.tsx`
 
-6) Check “other modules” / regressions
-- Verify no breakage in:
-  - Quick video generation (`/video` quick mode)
-  - Multi-shot initial run
-  - Shot regenerate + “Save & Regenerate”
-  - Model switching between Grok / Veo Fast / Veo Quality
-  - Module insert/delete/reorder path still updates and generates correctly
-- Validate error toasts now show real provider messages (e.g., invalid duration).
+1. **Replace `space-y` container** with a `relative` container that has a vertical line (`absolute left-1/2 w-px bg-border/40`) running down the center on desktop, and `left-[20px]` on mobile.
 
-Technical details (concise)
-- New shared file (example): `src/lib/kie-video-generation.ts`
-- Exposed API (example):
-  - `normalizeDurationForModel(model, duration)`
-  - `createVideoTask(params)`
-  - `pollVideoTask(params)`
-  - `generateVideoAndWait(params)` (used by both quick + multi-shot)
-- Parsing rules:
-  - Grok success: `jobs/recordInfo` + `data.state === "success"` + parse `resultJson`
-  - Veo success: `veo/record-info` + `data.successFlag === 1`
-- Error normalization:
-  - throw `msg || message || "Unknown generation error"` so UI shows true cause.
+2. **Redesign `FeatureRow`**:
+   - Each row is a `relative` flex container with the timeline dot (a small `w-3 h-3 rounded-full bg-primary` circle with a subtle glow) positioned on the vertical line.
+   - Text side (number + title + desc) and visual side alternate left/right based on `reversed`.
+   - On mobile: timeline line shifts to the left edge, all content flows to the right in a single column.
 
-Validation matrix after implementation
-- Grok multi-shot (5 shots with mixed durations): creation succeeds, no duration 500.
-- Veo Fast multi-shot: no repeated 404 loop, completes with valid URL.
-- Veo Quality single-shot: completes within timeout window.
-- At least one failed case (intentional invalid key) returns clear message in UI.
+3. **Number styling**: Keep `font-mono text-[48px] font-bold text-primary` but position it as part of the text block, not floating.
+
+4. **Timeline dot**: Each feature gets a dot on the line with a subtle `ring-4 ring-primary/10` glow effect.
+
+5. **Spacing**: `py-12` between each feature row for breathing room.
+
+### Mobile Behavior
+- Vertical line at `left-[20px]` with dots aligned to it.
+- All text + visuals stack vertically to the right of the line.
+- Alternating layout only applies on `lg:` breakpoint and above.
+
