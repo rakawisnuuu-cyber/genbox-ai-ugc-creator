@@ -1,22 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, useMotionValue } from "framer-motion";
+
+const STORAGE_BASE = "https://uxrxrsdasgvygoeavozp.supabase.co/storage/v1/object/public/showcase-videos";
 
 interface ShowcaseCard {
   id: number;
-  imageUrl: string;
+  type: "image" | "video";
+  url: string;
   label: string;
   category: string;
-  model: string;
 }
 
 const showcaseCards: ShowcaseCard[] = [
-  { id: 1, imageUrl: "/showcase/ugc-skincare-hijab.jpg", label: "Hijab Casual", category: "Skincare", model: "nano-banana-pro" },
-  { id: 2, imageUrl: "/showcase/ugc-fashion-urban.jpg", label: "Urban Trendy", category: "Fashion", model: "nano-banana-pro" },
-  { id: 3, imageUrl: "/showcase/ugc-food-ibumuda.jpg", label: "Ibu Muda", category: "Makanan", model: "nano-banana-pro" },
-  { id: 4, imageUrl: "/showcase/ugc-tech-genz.jpg", label: "Gen-Z Creator", category: "Elektronik", model: "nano-banana-pro" },
-  { id: 5, imageUrl: "/showcase/ugc-beauty-enthusiast.jpg", label: "Beauty Enthusiast", category: "Makeup", model: "nano-banana-pro" },
-  { id: 6, imageUrl: "/showcase/ugc-suplemen-gym.jpg", label: "Cowok Gym", category: "Suplemen", model: "nano-banana-pro" },
-  { id: 7, imageUrl: "/showcase/ugc-household-pkk.jpg", label: "Ibu PKK", category: "Rumah Tangga", model: "nano-banana-pro" },
+  { id: 1, type: "video", url: `${STORAGE_BASE}/video-1.mp4`, label: "Skincare Review", category: "Skincare" },
+  { id: 2, type: "video", url: `${STORAGE_BASE}/video-2.mp4`, label: "Fashion Haul", category: "Fashion" },
+  { id: 3, type: "video", url: `${STORAGE_BASE}/video-3.mp4`, label: "Food Review", category: "Makanan" },
+  { id: 4, type: "video", url: `${STORAGE_BASE}/video-4.mp4`, label: "Tech Unboxing", category: "Elektronik" },
+  { id: 5, type: "video", url: `${STORAGE_BASE}/video-5.mp4`, label: "Beauty Tutorial", category: "Makeup" },
+  { id: 6, type: "video", url: `${STORAGE_BASE}/video-6.mp4`, label: "Lifestyle", category: "Lifestyle" },
 ];
 
 interface DepthDeckCarouselProps {
@@ -27,7 +28,8 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
+  const [mediaErrors, setMediaErrors] = useState<Record<number, boolean>>({});
+  const videoRefs = useRef<Record<number, HTMLVideoElement | null>>({});
   const dragX = useMotionValue(0);
 
   const total = showcaseCards.length;
@@ -46,37 +48,46 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
     return () => clearInterval(timer);
   }, [isPaused, isDragging, next, autoPlayInterval]);
 
+  // Play/pause videos based on active index
+  useEffect(() => {
+    showcaseCards.forEach((card, index) => {
+      const video = videoRefs.current[card.id];
+      if (!video) return;
+      if (index === activeIndex) {
+        video.play().catch(() => {});
+      } else {
+        video.pause();
+        video.currentTime = 0;
+      }
+    });
+  }, [activeIndex]);
+
   const handleDragEnd = (_: any, info: { offset: { x: number }; velocity: { x: number } }) => {
     setIsDragging(false);
     const threshold = 50;
-    if (info.offset.x < -threshold || info.velocity.x < -500) {
-      next();
-    } else if (info.offset.x > threshold || info.velocity.x > 500) {
-      prev();
-    }
+    if (info.offset.x < -threshold || info.velocity.x < -500) next();
+    else if (info.offset.x > threshold || info.velocity.x > 500) prev();
   };
 
   const getCardStyle = (index: number) => {
     let diff = index - activeIndex;
     if (diff > total / 2) diff -= total;
     if (diff < -total / 2) diff += total;
-
     const absD = Math.abs(diff);
-    const isActive = diff === 0;
 
     return {
       x: diff * 180,
       scale: 1 - absD * 0.12,
       zIndex: total - absD,
       opacity: absD > 3 ? 0 : 1 - absD * 0.2,
-      filter: isActive ? "blur(0px)" : `blur(${absD * 2}px)`,
+      filter: diff === 0 ? "blur(0px)" : `blur(${absD * 2}px)`,
       rotateY: diff * -4,
-      isActive,
+      isActive: diff === 0,
     };
   };
 
-  const handleImgError = (id: number) => {
-    setImgErrors((prev) => ({ ...prev, [id]: true }));
+  const handleMediaError = (id: number) => {
+    setMediaErrors((prev) => ({ ...prev, [id]: true }));
   };
 
   return (
@@ -93,11 +104,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
           <motion.div
             key={card.id}
             className="absolute cursor-grab active:cursor-grabbing select-none"
-            style={{
-              width: 200,
-              height: 280,
-              transformStyle: "preserve-3d",
-            }}
+            style={{ width: 200, height: 280, transformStyle: "preserve-3d" }}
             animate={{
               x: style.x,
               scale: style.scale,
@@ -105,11 +112,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
               opacity: style.opacity,
               rotateY: style.rotateY,
             }}
-            transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 30,
-            }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.1}
@@ -133,15 +136,29 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
                   : "0 8px 30px -10px rgba(0,0,0,0.4)",
               }}
             >
-              {/* Image or fallback */}
-              {!imgErrors[card.id] && card.imageUrl ? (
-                <img
-                  src={card.imageUrl}
-                  alt={`${card.label} - ${card.category} UGC`}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  draggable={false}
-                  onError={() => handleImgError(card.id)}
-                />
+              {/* Media content */}
+              {!mediaErrors[card.id] ? (
+                card.type === "video" ? (
+                  <video
+                    ref={(el) => { videoRefs.current[card.id] = el; }}
+                    src={card.url}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    draggable={false}
+                    onError={() => handleMediaError(card.id)}
+                  />
+                ) : (
+                  <img
+                    src={card.url}
+                    alt={`${card.label} - ${card.category} UGC`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    draggable={false}
+                    onError={() => handleMediaError(card.id)}
+                  />
+                )
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900/40 to-primary/10">
                   <div className="text-center">
@@ -175,12 +192,6 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
                 <p className="mt-1.5 font-satoshi text-sm font-bold text-white/95">
                   {card.label}
                 </p>
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  <span className="font-mono text-[9px] text-white/40">
-                    {card.model}
-                  </span>
-                </div>
               </div>
             </div>
           </motion.div>
