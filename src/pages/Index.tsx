@@ -4,7 +4,7 @@ import HeroSection from "@/components/HeroSection";
 import DibuatUntukSection from "@/components/DibuatUntukSection";
 import FiturSection from "@/components/FiturSection";
 import CaraKerjaSection from "@/components/CaraKerjaSection";
-import HasilNyataSection from "@/components/HasilNyataSection";
+
 import HargaSection from "@/components/HargaSection";
 import ApiCostSection from "@/components/ApiCostSection";
 import FAQSection from "@/components/FAQSection";
