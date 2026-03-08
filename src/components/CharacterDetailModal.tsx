@@ -162,14 +162,14 @@ const CharacterDetailModal = ({ character, open, onClose, onUse, onDelete }: Cha
             <X className="h-6 w-6" />
           </button>
           <img src={lightboxUrl} alt="Preview" className="max-w-[90vw] max-h-[90vh] rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
-          <a
-            href={lightboxUrl}
-            download="character-image.jpg"
-            className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
-            onClick={(e) => e.stopPropagation()}
+          <button
+            onClick={(e) => { e.stopPropagation(); handleDownload(lightboxUrl); }}
+            disabled={downloading}
+            className="mt-3 inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
           >
-            <Download className="h-4 w-4" /> Download
-          </a>
+            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            {downloading ? "Downloading..." : "Download"}
+          </button>
         </div>
       )}
       {/* Delete Confirmation */}
