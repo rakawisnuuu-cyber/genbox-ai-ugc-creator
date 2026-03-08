@@ -160,7 +160,7 @@ const CaraKerjaSection = () => {
           </div>
 
           {/* Desktop connecting arrows */}
-          <div className="pointer-events-none absolute top-[90px] left-0 right-0 hidden md:flex justify-center">
+          <div className="pointer-events-none absolute top-[18px] left-0 right-0 hidden md:flex justify-center">
             <div className="flex w-full max-w-3xl justify-around px-[15%]">
               {[0, 1].map((i) => (
                 <div
