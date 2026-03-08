@@ -161,7 +161,6 @@ const StepVideo = () => {
       <video
         ref={videoRef}
         src={SHOWCASE_VIDEO}
-        muted
         loop
         playsInline
         preload="metadata"
