@@ -565,6 +565,21 @@ Rules:
     }
     setSourcePreview(URL.createObjectURL(file));
     setUploading(true);
+
+    // Convert File to base64 immediately (CORS-free)
+    const b64 = await new Promise<{ mimeType: string; data: string } | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        const mimeType = result.split(",")[0].split(":")[1].split(";")[0];
+        const data = result.split(",")[1];
+        resolve(data ? { mimeType, data } : null);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+    if (b64) setImageAsBase64(b64);
+
     const ext = file.name.split(".").pop();
     const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(path, file);
@@ -576,9 +591,9 @@ Rules:
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
     setSourceUrl(urlData.publicUrl);
     setUploading(false);
-    // Auto-detect product if no productInfo yet
-    if (!productInfo.product_description) {
-      detectProductFromImage(urlData.publicUrl);
+    // Auto-detect product using the locally-captured base64
+    if (!productInfo.product_description && b64) {
+      detectProductFromImage(b64);
     }
   };
 
