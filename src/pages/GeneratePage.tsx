@@ -635,7 +635,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
     try {
       const imageInputs: string[] = [];
       if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
-      if (selectedChar && !selectedChar.id.startsWith("p") && selectedChar.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
+      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
       if (productUrl) imageInputs.push(productUrl);
 
       const imageUrl = await generateKieImage(
