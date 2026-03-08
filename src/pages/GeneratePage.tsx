@@ -179,7 +179,7 @@ type GenState = "idle" | "loading" | "completed" | "failed";
 
 // Per-shot status for multi-angle
 interface ShotStatus {
-  state: "pending" | "generating" | "completed" | "failed";
+  state: "pending" | "prompting" | "generating" | "completed" | "failed";
   imageUrl?: string;
   error?: string;
 }
