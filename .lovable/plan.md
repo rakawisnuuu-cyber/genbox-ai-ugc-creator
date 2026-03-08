@@ -1,74 +1,51 @@
 
-Goal: fix multi-shot generation failures and make model behavior consistent by reusing one shared generation/polling path across quick + multi-shot.
 
-1) Root cause found (current failing run)
-- The failing multi-shot run is not primarily a polling bug.
-- Network responses show Grok task creation returns:
-  - `{"code":500,"msg":"duration is not within the range of allowed options"}`
-- Multi-shot currently sends module durations like 2/3/4/7s to Grok.
-- Grok image-to-video accepts limited duration values (6 or 10), so creation fails before polling.
-- Error display is misleading because code reads `message` but API returns `msg`, so user sees generic “Failed to create Grok task”.
+## Assessment: Project Weight & Mobile Readiness
 
-2) Implementation plan (what to build)
-- Create a shared video generation client (single source of truth) used by:
-  - `src/pages/VideoPage.tsx` (quick mode)
-  - `src/hooks/useMultiShotGeneration.ts` (multi-shot mode)
-- Move all Kie logic into shared functions:
-  - task creation payload by model (Grok / Veo Fast / Veo Quality)
-  - polling endpoint + status parsing
-  - timeout + retry policy (including 404 retry cap)
-  - consistent URL extraction from result payloads
-  - consistent API error extraction (`msg || message || code`)
-- Remove duplicated inline generation logic from both call sites.
+### Performance for Concurrent Users
 
-3) Grok duration compatibility fix (critical)
-- Add duration normalization for Grok before createTask:
-  - map to allowed values only (6 or 10)
-  - recommended mapping: `<8 => 6`, `>=8 => 10`
-- Apply this in shared generator so both quick and multi-shot stay valid.
-- In Step 2 module editor, add Grok-specific UX guard:
-  - when model is Grok, show helper text “Durasi Grok hanya 6/10 detik”
-  - prevent silently invalid durations (either enforce picker options or show normalized final value per shot).
+**Good news — your app is very safe for many concurrent users.** Here's why:
 
-4) Polling/404 hardening
-- Keep Veo polling on `/api/v1/veo/record-info?taskId=...` and Grok on `/api/v1/jobs/recordInfo?taskId=...` in shared client.
-- Add explicit debug logs in shared poller:
-  - model, taskId, poll URL, HTTP status, parsed state
-- Stop polling after 5 consecutive 404s with clear actionable error.
-- Keep model-specific timeout windows:
-  - Grok 3m, Veo Fast 5m, Veo Quality 10m.
+- **It's a static frontend (SPA)** — Vite builds everything into static JS/CSS/HTML files served from CDN. There's no server rendering per user. 1 user or 10,000 users hitting the landing page costs the same.
+- **Backend load is minimal** — The only backend calls are authentication (login/signup) and reading user credits/settings. These are handled by Lovable Cloud which auto-scales.
+- **Heavy API calls (Gemini, Kie AI) go directly from the user's browser to external APIs** — your backend is NOT a bottleneck for video/image generation.
+- **No SSR, no server-side compute** — pure client-side rendering.
 
-5) Multi-shot integration details
-- `generateSingleShot` in `useMultiShotGeneration.ts` becomes a thin wrapper:
-  - build image inputs + continuity image references
-  - call shared `generateVideoAndWait(...)`
-- Keep existing sequential behavior (continue next shot on failure).
-- Preserve shot-level retry/regenerate flow and status updates (no UX regression).
+**Potential concerns (minor):**
+- `AnimatedBackground` renders 5 blurred orbs with CSS animations — lightweight, no issue
+- `GeneratePage` (1505 lines) and `VideoPage` (1643 lines) are large single files, but they're only loaded for authenticated users, not landing page visitors
+- Keep-alive mounting means both Generate and Video pages stay in memory simultaneously — slightly heavier for dashboard users but acceptable
 
-6) Check “other modules” / regressions
-- Verify no breakage in:
-  - Quick video generation (`/video` quick mode)
-  - Multi-shot initial run
-  - Shot regenerate + “Save & Regenerate”
-  - Model switching between Grok / Veo Fast / Veo Quality
-  - Module insert/delete/reorder path still updates and generates correctly
-- Validate error toasts now show real provider messages (e.g., invalid duration).
+**Verdict: Safe for thousands of concurrent users. No changes needed.**
 
-Technical details (concise)
-- New shared file (example): `src/lib/kie-video-generation.ts`
-- Exposed API (example):
-  - `normalizeDurationForModel(model, duration)`
-  - `createVideoTask(params)`
-  - `pollVideoTask(params)`
-  - `generateVideoAndWait(params)` (used by both quick + multi-shot)
-- Parsing rules:
-  - Grok success: `jobs/recordInfo` + `data.state === "success"` + parse `resultJson`
-  - Veo success: `veo/record-info` + `data.successFlag === 1`
-- Error normalization:
-  - throw `msg || message || "Unknown generation error"` so UI shows true cause.
+---
 
-Validation matrix after implementation
-- Grok multi-shot (5 shots with mixed durations): creation succeeds, no duration 500.
-- Veo Fast multi-shot: no repeated 404 loop, completes with valid URL.
-- Veo Quality single-shot: completes within timeout window.
-- At least one failed case (intentional invalid key) returns clear message in UI.
+### Mobile Readiness Issues
+
+The landing page and dashboard layout have responsive classes (`lg:`, `sm:`) and work on mobile. However, there are a few gaps to fix:
+
+1. **`index.html` missing mobile meta tags** — No `theme-color`, no `apple-mobile-web-app-capable`, no touch icon
+2. **`VideoPage.tsx` has minimal responsive classes** — Only `sm:` breakpoints in a couple places, likely cramped on small screens
+3. **No viewport height fix** — Mobile browsers have dynamic address bars that affect `min-h-screen`; no `dvh` or workaround in place
+4. **No touch-friendly adjustments** — Small tap targets in dense UI areas (video frames, settings panels)
+
+### Plan: Mobile Hardening
+
+**1. `index.html`** — Add mobile-essential meta tags:
+- `theme-color` matching dark background
+- `apple-mobile-web-app-capable` for fullscreen feel
+- `apple-touch-icon` placeholder
+
+**2. `src/pages/VideoPage.tsx`** — Audit and add responsive breakpoints for:
+- Frame grid layout on small screens
+- Controls and buttons sizing for touch
+- Scrollable areas with proper overflow
+
+**3. `src/pages/GeneratePage.tsx`** — Already decent but verify:
+- Panel stacking works correctly on mobile
+- No horizontal overflow issues
+
+**4. `src/index.css`** — Add `min-h-[100dvh]` support for mobile viewport height
+
+This is a focused set of mobile fixes — no structural changes needed. The app's architecture is already concurrent-user-safe.
+
