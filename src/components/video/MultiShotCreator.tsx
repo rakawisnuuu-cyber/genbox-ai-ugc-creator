@@ -155,6 +155,7 @@ const MultiShotCreator = () => {
     kieApiKey: kieApiKey || "",
     geminiApiKey: geminiKey || "",
     promptModel,
+    environmentDescription: environmentDesc || undefined,
     onModuleUpdate: (idx, patch) => {
       setModules((prev) => prev.map((m, i) => (i === idx ? { ...m, ...patch } : m)));
     },
