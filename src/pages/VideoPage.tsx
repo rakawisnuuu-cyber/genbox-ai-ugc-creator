@@ -379,11 +379,13 @@ const VideoPage = () => {
 
       const contentParts: any[] = [];
 
-      // Try to include source image as base64
-      const imgUrl = sourceUrl;
+      // Use stored base64 from FileReader (CORS-free), fall back to URL fetch
       let imageIncluded = false;
-      if (imgUrl) {
-        const b64 = await imageUrlToBase64(imgUrl);
+      if (imageAsBase64) {
+        contentParts.push({ inlineData: { mimeType: imageAsBase64.mimeType, data: imageAsBase64.data } });
+        imageIncluded = true;
+      } else if (sourceUrl) {
+        const b64 = await imageUrlToBase64(sourceUrl);
         if (b64) {
           contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
           imageIncluded = true;
