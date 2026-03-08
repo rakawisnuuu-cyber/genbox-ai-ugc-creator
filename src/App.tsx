@@ -20,6 +20,7 @@ import VideoPage from "./pages/VideoPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import CheckoutPage from "./pages/CheckoutPage";
+import CheckoutSuccessPage from "./pages/CheckoutSuccessPage";
 
 const queryClient = new QueryClient();
 
