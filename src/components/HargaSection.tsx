@@ -99,10 +99,10 @@ const HargaSection = () => {
             </div>
 
             {/* CTA */}
-            <button className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
+            <Link to="/checkout" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
               Beli Sekarang
               <ArrowRight className="h-4 w-4" />
-            </button>
+            </Link>
 
             <p className="mt-4 text-center text-[11px] text-muted-foreground">
               QRIS · GoPay · ShopeePay · Virtual Account · Kartu Kredit
