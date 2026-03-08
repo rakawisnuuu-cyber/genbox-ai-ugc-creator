@@ -117,11 +117,14 @@ const HeroSection = () => {
         </p>
       </div>
 
-      {/* DepthDeck Carousel */}
+      {/* Showcase section */}
       <div
         className="animate-fade-up relative z-10 mt-16 w-full max-w-4xl mx-auto pb-12"
         style={{ animationDelay: "0.6s" }}
       >
+        <p className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/40">
+          Hasil generate dari GENBOX
+        </p>
         <DepthDeckCarousel autoPlayInterval={3500} />
       </div>
     </section>
