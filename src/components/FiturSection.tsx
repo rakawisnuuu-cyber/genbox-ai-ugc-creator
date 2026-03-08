@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import beforeProductImg from "@/assets/before-product.jpg";
+import afterUgcImg from "@/assets/after-ugc.jpeg";
 
 /* ── Feature 01: Character Showcase Stack ─────────── */
 
@@ -135,30 +137,16 @@ function BeforeAfterReveal() {
       onTouchEnd={stopDrag}
     >
       {/* Before — Product */}
-      <div className="absolute inset-0 flex items-center justify-center bg-secondary">
-        <div className="text-center">
-          <div className="mx-auto flex h-24 w-20 items-center justify-center rounded-xl border border-border/40 bg-muted/50 mb-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-foreground/40">
-              <path d="M21 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v3" /><path d="M21 16v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3" /><path d="m7 10 5 5 5-5" />
-            </svg>
-          </div>
-          <span className="text-[11px] text-muted-foreground/50">Foto Produk</span>
-        </div>
+      <div className="absolute inset-0">
+        <img src={beforeProductImg} alt="Foto Produk" className="h-full w-full object-cover" />
       </div>
 
       {/* After — UGC */}
       <div
-        className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/15 via-card to-primary/5"
+        className="absolute inset-0"
         style={{ clipPath: `inset(0 0 0 ${position}%)` }}
       >
-        <div className="text-center">
-          <div className="mx-auto flex h-24 w-20 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 mb-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary">
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-            </svg>
-          </div>
-          <span className="text-[11px] font-medium text-primary">Hasil UGC</span>
-        </div>
+        <img src={afterUgcImg} alt="Hasil UGC" className="h-full w-full object-cover" />
       </div>
 
       {/* Divider + handle */}
