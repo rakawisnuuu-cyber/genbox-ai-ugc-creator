@@ -1,4 +1,5 @@
-import { UserCircle, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { UserCircle, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 
 export interface CharacterData {
   id: string;
