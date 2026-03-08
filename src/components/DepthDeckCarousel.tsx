@@ -7,17 +7,16 @@ interface ShowcaseCard {
   id: number;
   type: "image" | "video";
   url: string;
-  label: string;
-  category: string;
 }
 
 const showcaseCards: ShowcaseCard[] = [
-  { id: 1, type: "video", url: `${STORAGE_BASE}/video-1.mp4`, label: "Skincare Review", category: "Skincare" },
-  { id: 2, type: "video", url: `${STORAGE_BASE}/video-2.mp4`, label: "Fashion Haul", category: "Fashion" },
-  { id: 3, type: "video", url: `${STORAGE_BASE}/video-3.mp4`, label: "Food Review", category: "Makanan" },
-  { id: 4, type: "video", url: `${STORAGE_BASE}/video-4.mp4`, label: "Tech Unboxing", category: "Elektronik" },
-  { id: 5, type: "video", url: `${STORAGE_BASE}/video-5.mp4`, label: "Beauty Tutorial", category: "Makeup" },
-  { id: 6, type: "video", url: `${STORAGE_BASE}/video-6.mp4`, label: "Lifestyle", category: "Lifestyle" },
+  { id: 1, type: "video", url: `${STORAGE_BASE}/video-1.mp4` },
+  { id: 2, type: "video", url: `${STORAGE_BASE}/video-2.mp4` },
+  { id: 3, type: "video", url: `${STORAGE_BASE}/video-3.mp4` },
+  { id: 4, type: "video", url: `${STORAGE_BASE}/video-4.mp4` },
+  { id: 5, type: "video", url: `${STORAGE_BASE}/video-5.mp4` },
+  { id: 6, type: "video", url: `${STORAGE_BASE}/video-6.mp4` },
+  { id: 7, type: "video", url: `${STORAGE_BASE}/video-7.mp4` },
 ];
 
 interface DepthDeckCarouselProps {
@@ -48,7 +47,6 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
     return () => clearInterval(timer);
   }, [isPaused, isDragging, next, autoPlayInterval]);
 
-  // Play/pause videos based on active index
   useEffect(() => {
     showcaseCards.forEach((card, index) => {
       const video = videoRefs.current[card.id];
@@ -136,7 +134,6 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
                   : "0 8px 30px -10px rgba(0,0,0,0.4)",
               }}
             >
-              {/* Media content */}
               {!mediaErrors[card.id] ? (
                 card.type === "video" ? (
                   <video
@@ -153,7 +150,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
                 ) : (
                   <img
                     src={card.url}
-                    alt={`${card.label} - ${card.category} UGC`}
+                    alt="UGC showcase"
                     className="absolute inset-0 h-full w-full object-cover"
                     draggable={false}
                     onError={() => handleMediaError(card.id)}
@@ -174,24 +171,14 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
                 </div>
               )}
 
-              {/* Bottom gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              {/* Subtle bottom gradient for depth */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
 
               {/* AI Generated watermark */}
               <div className="absolute right-3 top-3 z-10">
                 <span className="rounded bg-black/20 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/30 backdrop-blur-sm">
                   AI Generated
                 </span>
-              </div>
-
-              {/* Content overlay */}
-              <div className="absolute bottom-0 left-0 right-0 z-10 p-4">
-                <span className="rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60 backdrop-blur-sm">
-                  {card.category}
-                </span>
-                <p className="mt-1.5 font-satoshi text-sm font-bold text-white/95">
-                  {card.label}
-                </p>
               </div>
             </div>
           </motion.div>
