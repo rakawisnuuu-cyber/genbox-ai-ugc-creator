@@ -270,6 +270,8 @@ const VideoPage = () => {
   const [sourceUrl, setSourceUrl] = useState<string | null>(navState?.sourceImage || null);
   const [sourcePreview, setSourcePreview] = useState<string | null>(navState?.sourceImage || null);
   const [uploading, setUploading] = useState(false);
+  // Stored base64 from FileReader (CORS-free) for Gemini calls
+  const [imageAsBase64, setImageAsBase64] = useState<{ mimeType: string; data: string } | null>(null);
 
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplateKey>(
