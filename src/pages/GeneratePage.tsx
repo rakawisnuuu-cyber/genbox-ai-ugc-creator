@@ -482,6 +482,27 @@ const GeneratePage = () => {
 
       const parts: any[] = [];
 
+      // Send character reference image(s) to Gemini FIRST
+      const hasCharImage = selectedChar.hero_image_url || selectedChar.reference_photo_url;
+      if (selectedChar.hero_image_url) {
+        try {
+          const charBase64 = await imageUrlToBase64(selectedChar.hero_image_url);
+          parts.push({ inlineData: { mimeType: "image/jpeg", data: charBase64 } });
+          parts.push({ text: "This is the CHARACTER reference image. Describe this EXACT person's appearance in your prompt — their face, skin tone, hair, body type, ethnicity, and any distinctive features. The final prompt MUST recreate this exact person." });
+        } catch (e) {
+          console.warn("Failed to convert character hero image to base64:", e);
+        }
+      }
+      if (selectedChar.reference_photo_url && selectedChar.reference_photo_url !== selectedChar.hero_image_url) {
+        try {
+          const refBase64 = await imageUrlToBase64(selectedChar.reference_photo_url);
+          parts.push({ inlineData: { mimeType: "image/jpeg", data: refBase64 } });
+          parts.push({ text: "This is an additional CHARACTER reference photo. Use it together with the previous image to accurately describe this person." });
+        } catch (e) {
+          console.warn("Failed to convert character reference photo to base64:", e);
+        }
+      }
+
       if (productUrl) {
         try {
           const base64 = await imageUrlToBase64(productUrl);
@@ -494,6 +515,10 @@ const GeneratePage = () => {
         }
       }
 
+      const charImageInstruction = hasCharImage
+        ? `\n\nCRITICAL — CHARACTER REFERENCE IMAGE ATTACHED: A reference image of the character has been provided above. You MUST describe this EXACT person's appearance in detail (ethnicity, skin tone, face shape, hair style/color/length, body type, any distinctive features). The "character_appearance" field must capture this person precisely, and the "final_prompt" MUST BEGIN with the exact character appearance description so the AI image generator recreates this specific person.`
+        : "";
+
       parts.push({
         text: `You are an expert UGC (user-generated content) prompt builder for AI image generation. Create a structured JSON prompt for a realistic product UGC photo.
 
@@ -504,12 +529,14 @@ Character Identity: ${characterIdentity}
 Background: ${bgRich || "not specified"}
 Pose: ${poseRich || "not specified"}
 Mood: ${moodRich || "not specified"}
+${charImageInstruction}
 
 CATEGORY-SPECIFIC DIRECTION:
 ${categoryInstruction}
 
 Respond ONLY with valid JSON:
 {
+  "character_appearance": "Extremely detailed description of the character's EXACT physical appearance — ethnicity, skin tone, face shape, eye shape/color, nose, lips, hair style/color/length, body type, any distinctive features. If a character reference image was provided, describe THAT exact person.",
   "product_description": "Exact description of the product from the image — shape, color, packaging, label text if visible, size",
   "scene_description": "Full scene description combining character + product + setting — must feel like UGC, not editorial",
   "character_action": "Specific action with the product matching the category direction above — natural, not posed",
@@ -518,7 +545,7 @@ Respond ONLY with valid JSON:
   "background": "Background/environment details — must feel like a REAL lived-in space, not a 3D render",
   "environment_details": "Specific lived-in details and imperfections in the environment that make it feel real — e.g. phone charger on nightstand, half-drunk glass of water, slightly wrinkled fabric, visible power outlet, a bag on a chair",
   "camera": "Smartphone camera angle — selfie, tripod, or friend-holding-phone. Natural shallow depth of field",
-  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera, AND environment realism details. The photo must look like authentic UGC content shot on a phone by a content creator, NOT a professional photoshoot or stock photo."
+  "final_prompt": "Complete combined prompt ready for image generation. MUST BEGIN with the exact character appearance description, then include: exact product description, scene details, lighting, camera, AND environment realism details. The photo must look like authentic UGC content shot on a phone by a content creator, NOT a professional photoshoot or stock photo."
 }
 
 ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D render. Include 2-3 small everyday objects or imperfections that make it feel lived-in (phone charger, half-drunk glass, slightly wrinkled fabric, visible power outlet). Use natural depth of field — background slightly blurred. No perfectly symmetrical rooms.`,
