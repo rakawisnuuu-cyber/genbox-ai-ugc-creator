@@ -997,7 +997,10 @@ Content template: ${template?.label}`,
                     </span>
                   )}
                   <p className="text-[11px] font-bold text-foreground">{t.label}</p>
-                  <p className="text-[9px] text-muted-foreground line-clamp-2 mt-0.5">{t.desc}</p>
+                  <p className={`text-[9px] text-muted-foreground mt-0.5 ${isSelected ? "" : "line-clamp-2"}`}>{t.desc}</p>
+                  {!isSelected && t.desc.length > 60 && (
+                    <span className="text-[8px] text-primary mt-0.5 inline-block">Selengkapnya</span>
+                  )}
                 </button>
               );
             })}
