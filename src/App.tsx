@@ -25,7 +25,7 @@ const protectedPaths = [
   "/dashboard",
   "/generate",
   "/characters",
-  "/gallery",
+  
   "/prompt",
   "/blueprint",
   "/video",
