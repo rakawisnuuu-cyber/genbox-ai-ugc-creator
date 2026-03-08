@@ -276,10 +276,10 @@ const GalleryPage = () => {
             <div className="flex items-center gap-2 flex-wrap">
               {detailItem.image_url && (
                 <>
-                  <a href={detailItem.upscaled_url || detailItem.image_url} download target="_blank" rel="noopener noreferrer"
+                  <button onClick={() => handleDownload(detailItem.upscaled_url || detailItem.image_url!, `genbox-${detailItem.id}.png`)}
                     className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary/90">
                     <Download className="h-3.5 w-3.5" /> Download
-                  </a>
+                  </button>
                   <UpscaleButton
                     imageUrl={detailItem.image_url}
                     imageKey={detailItem.id}
