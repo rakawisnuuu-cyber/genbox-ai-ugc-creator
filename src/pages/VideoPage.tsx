@@ -235,13 +235,13 @@ const VideoPage = () => {
       ? `Product category: ${productInfo.category}. Reference this product type specifically.`
       : "";
 
-  /** Auto-detect product from image via Gemini */
-  const detectProductFromImage = async (imageUrl: string) => {
+  /** Auto-detect product from image via Gemini — uses stored base64 or falls back to URL */
+  const detectProductFromImage = async (b64Override?: { mimeType: string; data: string } | null) => {
     if (!geminiKey || keys.gemini.status !== "valid") return;
+    const b64 = b64Override || imageAsBase64;
+    if (!b64) { return; }
     setDetectingProduct(true);
     try {
-      const b64 = await imageUrlToBase64(imageUrl);
-      if (!b64) { setDetectingProduct(false); return; }
       const json = await geminiFetch(promptModel, geminiKey!, {
         contents: [{
           parts: [
