@@ -58,9 +58,9 @@ function CharacterShowcaseStack() {
             transition={{ type: "spring", stiffness: 350, damping: 28, mass: 0.8 }}
           >
             <div className={`rounded-2xl bg-gradient-to-br ${char.gradient} overflow-hidden border border-white/10 shadow-2xl`}>
-              <div className="relative h-[180px] overflow-hidden">
+              <div className="relative h-[260px] overflow-hidden">
                 {char.image && (
-                  <img src={char.image} alt={char.name} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+                  <img src={char.image} alt={char.name} className="absolute inset-0 w-full h-full object-cover object-top" loading="lazy" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute right-3 top-3">
