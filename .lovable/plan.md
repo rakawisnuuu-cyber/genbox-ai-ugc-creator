@@ -1,74 +1,33 @@
 
-Goal: fix multi-shot generation failures and make model behavior consistent by reusing one shared generation/polling path across quick + multi-shot.
 
-1) Root cause found (current failing run)
-- The failing multi-shot run is not primarily a polling bug.
-- Network responses show Grok task creation returns:
-  - `{"code":500,"msg":"duration is not within the range of allowed options"}`
-- Multi-shot currently sends module durations like 2/3/4/7s to Grok.
-- Grok image-to-video accepts limited duration values (6 or 10), so creation fails before polling.
-- Error display is misleading because code reads `message` but API returns `msg`, so user sees generic “Failed to create Grok task”.
+# Fix Veo Video Generation Failures
 
-2) Implementation plan (what to build)
-- Create a shared video generation client (single source of truth) used by:
-  - `src/pages/VideoPage.tsx` (quick mode)
-  - `src/hooks/useMultiShotGeneration.ts` (multi-shot mode)
-- Move all Kie logic into shared functions:
-  - task creation payload by model (Grok / Veo Fast / Veo Quality)
-  - polling endpoint + status parsing
-  - timeout + retry policy (including 404 retry cap)
-  - consistent URL extraction from result payloads
-  - consistent API error extraction (`msg || message || code`)
-- Remove duplicated inline generation logic from both call sites.
+## Root Cause Analysis
 
-3) Grok duration compatibility fix (critical)
-- Add duration normalization for Grok before createTask:
-  - map to allowed values only (6 or 10)
-  - recommended mapping: `<8 => 6`, `>=8 => 10`
-- Apply this in shared generator so both quick and multi-shot stay valid.
-- In Step 2 module editor, add Grok-specific UX guard:
-  - when model is Grok, show helper text “Durasi Grok hanya 6/10 detik”
-  - prevent silently invalid durations (either enforce picker options or show normalized final value per shot).
+After reviewing the Kie.ai API docs and the polling code in `src/lib/kie-video-generation.ts`, I found **three issues**:
 
-4) Polling/404 hardening
-- Keep Veo polling on `/api/v1/veo/record-info?taskId=...` and Grok on `/api/v1/jobs/recordInfo?taskId=...` in shared client.
-- Add explicit debug logs in shared poller:
-  - model, taskId, poll URL, HTTP status, parsed state
-- Stop polling after 5 consecutive 404s with clear actionable error.
-- Keep model-specific timeout windows:
-  - Grok 3m, Veo Fast 5m, Veo Quality 10m.
+1. **Missing `successFlag === 2` handling** — The docs define 4 status codes: `0` (generating), `1` (success), `2` (failed), `3` (generation failed). The current code only checks for `1` and `3`, meaning if the API returns `successFlag: 2`, the code **polls forever** until timeout instead of failing fast.
 
-5) Multi-shot integration details
-- `generateSingleShot` in `useMultiShotGeneration.ts` becomes a thin wrapper:
-  - build image inputs + continuity image references
-  - call shared `generateVideoAndWait(...)`
-- Keep existing sequential behavior (continue next shot on failure).
-- Preserve shot-level retry/regenerate flow and status updates (no UX regression).
+2. **Error message not extracted** — When `successFlag` is 2 or 3, the API returns `errorMessage` and `errorCode` fields, but the code uses `extractError(j.data, "Veo generation failed")` which looks for `msg/message/error` — missing the actual `errorMessage` field from the response.
 
-6) Check “other modules” / regressions
-- Verify no breakage in:
-  - Quick video generation (`/video` quick mode)
-  - Multi-shot initial run
-  - Shot regenerate + “Save & Regenerate”
-  - Model switching between Grok / Veo Fast / Veo Quality
-  - Module insert/delete/reorder path still updates and generates correctly
-- Validate error toasts now show real provider messages (e.g., invalid duration).
+3. **Wrong `generationType` for single-image reference** — The code always sends `FIRST_AND_LAST_FRAMES_2_VIDEO`, which treats the image as a literal first frame to transition from. For character-reference-based generation, `REFERENCE_2_VIDEO` (available for Fast model) is more appropriate, and when no images are provided, `TEXT_2_VIDEO` should be used.
 
-Technical details (concise)
-- New shared file (example): `src/lib/kie-video-generation.ts`
-- Exposed API (example):
-  - `normalizeDurationForModel(model, duration)`
-  - `createVideoTask(params)`
-  - `pollVideoTask(params)`
-  - `generateVideoAndWait(params)` (used by both quick + multi-shot)
-- Parsing rules:
-  - Grok success: `jobs/recordInfo` + `data.state === "success"` + parse `resultJson`
-  - Veo success: `veo/record-info` + `data.successFlag === 1`
-- Error normalization:
-  - throw `msg || message || "Unknown generation error"` so UI shows true cause.
+## Changes
 
-Validation matrix after implementation
-- Grok multi-shot (5 shots with mixed durations): creation succeeds, no duration 500.
-- Veo Fast multi-shot: no repeated 404 loop, completes with valid URL.
-- Veo Quality single-shot: completes within timeout window.
-- At least one failed case (intentional invalid key) returns clear message in UI.
+### 1. `src/lib/kie-video-generation.ts`
+
+**Polling — handle all status codes:**
+- Add `flag === 2` as a failure condition alongside `flag === 3`
+- Extract `j.data?.errorMessage` for better error reporting
+- Log the raw `successFlag` value for debugging
+
+**Task creation — smart `generationType`:**
+- No images → `TEXT_2_VIDEO`
+- 1 image + Fast model → `REFERENCE_2_VIDEO` (treats as reference material, not literal first frame)
+- 1 image + Quality model → `FIRST_AND_LAST_FRAMES_2_VIDEO` (REFERENCE not supported on Quality)
+- 2 images → `FIRST_AND_LAST_FRAMES_2_VIDEO`
+
+### 2. `src/pages/VideoPage.tsx`
+
+- Display the actual API error message (from `errorMessage` field) in the frame error UI instead of generic "Veo generation failed"
+
