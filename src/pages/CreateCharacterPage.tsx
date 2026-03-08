@@ -858,11 +858,18 @@ export default function CreateCharacterPage() {
           <div className="bg-card border border-border rounded-xl p-5 mb-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-3">Preview Karakter</p>
 
-            {refPreview && (
+            {refPreviews.length > 0 && (
               <div className="flex items-center gap-3 mb-3">
-                <img src={refPreview} alt="Ref" className="h-16 w-16 rounded-full object-cover border border-border" />
+                <div className="flex -space-x-2">
+                  {refPreviews.slice(0, 3).map((p, i) => (
+                    <img key={i} src={p} alt={`Ref ${i+1}`} className="h-10 w-10 rounded-full object-cover border-2 border-card" />
+                  ))}
+                  {refPreviews.length > 3 && (
+                    <div className="h-10 w-10 rounded-full bg-secondary border-2 border-card flex items-center justify-center text-[10px] text-muted-foreground font-medium">+{refPreviews.length - 3}</div>
+                  )}
+                </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">Foto Referensi</p>
+                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{refPreviews.length} Foto Referensi</p>
                   <p className="text-[11px] text-primary/70">Wajah akan dicocokkan</p>
                 </div>
               </div>
