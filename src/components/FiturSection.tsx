@@ -5,12 +5,16 @@ import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 /* ── Feature 01: Character Showcase Stack ─────────── */
 
 const characters = [
-  { name: "Hijab Casual", desc: "Wanita · 20-25 · Modern", gradient: "from-emerald-600 to-teal-400" },
-  { name: "Urban Trendy", desc: "Pria · 22-28 · Streetwear", gradient: "from-violet-600 to-purple-400" },
-  { name: "Ibu Muda", desc: "Wanita · 25-35 · Friendly", gradient: "from-rose-500 to-pink-400" },
-  { name: "Gen-Z Creator", desc: "Pria/Wanita · 17-22 · Trendy", gradient: "from-cyan-500 to-sky-400" },
-  { name: "Beauty Enthusiast", desc: "Wanita · 20-30 · Glowing", gradient: "from-fuchsia-500 to-pink-400" },
-  { name: "Bapak UMKM", desc: "Pria · 35-50 · Profesional", gradient: "from-slate-500 to-zinc-400" },
+  { name: "Hijab Casual", desc: "Wanita · 20-25 · Modern", gradient: "from-emerald-600 to-teal-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg" },
+  { name: "Urban Trendy", desc: "Pria · 22-28 · Streetwear", gradient: "from-violet-600 to-purple-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg" },
+  { name: "Ibu Muda", desc: "Wanita · 25-35 · Friendly", gradient: "from-rose-500 to-pink-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20Muda.jpeg" },
+  { name: "Gen-Z Creator", desc: "Pria/Wanita · 17-22 · Trendy", gradient: "from-cyan-500 to-sky-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Gen-Z%20Creator.jpeg" },
+  { name: "Beauty Enthusiast", desc: "Wanita · 20-30 · Glowing", gradient: "from-fuchsia-500 to-pink-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Beauty%20Enthusiast.jpeg" },
+  { name: "Bapak UMKM", desc: "Pria · 35-50 · Profesional", gradient: "from-slate-500 to-zinc-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Bapak%20UMKM.jpeg" },
+  { name: "Mahasiswa", desc: "Pria/Wanita · 18-22 · Energik", gradient: "from-amber-500 to-orange-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Mahasiswa.jpeg" },
+  { name: "Office Worker", desc: "Pria/Wanita · 25-35 · Smart Casual", gradient: "from-gray-500 to-neutral-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Office%20Worker.jpeg" },
+  { name: "Ibu PKK", desc: "Wanita · 35-50 · Ramah", gradient: "from-green-500 to-lime-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20PKK.jpeg" },
+  { name: "Cowok Gym", desc: "Pria · 22-30 · Athletic", gradient: "from-red-500 to-orange-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Cowok%20Gym.jpeg" },
 ];
 
 function CharacterShowcaseStack() {
