@@ -922,26 +922,6 @@ Content template: ${template?.label}`,
             </div>
           ) : (
             <div className="space-y-3">
-              {galleryImages.length > 0 && (
-                <div>
-                  <p className="text-[11px] text-muted-foreground mb-2">Pilih dari gallery:</p>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {galleryImages.slice(0, 12).map((img) => (
-                      <button
-                        key={img.id}
-                        onClick={() => {
-                          setSourcePreview(img.image_url);
-                          setSourceUrl(img.image_url);
-                          setImageAsBase64(null); // Gallery images can't be converted (CORS) — Plan Storyboard handles detection
-                        }}
-                        className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
-                      >
-                        <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div
                 onClick={() => {
                   const inp = document.createElement("input");
