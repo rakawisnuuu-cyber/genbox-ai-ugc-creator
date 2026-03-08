@@ -56,7 +56,7 @@ const StepCharacterVisual = () => (
       {characterImages.map((img, i) => (
         <div
           key={i}
-          className={`relative mx-auto h-12 w-12 overflow-hidden rounded-full ${i === 1 ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "ring-1 ring-border/30"}`}
+          className={`relative mx-auto h-16 w-16 overflow-hidden rounded-full ${i === 1 ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "ring-1 ring-border/30"}`}
         >
           <img src={img} alt="Character" className="h-full w-full object-cover object-top" loading="lazy" />
         </div>
