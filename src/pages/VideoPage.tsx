@@ -1112,7 +1112,7 @@ Content template: ${template?.label}`,
       {/* Dialog Tip */}
       <div className="rounded-xl px-4 py-2.5 border border-border bg-muted/20">
         <p className="text-[10px] text-muted-foreground">
-          💬 <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
+          <MessageSquare className="inline h-3 w-3 mr-1" /> <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
         </p>
       </div>
 
