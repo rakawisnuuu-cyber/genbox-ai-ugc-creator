@@ -112,12 +112,24 @@ async function generateKieImage(
   const taskId = createJson.data.taskId;
 
   let polls = 0;
-  const maxPolls = 50;
+  const maxPolls = 80;
+  let consecutive404s = 0;
+  const MAX_404_RETRIES = 5;
   const poll = async (): Promise<string> => {
     if (abortCheck()) throw new Error("Cancelled");
     const r = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
       headers: { Authorization: `Bearer ${kieApiKey}` },
     });
+    if (r.status === 404) {
+      consecutive404s++;
+      console.warn(`[kie-img] Poll 404 (${consecutive404s}/${MAX_404_RETRIES})`);
+      if (consecutive404s >= MAX_404_RETRIES) {
+        throw new Error("Task not found after multiple retries");
+      }
+      await new Promise((r) => setTimeout(r, 3000));
+      return poll();
+    }
+    consecutive404s = 0;
     const j = await r.json();
     const state = j.data?.state;
     if (state === "success") {
@@ -126,9 +138,9 @@ async function generateKieImage(
       if (!url) throw new Error("No image URL in result");
       return url;
     }
-    if (state === "fail") throw new Error("Generation failed");
+    if (state === "fail") throw new Error(j.data?.msg || j.data?.message || "Generation failed");
     polls++;
-    if (polls >= maxPolls) throw new Error("Timeout — generation took too long");
+    if (polls >= maxPolls) throw new Error("Timeout — generation took too long (~4 min)");
     await new Promise((r) => setTimeout(r, 3000));
     return poll();
   };
