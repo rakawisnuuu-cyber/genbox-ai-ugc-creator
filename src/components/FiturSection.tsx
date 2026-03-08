@@ -169,7 +169,7 @@ function VideoPreview() {
           className="h-full w-full object-cover"
           autoPlay
           loop
-          muted
+          
           playsInline
         />
         <span className="absolute right-3 top-3 rounded-lg bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur-sm">Siap Reels</span>
