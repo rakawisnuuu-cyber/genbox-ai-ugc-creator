@@ -285,6 +285,8 @@ const VideoPage = () => {
   // Frame states
   const [frames, setFrames] = useState<FrameState[]>([]);
   const [setupDone, setSetupDone] = useState(false);
+  const [planningStoryboard, setPlanningStoryboard] = useState(false);
+  const [storyboardPlanned, setStoryboardPlanned] = useState(false);
 
   // Batch generation
   const [batchGenerating, setBatchGenerating] = useState(false);
