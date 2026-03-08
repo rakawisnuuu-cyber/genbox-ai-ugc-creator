@@ -30,8 +30,6 @@ const Index = () => {
       <SectionDivider />
       <CaraKerjaSection />
       <SectionDivider />
-      <HasilNyataSection />
-      <SectionDivider />
       <HargaSection />
       <SectionDivider />
       <ApiCostSection />
