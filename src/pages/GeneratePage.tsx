@@ -1194,7 +1194,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                   )}
                   {storyboardDone && (
                     <p className="text-xs text-muted-foreground text-center">
-                      ✅ {completedShots} selesai{failedShots > 0 ? ` • ❌ ${failedShots} gagal` : ""} — {storyboardElapsed}s
+                      <CheckCircle2 className="inline h-3.5 w-3.5 text-green-400 mr-1" /> {completedShots} selesai{failedShots > 0 ? <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" /> {failedShots} gagal</> : ""} — {storyboardElapsed}s
                     </p>
                   )}
 
