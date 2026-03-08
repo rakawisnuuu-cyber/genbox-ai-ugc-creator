@@ -66,8 +66,11 @@ const HargaSection = () => {
               BYOK Lifetime
             </p>
 
-            <p className="mt-4 font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">
+            <p className="mt-4 text-lg text-muted-foreground/60 line-through font-satoshi font-medium">
               Rp 249.000
+            </p>
+            <p className="font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">
+              Rp 149.000
             </p>
             <p className="mt-2 text-sm font-bold text-primary">
               sekali bayar · akses selamanya
