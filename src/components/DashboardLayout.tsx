@@ -151,9 +151,7 @@ const DashboardLayout = () => {
 
       {/* Mobile Top Bar */}
       <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl lg:hidden">
-        <p className="font-satoshi text-sm font-bold uppercase tracking-[0.2em] text-foreground">
-          GENBOX
-        </p>
+        <GenboxLogo size={22} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-foreground">
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
