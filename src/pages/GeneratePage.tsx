@@ -686,6 +686,13 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
 
         if (storyboardAbortRef.current) throw new Error("Cancelled");
 
+        // Switch to "generating" state now that prompt is ready
+        setShotStatuses((prev) => {
+          const next = [...prev];
+          next[idx] = { state: "generating" };
+          return next;
+        });
+
         // Build image inputs: base image + previous frame (if exists) + product image
         // Max 3 images, no character hero/reference — base image already has the character
         const frameImages: string[] = [resultUrl];
