@@ -1275,7 +1275,7 @@ Content template: ${template?.label}`,
                       </button>
                       {galleryImages.length > 0 && (
                         <button
-                          onClick={() => updateFrame(idx, { showGalleryPicker: !frame.showGalleryPicker } as any)}
+                          onClick={() => updateFrame(idx, { showGalleryPicker: !frame.showGalleryPicker })}
                           className="text-[10px] text-primary hover:underline flex items-center gap-1"
                         >
                           <ImageIcon className="h-3 w-3" /> Dari gallery
