@@ -501,6 +501,7 @@ const MultiShotCreator = () => {
         dialogueText: mod.dialogueText,
         audioDirection: mod.audioDirection,
         characterDescription: char?.description,
+        environmentDescription: environmentDesc || undefined,
       });
       const json = await geminiFetch(promptModel, geminiKey!, {
         systemInstruction: { parts: [{ text: sysText }] },
