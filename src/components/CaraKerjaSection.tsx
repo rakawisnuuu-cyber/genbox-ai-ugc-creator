@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Upload, ImagePlus, Download, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import beforeProductImg from "@/assets/before-product.jpg";
+import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
 import afterUgcImg from "@/assets/after-ugc.jpeg";
 
 function useCountUp(target: number, visible: boolean, duration = 800) {
@@ -32,7 +32,7 @@ const characterImages = [
 const StepUploadVisual = () => (
   <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-4 overflow-hidden">
     <div className="relative h-32 rounded-lg overflow-hidden">
-      <img src={beforeProductImg} alt="Foto Produk" className="h-full w-full object-cover" />
+      <img src={caraKerjaProduct} alt="Foto Produk" className="h-full w-full object-cover" />
       <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
         <div className="animate-float rounded-full bg-background/80 p-3 shadow-lg">
           <Upload size={20} className="text-primary" />
