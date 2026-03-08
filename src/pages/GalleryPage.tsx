@@ -343,14 +343,13 @@ const GalleryPage = () => {
                   <p className="text-sm text-muted-foreground line-clamp-3">{selectedVideo.prompt}</p>
                 )}
                 <div className="flex gap-2">
-                  <a
-                    href={selectedVideo.image_url || ""}
-                    download={`genbox-video-${selectedVideo.id}.mp4`}
+                  <button
+                    onClick={() => handleDownload(selectedVideo.image_url || "", `genbox-video-${selectedVideo.id}.mp4`)}
                     className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     <Download className="w-4 h-4" />
                     Download
-                  </a>
+                  </button>
                   <button
                     onClick={() => {
                       if (selectedVideo.image_url) {
