@@ -158,50 +158,21 @@ function BeforeAfterReveal() {
   );
 }
 
-/* ── Feature 03: Animated Video Preview ───────────── */
+/* ── Feature 03: Real Video Preview ───────────────── */
 
-function AnimatedVideoPreview() {
-  const [progress, setProgress] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-
-  useEffect(() => {
-    if (!isPlaying) return;
-    const timer = setInterval(() => {
-      setProgress((prev) => (prev >= 100 ? 0 : prev + 0.5));
-    }, 50);
-    return () => clearInterval(timer);
-  }, [isPlaying]);
-
+function VideoPreview() {
   return (
     <div className="mx-auto w-full max-w-[320px] overflow-hidden rounded-2xl border border-border/60 bg-card/80">
-      <div
-        className="relative flex h-[200px] cursor-pointer items-center justify-center bg-secondary"
-        onClick={() => setIsPlaying(!isPlaying)}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-        <motion.div
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.3)]"
-          animate={{ scale: isPlaying ? [1, 1.08, 1] : 1 }}
-          transition={{ repeat: isPlaying ? Infinity : 0, duration: 2 }}
-        >
-          {isPlaying ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-primary-foreground">
-              <rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" />
-            </svg>
-          ) : (
-            <div className="ml-1 h-0 w-0 border-y-[9px] border-l-[16px] border-y-transparent border-l-primary-foreground" />
-          )}
-        </motion.div>
+      <div className="relative aspect-[9/16] w-full">
+        <video
+          src="https://uxrxrsdasgvygoeavozp.supabase.co/storage/v1/object/public/showcase-videos/fitur-video.mov"
+          className="h-full w-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
         <span className="absolute right-3 top-3 rounded-lg bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur-sm">Siap Reels</span>
-      </div>
-      <div className="px-4 pb-2 pt-3">
-        <div className="h-1 w-full overflow-hidden rounded-full bg-secondary">
-          <motion.div className="h-full rounded-full bg-primary" animate={{ width: `${progress}%` }} transition={{ duration: 0.05, ease: "linear" }} />
-        </div>
-        <div className="mt-1.5 flex items-center justify-between">
-          <span className="font-mono text-[10px] text-muted-foreground/50">00:{String(Math.floor((progress / 100) * 15)).padStart(2, "0")}</span>
-          <span className="font-mono text-[10px] text-muted-foreground/50">00:15</span>
-        </div>
       </div>
     </div>
   );
