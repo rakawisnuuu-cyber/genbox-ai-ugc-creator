@@ -1398,9 +1398,14 @@ Content template: ${template?.label}`,
                     <label className="text-[10px] text-muted-foreground font-medium">Video Prompt</label>
                     <button
                       onClick={() => generateFramePrompt(idx)}
-                      className="text-[9px] text-primary hover:underline flex items-center gap-1"
+                      disabled={frame.promptGenerating}
+                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
-                      <Sparkles className="h-2.5 w-2.5" /> Generate Prompt
+                      {frame.promptGenerating ? (
+                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...</>
+                      ) : (
+                        <><Sparkles className="h-2.5 w-2.5" /> Generate Prompt</>
+                      )}
                     </button>
                   </div>
                   <Textarea
