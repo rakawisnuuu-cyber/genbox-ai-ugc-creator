@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Upload, ImagePlus, Download, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import beforeProductImg from "@/assets/before-product.jpg";
+import afterUgcImg from "@/assets/after-ugc.jpeg";
 
 function useCountUp(target: number, visible: boolean, duration = 800) {
   const [val, setVal] = useState(0);
@@ -18,17 +20,29 @@ function useCountUp(target: number, visible: boolean, duration = 800) {
   return val;
 }
 
+const characterImages = [
+  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg",
+  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg",
+  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20Muda.jpeg",
+  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Gen-Z%20Creator.jpeg",
+  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Beauty%20Enthusiast.jpeg",
+  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Bapak%20UMKM.jpeg",
+];
+
 const StepUploadVisual = () => (
-  <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-5">
-    <div className="flex h-28 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/60">
-      <div className="animate-float">
-        <Upload size={24} className="text-muted-foreground" />
+  <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-4 overflow-hidden">
+    <div className="relative h-32 rounded-lg overflow-hidden">
+      <img src={beforeProductImg} alt="Foto Produk" className="h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
+        <div className="animate-float rounded-full bg-background/80 p-3 shadow-lg">
+          <Upload size={20} className="text-primary" />
+        </div>
+        <span className="mt-2 text-[11px] font-medium text-foreground/80">Drag & drop</span>
       </div>
-      <span className="mt-2 text-[11px] text-muted-foreground">Drag & drop</span>
     </div>
     <div className="mt-3 flex justify-center gap-2">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="flex h-8 w-8 items-center justify-center rounded bg-secondary">
+        <div key={i} className="flex h-8 w-8 items-center justify-center rounded-lg border border-border/40 bg-secondary">
           <ImagePlus size={14} className="text-muted-foreground" />
         </div>
       ))}
@@ -36,35 +50,30 @@ const StepUploadVisual = () => (
   </div>
 );
 
-const StepCharacterVisual = () => {
-  const gradients = [
-    "from-emerald-500 to-teal-400",
-    "from-violet-500 to-purple-400",
-    "from-rose-500 to-pink-400",
-    "from-blue-500 to-cyan-400",
-    "from-amber-500 to-yellow-400",
-    "from-fuchsia-500 to-pink-400",
-  ];
-  return (
-    <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-5">
-      <div className="grid grid-cols-3 gap-3">
-        {gradients.map((g, i) => (
-          <div
-            key={i}
-            className={`mx-auto h-10 w-10 rounded-full bg-gradient-to-br ${g} ${i === 1 ? "ring-2 ring-primary ring-offset-2 ring-offset-card animate-pulse-subtle" : ""}`}
-          />
-        ))}
-      </div>
+const StepCharacterVisual = () => (
+  <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-4">
+    <div className="grid grid-cols-3 gap-2.5">
+      {characterImages.map((img, i) => (
+        <div
+          key={i}
+          className={`relative mx-auto h-12 w-12 overflow-hidden rounded-full ${i === 1 ? "ring-2 ring-primary ring-offset-2 ring-offset-card" : "ring-1 ring-border/30"}`}
+        >
+          <img src={img} alt="Character" className="h-full w-full object-cover object-top" loading="lazy" />
+        </div>
+      ))}
     </div>
-  );
-};
+  </div>
+);
 
 const StepGenerateVisual = () => (
-  <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-5">
-    <div className="flex h-28 flex-col items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
-      <Sparkles size={28} className="text-primary animate-pulse-subtle" />
+  <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-4">
+    <div className="relative h-32 overflow-hidden rounded-lg">
+      <img src={afterUgcImg} alt="Hasil UGC" className="h-full w-full object-cover object-top" />
+      <div className="absolute inset-0 flex items-center justify-center bg-background/20">
+        <Sparkles size={24} className="text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] animate-pulse-subtle" />
+      </div>
     </div>
-    <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 text-xs font-bold tracking-wider text-primary-foreground">
+    <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-xs font-bold tracking-wider text-primary-foreground">
       <Download size={14} />
       Download
     </button>
