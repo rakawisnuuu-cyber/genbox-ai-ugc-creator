@@ -14,6 +14,7 @@ interface UseMultiShotGenerationOptions {
   kieApiKey: string;
   geminiApiKey: string;
   promptModel: string;
+  environmentDescription?: string;
   onModuleUpdate: (idx: number, patch: Partial<VideoModule>) => void;
   onProjectStatusChange: (status: string) => void;
 }
