@@ -15,7 +15,7 @@ const characterImages = [
 ];
 
 /* ── Showcase video for step 5 ── */
-const SHOWCASE_VIDEO = "https://uxrxrsdasgvygoeavozp.supabase.co/storage/v1/object/public/showcase-videos/video-1.mp4";
+const SHOWCASE_VIDEO = "/showcase/cara-kerja-video.mp4";
 
 /* ── Animated counter ── */
 function useCountUp(target: number, visible: boolean, duration = 700) {
