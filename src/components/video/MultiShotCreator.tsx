@@ -280,6 +280,29 @@ const MultiShotCreator = () => {
     }
     setProjectId(data.id);
     setStep(2);
+
+    // Auto-extract environment description from character hero image
+    const heroUrl = selectedChar?.hero_image_url;
+    if (heroUrl && geminiKey && keys.gemini.status === "valid") {
+      try {
+        const { imageUrlToBase64WithMime } = await import("@/lib/image-utils");
+        const b64 = await imageUrlToBase64WithMime(heroUrl);
+        if (b64) {
+          const json = await geminiFetch(promptModel, geminiKey, {
+            contents: [{
+              parts: [
+                { inlineData: { mimeType: b64.mimeType, data: b64.data } },
+                { text: "Describe the environment/setting in this image in detail: room type, wall color/texture, floor material, furniture, props, decorations, lighting direction, light color temperature, shadow placement, overall mood. Be very specific. Output only the description, no explanation." },
+              ],
+            }],
+          });
+          const envText = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+          if (envText) setEnvironmentDesc(envText);
+        }
+      } catch (e) {
+        console.warn("Environment extraction failed:", e);
+      }
+    }
   };
 
   // Debounced save modules
