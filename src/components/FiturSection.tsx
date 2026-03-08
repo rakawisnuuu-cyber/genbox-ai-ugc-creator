@@ -59,36 +59,20 @@ function CharacterShowcaseStack() {
             }}
             transition={{ type: "spring", stiffness: 350, damping: 28, mass: 0.8 }}
           >
-            <div className={`rounded-2xl bg-gradient-to-br ${char.gradient} overflow-hidden border border-white/10 shadow-2xl`}>
-              <div className="relative h-[260px] overflow-hidden">
-                {char.image && (
+            <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+              <div className="relative h-[340px] overflow-hidden">
+                {char.image ? (
                   <img src={char.image} alt={char.name} className="absolute inset-0 w-full h-full object-cover object-top" loading="lazy" />
+                ) : (
+                  <div className={`absolute inset-0 bg-gradient-to-br ${char.gradient}`} />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute right-3 top-3">
                   <span className="rounded-md bg-black/30 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/50 backdrop-blur-sm">Preset</span>
                 </div>
-              </div>
-              <div className="bg-black/20 p-4 backdrop-blur-sm">
-                <p className="font-satoshi text-sm font-bold text-white">{char.name}</p>
-                <p className="mt-0.5 text-[11px] text-white/50">{char.desc}</p>
-                {isTop && (
-                  <motion.div
-                    className="mt-3 flex gap-2"
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.3 }}
-                  >
-                    <div className="flex h-8 flex-1 items-center justify-center rounded-lg bg-white/20">
-                      <span className="text-[10px] font-semibold text-white/80 flex items-center gap-1">Gunakan <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>
-                    </div>
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="opacity-50">
-                        <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
-                      </svg>
-                    </div>
-                  </motion.div>
-                )}
+                <div className="absolute bottom-3 left-3 right-3">
+                  <p className="font-satoshi text-sm font-bold text-white drop-shadow-md">{char.name}</p>
+                </div>
               </div>
             </div>
           </motion.div>
