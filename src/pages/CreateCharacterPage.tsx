@@ -953,8 +953,8 @@ export default function CreateCharacterPage() {
             <div>
               {!heroDone ? (
                 <>
-                  <p>Estimasi: ~Rp 1.600 untuk hero portrait</p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">1x Nano Banana Pro • Variasi opsional setelahnya</p>
+                  <p>Estimasi: ~Rp 1.440 untuk hero portrait</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">1x Nano Banana Pro (2K) • Variasi opsional setelahnya</p>
                 </>
               ) : allVariationsDone ? (
                 <>
