@@ -1247,31 +1247,60 @@ Content template: ${template?.label}`,
                         <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                       </div>
                     )}
-                    <button
-                      onClick={() => {
-                        const inp = document.createElement("input");
-                        inp.type = "file";
-                        inp.accept = "image/jpeg,image/png,image/webp";
-                        inp.onchange = async (e) => {
-                          const f = (e.target as HTMLInputElement).files?.[0];
-                          if (!f) return;
-                          const preview = URL.createObjectURL(f);
-                          updateFrame(idx, { sourceImageUrl: preview });
-                          const ext = f.name.split(".").pop();
-                          const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
-                          const { error } = await supabase.storage.from("product-images").upload(path, f);
-                          if (!error) {
-                            const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                            updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
-                          }
-                        };
-                        inp.click();
-                      }}
-                      className="text-[10px] text-primary hover:underline"
-                    >
-                      Ganti
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => {
+                          const inp = document.createElement("input");
+                          inp.type = "file";
+                          inp.accept = "image/jpeg,image/png,image/webp";
+                          inp.onchange = async (e) => {
+                            const f = (e.target as HTMLInputElement).files?.[0];
+                            if (!f) return;
+                            const preview = URL.createObjectURL(f);
+                            updateFrame(idx, { sourceImageUrl: preview });
+                            const ext = f.name.split(".").pop();
+                            const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
+                            const { error } = await supabase.storage.from("product-images").upload(path, f);
+                            if (!error) {
+                              const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                              updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
+                            }
+                          };
+                          inp.click();
+                        }}
+                        className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Upload className="h-3 w-3" /> Upload
+                      </button>
+                      {galleryImages.length > 0 && (
+                        <button
+                          onClick={() => updateFrame(idx, { showGalleryPicker: !frame.showGalleryPicker } as any)}
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                        >
+                          <ImageIcon className="h-3 w-3" /> Dari gallery
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  {/* Inline gallery picker */}
+                  {(frame as any).showGalleryPicker && galleryImages.length > 0 && (
+                    <div className="mt-2 p-2 rounded-lg border border-border bg-muted/20">
+                      <p className="text-[10px] text-muted-foreground mb-1.5">Pilih dari gallery:</p>
+                      <div className="flex gap-1.5 overflow-x-auto pb-1">
+                        {galleryImages.slice(0, 12).map((img) => (
+                          <button
+                            key={img.id}
+                            onClick={() => {
+                              updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false } as any);
+                            }}
+                            className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-border hover:border-primary/50 transition-colors"
+                          >
+                            <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Gerakan / Action */}
