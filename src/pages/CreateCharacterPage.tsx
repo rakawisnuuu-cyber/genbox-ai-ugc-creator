@@ -271,9 +271,9 @@ export default function CreateCharacterPage() {
   const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
   const [generatingSingleShot, setGeneratingSingleShot] = useState<ShotKey | null>(null);
 
-  // Reference photo state
-  const [refPreview, setRefPreview] = useState<string | null>(null);
-  const [refUrl, setRefUrl] = useState<string | null>(null);
+  // Reference photo state (multi-photo, up to 5)
+  const [refPreviews, setRefPreviews] = useState<string[]>([]);
+  const [refUrls, setRefUrls] = useState<string[]>([]);
   const [refUploading, setRefUploading] = useState(false);
 
   const set = (key: keyof FormData, val: string) => {
