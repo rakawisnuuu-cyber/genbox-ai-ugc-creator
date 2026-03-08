@@ -14,6 +14,7 @@ interface UseMultiShotGenerationOptions {
   kieApiKey: string;
   geminiApiKey: string;
   promptModel: string;
+  environmentDescription?: string;
   onModuleUpdate: (idx: number, patch: Partial<VideoModule>) => void;
   onProjectStatusChange: (status: string) => void;
 }
@@ -46,6 +47,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
     kieApiKey,
     geminiApiKey,
     promptModel,
+    environmentDescription,
     onModuleUpdate,
     onProjectStatusChange,
   } = options;
@@ -107,6 +109,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
         withDialogue: mod.withDialogue,
         dialogueText: mod.dialogueText,
         audioDirection: mod.audioDirection,
+        environmentDescription,
       });
 
       const json = await geminiFetch(promptModel, geminiApiKey, {

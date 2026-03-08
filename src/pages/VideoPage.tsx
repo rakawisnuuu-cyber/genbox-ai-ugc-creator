@@ -299,6 +299,7 @@ const VideoPage = () => {
   const [setupDone, setSetupDone] = useState(false);
   const [planningStoryboard, setPlanningStoryboard] = useState(false);
   const [storyboardPlanned, setStoryboardPlanned] = useState(false);
+  const [environmentDesc, setEnvironmentDesc] = useState<string>("");
 
   // Batch generation
   const [batchGenerating, setBatchGenerating] = useState(false);
@@ -416,6 +417,7 @@ Return JSON only, no explanation:
     "sub_category": "specific type like kebaya, face serum, sneakers",
     "description": "detailed visual description of the product"
   },
+  "environment": "Detailed description of the setting/environment visible in the reference image: room type, wall color/texture, floor material, furniture, props, decorations, lighting direction, light color temperature, shadow placement, overall mood. Be very specific.",
   "frames": [
     {
       "beat": "Hook",
@@ -451,6 +453,11 @@ Rules:
           sub_category: parsed.product.sub_category || "",
           product_description: parsed.product.description || parsed.product.product_description || "",
         });
+      }
+
+      // Set environment description from plan
+      if (parsed.environment) {
+        setEnvironmentDesc(parsed.environment);
       }
 
       // Fill all frames from plan
@@ -681,20 +688,21 @@ Output ONLY the script text.`;
       audioDirection: frame.dialogue.trim() ? "natural spoken dialogue, clear and intimate" : "ambient sounds only",
       contentTemplate: selectedTemplate,
       model: frame.model,
+      environmentDescription: environmentDesc || undefined,
     });
 
     const contentParts: any[] = [];
     // Use stored base64 (CORS-free) for visual reference, fall back to URL fetch
     if (imageAsBase64) {
       contentParts.push({ inlineData: { mimeType: imageAsBase64.mimeType, data: imageAsBase64.data } });
-      contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+      contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY. Do NOT reinterpret any visual element." });
     } else {
       const imgUrl = frame.sourceImageUrl || sourceUrl;
       if (imgUrl) {
         const b64 = await imageUrlToBase64(imgUrl);
         if (b64) {
           contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
-          contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+          contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY. Do NOT reinterpret any visual element." });
         }
       }
     }

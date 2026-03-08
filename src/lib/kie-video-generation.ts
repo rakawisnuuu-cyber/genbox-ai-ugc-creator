@@ -92,7 +92,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   if (imageCount >= 2) {
     generationType = "FIRST_AND_LAST_FRAMES_2_VIDEO";
   } else if (imageCount === 1) {
-    generationType = model === "veo_fast" ? "REFERENCE_2_VIDEO" : "FIRST_AND_LAST_FRAMES_2_VIDEO";
+    generationType = "FIRST_AND_LAST_FRAMES_2_VIDEO";
   }
   console.log(`[kie] Veo generationType: ${generationType} (${imageCount} images, model=${model})`);
 
