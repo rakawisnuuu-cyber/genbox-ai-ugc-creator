@@ -684,6 +684,7 @@ Output ONLY the script text.`;
     if (!geminiKey || keys.gemini.status !== "valid") {
       return frames[idx].prompt;
     }
+    updateFrame(idx, { promptGenerating: true });
     const frame = frames[idx];
     const beat = beats[idx];
     const template = getContentTemplate(selectedTemplate);
