@@ -159,23 +159,6 @@ const CaraKerjaSection = () => {
             ))}
           </div>
 
-          {/* Desktop connecting arrows */}
-          <div className="pointer-events-none absolute top-[18px] left-0 right-0 hidden md:flex justify-center">
-            <div className="flex w-full max-w-3xl justify-around px-[15%]">
-              {[0, 1].map((i) => (
-                <div
-                  key={i}
-                  className={`text-primary/25 ${isVisible ? "animate-fade-slide-right" : "opacity-0"}`}
-                  style={{ animationDelay: `${0.6 + i * 0.2}s` }}
-                >
-                  <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                    <path d="M0 8h28"/>
-                    <path d="M24 3l5 5-5 5"/>
-                  </svg>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </section>
