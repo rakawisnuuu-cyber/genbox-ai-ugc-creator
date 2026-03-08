@@ -65,6 +65,8 @@ interface FrameState {
   /** If this frame is absorbed into another, store the parent index */
   mergedInto: number | null;
   showGalleryPicker?: boolean;
+  scriptGenerating?: boolean;
+  promptGenerating?: boolean;
 }
 
 interface GalleryImage {
@@ -639,7 +641,7 @@ Rules:
     const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
     const isCombined = mergedBeats.length > 0;
 
-    updateFrame(idx, { dialogue: "..." });
+    updateFrame(idx, { dialogue: "...", scriptGenerating: true });
     try {
       let systemText: string;
       let contentText: string;
@@ -670,9 +672,9 @@ Output ONLY the script text.`;
         contents: [{ parts: [{ text: contentText }] }],
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-      updateFrame(idx, { dialogue: text || frame.dialogue });
+      updateFrame(idx, { dialogue: text || frame.dialogue, scriptGenerating: false });
     } catch {
-      updateFrame(idx, { dialogue: frame.dialogue === "..." ? "" : frame.dialogue });
+      updateFrame(idx, { dialogue: frame.dialogue === "..." ? "" : frame.dialogue, scriptGenerating: false });
       toast({ title: "Gagal generate script", variant: "destructive" });
     }
   };
@@ -682,6 +684,7 @@ Output ONLY the script text.`;
     if (!geminiKey || keys.gemini.status !== "valid") {
       return frames[idx].prompt;
     }
+    updateFrame(idx, { promptGenerating: true });
     const frame = frames[idx];
     const beat = beats[idx];
     const template = getContentTemplate(selectedTemplate);
@@ -758,12 +761,13 @@ Content template: ${template?.label}`,
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       if (text) {
-        updateFrame(idx, { prompt: text });
+        updateFrame(idx, { prompt: text, promptGenerating: false });
         return text;
       }
     } catch (e: any) {
       console.error("Prompt gen failed:", e);
     }
+    updateFrame(idx, { promptGenerating: false });
     return frame.prompt;
   };
 
@@ -1361,10 +1365,14 @@ Content template: ${template?.label}`,
                     <label className="text-[10px] text-muted-foreground font-medium">Dialog</label>
                     <button
                       onClick={() => generateFrameScript(idx)}
-                      disabled={frame.dialogue === "..."}
-                      className="text-[9px] text-primary hover:underline flex items-center gap-1"
+                      disabled={frame.scriptGenerating || frame.dialogue === "..."}
+                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
-                      <Sparkles className="h-2.5 w-2.5" /> Generate Script AI
+                      {frame.scriptGenerating ? (
+                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...</>
+                      ) : (
+                        <><Sparkles className="h-2.5 w-2.5" /> Generate Script AI</>
+                      )}
                     </button>
                   </div>
                   <Textarea
@@ -1390,9 +1398,14 @@ Content template: ${template?.label}`,
                     <label className="text-[10px] text-muted-foreground font-medium">Video Prompt</label>
                     <button
                       onClick={() => generateFramePrompt(idx)}
-                      className="text-[9px] text-primary hover:underline flex items-center gap-1"
+                      disabled={frame.promptGenerating}
+                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
-                      <Sparkles className="h-2.5 w-2.5" /> Generate Prompt
+                      {frame.promptGenerating ? (
+                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...</>
+                      ) : (
+                        <><Sparkles className="h-2.5 w-2.5" /> Generate Prompt</>
+                      )}
                     </button>
                   </div>
                   <Textarea

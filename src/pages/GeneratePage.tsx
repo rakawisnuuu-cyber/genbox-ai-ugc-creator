@@ -179,7 +179,7 @@ type GenState = "idle" | "loading" | "completed" | "failed";
 
 // Per-shot status for multi-angle
 interface ShotStatus {
-  state: "pending" | "generating" | "completed" | "failed";
+  state: "pending" | "prompting" | "generating" | "completed" | "failed";
   imageUrl?: string;
   error?: string;
 }
@@ -620,7 +620,7 @@ Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything 
       try {
         setShotStatuses((prev) => {
           const next = [...prev];
-          next[idx] = { state: "generating" };
+          next[idx] = { state: "prompting" };
           return next;
         });
 
@@ -685,6 +685,13 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
         }
 
         if (storyboardAbortRef.current) throw new Error("Cancelled");
+
+        // Switch to "generating" state now that prompt is ready
+        setShotStatuses((prev) => {
+          const next = [...prev];
+          next[idx] = { state: "generating" };
+          return next;
+        });
 
         // Build image inputs: base image + previous frame (if exists) + product image
         // Max 3 images, no character hero/reference — base image already has the character
@@ -1235,8 +1242,14 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                               <XCircle className="h-4 w-4 text-destructive/60" />
                             </div>
                           ) : shot.state === "generating" ? (
-                            <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex items-center justify-center">
+                            <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center gap-1.5">
                               <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                              <span className="text-[7px] text-primary/70 font-medium">Generating...</span>
+                            </div>
+                          ) : shot.state === "prompting" ? (
+                            <div className="w-full aspect-[3/4] rounded-lg border border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-1.5">
+                              <Sparkles className="h-4 w-4 text-primary/60 animate-pulse" />
+                              <span className="text-[7px] text-primary/70 font-medium">Building prompt...</span>
                             </div>
                           ) : (
                             <div className="w-full aspect-[3/4] rounded-lg border border-dashed border-border bg-muted/10 flex items-center justify-center">
