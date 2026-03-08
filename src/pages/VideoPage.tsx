@@ -695,7 +695,7 @@ Output ONLY the script text.`;
     // Use stored base64 (CORS-free) for visual reference, fall back to URL fetch
     if (imageAsBase64) {
       contentParts.push({ inlineData: { mimeType: imageAsBase64.mimeType, data: imageAsBase64.data } });
-      contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY." });
+      contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY. Do NOT reinterpret any visual element." });
     } else {
       const imgUrl = frame.sourceImageUrl || sourceUrl;
       if (imgUrl) {
