@@ -165,65 +165,69 @@ const ApiCostSection = () => {
           className={`mt-8 overflow-hidden rounded-2xl border border-border/60 bg-card/80 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.4s" }}
         >
-          <div className="overflow-x-auto scrollbar-none">
+           <div className="overflow-x-auto scrollbar-none">
             <table className="w-full min-w-[700px] text-sm">
-              <thead>
+              <thead className="sticky top-0 z-20">
                 <tr className="bg-secondary/50">
-                  <th className="sticky left-0 z-10 bg-secondary/50 min-w-[200px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="sticky left-0 z-30 bg-secondary/50 min-w-[200px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Model Name
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="bg-secondary/50 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Provider
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="bg-secondary/50 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Type
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="bg-secondary/50 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Credits
                   </th>
-                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="bg-secondary/50 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
                     Est. Price
                   </th>
                 </tr>
               </thead>
-              <tbody>
-                {filtered.map((m, i) => (
-                  <tr
-                    key={m.name}
-                    className={`${
-                      i % 2 === 0 ? "bg-card/60" : "bg-card/30"
-                    } transition-colors hover:bg-secondary/60`}
-                  >
-                    <td className="sticky left-0 z-10 min-w-[200px] px-4 py-3 bg-inherit">
-                      <span className="font-medium text-foreground">{m.name}</span>
-                      {m.discount && (
-                        <span className="ml-2 inline-flex rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-400">
-                          {m.discount}
-                        </span>
-                      )}
-                      {m.note && (
-                        <span className="block text-[11px] text-muted-foreground mt-0.5">{m.note}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className={`h-2 w-2 rounded-full ${providerColors[m.provider] || "bg-gray-400"}`} />
-                        {m.provider}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeBadge[m.type]}`}>
-                        {m.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{m.credits}</td>
-                    <td className={`px-4 py-3 text-xs ${m.freePrice ? "font-bold text-primary" : "text-muted-foreground"}`}>
-                      {m.price}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
             </table>
+            <div className="max-h-[420px] overflow-y-auto scrollbar-none">
+              <table className="w-full min-w-[700px] text-sm">
+                <tbody>
+                  {filtered.map((m, i) => (
+                    <tr
+                      key={m.name}
+                      className={`${
+                        i % 2 === 0 ? "bg-card/60" : "bg-card/30"
+                      } transition-colors hover:bg-secondary/60`}
+                    >
+                      <td className="sticky left-0 z-10 min-w-[200px] px-4 py-3 bg-inherit">
+                        <span className="font-medium text-foreground">{m.name}</span>
+                        {m.discount && (
+                          <span className="ml-2 inline-flex rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-400">
+                            {m.discount}
+                          </span>
+                        )}
+                        {m.note && (
+                          <span className="block text-[11px] text-muted-foreground mt-0.5">{m.note}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className={`h-2 w-2 rounded-full ${providerColors[m.provider] || "bg-gray-400"}`} />
+                          {m.provider}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeBadge[m.type]}`}>
+                          {m.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{m.credits}</td>
+                      <td className={`px-4 py-3 text-xs ${m.freePrice ? "font-bold text-primary" : "text-muted-foreground"}`}>
+                        {m.price}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Footer */}
