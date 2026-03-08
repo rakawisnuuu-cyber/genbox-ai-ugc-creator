@@ -1108,10 +1108,37 @@ Content template: ${template?.label}`,
         </p>
       </div>
 
+      {/* Planning loading state */}
+      {planningStoryboard && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <div>
+            <p className="text-xs font-medium text-foreground">Merencanakan storyboard...</p>
+            <p className="text-[10px] text-muted-foreground">Menganalisis produk & membuat rencana 5 frame</p>
+          </div>
+        </div>
+      )}
+
       {/* 5 Frame Cards */}
       {frames.map((frame, idx) => {
         const beat = beats[idx];
         if (!beat) return null;
+
+        // Show skeleton during planning
+        if (planningStoryboard) {
+          return (
+            <div key={idx} className="border border-border rounded-xl p-4 space-y-3 animate-pulse">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-8" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-12 rounded-full" />
+              </div>
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          );
+        }
 
         // If this frame is merged into another, show collapsed indicator
         if (frame.mergedInto !== null) {
