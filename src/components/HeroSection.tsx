@@ -1,23 +1,11 @@
 import { useEffect, useState } from "react";
+import DepthDeckCarousel from "@/components/DepthDeckCarousel";
 
 const particles = [
   { size: 5, top: "18%", left: "12%", delay: "0s" },
   { size: 7, top: "25%", left: "85%", delay: "-1.2s" },
   { size: 4, top: "70%", left: "8%", delay: "-2.5s" },
   { size: 6, top: "65%", left: "90%", delay: "-3.8s" },
-];
-
-const marqueeGradients = [
-  "from-purple-600 to-pink-500",
-  "from-blue-500 to-cyan-400",
-  "from-orange-500 to-yellow-400",
-  "from-green-500 to-emerald-400",
-  "from-rose-500 to-red-400",
-  "from-purple-600 to-pink-500",
-  "from-blue-500 to-cyan-400",
-  "from-orange-500 to-yellow-400",
-  "from-green-500 to-emerald-400",
-  "from-rose-500 to-red-400",
 ];
 
 const HeroSection = () => {
