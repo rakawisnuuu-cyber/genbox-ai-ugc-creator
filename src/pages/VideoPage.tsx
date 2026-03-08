@@ -1284,7 +1284,7 @@ Content template: ${template?.label}`,
                     </div>
                   </div>
                   {/* Inline gallery picker */}
-                  {(frame as any).showGalleryPicker && galleryImages.length > 0 && (
+                  {frame.showGalleryPicker && galleryImages.length > 0 && (
                     <div className="mt-2 p-2 rounded-lg border border-border bg-muted/20">
                       <p className="text-[10px] text-muted-foreground mb-1.5">Pilih dari gallery:</p>
                       <div className="flex gap-1.5 overflow-x-auto pb-1">
