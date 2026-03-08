@@ -647,41 +647,44 @@ export default function CreateCharacterPage() {
             <p className="text-sm text-muted-foreground mb-4">Kustomisasi karakter AI untuk konten UGC kamu</p>
           </div>
 
-          {/* Reference Photo Upload */}
-          <FormGroup label="Referensi Wajah (Opsional)">
-            {refPreview ? (
-              <div className="relative inline-block">
-                <img src={refPreview} alt="Reference" className="h-[120px] w-[120px] rounded-xl object-cover border border-border" />
-                <button onClick={removeRef} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                  <X className="h-3 w-3" />
-                </button>
-                {refUploading && (
-                  <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+          {/* Reference Photo Upload (Multi) */}
+          <FormGroup label={`Referensi Wajah (${refPreviews.length}/5)`}>
+            <div className="grid grid-cols-3 gap-2">
+              {refPreviews.map((preview, i) => (
+                <div key={i} className="relative aspect-square">
+                  <img src={preview} alt={`Ref ${i + 1}`} className="w-full h-full rounded-xl object-cover border border-border" />
+                  <button onClick={() => removeRef(i)} className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              ))}
+              {refPreviews.length < 5 && (
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length) handleMultiRefUpload(e.dataTransfer.files); }}
+                  onClick={() => {
+                    const inp = document.createElement("input");
+                    inp.type = "file"; inp.accept = "image/jpeg,image/png,image/webp"; inp.multiple = true;
+                    inp.onchange = (ev) => { const files = (ev.target as HTMLInputElement).files; if (files?.length) handleMultiRefUpload(files); };
+                    inp.click();
+                  }}
+                  className="aspect-square border-2 border-dashed border-border rounded-xl bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-1 cursor-pointer"
+                >
+                  {refUploading ? (
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) handleRefUpload(file); }}
-                onClick={() => {
-                  const inp = document.createElement("input");
-                  inp.type = "file"; inp.accept = "image/jpeg,image/png,image/webp";
-                  inp.onchange = (ev) => { const f = (ev.target as HTMLInputElement).files?.[0]; if (f) handleRefUpload(f); };
-                  inp.click();
-                }}
-                className="border-2 border-dashed border-border rounded-xl p-6 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
-              >
-                <Upload className="h-6 w-6 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Drag & drop foto wajah</p>
-                <p className="text-xs text-muted-foreground/60">JPEG, PNG, WebP — Maks 5MB</p>
-              </div>
-            )}
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">Tambah</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <p className="text-[11px] text-muted-foreground/60 mt-2 leading-relaxed">
-              Upload foto close-up wajah untuk hasil karakter yang lebih mirip.
+              Upload 1-5 foto dari berbagai sudut (depan, samping, 3/4) untuk hasil lebih akurat
             </p>
-            {refPreview && selectedVibe && (
+            {refPreviews.length > 0 && selectedVibe && (
               <p className="text-[11px] text-primary/70 mt-1">
                 Preset sebagai styling guide — wajah akan dicocokkan dengan foto referensi.
               </p>
