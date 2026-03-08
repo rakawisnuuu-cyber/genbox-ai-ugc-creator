@@ -109,6 +109,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
         withDialogue: mod.withDialogue,
         dialogueText: mod.dialogueText,
         audioDirection: mod.audioDirection,
+        environmentDescription,
       });
 
       const json = await geminiFetch(promptModel, geminiApiKey, {
