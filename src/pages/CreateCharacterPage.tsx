@@ -567,7 +567,7 @@ export default function CreateCharacterPage() {
     setGeneratingSingleShot(key);
     setShots((p) => ({ ...p, [key]: { status: "generating", model: SHOT_CONFIGS[key].model } }));
 
-    const imageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
+    const imageInput: string[] = refUrls.length > 0 ? [...refUrls, heroUrl] : [heroUrl];
     const shotPrompt = assemblePrompt(key, identityData.identityBlock, identityData.consistencyAnchors, {
       imperfection: form.imperfection, environment: form.environment, advancedContext: identityData.advancedContext,
     });
