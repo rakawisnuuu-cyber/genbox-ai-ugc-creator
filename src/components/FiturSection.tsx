@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import beforeProductImg from "@/assets/before-product.jpg";
+import afterUgcImg from "@/assets/after-ugc.jpeg";
 
 /* ── Feature 01: Character Showcase Stack ─────────── */
 
