@@ -33,8 +33,8 @@ const navGroups: NavGroup[] = [
   {
     label: "GAMBAR & KARAKTER",
     items: [
-      { title: "Buat Gambar", icon: ImagePlus, path: "/generate" },
-      { title: "Karakter", icon: Users, path: "/characters" },
+      { title: "UGC Image Storyboard", icon: ImagePlus, path: "/generate" },
+      { title: "Create Unique Character", icon: Users, path: "/characters" },
     ],
   },
   {
