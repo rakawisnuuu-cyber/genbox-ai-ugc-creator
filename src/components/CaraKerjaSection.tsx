@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Upload, ImagePlus, Download, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import beforeProductImg from "@/assets/before-product.jpg";
+import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
 import afterUgcImg from "@/assets/after-ugc.jpeg";
 
 function useCountUp(target: number, visible: boolean, duration = 800) {
