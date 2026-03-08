@@ -296,7 +296,7 @@ const features = [
   },
 ];
 
-/* ── Feature Row Component ──────────────────────────── */
+/* ── Feature Row Component (Timeline) ───────────────── */
 
 const FeatureRow = ({
   num, title, desc, visual, reversed, isVisible, delay,
@@ -304,15 +304,27 @@ const FeatureRow = ({
   num: string; title: string; desc: string; visual: React.ReactNode; reversed: boolean; isVisible: boolean; delay: number;
 }) => (
   <div
-    className={`flex flex-col items-center gap-10 lg:gap-20 ${reversed ? "lg:flex-row-reverse" : "lg:flex-row"} ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+    className={`relative py-12 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
     style={{ animationDelay: `${delay}s` }}
   >
-    <div className="flex-1">
-      <span className="font-mono text-[48px] font-bold leading-none text-primary">{num}</span>
-      <h3 className="mt-3 font-satoshi text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h3>
-      <p className="mt-3 max-w-md font-body text-base text-muted-foreground">{desc}</p>
+    {/* Timeline dot */}
+    <div className="absolute left-[20px] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 lg:left-1/2">
+      <div className="h-3.5 w-3.5 rounded-full border-2 border-primary bg-background ring-[6px] ring-primary/10" />
     </div>
-    <div className="w-full max-w-sm flex-1">{visual}</div>
+
+    {/* Content — alternating sides on desktop */}
+    <div className={`flex flex-col gap-8 pl-12 lg:flex-row lg:items-center lg:gap-16 lg:pl-0 ${reversed ? "lg:flex-row-reverse" : ""}`}>
+      {/* Text side */}
+      <div className={`flex-1 ${reversed ? "lg:text-right lg:pl-16" : "lg:pr-16 lg:text-right"}`}>
+        <span className="font-mono text-[48px] font-bold leading-none text-primary">{num}</span>
+        <h3 className="mt-2 font-satoshi text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h3>
+        <p className="mt-2 font-body text-base text-muted-foreground">{desc}</p>
+      </div>
+      {/* Visual side */}
+      <div className={`flex-1 ${reversed ? "lg:pr-16" : "lg:pl-16"}`}>
+        <div className="w-full max-w-sm">{visual}</div>
+      </div>
+    </div>
   </div>
 );
 
@@ -346,7 +358,11 @@ const FiturSection = () => {
           Semua yang Kamu Butuhkan untuk Konten UGC
         </h2>
 
-        <div className="mt-14 space-y-14 sm:space-y-20">
+        {/* Timeline container */}
+        <div className="relative mt-14">
+          {/* Vertical line */}
+          <div className="absolute bottom-0 left-[20px] top-0 w-px bg-gradient-to-b from-transparent via-border/60 to-transparent lg:left-1/2 lg:-translate-x-1/2" />
+
           {features.map((f, i) => (
             <FeatureRow key={f.num} {...f} isVisible={isVisible} delay={0.3 + i * 0.15} />
           ))}
