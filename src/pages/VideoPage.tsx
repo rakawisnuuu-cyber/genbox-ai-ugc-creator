@@ -641,7 +641,7 @@ Rules:
     const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
     const isCombined = mergedBeats.length > 0;
 
-    updateFrame(idx, { dialogue: "..." });
+    updateFrame(idx, { dialogue: "...", scriptGenerating: true });
     try {
       let systemText: string;
       let contentText: string;
@@ -672,9 +672,9 @@ Output ONLY the script text.`;
         contents: [{ parts: [{ text: contentText }] }],
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-      updateFrame(idx, { dialogue: text || frame.dialogue });
+      updateFrame(idx, { dialogue: text || frame.dialogue, scriptGenerating: false });
     } catch {
-      updateFrame(idx, { dialogue: frame.dialogue === "..." ? "" : frame.dialogue });
+      updateFrame(idx, { dialogue: frame.dialogue === "..." ? "" : frame.dialogue, scriptGenerating: false });
       toast({ title: "Gagal generate script", variant: "destructive" });
     }
   };
