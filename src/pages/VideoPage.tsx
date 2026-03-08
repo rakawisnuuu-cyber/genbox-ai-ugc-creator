@@ -1009,14 +1009,7 @@ Content template: ${template?.label}`,
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Storyboard Preview</label>
           <div className="grid grid-cols-5 gap-2">
             {beats.map((beat, i) => (
-              <div key={i} className="border border-border rounded-lg p-2 bg-muted/10 min-w-0">
-                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
-                  {beat.storyRole}
-                </span>
-                <p className="text-[10px] font-semibold text-foreground mt-1 truncate">{beat.label}</p>
-                <p className="text-[8px] text-muted-foreground/60">{beat.beat}</p>
-                <p className="text-[8px] text-muted-foreground line-clamp-3 mt-1">{beat.description}</p>
-              </div>
+              <BeatPreviewCard key={i} beat={beat} index={i} />
             ))}
           </div>
         </div>
