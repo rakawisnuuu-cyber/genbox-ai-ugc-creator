@@ -1,19 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight } from "lucide-react";
+import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight, LayoutGrid, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCountUp } from "@/components/GenerationLoading";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
+import GalleryContent from "@/components/GalleryContent";
 
 const MODEL_COST: Record<string, number> = {
-  nano: 320,
-  seedream: 280,
-  "nano-banana-2-pro": 640,
-  grok: 1600,
-  veo3_fast: 4800,
-  veo3: 19200,
+  nano: 320, seedream: 280, "nano-banana-2-pro": 640, grok: 1600, veo3_fast: 4800, veo3: 19200,
 };
 
 function estimateCost(model: string): number {
@@ -29,27 +25,18 @@ const MONTH_NAMES_ID = [
 ];
 
 function formatDateId(d: Date) {
-  const day = d.getDate();
-  const month = MONTH_NAMES_ID[d.getMonth()];
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
+  return `${d.getDate()} ${MONTH_NAMES_ID[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-interface DailyPoint {
-  date: string;
-  label: string;
-  count: number;
-}
+interface DailyPoint { date: string; label: string; count: number; }
 
 function AnimatedStat({ value }: { value: string | number }) {
   const isNum = typeof value === "number";
   const animated = useCountUp(isNum ? value : 0, 800, isNum);
-  return (
-    <p className="font-mono text-2xl font-bold text-primary">
-      {isNum ? animated : value}
-    </p>
-  );
+  return <p className="font-mono text-2xl font-bold text-primary">{isNum ? animated : value}</p>;
 }
+
+type DashboardTab = "overview" | "gallery";
 
 const DashboardHome = () => {
   const { user } = useAuth();
@@ -59,13 +46,13 @@ const DashboardHome = () => {
   const [prevMonthGen, setPrevMonthGen] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
   const [dailyData, setDailyData] = useState<DailyPoint[]>([]);
+  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
 
   const firstName = user?.email?.split("@")[0] || "User";
   const now = new Date();
 
   useEffect(() => {
     if (!user) return;
-
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
     const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59).toISOString();
@@ -125,10 +112,15 @@ const DashboardHome = () => {
     { icon: Users, title: "Buat Karakter", desc: "Buat karakter AI untuk konten", to: "/characters/create" },
   ];
 
+  const tabs: { key: DashboardTab; label: string; icon: typeof BarChart3 }[] = [
+    { key: "overview", label: "Overview", icon: BarChart3 },
+    { key: "gallery", label: "Gallery", icon: LayoutGrid },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Welcome */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
+    <div className="space-y-6">
+      {/* Header + Tabs */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
         <div>
           <h1 className="font-satoshi text-2xl font-bold text-foreground">
             Selamat datang, {firstName}
@@ -143,106 +135,109 @@ const DashboardHome = () => {
         </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        {stats.map((s, i) => (
-          <div key={s.label} className="rounded-xl border border-border bg-card p-5 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.label}</p>
-              <s.icon className="h-4 w-4 text-muted-foreground/30" />
-            </div>
-            {loading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <AnimatedStat value={s.value} />
-            )}
-            <p className="mt-1.5 text-[11px] text-muted-foreground/60">
-              {s.sub}
-              {s.diff !== undefined && !loading && (
-                <span className={s.diff >= 0 ? "ml-2 text-primary" : "ml-2 text-destructive"}>
-                  {s.diff >= 0 ? `+${s.diff}` : s.diff}
-                </span>
-              )}
-            </p>
-          </div>
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit animate-fade-up" style={{ animationDelay: "50ms" }}>
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setActiveTab(t.key)}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-[12px] font-medium transition-all duration-200 ${
+              activeTab === t.key
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <t.icon className="h-3.5 w-3.5" />
+            {t.label}
+          </button>
         ))}
       </div>
 
-      {/* Activity */}
-      <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
-          Aktivitas 30 Hari
-        </p>
-        <div className="rounded-xl border border-border bg-card p-5">
-          {loading ? (
-            <Skeleton className="h-[180px] w-full" />
-          ) : dailyData.every((d) => d.count === 0) ? (
-            <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground/50">
-              Belum ada aktivitas. Mulai generate untuk melihat statistik.
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={dailyData}>
-                <defs>
-                  <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="label"
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={false}
-                  axisLine={false}
-                  interval={4}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  formatter={(v: number) => [`${v} generasi`, ""]}
-                  labelStyle={{ color: "hsl(var(--foreground))" }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="count"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={1.5}
-                  fill="url(#areaFill)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
-          Mulai
-        </p>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {actions.map((a) => (
-            <Link
-              key={a.title}
-              to={a.to}
-              className="group rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:border-primary/20"
-            >
-              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                <a.icon size={18} className="text-primary" />
+      {/* Overview Tab */}
+      {activeTab === "overview" && (
+        <div className="space-y-6 animate-fade-up">
+          {/* Stats */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            {stats.map((s, i) => (
+              <div key={s.label} className="rounded-xl border border-border bg-card p-5 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.label}</p>
+                  <s.icon className="h-4 w-4 text-muted-foreground/30" />
+                </div>
+                {loading ? <Skeleton className="h-8 w-20" /> : <AnimatedStat value={s.value} />}
+                <p className="mt-1.5 text-[11px] text-muted-foreground/60">
+                  {s.sub}
+                  {s.diff !== undefined && !loading && (
+                    <span className={s.diff >= 0 ? "ml-2 text-primary" : "ml-2 text-destructive"}>
+                      {s.diff >= 0 ? `+${s.diff}` : s.diff}
+                    </span>
+                  )}
+                </p>
               </div>
-              <h3 className="font-satoshi text-sm font-bold text-foreground">{a.title}</h3>
-              <p className="mt-1 text-[12px] text-muted-foreground/70">{a.desc}</p>
-              <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                Mulai <ArrowRight size={11} />
-              </span>
-            </Link>
-          ))}
+            ))}
+          </div>
+
+          {/* Activity */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
+              Aktivitas 30 Hari
+            </p>
+            <div className="rounded-xl border border-border bg-card p-5">
+              {loading ? (
+                <Skeleton className="h-[180px] w-full" />
+              ) : dailyData.every((d) => d.count === 0) ? (
+                <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground/50">
+                  Belum ada aktivitas. Mulai generate untuk melihat statistik.
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={180}>
+                  <AreaChart data={dailyData}>
+                    <defs>
+                      <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="label" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} interval={4} />
+                    <Tooltip
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: number) => [`${v} generasi`, ""]}
+                      labelStyle={{ color: "hsl(var(--foreground))" }}
+                    />
+                    <Area type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={1.5} fill="url(#areaFill)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">Mulai</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {actions.map((a) => (
+                <Link key={a.title} to={a.to} className="group rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:border-primary/20">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                    <a.icon size={18} className="text-primary" />
+                  </div>
+                  <h3 className="font-satoshi text-sm font-bold text-foreground">{a.title}</h3>
+                  <p className="mt-1 text-[12px] text-muted-foreground/70">{a.desc}</p>
+                  <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                    Mulai <ArrowRight size={11} />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Gallery Tab */}
+      {activeTab === "gallery" && (
+        <div className="animate-fade-up">
+          <GalleryContent />
+        </div>
+      )}
     </div>
   );
 };
