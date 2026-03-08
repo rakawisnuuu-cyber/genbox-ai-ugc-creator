@@ -455,6 +455,11 @@ Rules:
         });
       }
 
+      // Set environment description from plan
+      if (parsed.environment) {
+        setEnvironmentDesc(parsed.environment);
+      }
+
       // Fill all frames from plan
       if (parsed.frames && Array.isArray(parsed.frames)) {
         setFrames((prev) =>
