@@ -19,6 +19,7 @@ import CreateCharacterPage from "./pages/CreateCharacterPage";
 import VideoPage from "./pages/VideoPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
+import CheckoutPage from "./pages/CheckoutPage";
 
 const queryClient = new QueryClient();
 
