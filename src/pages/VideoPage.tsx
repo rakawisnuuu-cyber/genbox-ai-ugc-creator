@@ -417,6 +417,7 @@ Return JSON only, no explanation:
     "sub_category": "specific type like kebaya, face serum, sneakers",
     "description": "detailed visual description of the product"
   },
+  "environment": "Detailed description of the setting/environment visible in the reference image: room type, wall color/texture, floor material, furniture, props, decorations, lighting direction, light color temperature, shadow placement, overall mood. Be very specific.",
   "frames": [
     {
       "beat": "Hook",
