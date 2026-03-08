@@ -95,6 +95,15 @@ const CharactersPage = () => {
       {/* Content */}
       {tab === "preset" && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-up" style={{ animationDelay: "200ms" }}>
+          <button
+            onClick={() => navigate("/characters/create")}
+            className="group/create flex flex-col items-center justify-center gap-3 aspect-[3/4] rounded-2xl border-2 border-dashed border-border/60 hover:border-primary/50 bg-card/40 hover:bg-card/80 transition-all cursor-pointer"
+          >
+            <div className="h-12 w-12 rounded-xl bg-primary/10 group-hover/create:bg-primary/20 flex items-center justify-center transition-colors">
+              <Plus className="h-6 w-6 text-primary" />
+            </div>
+            <span className="text-xs font-bold text-muted-foreground group-hover/create:text-foreground transition-colors">BUAT KARAKTER BARU</span>
+          </button>
           {PRESETS.map((p) => (
             <CharacterCard key={p.id} character={p} onDetail={setSelected} onUse={handleUse} />
           ))}
