@@ -7,7 +7,6 @@ import {
   Film,
   Wand2,
   Workflow,
-  GalleryHorizontalEnd,
   Settings,
   Menu,
   X,
@@ -49,7 +48,6 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Prompt Generator", icon: Wand2, path: "/prompt" },
       { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
-      { title: "Gallery", icon: GalleryHorizontalEnd, path: "/gallery" },
     ],
   },
 ];
