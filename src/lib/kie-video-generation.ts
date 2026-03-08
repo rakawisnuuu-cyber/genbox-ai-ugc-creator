@@ -219,7 +219,7 @@ async function pollTask(
         if (!url) throw new Error("No video URL in Veo result. Raw: " + JSON.stringify(j.data).slice(0, 300));
         return url;
       }
-      if (flag === 3) throw new Error(extractError(j.data, "Veo generation failed"));
+      if (flag === 2 || flag === 3) throw new Error(extractError(j.data, "Veo generation failed"));
     }
 
     await new Promise((resolve) => setTimeout(resolve, interval));
