@@ -299,6 +299,7 @@ const VideoPage = () => {
   const [setupDone, setSetupDone] = useState(false);
   const [planningStoryboard, setPlanningStoryboard] = useState(false);
   const [storyboardPlanned, setStoryboardPlanned] = useState(false);
+  const [environmentDesc, setEnvironmentDesc] = useState<string>("");
 
   // Batch generation
   const [batchGenerating, setBatchGenerating] = useState(false);
