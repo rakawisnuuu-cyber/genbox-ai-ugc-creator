@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Upload, Users, Sparkles, Film, Play, Download, ChevronRight, Pause } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
-import caraKerjaUgc from "@/assets/cara-kerja-ugc.jpeg";
+import caraKerjaUgc from "@/assets/cara-kerja-ugc-new.jpeg";
 
 /* ── Preset character thumbnails ── */
 const characterImages = [
