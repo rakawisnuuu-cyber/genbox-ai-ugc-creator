@@ -761,12 +761,13 @@ Content template: ${template?.label}`,
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       if (text) {
-        updateFrame(idx, { prompt: text });
+        updateFrame(idx, { prompt: text, promptGenerating: false });
         return text;
       }
     } catch (e: any) {
       console.error("Prompt gen failed:", e);
     }
+    updateFrame(idx, { promptGenerating: false });
     return frame.prompt;
   };
 
