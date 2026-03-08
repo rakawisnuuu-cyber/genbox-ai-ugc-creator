@@ -1566,7 +1566,7 @@ Content template: ${template?.label}`,
       {allDone && completedVideos.length > 0 && (
         <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 space-y-4">
           <div>
-            <p className="text-sm font-bold text-foreground">🎬 Semua Frame Selesai!</p>
+            <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Clapperboard className="h-4 w-4" /> Semua Frame Selesai!</p>
             <p className="text-[11px] text-muted-foreground">
               Total: {totalDuration}s ({completedVideos.length} × {completedVideos.length > 0 ? (completedVideos[0].model === "grok" ? "10s" : "8s") : "8s"})
             </p>

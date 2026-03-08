@@ -342,7 +342,7 @@ export default function CreateCharacterPage() {
   const handleGenerate = async () => {
     if (!form.name.trim()) { toast({ title: "Nama wajib diisi", variant: "destructive" }); return; }
     if (!kieApiKey || !geminiKey) {
-      toast({ title: "Setup API keys dulu di Settings", description: "Buka Settings → API Keys untuk memasukkan key Kie AI dan Gemini.", variant: "destructive" });
+      toast({ title: "Setup API keys dulu di Settings", description: "Buka Settings — API Keys untuk memasukkan key Kie AI dan Gemini.", variant: "destructive" });
       navigate("/settings");
       return;
     }

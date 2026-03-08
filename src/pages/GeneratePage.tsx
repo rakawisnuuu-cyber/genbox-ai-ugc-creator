@@ -1284,7 +1284,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                         className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
                       >
                         <Play className="h-3.5 w-3.5" />
-                        Buat Video dari Storyboard →
+                        Buat Video dari Storyboard <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={resetStoryboard}
