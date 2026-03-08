@@ -468,7 +468,7 @@ Rules:
       }
 
       setStoryboardPlanned(true);
-      toast({ title: "Storyboard berhasil direncanakan! ✨", description: "Edit setiap frame sesuai kebutuhan." });
+      toast({ title: "Storyboard berhasil direncanakan!", description: "Edit setiap frame sesuai kebutuhan." });
     } catch (e: any) {
       console.error("Plan storyboard failed:", e);
       toast({
