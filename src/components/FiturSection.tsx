@@ -296,7 +296,7 @@ const features = [
   {
     num: "01",
     title: "Pilih Karakter Sesuai Target Market",
-    desc: "Karakter berbeda untuk setiap niche audience kamu.",
+    desc: "Ada 10+ karakter — hijab casual, urban trendy, ibu muda, dan lainnya. Tinggal pilih yang paling cocok buat audience kamu.",
     visual: <CharacterShowcaseStack />,
     reversed: false,
   },

@@ -41,7 +41,7 @@ const DibuatUntukSection = () => {
           className={`mx-auto mt-4 max-w-[600px] font-body text-base text-muted-foreground sm:text-lg ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          Konten UGC cepat untuk affiliate, seller, dan dropshipper.
+          Dari seller TikTok Shop sampai dropshipper — GENBOX bantu kamu bikin konten yang convert.
         </p>
 
         <div className="mt-12 grid gap-6 md:grid-cols-3">

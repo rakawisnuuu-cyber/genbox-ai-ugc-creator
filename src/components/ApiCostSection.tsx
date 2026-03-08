@@ -139,7 +139,7 @@ const ApiCostSection = () => {
           className={`mt-4 text-center text-base text-muted-foreground max-w-xl mx-auto ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.3s" }}
         >
-          Sistem BYOK: kamu pakai API key sendiri, jadi biaya generation tetap murah dan transparan.
+          Sebagai pengguna BYOK, kamu bayar langsung ke provider via Kie.ai. 1 credit = $0.005.
         </p>
 
         {/* Tab filter */}

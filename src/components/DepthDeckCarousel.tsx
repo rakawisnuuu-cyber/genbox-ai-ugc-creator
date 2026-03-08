@@ -157,6 +157,31 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
                 </div>
               )}
 
+              {/* Bottom gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+              {/* AI Generated watermark */}
+              <div className="absolute right-3 top-3 z-10">
+                <span className="rounded bg-black/20 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/30 backdrop-blur-sm">
+                  AI Generated
+                </span>
+              </div>
+
+              {/* Content overlay */}
+              <div className="absolute bottom-0 left-0 right-0 z-10 p-4">
+                <span className="rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60 backdrop-blur-sm">
+                  {card.category}
+                </span>
+                <p className="mt-1.5 font-satoshi text-sm font-bold text-white/95">
+                  {card.label}
+                </p>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span className="font-mono text-[9px] text-white/40">
+                    {card.model}
+                  </span>
+                </div>
+              </div>
             </div>
           </motion.div>
         );
