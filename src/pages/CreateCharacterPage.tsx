@@ -271,9 +271,9 @@ export default function CreateCharacterPage() {
   const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
   const [generatingSingleShot, setGeneratingSingleShot] = useState<ShotKey | null>(null);
 
-  // Reference photo state
-  const [refPreview, setRefPreview] = useState<string | null>(null);
-  const [refUrl, setRefUrl] = useState<string | null>(null);
+  // Reference photo state (multi-photo, up to 5)
+  const [refPreviews, setRefPreviews] = useState<string[]>([]);
+  const [refUrls, setRefUrls] = useState<string[]>([]);
   const [refUploading, setRefUploading] = useState(false);
 
   const set = (key: keyof FormData, val: string) => {
@@ -298,31 +298,45 @@ export default function CreateCharacterPage() {
     }));
   };
 
-  // ── Reference photo upload ──
+  // ── Reference photo upload (multi) ──
   const handleRefUpload = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File terlalu besar", description: "Maksimal 5MB", variant: "destructive" });
+      toast({ title: "File terlalu besar", description: "Maksimal 5MB per foto", variant: "destructive" });
       return;
     }
-    setRefPreview(URL.createObjectURL(file));
+    if (refPreviews.length >= 5) {
+      toast({ title: "Maksimal 5 foto", variant: "destructive" });
+      return;
+    }
+    const preview = URL.createObjectURL(file);
+    setRefPreviews((p) => [...p, preview]);
     setRefUploading(true);
 
     const ext = file.name.split(".").pop();
-    const path = `${user!.id}/references/${Date.now()}.${ext}`;
+    const path = `${user!.id}/references/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
     const { error } = await supabase.storage.from("character-packs").upload(path, file);
     if (error) {
       toast({ title: "Upload gagal", description: error.message, variant: "destructive" });
+      setRefPreviews((p) => p.filter((u) => u !== preview));
       setRefUploading(false);
       return;
     }
     const { data: urlData } = supabase.storage.from("character-packs").getPublicUrl(path);
-    setRefUrl(urlData.publicUrl);
+    setRefUrls((p) => [...p, urlData.publicUrl]);
     setRefUploading(false);
   };
 
-  const removeRef = () => {
-    setRefPreview(null);
-    setRefUrl(null);
+  const handleMultiRefUpload = async (files: FileList) => {
+    const remaining = 5 - refPreviews.length;
+    const toUpload = Array.from(files).slice(0, remaining);
+    for (const file of toUpload) {
+      await handleRefUpload(file);
+    }
+  };
+
+  const removeRef = (index: number) => {
+    setRefPreviews((p) => p.filter((_, i) => i !== index));
+    setRefUrls((p) => p.filter((_, i) => i !== index));
   };
 
   // ── GENERATION FLOW — HERO ONLY ──
@@ -352,22 +366,26 @@ export default function CreateCharacterPage() {
 
       const geminiParts: any[] = [];
 
-      if (refUrl) {
+      if (refUrls.length > 0) {
         try {
-          const base64Ref = await imageUrlToBase64(refUrl);
+          for (const url of refUrls) {
+            const base64Ref = await imageUrlToBase64(url);
+            geminiParts.push({
+              inlineData: { mimeType: "image/jpeg", data: base64Ref },
+            });
+          }
           geminiParts.push({
-            inlineData: { mimeType: "image/jpeg", data: base64Ref },
-          });
-          geminiParts.push({
-            text: "REFERENCE PHOTO ANALYSIS: A reference photo of the target person is attached above. Analyze it carefully. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photo takes priority for facial features.",
+            text: refUrls.length > 1
+              ? `REFERENCE PHOTO ANALYSIS: ${refUrls.length} reference photos of the target person are attached above, taken from different angles. Cross-reference ALL photos to identify consistent facial features. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photos take priority for facial features.`
+              : "REFERENCE PHOTO ANALYSIS: A reference photo of the target person is attached above. Analyze it carefully. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photo takes priority for facial features.",
           });
         } catch (e) {
-          console.warn("Failed to convert reference photo to base64:", e);
+          console.warn("Failed to convert reference photo(s) to base64:", e);
         }
       }
 
       geminiParts.push({
-        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.\n\nAttributes:\n- Gender: ${form.gender === "female" ? "Female" : "Male"}\n- Age range: ${form.age_range}\n- Skin tone: ${skinToneEnglish}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression tendency: ${form.expression}\n- Outfit style: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Additional notes: ${form.custom_notes || "none"}\n${advancedContext ? `\nAdvanced styling context:\n${advancedContext}` : ""}\n${refUrl ? "\nIMPORTANT: A reference photo was provided. Your identity_block MUST describe the person in the photo as accurately as possible. Use the form attributes as supplementary styling guidance only." : ""}\n\nRespond ONLY with valid JSON, no markdown:\n{\n  "identity_block": "A single detailed paragraph in English describing the EXACT physical appearance — face shape, specific nose type, lip shape, jawline, skin details, exact hair description with color and style, exact outfit with specific colors and materials. Include 3-5 distinctive anchor features (like a beauty mark, specific nose shape, dimples, etc) that should appear in every image.",\n  "hair_description": "Detailed hair description",\n  "outfit_description": "Specific outfit with exact colors and materials",\n  "consistency_anchors": ["anchor1", "anchor2", "anchor3"]\n}`,
+        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.\n\nAttributes:\n- Gender: ${form.gender === "female" ? "Female" : "Male"}\n- Age range: ${form.age_range}\n- Skin tone: ${skinToneEnglish}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression tendency: ${form.expression}\n- Outfit style: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Additional notes: ${form.custom_notes || "none"}\n${advancedContext ? `\nAdvanced styling context:\n${advancedContext}` : ""}\n${refUrls.length > 0 ? `\nIMPORTANT: ${refUrls.length} reference photo(s) were provided. Your identity_block MUST describe the person in the photos as accurately as possible. Use the form attributes as supplementary styling guidance only.` : ""}\n\nRespond ONLY with valid JSON, no markdown:\n{\n  "identity_block": "A single detailed paragraph in English describing the EXACT physical appearance — face shape, specific nose type, lip shape, jawline, skin details, exact hair description with color and style, exact outfit with specific colors and materials. Include 3-5 distinctive anchor features (like a beauty mark, specific nose shape, dimples, etc) that should appear in every image.",\n  "hair_description": "Detailed hair description",\n  "outfit_description": "Specific outfit with exact colors and materials",\n  "consistency_anchors": ["anchor1", "anchor2", "anchor3"]\n}`,
       });
 
       const genConfig: Record<string, any> = {};
@@ -396,7 +414,7 @@ export default function CreateCharacterPage() {
       setShots((p) => ({ ...p, hero_portrait: { status: "generating", model: SHOT_CONFIGS.hero_portrait.model } }));
 
       const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors, { imperfection: form.imperfection, environment: form.environment, advancedContext });
-      const heroImageInput: string[] = refUrl ? [refUrl] : [];
+      const heroImageInput: string[] = refUrls.length > 0 ? [refUrls[0]] : [];
 
       const heroCreateRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
         method: "POST",
@@ -438,7 +456,7 @@ export default function CreateCharacterPage() {
         gradient_from: "emerald-900/40",
         gradient_to: "teal-900/40",
         is_preset: false,
-        reference_photo_url: refUrl || "",
+        reference_photo_url: refUrls[0] || "",
       } as any).select("id").single();
 
       if (!error && data) {
@@ -474,7 +492,7 @@ export default function CreateCharacterPage() {
 
     let done = 1;
     const finalResults: Record<string, { url: string; taskId: string; model: string }> = {};
-    const remainingImageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
+    const remainingImageInput: string[] = refUrls.length > 0 ? [...refUrls, heroUrl] : [heroUrl];
 
     const batches: ShotKey[][] = [];
     for (let i = 0; i < REMAINING_KEYS.length; i += 2) {
@@ -549,7 +567,7 @@ export default function CreateCharacterPage() {
     setGeneratingSingleShot(key);
     setShots((p) => ({ ...p, [key]: { status: "generating", model: SHOT_CONFIGS[key].model } }));
 
-    const imageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
+    const imageInput: string[] = refUrls.length > 0 ? [...refUrls, heroUrl] : [heroUrl];
     const shotPrompt = assemblePrompt(key, identityData.identityBlock, identityData.consistencyAnchors, {
       imperfection: form.imperfection, environment: form.environment, advancedContext: identityData.advancedContext,
     });
@@ -629,41 +647,44 @@ export default function CreateCharacterPage() {
             <p className="text-sm text-muted-foreground mb-4">Kustomisasi karakter AI untuk konten UGC kamu</p>
           </div>
 
-          {/* Reference Photo Upload */}
-          <FormGroup label="Referensi Wajah (Opsional)">
-            {refPreview ? (
-              <div className="relative inline-block">
-                <img src={refPreview} alt="Reference" className="h-[120px] w-[120px] rounded-xl object-cover border border-border" />
-                <button onClick={removeRef} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                  <X className="h-3 w-3" />
-                </button>
-                {refUploading && (
-                  <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+          {/* Reference Photo Upload (Multi) */}
+          <FormGroup label={`Referensi Wajah (${refPreviews.length}/5)`}>
+            <div className="grid grid-cols-3 gap-2">
+              {refPreviews.map((preview, i) => (
+                <div key={i} className="relative aspect-square">
+                  <img src={preview} alt={`Ref ${i + 1}`} className="w-full h-full rounded-xl object-cover border border-border" />
+                  <button onClick={() => removeRef(i)} className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              ))}
+              {refPreviews.length < 5 && (
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length) handleMultiRefUpload(e.dataTransfer.files); }}
+                  onClick={() => {
+                    const inp = document.createElement("input");
+                    inp.type = "file"; inp.accept = "image/jpeg,image/png,image/webp"; inp.multiple = true;
+                    inp.onchange = (ev) => { const files = (ev.target as HTMLInputElement).files; if (files?.length) handleMultiRefUpload(files); };
+                    inp.click();
+                  }}
+                  className="aspect-square border-2 border-dashed border-border rounded-xl bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-1 cursor-pointer"
+                >
+                  {refUploading ? (
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); const file = e.dataTransfer.files[0]; if (file) handleRefUpload(file); }}
-                onClick={() => {
-                  const inp = document.createElement("input");
-                  inp.type = "file"; inp.accept = "image/jpeg,image/png,image/webp";
-                  inp.onchange = (ev) => { const f = (ev.target as HTMLInputElement).files?.[0]; if (f) handleRefUpload(f); };
-                  inp.click();
-                }}
-                className="border-2 border-dashed border-border rounded-xl p-6 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
-              >
-                <Upload className="h-6 w-6 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Drag & drop foto wajah</p>
-                <p className="text-xs text-muted-foreground/60">JPEG, PNG, WebP — Maks 5MB</p>
-              </div>
-            )}
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-[10px] text-muted-foreground">Tambah</span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <p className="text-[11px] text-muted-foreground/60 mt-2 leading-relaxed">
-              Upload foto close-up wajah untuk hasil karakter yang lebih mirip.
+              Upload 1-5 foto dari berbagai sudut (depan, samping, 3/4) untuk hasil lebih akurat
             </p>
-            {refPreview && selectedVibe && (
+            {refPreviews.length > 0 && selectedVibe && (
               <p className="text-[11px] text-primary/70 mt-1">
                 Preset sebagai styling guide — wajah akan dicocokkan dengan foto referensi.
               </p>
@@ -837,11 +858,18 @@ export default function CreateCharacterPage() {
           <div className="bg-card border border-border rounded-xl p-5 mb-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-3">Preview Karakter</p>
 
-            {refPreview && (
+            {refPreviews.length > 0 && (
               <div className="flex items-center gap-3 mb-3">
-                <img src={refPreview} alt="Ref" className="h-16 w-16 rounded-full object-cover border border-border" />
+                <div className="flex -space-x-2">
+                  {refPreviews.slice(0, 3).map((p, i) => (
+                    <img key={i} src={p} alt={`Ref ${i+1}`} className="h-10 w-10 rounded-full object-cover border-2 border-card" />
+                  ))}
+                  {refPreviews.length > 3 && (
+                    <div className="h-10 w-10 rounded-full bg-secondary border-2 border-card flex items-center justify-center text-[10px] text-muted-foreground font-medium">+{refPreviews.length - 3}</div>
+                  )}
+                </div>
                 <div>
-                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">Foto Referensi</p>
+                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{refPreviews.length} Foto Referensi</p>
                   <p className="text-[11px] text-primary/70">Wajah akan dicocokkan</p>
                 </div>
               </div>
