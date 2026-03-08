@@ -255,7 +255,7 @@ const features = [
     num: "03",
     title: "Jadikan Video Siap Posting",
     desc: "Ubah gambar UGC jadi video 5-15 detik. Langsung bisa upload ke TikTok dan Instagram Reels.",
-    visual: <AnimatedVideoPreview />,
+    visual: <VideoPreview />,
     reversed: false,
   },
   {
