@@ -366,17 +366,21 @@ export default function CreateCharacterPage() {
 
       const geminiParts: any[] = [];
 
-      if (refUrl) {
+      if (refUrls.length > 0) {
         try {
-          const base64Ref = await imageUrlToBase64(refUrl);
+          for (const url of refUrls) {
+            const base64Ref = await imageUrlToBase64(url);
+            geminiParts.push({
+              inlineData: { mimeType: "image/jpeg", data: base64Ref },
+            });
+          }
           geminiParts.push({
-            inlineData: { mimeType: "image/jpeg", data: base64Ref },
-          });
-          geminiParts.push({
-            text: "REFERENCE PHOTO ANALYSIS: A reference photo of the target person is attached above. Analyze it carefully. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photo takes priority for facial features.",
+            text: refUrls.length > 1
+              ? `REFERENCE PHOTO ANALYSIS: ${refUrls.length} reference photos of the target person are attached above, taken from different angles. Cross-reference ALL photos to identify consistent facial features. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photos take priority for facial features.`
+              : "REFERENCE PHOTO ANALYSIS: A reference photo of the target person is attached above. Analyze it carefully. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photo takes priority for facial features.",
           });
         } catch (e) {
-          console.warn("Failed to convert reference photo to base64:", e);
+          console.warn("Failed to convert reference photo(s) to base64:", e);
         }
       }
 
