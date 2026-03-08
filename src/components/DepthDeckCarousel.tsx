@@ -1,21 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, useMotionValue } from "framer-motion";
 
-interface CardItem {
+interface ShowcaseCard {
   id: number;
-  gradient: string;
+  imageUrl: string;
   label: string;
   category: string;
+  model: string;
 }
 
-const cards: CardItem[] = [
-  { id: 1, gradient: "from-emerald-600 to-teal-400", label: "Hijab Casual", category: "Skincare UGC" },
-  { id: 2, gradient: "from-violet-600 to-purple-400", label: "Urban Trendy", category: "Fashion UGC" },
-  { id: 3, gradient: "from-amber-500 to-orange-400", label: "Ibu Muda", category: "Food Review" },
-  { id: 4, gradient: "from-cyan-500 to-sky-400", label: "Gen-Z Creator", category: "Tech Review" },
-  { id: 5, gradient: "from-rose-500 to-pink-400", label: "Beauty Enthusiast", category: "Beauty UGC" },
-  { id: 6, gradient: "from-indigo-500 to-blue-400", label: "Mahasiswa", category: "Lifestyle" },
-  { id: 7, gradient: "from-fuchsia-500 to-pink-500", label: "Office Worker", category: "Productivity" },
+const showcaseCards: ShowcaseCard[] = [
+  { id: 1, imageUrl: "/showcase/ugc-skincare-hijab.jpg", label: "Hijab Casual", category: "Skincare", model: "nano-banana-pro" },
+  { id: 2, imageUrl: "/showcase/ugc-fashion-urban.jpg", label: "Urban Trendy", category: "Fashion", model: "nano-banana-pro" },
+  { id: 3, imageUrl: "/showcase/ugc-food-ibumuda.jpg", label: "Ibu Muda", category: "Makanan", model: "nano-banana-pro" },
+  { id: 4, imageUrl: "/showcase/ugc-tech-genz.jpg", label: "Gen-Z Creator", category: "Elektronik", model: "nano-banana-pro" },
+  { id: 5, imageUrl: "/showcase/ugc-beauty-enthusiast.jpg", label: "Beauty Enthusiast", category: "Makeup", model: "nano-banana-pro" },
+  { id: 6, imageUrl: "/showcase/ugc-suplemen-gym.jpg", label: "Cowok Gym", category: "Suplemen", model: "nano-banana-pro" },
+  { id: 7, imageUrl: "/showcase/ugc-household-pkk.jpg", label: "Ibu PKK", category: "Rumah Tangga", model: "nano-banana-pro" },
 ];
 
 interface DepthDeckCarouselProps {
@@ -26,9 +27,10 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [imgErrors, setImgErrors] = useState<Record<number, boolean>>({});
   const dragX = useMotionValue(0);
 
-  const total = cards.length;
+  const total = showcaseCards.length;
 
   const next = useCallback(() => {
     setActiveIndex((prev) => (prev + 1) % total);
@@ -69,7 +71,12 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
       opacity: absD > 3 ? 0 : 1 - absD * 0.2,
       filter: isActive ? "blur(0px)" : `blur(${absD * 2}px)`,
       rotateY: diff * -4,
+      isActive,
     };
+  };
+
+  const handleImgError = (id: number) => {
+    setImgErrors((prev) => ({ ...prev, [id]: true }));
   };
 
   return (
@@ -79,13 +86,13 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {cards.map((card, index) => {
+      {showcaseCards.map((card, index) => {
         const style = getCardStyle(index);
 
         return (
           <motion.div
             key={card.id}
-            className="absolute cursor-grab active:cursor-grabbing"
+            className="absolute cursor-grab active:cursor-grabbing select-none"
             style={{
               width: 200,
               height: 280,
@@ -119,21 +126,61 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
             }}
           >
             <div
-              className={`relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${card.gradient}`}
+              className="relative h-full w-full overflow-hidden rounded-2xl border border-white/10"
               style={{
-                boxShadow:
-                  style.zIndex >= total - 1
-                    ? "0 20px 60px -15px rgba(0,0,0,0.6), 0 0 40px -10px rgba(0,0,0,0.3)"
-                    : "0 8px 30px -10px rgba(0,0,0,0.4)",
+                boxShadow: style.isActive
+                  ? "0 20px 60px -15px rgba(0,0,0,0.6), 0 0 40px -10px rgba(0,0,0,0.3)"
+                  : "0 8px 30px -10px rgba(0,0,0,0.4)",
               }}
             >
-              <div className="absolute inset-0 flex flex-col justify-end p-5">
-                <span className="mb-1.5 w-fit rounded-lg border border-white/20 bg-black/30 px-2.5 py-1 text-[10px] font-medium text-white/80 backdrop-blur-sm">
+              {/* Image or fallback */}
+              {!imgErrors[card.id] && card.imageUrl ? (
+                <img
+                  src={card.imageUrl}
+                  alt={`${card.label} - ${card.category} UGC`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  draggable={false}
+                  onError={() => handleImgError(card.id)}
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900/40 to-primary/10">
+                  <div className="text-center">
+                    <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary/60">
+                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                        <circle cx="9" cy="9" r="2" />
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                      </svg>
+                    </div>
+                    <span className="text-[10px] text-white/30">UGC Preview</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+              {/* AI Generated watermark */}
+              <div className="absolute right-3 top-3 z-10">
+                <span className="rounded bg-black/20 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/30 backdrop-blur-sm">
+                  AI Generated
+                </span>
+              </div>
+
+              {/* Content overlay */}
+              <div className="absolute bottom-0 left-0 right-0 z-10 p-4">
+                <span className="rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60 backdrop-blur-sm">
                   {card.category}
                 </span>
-                <span className="text-sm font-semibold text-white">
+                <p className="mt-1.5 font-satoshi text-sm font-bold text-white/95">
                   {card.label}
-                </span>
+                </p>
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <span className="font-mono text-[9px] text-white/40">
+                    {card.model}
+                  </span>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -142,7 +189,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
 
       {/* Navigation dots */}
       <div className="absolute -bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-2">
-        {cards.map((_, i) => (
+        {showcaseCards.map((_, i) => (
           <button
             key={i}
             onClick={() => setActiveIndex(i)}
