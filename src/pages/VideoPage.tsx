@@ -358,6 +358,124 @@ const VideoPage = () => {
     }
   }, [fromStoryboard, setupDone, sourceUrl, initializeFrames]);
 
+  /** Plan Storyboard — ONE Gemini call to detect product + plan all 5 frames */
+  const planStoryboard = async () => {
+    if (!geminiKey || keys.gemini.status !== "valid") {
+      toast({ title: "Gemini API key belum di-setup", variant: "destructive" });
+      return;
+    }
+    // Initialize empty frames first (for skeleton display)
+    initializeFrames();
+    setPlanningStoryboard(true);
+
+    try {
+      const template = getContentTemplate(selectedTemplate);
+      const beatDescriptions = beats.map((b, i) =>
+        `Frame ${i + 1} (${b.storyRole}): ${b.label} — ${b.description}`
+      ).join("\n");
+
+      const contentParts: any[] = [];
+
+      // Try to include source image as base64
+      const imgUrl = sourceUrl;
+      let imageIncluded = false;
+      if (imgUrl) {
+        const b64 = await imageUrlToBase64(imgUrl);
+        if (b64) {
+          contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
+          imageIncluded = true;
+        }
+      }
+
+      contentParts.push({
+        text: `${imageIncluded ? "Analyze this product image." : "No image available."} Then create a complete 5-frame video storyboard plan for a '${template?.label}' UGC TikTok video.
+
+Template: ${template?.label} — ${template?.desc}
+
+The 5 story beats are:
+${beatDescriptions}
+
+Return JSON only, no explanation:
+{
+  "product": {
+    "category": "skincare | fashion | food | electronics | health | home | other",
+    "sub_category": "specific type like kebaya, face serum, sneakers",
+    "description": "detailed visual description of the product"
+  },
+  "frames": [
+    {
+      "beat": "Hook",
+      "action": "Physical movement/action description in Indonesian casual style",
+      "dialog": "1-2 sentence TikTok dialog in casual Indonesian (bahasa gaul)",
+      "prompt": "Detailed 8-second video prompt in English describing the scene, movement, lighting, camera angle, and subject behavior. Must match the reference image person/outfit/environment exactly."
+    },
+    ... (all 5 frames)
+  ]
+}
+
+Rules:
+- Each action must be specific to THIS product (not generic)
+- Dialog must be natural casual Indonesian (bahasa gaul TikTok)
+- Prompts must describe continuous 8-second scenes with natural movement
+- Each frame's prompt should create visual continuity with the previous frame
+- The subject behaves like a TikTok content creator — spontaneous, casual, not posed
+- ${imageIncluded ? "Match the person, outfit, and environment from the reference image in all prompts" : "Describe a young Indonesian female content creator in a clean, well-lit room"}`
+      });
+
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{ parts: contentParts }],
+      });
+
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+
+      // Set product info from plan
+      if (parsed.product) {
+        setProductInfo({
+          category: (parsed.product.category || "other").toLowerCase(),
+          sub_category: parsed.product.sub_category || "",
+          product_description: parsed.product.description || parsed.product.product_description || "",
+        });
+      }
+
+      // Fill all frames from plan
+      if (parsed.frames && Array.isArray(parsed.frames)) {
+        setFrames((prev) =>
+          prev.map((frame, i) => {
+            const planned = parsed.frames[i];
+            if (!planned) return frame;
+            const hasDialog = !!planned.dialog?.trim();
+            return {
+              ...frame,
+              action: planned.action || frame.action,
+              dialogue: planned.dialog || frame.dialogue,
+              prompt: planned.prompt || frame.prompt,
+              model: hasDialog ? "veo_fast" as VideoModel : "grok" as VideoModel,
+              actionChips: getActionChips(
+                beats[i]?.storyRole || "Hook",
+                (parsed.product?.category || productCategory).toLowerCase()
+              ),
+            };
+          })
+        );
+      }
+
+      setStoryboardPlanned(true);
+      toast({ title: "Storyboard berhasil direncanakan! ✨", description: "Edit setiap frame sesuai kebutuhan." });
+    } catch (e: any) {
+      console.error("Plan storyboard failed:", e);
+      toast({
+        title: "Gagal merencanakan storyboard",
+        description: e?.message || "Coba lagi",
+        variant: "destructive",
+      });
+      // Frames are still initialized (with defaults), user can still edit manually
+      setStoryboardPlanned(true);
+    }
+    setPlanningStoryboard(false);
+  };
+
   const updateFrame = (idx: number, patch: Partial<FrameState>) => {
     setFrames((prev) => prev.map((f, i) => (i === idx ? { ...f, ...patch } : f)));
   };
