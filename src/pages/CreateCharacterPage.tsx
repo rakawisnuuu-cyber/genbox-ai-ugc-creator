@@ -298,31 +298,45 @@ export default function CreateCharacterPage() {
     }));
   };
 
-  // ── Reference photo upload ──
+  // ── Reference photo upload (multi) ──
   const handleRefUpload = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File terlalu besar", description: "Maksimal 5MB", variant: "destructive" });
+      toast({ title: "File terlalu besar", description: "Maksimal 5MB per foto", variant: "destructive" });
       return;
     }
-    setRefPreview(URL.createObjectURL(file));
+    if (refPreviews.length >= 5) {
+      toast({ title: "Maksimal 5 foto", variant: "destructive" });
+      return;
+    }
+    const preview = URL.createObjectURL(file);
+    setRefPreviews((p) => [...p, preview]);
     setRefUploading(true);
 
     const ext = file.name.split(".").pop();
-    const path = `${user!.id}/references/${Date.now()}.${ext}`;
+    const path = `${user!.id}/references/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
     const { error } = await supabase.storage.from("character-packs").upload(path, file);
     if (error) {
       toast({ title: "Upload gagal", description: error.message, variant: "destructive" });
+      setRefPreviews((p) => p.filter((u) => u !== preview));
       setRefUploading(false);
       return;
     }
     const { data: urlData } = supabase.storage.from("character-packs").getPublicUrl(path);
-    setRefUrl(urlData.publicUrl);
+    setRefUrls((p) => [...p, urlData.publicUrl]);
     setRefUploading(false);
   };
 
-  const removeRef = () => {
-    setRefPreview(null);
-    setRefUrl(null);
+  const handleMultiRefUpload = async (files: FileList) => {
+    const remaining = 5 - refPreviews.length;
+    const toUpload = Array.from(files).slice(0, remaining);
+    for (const file of toUpload) {
+      await handleRefUpload(file);
+    }
+  };
+
+  const removeRef = (index: number) => {
+    setRefPreviews((p) => p.filter((_, i) => i !== index));
+    setRefUrls((p) => p.filter((_, i) => i !== index));
   };
 
   // ── GENERATION FLOW — HERO ONLY ──
