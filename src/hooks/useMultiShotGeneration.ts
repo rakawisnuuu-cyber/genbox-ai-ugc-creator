@@ -30,8 +30,8 @@ interface ShotProgress {
 
 const COST_PER_SHOT: Record<string, number> = {
   grok: 1600,
-  veo_fast: 4800,
-  veo_quality: 19200,
+  veo_fast: 6400,
+  veo_quality: 32000,
 };
 
 export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {

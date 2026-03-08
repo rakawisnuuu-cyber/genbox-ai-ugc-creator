@@ -9,14 +9,14 @@ import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import GalleryContent from "@/components/GalleryContent";
 
 const MODEL_COST: Record<string, number> = {
-  nano: 320, seedream: 280, "nano-banana-2-pro": 640, grok: 1600, veo3_fast: 4800, veo3: 19200,
+  "nano-banana-pro": 1440, nano: 960, seedream: 440, grok: 1600, veo3_fast: 6400, veo3: 32000,
 };
 
 function estimateCost(model: string): number {
   for (const [key, cost] of Object.entries(MODEL_COST)) {
     if (model.includes(key)) return cost;
   }
-  return 320;
+  return 960;
 }
 
 const MONTH_NAMES_ID = [
