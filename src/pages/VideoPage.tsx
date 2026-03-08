@@ -1365,10 +1365,14 @@ Content template: ${template?.label}`,
                     <label className="text-[10px] text-muted-foreground font-medium">Dialog</label>
                     <button
                       onClick={() => generateFrameScript(idx)}
-                      disabled={frame.dialogue === "..."}
-                      className="text-[9px] text-primary hover:underline flex items-center gap-1"
+                      disabled={frame.scriptGenerating || frame.dialogue === "..."}
+                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
-                      <Sparkles className="h-2.5 w-2.5" /> Generate Script AI
+                      {frame.scriptGenerating ? (
+                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...</>
+                      ) : (
+                        <><Sparkles className="h-2.5 w-2.5" /> Generate Script AI</>
+                      )}
                     </button>
                   </div>
                   <Textarea
