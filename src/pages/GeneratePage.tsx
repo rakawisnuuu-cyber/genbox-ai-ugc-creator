@@ -38,6 +38,7 @@ import {
   XCircle,
   Play,
   ArrowRight,
+  Camera,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -170,6 +171,12 @@ const GeneratePage = () => {
   const [selectedChar, setSelectedChar] = useState<CharacterData | null>(null);
   const [customChars, setCustomChars] = useState<CharacterData[]>([]);
 
+  // Own photo state
+  const [ownPhotoPreview, setOwnPhotoPreview] = useState<string | null>(null);
+  const [ownPhotoUrl, setOwnPhotoUrl] = useState<string | null>(null);
+  const [ownPhotoUploading, setOwnPhotoUploading] = useState(false);
+  const [ownPhotoAnalyzing, setOwnPhotoAnalyzing] = useState(false);
+
   const [background, setBackground] = useState("");
   const [customBg, setCustomBg] = useState("");
   const [pose, setPose] = useState("");
@@ -284,9 +291,113 @@ const GeneratePage = () => {
 
   // Handle character select change
   const onCharSelect = (id: string) => {
+    // Clear own photo when selecting from dropdown
+    setOwnPhotoPreview(null);
+    setOwnPhotoUrl(null);
+    setOwnPhotoUploading(false);
+    setOwnPhotoAnalyzing(false);
     setSelectedCharId(id);
     const found = [...PRESETS, ...customChars].find((c) => c.id === id) || null;
     setSelectedChar(found);
+  };
+
+  // Remove own photo
+  const removeOwnPhoto = () => {
+    setOwnPhotoPreview(null);
+    setOwnPhotoUrl(null);
+    setOwnPhotoUploading(false);
+    setOwnPhotoAnalyzing(false);
+    if (selectedChar?.id === "__own_photo__") {
+      setSelectedCharId("");
+      setSelectedChar(null);
+    }
+  };
+
+  // Handle own photo upload
+  const handleOwnPhotoSelect = async (file: File) => {
+    if (!user) return;
+    if (file.size > 10 * 1024 * 1024) {
+      toast({ title: "File terlalu besar", description: "Maksimal 10MB", variant: "destructive" });
+      return;
+    }
+    setOwnPhotoPreview(URL.createObjectURL(file));
+    setOwnPhotoUploading(true);
+    setOwnPhotoAnalyzing(false);
+
+    // Clear dropdown selection
+    setSelectedCharId("__own_photo__");
+
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/own-photo/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("character-packs").upload(path, file);
+    if (error) {
+      toast({ title: "Upload gagal", description: error.message, variant: "destructive" });
+      setOwnPhotoUploading(false);
+      removeOwnPhoto();
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("character-packs").getPublicUrl(path);
+    const uploadedUrl = urlData.publicUrl;
+    setOwnPhotoUrl(uploadedUrl);
+    setOwnPhotoUploading(false);
+
+    // Analyze with Gemini Vision
+    setOwnPhotoAnalyzing(true);
+    let charData: CharacterData;
+    try {
+      if (!geminiKey || keys.gemini.status !== "valid") throw new Error("No Gemini key");
+      const base64 = await fileToBase64(file);
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: file.type || "image/jpeg", data: base64 } },
+            { text: `Analyze this person's photo for a UGC character profile. Return JSON only:
+{
+  "name": "Short descriptive name based on their look, e.g. 'Hijab Modern', 'Cowok Casual', 'Ibu Muda' (2-3 words max, Indonesian)",
+  "gender": "Pria or Wanita",
+  "age_range": "estimated age range like 20-25",
+  "style": "one word style descriptor like Modern, Casual, Sporty, Elegant",
+  "identity_prompt": "Detailed description of this EXACT person: ethnicity, skin tone, face shape, eye shape, nose, lips, hair style/color/length, any distinctive features. Be very specific so AI can recreate this exact person."
+}` },
+          ],
+        }],
+        generationConfig: { responseMimeType: "application/json" },
+      });
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+      charData = {
+        id: "__own_photo__",
+        name: parsed.name || "Foto Saya",
+        type: parsed.gender || "Pria/Wanita",
+        age_range: parsed.age_range || "20-30",
+        style: parsed.style || "Natural",
+        description: parsed.identity_prompt || "Karakter dari foto upload",
+        gradient_from: "from-violet-900/40",
+        gradient_to: "to-purple-900/40",
+        is_preset: false,
+        hero_image_url: uploadedUrl,
+        reference_photo_url: uploadedUrl,
+        identity_prompt: parsed.identity_prompt || undefined,
+      };
+    } catch (err) {
+      console.warn("Gemini analysis failed, using fallback:", err);
+      charData = {
+        id: "__own_photo__",
+        name: "Foto Saya",
+        type: "Pria/Wanita",
+        age_range: "20-30",
+        style: "Natural",
+        description: "Karakter dari foto upload pengguna",
+        gradient_from: "from-violet-900/40",
+        gradient_to: "to-purple-900/40",
+        is_preset: false,
+        hero_image_url: uploadedUrl,
+        reference_photo_url: uploadedUrl,
+      };
+    }
+    setOwnPhotoAnalyzing(false);
+    setSelectedChar(charData);
   };
 
   /* ── Product DNA Detection ───────────────────────────────────── */
@@ -371,6 +482,27 @@ const GeneratePage = () => {
 
       const parts: any[] = [];
 
+      // Send character reference image(s) to Gemini FIRST
+      const hasCharImage = selectedChar.hero_image_url || selectedChar.reference_photo_url;
+      if (selectedChar.hero_image_url) {
+        try {
+          const charBase64 = await imageUrlToBase64(selectedChar.hero_image_url);
+          parts.push({ inlineData: { mimeType: "image/jpeg", data: charBase64 } });
+          parts.push({ text: "This is the CHARACTER reference image. Describe this EXACT person's appearance in your prompt — their face, skin tone, hair, body type, ethnicity, and any distinctive features. The final prompt MUST recreate this exact person." });
+        } catch (e) {
+          console.warn("Failed to convert character hero image to base64:", e);
+        }
+      }
+      if (selectedChar.reference_photo_url && selectedChar.reference_photo_url !== selectedChar.hero_image_url) {
+        try {
+          const refBase64 = await imageUrlToBase64(selectedChar.reference_photo_url);
+          parts.push({ inlineData: { mimeType: "image/jpeg", data: refBase64 } });
+          parts.push({ text: "This is an additional CHARACTER reference photo. Use it together with the previous image to accurately describe this person." });
+        } catch (e) {
+          console.warn("Failed to convert character reference photo to base64:", e);
+        }
+      }
+
       if (productUrl) {
         try {
           const base64 = await imageUrlToBase64(productUrl);
@@ -383,6 +515,10 @@ const GeneratePage = () => {
         }
       }
 
+      const charImageInstruction = hasCharImage
+        ? `\n\nCRITICAL — CHARACTER REFERENCE IMAGE ATTACHED: A reference image of the character has been provided above. You MUST describe this EXACT person's appearance in detail (ethnicity, skin tone, face shape, hair style/color/length, body type, any distinctive features). The "character_appearance" field must capture this person precisely, and the "final_prompt" MUST BEGIN with the exact character appearance description so the AI image generator recreates this specific person.`
+        : "";
+
       parts.push({
         text: `You are an expert UGC (user-generated content) prompt builder for AI image generation. Create a structured JSON prompt for a realistic product UGC photo.
 
@@ -393,12 +529,14 @@ Character Identity: ${characterIdentity}
 Background: ${bgRich || "not specified"}
 Pose: ${poseRich || "not specified"}
 Mood: ${moodRich || "not specified"}
+${charImageInstruction}
 
 CATEGORY-SPECIFIC DIRECTION:
 ${categoryInstruction}
 
 Respond ONLY with valid JSON:
 {
+  "character_appearance": "Extremely detailed description of the character's EXACT physical appearance — ethnicity, skin tone, face shape, eye shape/color, nose, lips, hair style/color/length, body type, any distinctive features. If a character reference image was provided, describe THAT exact person.",
   "product_description": "Exact description of the product from the image — shape, color, packaging, label text if visible, size",
   "scene_description": "Full scene description combining character + product + setting — must feel like UGC, not editorial",
   "character_action": "Specific action with the product matching the category direction above — natural, not posed",
@@ -407,7 +545,7 @@ Respond ONLY with valid JSON:
   "background": "Background/environment details — must feel like a REAL lived-in space, not a 3D render",
   "environment_details": "Specific lived-in details and imperfections in the environment that make it feel real — e.g. phone charger on nightstand, half-drunk glass of water, slightly wrinkled fabric, visible power outlet, a bag on a chair",
   "camera": "Smartphone camera angle — selfie, tripod, or friend-holding-phone. Natural shallow depth of field",
-  "final_prompt": "Complete combined prompt ready for image generation. MUST include: exact product description, exact character appearance, scene details, lighting, camera, AND environment realism details. The photo must look like authentic UGC content shot on a phone by a content creator, NOT a professional photoshoot or stock photo."
+  "final_prompt": "Complete combined prompt ready for image generation. MUST BEGIN with the exact character appearance description, then include: exact product description, scene details, lighting, camera, AND environment realism details. The photo must look like authentic UGC content shot on a phone by a content creator, NOT a professional photoshoot or stock photo."
 }
 
 ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D render. Include 2-3 small everyday objects or imperfections that make it feel lived-in (phone charger, half-drunk glass, slightly wrinkled fabric, visible power outlet). Use natural depth of field — background slightly blurred. No perfectly symmetrical rooms.`,
@@ -497,7 +635,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
     try {
       const imageInputs: string[] = [];
       if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
-      if (selectedChar && !selectedChar.id.startsWith("p") && selectedChar.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
+      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
       if (productUrl) imageInputs.push(productUrl);
 
       const imageUrl = await generateKieImage(
@@ -846,7 +984,73 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
         {/* Pilih Karakter */}
         <div className="animate-fade-up" style={{ animationDelay: "150ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Pilih Karakter</label>
-          <Select value={selectedCharId} onValueChange={onCharSelect}>
+
+          {/* Pakai Foto Sendiri */}
+          {!ownPhotoPreview ? (
+            <button
+              type="button"
+              onClick={() => {
+                const inp = document.createElement("input");
+                inp.type = "file";
+                inp.accept = "image/jpeg,image/png,image/webp";
+                inp.onchange = (e) => {
+                  const f = (e.target as HTMLInputElement).files?.[0];
+                  if (f) handleOwnPhotoSelect(f);
+                };
+                inp.click();
+              }}
+              className="w-full border-2 border-dashed border-border rounded-xl p-4 bg-background hover:border-primary/30 transition-colors flex items-center gap-3 cursor-pointer mb-3"
+            >
+              <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                <Camera className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-medium text-foreground">Pakai Foto Sendiri</p>
+                <p className="text-[11px] text-muted-foreground">Upload foto kamu — AI akan analisis & cocokkan</p>
+              </div>
+            </button>
+          ) : (
+            <div className="border border-border rounded-xl p-3 bg-card mb-3">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <img src={ownPhotoPreview} alt="Foto sendiri" className="h-12 w-12 rounded-full object-cover shrink-0" />
+                  {(ownPhotoUploading || ownPhotoAnalyzing) && (
+                    <div className="absolute inset-0 rounded-full bg-background/60 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {ownPhotoUploading ? (
+                    <p className="text-xs text-muted-foreground">Mengupload foto...</p>
+                  ) : ownPhotoAnalyzing ? (
+                    <p className="text-xs text-muted-foreground">AI sedang menganalisis...</p>
+                  ) : selectedChar?.id === "__own_photo__" ? (
+                    <>
+                      <p className="text-sm font-semibold text-foreground">{selectedChar.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[selectedChar.type, selectedChar.age_range, selectedChar.style].filter(Boolean).join(" • ")}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Foto terupload</p>
+                  )}
+                </div>
+                <button onClick={removeOwnPhoto} className="p-1 rounded-md hover:bg-secondary transition-colors">
+                  <X className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[11px] text-muted-foreground">atau pilih karakter</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          <Select value={selectedCharId === "__own_photo__" ? "" : selectedCharId} onValueChange={onCharSelect}>
             <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border">
               <SelectValue placeholder="Pilih karakter..." />
             </SelectTrigger>
@@ -856,7 +1060,11 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                 {PRESETS.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     <span className="flex items-center gap-2">
-                      <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                      {c.hero_image_url ? (
+                        <img src={c.hero_image_url} alt={c.name} className="h-5 w-5 rounded-full object-cover shrink-0" />
+                      ) : (
+                        <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
                       {c.name}
                     </span>
                   </SelectItem>
