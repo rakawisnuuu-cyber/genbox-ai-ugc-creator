@@ -188,8 +188,8 @@ const GalleryPage = () => {
               <Film className="h-12 w-12 text-muted-foreground/30 mb-4" />
               <p className="font-semibold text-foreground mb-1">Belum ada video</p>
               <p className="text-sm text-muted-foreground mb-6">Buat video pertamamu di halaman Buat Video</p>
-              <Button onClick={() => navigate("/video")} className="font-bold uppercase tracking-wider">
-                → Buat Video
+              <Button onClick={() => navigate("/video")} className="font-bold uppercase tracking-wider gap-2">
+                Buat Video <ArrowRight className="h-4 w-4" />
               </Button>
             </>
           ) : (
