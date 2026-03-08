@@ -171,6 +171,12 @@ const GeneratePage = () => {
   const [selectedChar, setSelectedChar] = useState<CharacterData | null>(null);
   const [customChars, setCustomChars] = useState<CharacterData[]>([]);
 
+  // Own photo state
+  const [ownPhotoPreview, setOwnPhotoPreview] = useState<string | null>(null);
+  const [ownPhotoUrl, setOwnPhotoUrl] = useState<string | null>(null);
+  const [ownPhotoUploading, setOwnPhotoUploading] = useState(false);
+  const [ownPhotoAnalyzing, setOwnPhotoAnalyzing] = useState(false);
+
   const [background, setBackground] = useState("");
   const [customBg, setCustomBg] = useState("");
   const [pose, setPose] = useState("");
