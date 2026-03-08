@@ -456,7 +456,7 @@ export default function CreateCharacterPage() {
         gradient_from: "emerald-900/40",
         gradient_to: "teal-900/40",
         is_preset: false,
-        reference_photo_url: refUrl || "",
+        reference_photo_url: refUrls[0] || "",
       } as any).select("id").single();
 
       if (!error && data) {
