@@ -19,7 +19,7 @@ function useCountUp(target: number, visible: boolean, duration = 800) {
 }
 
 const StepUploadVisual = () => (
-  <div className="mx-auto max-w-[240px] rounded-2xl border border-border/60 bg-card/80 p-6">
+  <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-5">
     <div className="flex h-28 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/60">
       <div className="animate-float">
         <Upload size={24} className="text-muted-foreground" />
@@ -46,7 +46,7 @@ const StepCharacterVisual = () => {
     "from-fuchsia-500 to-pink-400",
   ];
   return (
-    <div className="mx-auto max-w-[240px] rounded-2xl border border-border/60 bg-card/80 p-6">
+    <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-5">
       <div className="grid grid-cols-3 gap-3">
         {gradients.map((g, i) => (
           <div
@@ -60,7 +60,7 @@ const StepCharacterVisual = () => {
 };
 
 const StepGenerateVisual = () => (
-  <div className="mx-auto max-w-[240px] rounded-2xl border border-border/60 bg-card/80 p-6">
+  <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-5">
     <div className="flex h-28 flex-col items-center justify-center rounded-lg bg-gradient-to-br from-primary/20 to-primary/5">
       <Sparkles size={28} className="text-primary animate-pulse-subtle" />
     </div>
@@ -90,7 +90,6 @@ const CaraKerjaSection = () => {
       id="cara-kerja"
       ref={ref}
       className="relative z-10 px-4 py-16 sm:py-24"
-      style={{ background: "linear-gradient(180deg, hsl(220 10% 4%) 0%, hsl(220 10% 5%) 100%)" }}
     >
       <div className="mx-auto max-w-5xl">
         {/* Badge */}
@@ -124,58 +123,58 @@ const CaraKerjaSection = () => {
         </p>
 
         {/* Steps */}
-        <div className="relative mt-12">
-          {/* Desktop connecting lines — marching ants */}
-          <div className="pointer-events-none absolute left-0 right-0 top-[140px] hidden md:block">
-            <div className="mx-auto flex max-w-3xl justify-between px-[120px]">
-              {[0, 1].map((i) => (
-                <div
-                  key={i}
-                  className={`h-[2px] flex-1 ${isVisible ? "animate-fade-slide-right" : "opacity-0"}`}
-                  style={{
-                    animationDelay: `${0.6 + i * 0.2}s`,
-                    backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--primary)) 0px, hsl(var(--primary)) 4px, transparent 4px, transparent 12px)",
-                    backgroundSize: "20px 2px",
-                    animation: isVisible
-                      ? `fade-slide-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${0.6 + i * 0.2}s forwards, dash-march 1.5s linear ${0.6 + i * 0.2 + 0.6}s infinite`
-                      : "none",
-                    opacity: isVisible ? undefined : 0,
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-10 md:grid-cols-3 md:gap-8">
+        <div className="relative mt-14">
+          <div className="grid gap-8 md:grid-cols-3 md:gap-10 lg:gap-14">
             {steps.map((step, i) => (
               <div
                 key={step.num}
                 className={`relative flex flex-col items-center text-center ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-                style={{
-                  animationDelay: `${0.3 + i * 0.15}s`,
-                  animation: isVisible
-                    ? `fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.15}s forwards, step-highlight 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.3}s forwards`
-                    : "none",
-                  opacity: 0,
-                  borderRadius: "1rem",
-                }}
+                style={{ animationDelay: `${0.3 + i * 0.15}s` }}
               >
-                {/* Mobile vertical line */}
-                {i < steps.length - 1 && (
-                  <div className="absolute -bottom-6 left-1/2 h-6 -translate-x-1/2 border-l-2 border-dashed border-border/60 md:hidden" />
-                )}
-                <span className="font-mono text-[48px] font-bold leading-none text-primary">
+                {/* Step number */}
+                <span className="font-mono text-[36px] font-bold leading-none text-primary">
                   {String(countNums[i]).padStart(2, "0")}
                 </span>
-                <div className="mt-4">{step.visual}</div>
-                <h3 className="mt-4 font-satoshi text-lg font-bold text-foreground">
+
+                {/* Visual — full width */}
+                <div className="mt-5 w-full">{step.visual}</div>
+
+                {/* Text */}
+                <h3 className="mt-5 font-satoshi text-lg font-bold text-foreground">
                   {step.title}
                 </h3>
-                <p className="mt-2 max-w-[260px] font-body text-sm text-muted-foreground">
+                <p className="mt-2 max-w-[280px] font-body text-sm text-muted-foreground">
                   {step.desc}
                 </p>
+
+                {/* Arrow connector (mobile only) */}
+                {i < steps.length - 1 && (
+                  <div className="mt-6 md:hidden">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary/30 mx-auto">
+                      <path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>
+                    </svg>
+                  </div>
+                )}
               </div>
             ))}
+          </div>
+
+          {/* Desktop connecting arrows */}
+          <div className="pointer-events-none absolute top-[90px] left-0 right-0 hidden md:flex justify-center">
+            <div className="flex w-full max-w-3xl justify-around px-[15%]">
+              {[0, 1].map((i) => (
+                <div
+                  key={i}
+                  className={`text-primary/25 ${isVisible ? "animate-fade-slide-right" : "opacity-0"}`}
+                  style={{ animationDelay: `${0.6 + i * 0.2}s` }}
+                >
+                  <svg width="32" height="16" viewBox="0 0 32 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M0 8h28"/>
+                    <path d="M24 3l5 5-5 5"/>
+                  </svg>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
