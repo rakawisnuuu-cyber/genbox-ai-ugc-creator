@@ -45,7 +45,7 @@ function AnimatedStat({ value }: { value: string | number }) {
   const isNum = typeof value === "number";
   const animated = useCountUp(isNum ? value : 0, 800, isNum);
   return (
-    <p className="font-mono text-3xl font-bold text-primary">
+    <p className="font-mono text-2xl font-bold text-primary">
       {isNum ? animated : value}
     </p>
   );
@@ -88,7 +88,6 @@ const DashboardHome = () => {
         setTotalCost(modelsRes.data.reduce((sum, r) => sum + estimateCost(r.model), 0));
       }
 
-      // Build daily chart data
       const counts: Record<string, number> = {};
       if (dailyRes.data) {
         for (const r of dailyRes.data) {
@@ -115,25 +114,9 @@ const DashboardHome = () => {
   const currentMonthLabel = `${MONTH_NAMES_ID[now.getMonth()]} ${now.getFullYear()}`;
 
   const stats = [
-    {
-      label: "Total Generasi",
-      value: totalGen,
-      sub: "gambar & video",
-      icon: ImagePlus,
-    },
-    {
-      label: "Bulan Ini",
-      value: monthGen,
-      sub: currentMonthLabel,
-      icon: monthDiff >= 0 ? TrendingUp : TrendingDown,
-      diff: monthDiff,
-    },
-    {
-      label: "Kredit Terpakai",
-      value: `Rp ${totalCost.toLocaleString("id-ID")}`,
-      sub: "estimasi dari API key kamu",
-      icon: Coins,
-    },
+    { label: "Total Generasi", value: totalGen, sub: "gambar & video", icon: ImagePlus },
+    { label: "Bulan Ini", value: monthGen, sub: currentMonthLabel, icon: monthDiff >= 0 ? TrendingUp : TrendingDown, diff: monthDiff },
+    { label: "Kredit Terpakai", value: `Rp ${totalCost.toLocaleString("id-ID")}`, sub: "estimasi dari API key kamu", icon: Coins },
   ];
 
   const actions = [
@@ -144,37 +127,39 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-8">
-      {/* Welcome header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Welcome */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
         <div>
           <h1 className="font-satoshi text-2xl font-bold text-foreground">
-            Selamat datang, {firstName}!
+            Selamat datang, {firstName}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{formatDateId(now)}</p>
+          <p className="mt-0.5 text-sm text-muted-foreground">{formatDateId(now)}</p>
         </div>
         <Link
           to="/generate"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <ImagePlus size={16} /> Buat Gambar
+          <ImagePlus size={14} /> Buat Gambar
         </Link>
       </div>
 
-      {/* Stats row */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Stats */}
+      <div className="grid gap-3 sm:grid-cols-3">
         {stats.map((s, i) => (
-          <div key={s.label} className="relative rounded-xl border border-border bg-card p-5 animate-fade-up" style={{ animationDelay: `${i * 80}ms` }}>
-            <s.icon className="absolute right-4 top-4 h-5 w-5 text-muted-foreground/40" />
+          <div key={s.label} className="rounded-xl border border-border bg-card p-5 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.label}</p>
+              <s.icon className="h-4 w-4 text-muted-foreground/30" />
+            </div>
             {loading ? (
-              <Skeleton className="h-9 w-24" />
+              <Skeleton className="h-8 w-20" />
             ) : (
               <AnimatedStat value={s.value} />
             )}
-            <p className="mt-1 text-sm text-muted-foreground">{s.label}</p>
-            <p className="text-xs text-muted-foreground/60">
+            <p className="mt-1.5 text-[11px] text-muted-foreground/60">
               {s.sub}
               {s.diff !== undefined && !loading && (
-                <span className={s.diff >= 0 ? "ml-2 text-green-500" : "ml-2 text-red-500"}>
+                <span className={s.diff >= 0 ? "ml-2 text-primary" : "ml-2 text-destructive"}>
                   {s.diff >= 0 ? `+${s.diff}` : s.diff}
                 </span>
               )}
@@ -183,24 +168,24 @@ const DashboardHome = () => {
         ))}
       </div>
 
-      {/* Activity chart */}
-      <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          AKTIVITAS
+      {/* Activity */}
+      <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
+          Aktivitas 30 Hari
         </p>
         <div className="rounded-xl border border-border bg-card p-5">
           {loading ? (
-            <Skeleton className="h-[200px] w-full" />
+            <Skeleton className="h-[180px] w-full" />
           ) : dailyData.every((d) => d.count === 0) ? (
-            <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+            <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground/50">
               Belum ada aktivitas. Mulai generate untuk melihat statistik.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={dailyData}>
                 <defs>
                   <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.15} />
                     <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
@@ -225,7 +210,7 @@ const DashboardHome = () => {
                   type="monotone"
                   dataKey="count"
                   stroke="hsl(var(--primary))"
-                  strokeWidth={2}
+                  strokeWidth={1.5}
                   fill="url(#areaFill)"
                 />
               </AreaChart>
@@ -234,25 +219,25 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div>
-        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          MULAI
+      {/* Quick Actions */}
+      <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
+          Mulai
         </p>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           {actions.map((a) => (
             <Link
               key={a.title}
               to={a.to}
-              className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/30"
+              className="group rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:border-primary/20"
             >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <a.icon size={20} className="text-primary" />
+              <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                <a.icon size={18} className="text-primary" />
               </div>
-              <h3 className="font-satoshi text-base font-bold text-foreground">{a.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{a.desc}</p>
-              <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                Mulai <ArrowRight size={12} />
+              <h3 className="font-satoshi text-sm font-bold text-foreground">{a.title}</h3>
+              <p className="mt-1 text-[12px] text-muted-foreground/70">{a.desc}</p>
+              <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-primary opacity-0 transition-opacity group-hover:opacity-100">
+                Mulai <ArrowRight size={11} />
               </span>
             </Link>
           ))}
