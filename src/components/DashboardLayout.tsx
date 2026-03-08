@@ -202,9 +202,19 @@ const DashboardLayout = () => {
 
       {/* Main Content */}
       <main className="mt-12 min-h-screen lg:ml-[232px] lg:mt-0">
-        <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
-          <Outlet />
+        {/* Keep-alive pages: always mounted, toggled via display */}
+        <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
+          <GeneratePage />
         </div>
+        <div style={{ display: pathname === "/video" ? "block" : "none" }}>
+          <VideoPage />
+        </div>
+        {/* Other pages via Outlet */}
+        {!isKeepAlivePage && (
+          <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
+            <Outlet />
+          </div>
+        )}
       </main>
     </div>
   );
