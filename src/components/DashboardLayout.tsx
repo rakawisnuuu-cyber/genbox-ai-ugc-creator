@@ -7,7 +7,6 @@ import {
   Film,
   Wand2,
   Workflow,
-  GalleryHorizontalEnd,
   Settings,
   Menu,
   X,
