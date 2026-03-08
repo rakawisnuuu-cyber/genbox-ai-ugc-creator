@@ -1,4 +1,5 @@
-import { UserCircle, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { UserCircle, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 
 export interface CharacterData {
   id: string;
@@ -25,7 +26,9 @@ interface CharacterCardProps {
 }
 
 const CharacterCard = ({ character, onDetail, onUse, onDelete, showDelete }: CharacterCardProps) => {
+  const [expanded, setExpanded] = useState(false);
   const tags = [character.type, character.age_range, character.style].filter(Boolean).join(" · ");
+  const isLong = character.description.length > 60;
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/80 card-hover">
@@ -73,7 +76,17 @@ const CharacterCard = ({ character, onDetail, onUse, onDelete, showDelete }: Cha
       <div className="p-3.5 flex flex-col gap-1.5 flex-1">
         <h3 className="text-sm font-semibold text-foreground">{character.name}</h3>
         <p className="text-[11px] text-muted-foreground">{tags}</p>
-        <p className="text-[12px] text-muted-foreground/70 line-clamp-2 flex-1">{character.description}</p>
+        <p className={`text-[12px] text-muted-foreground/70 flex-1 ${expanded ? "" : "line-clamp-2"}`}>
+          {character.description}
+        </p>
+        {isLong && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+            className="inline-flex items-center gap-0.5 text-[11px] text-primary hover:text-primary/80 transition-colors self-start"
+          >
+            {expanded ? <><ChevronUp className="w-3 h-3" /> Sembunyikan</> : <><ChevronDown className="w-3 h-3" /> Selengkapnya</>}
+          </button>
+        )}
         <div className="flex gap-2 mt-2">
           <button
             onClick={() => onUse(character)}
