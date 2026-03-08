@@ -44,6 +44,8 @@ const App = () => (
               }
             >
               <Route path="/dashboard" element={<DashboardHome />} />
+              <Route path="/generate" element={null} />
+              <Route path="/video" element={null} />
               {/* GeneratePage rendered permanently in DashboardLayout */}
               <Route path="/characters" element={<CharactersPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
