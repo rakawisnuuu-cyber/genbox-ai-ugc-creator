@@ -47,20 +47,53 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 const handleDownload = async (url: string, filename?: string) => {
+  const name = filename || url.split("/").pop()?.split("?")[0] || "download";
+  
+  // Try fetch + blob first (works for same-origin & CORS-enabled URLs)
   try {
-    const res = await fetch(url);
-    const blob = await res.blob();
+    const res = await fetch(url, { mode: "cors" });
+    if (res.ok) {
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      return;
+    }
+  } catch {
+    // CORS blocked — fall through to proxy
+  }
+
+  // Fallback: use a CORS proxy via Supabase edge function or direct blob via XHR
+  try {
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", url, true);
+      xhr.responseType = "blob";
+      xhr.onload = () => xhr.status === 200 ? resolve(xhr.response) : reject();
+      xhr.onerror = () => reject();
+      xhr.send();
+    });
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = blobUrl;
-    a.download = filename || url.split("/").pop() || "download";
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(blobUrl);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    return;
   } catch {
-    window.open(url, "_blank");
+    // XHR also failed
   }
+
+  // Last resort: open in new tab and let user right-click save
+  toast.info("Tidak bisa download otomatis. Klik kanan gambar → 'Save image as...'");
+  window.open(url, "_blank");
 };
 
 const GalleryPage = () => {
