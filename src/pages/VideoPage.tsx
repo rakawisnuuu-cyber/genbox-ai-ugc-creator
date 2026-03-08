@@ -39,6 +39,9 @@ import {
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
+  Lightbulb,
+  MessageSquare,
+  Clapperboard,
 } from "lucide-react";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
