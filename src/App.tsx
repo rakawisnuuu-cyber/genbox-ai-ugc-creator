@@ -50,7 +50,7 @@ const App = () => (
               <Route path="/prompt" element={<PromptPage />} />
               <Route path="/blueprint" element={<BlueprintPage />} />
               <Route path="/characters/create" element={<CreateCharacterPage />} />
-              <Route path="/video" element={<VideoPage />} />
+              {/* VideoPage rendered permanently in DashboardLayout */}
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />

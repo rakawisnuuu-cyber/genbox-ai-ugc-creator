@@ -66,7 +66,9 @@ const DashboardLayout = () => {
   const displayName = user?.email?.split("@")[0] || "User";
 
   const isActive = (path: string) => location.pathname === path;
-  const isFullWidthPage = location.pathname === "/generate" || location.pathname === "/video";
+  const pathname = location.pathname;
+  const isKeepAlivePage = pathname === "/generate" || pathname === "/video";
+  const isFullWidthPage = pathname === "/generate" || pathname === "/video";
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item.path);
