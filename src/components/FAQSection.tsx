@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -34,7 +33,7 @@ const FAQSection = () => {
   const { ref, isVisible } = useScrollReveal();
 
   return (
-    <section id="faq" className="relative py-10 sm:py-14 overflow-hidden">
+    <section id="faq" className="relative py-16 sm:py-24 overflow-hidden">
       {/* Decorative glow */}
       <div
         className="pointer-events-none absolute -right-32 top-1/2 h-[350px] w-[350px] rounded-full opacity-[0.03]"
@@ -49,17 +48,16 @@ const FAQSection = () => {
           className={`flex justify-center mb-6 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.1s" }}
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
             FAQ
           </span>
         </div>
 
         <h2
-          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold uppercase tracking-wide text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          PERTANYAAN YANG SERING DITANYA
+          Pertanyaan yang Sering Ditanya
         </h2>
 
         <div
@@ -71,7 +69,7 @@ const FAQSection = () => {
               <AccordionItem
                 key={i}
                 value={`item-${i}`}
-                className="rounded-xl border border-border bg-card px-5"
+                className="rounded-2xl border border-border/60 bg-card/80 px-5"
               >
                 <AccordionTrigger className="min-h-[44px] py-5 font-satoshi text-base font-semibold text-foreground hover:no-underline [&>svg]:text-primary">
                   {faq.q}

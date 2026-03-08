@@ -41,7 +41,7 @@ const ApiKeyRow = ({
           value={keyValue}
           onChange={(e) => onKeyChange(e.target.value)}
           placeholder={`Masukkan ${label} key...`}
-          className="bg-background border-border pr-10 text-sm"
+          className="bg-background border-border/60 pr-10 text-sm"
         />
         <button
           type="button"
@@ -53,10 +53,10 @@ const ApiKeyRow = ({
       </div>
       <div className="flex gap-2">
         <Button onClick={onSave} disabled={saving || !keyValue} size="sm" className="text-[11px] font-bold px-4">
-          {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} SIMPAN
+          {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} Simpan
         </Button>
-        <Button onClick={onTest} disabled={testing || !keyValue} variant="outline" size="sm" className="text-[11px] px-4 text-muted-foreground hover:text-foreground border-border">
-          {testing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} TEST
+        <Button onClick={onTest} disabled={testing || !keyValue} variant="outline" size="sm" className="text-[11px] px-4 text-muted-foreground hover:text-foreground border-border/60">
+          {testing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} Test
         </Button>
       </div>
     </div>
@@ -84,7 +84,7 @@ const SettingsPage = () => {
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "User";
 
   const Section = ({ children, delay = "0ms" }: { children: React.ReactNode; delay?: string }) => (
-    <section className="animate-fade-up rounded-xl border border-border bg-card p-6" style={{ animationDelay: delay }}>
+    <section className="animate-fade-up rounded-2xl border border-border/60 bg-card/80 p-6" style={{ animationDelay: delay }}>
       {children}
     </section>
   );
@@ -128,7 +128,7 @@ const SettingsPage = () => {
             onKeyChange={(v) => setLocalKey("kie_ai", v)} onSave={() => saveKey("kie_ai", keys.kie_ai.key)}
             onTest={() => testKey("kie_ai")} saving={savingProvider === "kie_ai"} testing={testingProvider === "kie_ai"}
           />
-          <div className="border-t border-border" />
+          <div className="border-t border-border/60" />
           <ApiKeyRow
             label="Gemini" provider="gemini" keyValue={keys.gemini.key} status={keys.gemini.status}
             onKeyChange={(v) => setLocalKey("gemini", v)} onSave={() => saveKey("gemini", keys.gemini.key)}
@@ -149,7 +149,7 @@ const SettingsPage = () => {
               className={`text-left rounded-lg p-3.5 transition-all duration-200 ${
                 promptModel === opt.value
                   ? "border-2 border-primary bg-primary/5"
-                  : "border border-border bg-background hover:border-primary/20"
+                  : "border border-border/60 bg-background hover:border-primary/20"
               }`}
             >
               <div className="flex items-center gap-2 mb-1">
@@ -167,7 +167,7 @@ const SettingsPage = () => {
         <SectionHeader icon={Download} title="n8n Blueprint" />
         <div className="space-y-2">
           {blueprints.map((bp) => (
-            <div key={bp.name} className="flex items-center justify-between p-3 rounded-lg border border-border bg-background">
+            <div key={bp.name} className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-background">
               <div className="flex items-center gap-3">
                 <bp.icon className="w-4 h-4 text-muted-foreground/40" />
                 <div>
@@ -177,10 +177,10 @@ const SettingsPage = () => {
               </div>
               <Button
                 variant="outline" size="sm"
-                className="text-[11px] border-border text-muted-foreground hover:text-foreground"
+                className="text-[11px] border-border/60 text-muted-foreground hover:text-foreground"
                 onClick={() => toast({ title: "Coming soon", description: "Akan tersedia setelah launch!" })}
               >
-                DOWNLOAD
+                Download
               </Button>
             </div>
           ))}
