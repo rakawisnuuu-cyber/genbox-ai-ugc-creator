@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Upload, ImagePlus, Download, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
-import afterUgcImg from "@/assets/after-ugc.jpeg";
+import caraKerjaUgc from "@/assets/cara-kerja-ugc.jpeg";
 
 function useCountUp(target: number, visible: boolean, duration = 800) {
   const [val, setVal] = useState(0);
