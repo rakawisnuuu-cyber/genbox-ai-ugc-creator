@@ -24,10 +24,31 @@ interface CharacterDetailModalProps {
 const CharacterDetailModal = ({ character, open, onClose, onUse, onDelete }: CharacterDetailModalProps) => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     setLightboxUrl(null);
   }, [character?.id, open]);
+
+  const handleDownload = useCallback(async (url: string) => {
+    setDownloading(true);
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = `character-${character?.name || "image"}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, "_blank");
+    } finally {
+      setDownloading(false);
+    }
+  }, [character?.name]);
 
   if (!character) return null;
 
