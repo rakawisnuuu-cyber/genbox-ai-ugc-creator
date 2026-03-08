@@ -887,7 +887,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
 
   /* ── Render ───────────────────────────────────────────────── */
   return (
-    <div className="flex flex-col lg:flex-row lg:min-h-[calc(100vh-0px)] -mx-4 -my-4 lg:-mx-6 lg:-my-8">
+    <div className="flex flex-col lg:flex-row min-h-[calc(100dvh-48px)] lg:min-h-[calc(100dvh-0px)] -mx-4 -my-4 lg:-mx-6 lg:-my-8">
       {/* Navigation blocker is handled via beforeunload */}
 
       {/* LEFT PANEL */}
