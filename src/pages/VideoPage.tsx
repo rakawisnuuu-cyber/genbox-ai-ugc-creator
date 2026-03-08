@@ -925,7 +925,7 @@ Content template: ${template?.label}`,
                         onClick={() => {
                           setSourcePreview(img.image_url);
                           setSourceUrl(img.image_url);
-                          if (!productInfo.product_description) detectProductFromImage(img.image_url);
+                          setImageAsBase64(null); // Gallery images can't be converted (CORS) — Plan Storyboard handles detection
                         }}
                         className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
                       >
