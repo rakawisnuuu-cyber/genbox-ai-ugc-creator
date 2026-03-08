@@ -238,7 +238,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
       setProgress((p) => ({ ...p, status: "completed" }));
       onProjectStatusChange(finalCompleted ? "completed" : "completed");
     }
-  }, [modules, model, aspectRatio, kieApiKey, geminiApiKey, promptModel, characterHeroUrl, characterRefUrl, productImageUrl]);
+  }, [modules, model, aspectRatio, kieApiKey, geminiApiKey, promptModel, characterHeroUrl, productImageUrl]);
 
   const pause = useCallback(() => {
     pauseRef.current = true;

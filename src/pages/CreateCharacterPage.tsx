@@ -177,20 +177,7 @@ const DEFAULT_FORM: FormData = {
   bodyType: "average", ageRangeNew: "young_adult",
 };
 
-// ── HELPER: Convert image URL to base64 ──
-async function imageUrlToBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+import { imageUrlToBase64 } from "@/lib/image-utils";
 
 // ── HELPER: Assemble prompt for a shot ──
 function assemblePrompt(

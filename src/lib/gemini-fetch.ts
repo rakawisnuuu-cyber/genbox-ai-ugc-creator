@@ -12,7 +12,7 @@ export async function geminiFetch(
   timeoutMs: number = GEMINI_TIMEOUT_MS,
 ): Promise<any> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(

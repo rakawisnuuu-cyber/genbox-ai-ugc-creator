@@ -195,27 +195,7 @@ function getSmartDialogSuggestion(
   }
 }
 
-/** Convert image URL to base64 for Gemini */
-async function imageUrlToBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    const mimeType = blob.type || "image/jpeg";
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve(base64 ? { mimeType, data: base64 } : null);
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
+import { imageUrlToBase64WithMime as imageUrlToBase64 } from "@/lib/image-utils";
 
 const VideoPage = () => {
   const { user } = useAuth();

@@ -21,17 +21,6 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const protectedPaths = [
-  "/dashboard",
-  "/generate",
-  "/characters",
-  
-  "/prompt",
-  "/blueprint",
-  "/video",
-  "/settings",
-];
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
