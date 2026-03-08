@@ -240,10 +240,10 @@ const GalleryPage = () => {
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     {item.image_url && (
-                      <a href={item.upscaled_url || item.image_url} download target="_blank" rel="noopener noreferrer"
+                      <button onClick={(e) => { e.stopPropagation(); handleDownload(item.upscaled_url || item.image_url!, `genbox-${item.id}.png`); }}
                         className="h-10 w-10 rounded-full bg-foreground/20 flex items-center justify-center text-foreground hover:bg-foreground/30 transition-colors">
                         <Download className="h-4 w-4" />
-                      </a>
+                      </button>
                     )}
                     <button onClick={() => setDetailItem(item)}
                       className="bg-foreground/20 text-foreground text-[11px] px-3 py-1.5 rounded-full hover:bg-foreground/30 transition-colors">
