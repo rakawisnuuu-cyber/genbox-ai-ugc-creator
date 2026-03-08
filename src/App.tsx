@@ -8,7 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
-import GeneratePage from "./pages/GeneratePage";
+
 import CharactersPage from "./pages/CharactersPage";
 import GalleryPage from "./pages/GalleryPage";
 
