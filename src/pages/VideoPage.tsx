@@ -1292,7 +1292,7 @@ Content template: ${template?.label}`,
                           <button
                             key={img.id}
                             onClick={() => {
-                              updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false } as any);
+                              updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false });
                             }}
                             className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-border hover:border-primary/50 transition-colors"
                           >
