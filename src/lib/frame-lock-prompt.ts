@@ -13,21 +13,39 @@ const MODEL_LENGTH_GUIDANCE: Record<VideoModelType, string> = {
 
 export const FRAME_LOCK_SYSTEM = `You are an expert AI Video Director specializing in hyper-realistic TikTok UGC content.
 
-=== FRAME LOCK WITH REFERENCE IMAGE (MANDATORY) ===
-The first frame of the generated video MUST visually match the reference/start image EXACTLY:
-- Same character: identical face, skin tone, facial features, hairstyle, hair color
-- Same outfit: exact clothing, colors, patterns, accessories, jewelry
-- Same environment: identical setting, background, props, surfaces, furniture
-- Same lighting: direction, softness, shadow placement, color temperature
-- Same color palette, mood, and overall aesthetic
-- Same product position, hand grip, orientation if product is visible
-- NO visual reinterpretation allowed — the first frame IS the reference image, alive
+=== FRAME LOCK WITH REFERENCE IMAGE (MANDATORY — ZERO TOLERANCE) ===
+The FIRST FRAME of the generated video MUST visually match the reference/start image EXACTLY.
+Across the ENTIRE video:
+- SAME character: identical face shape, skin tone, facial features, hairstyle, hair color, expression style
+- SAME outfit: exact clothing items, colors, patterns, accessories, jewelry, fit
+- SAME environment: identical setting, background, props, surfaces, materials, wall colors, floor, furniture
+- SAME lighting: same direction, softness, shadow placement, and color temperature
+- SAME color palette, mood, and overall aesthetic
+- SAME product position, hand grip, and orientation if product is visible
+- NO visual reinterpretation is allowed — the first frame IS the reference image, alive
 
-=== FRAME STABILITY (MANDATORY) ===
-- Facial structure, skin texture, body proportions MUST stay perfectly consistent across ALL frames
-- No face reshaping, no skin smoothing, no hair shifts, no makeup changes during the clip
-- Subject must be visually identical from frame 1 to the final frame
-- Eye color, lip shape, nose structure — locked
+=== FRAME STABILITY RULES (MANDATORY — ZERO TOLERANCE) ===
+Facial structure, skin texture, body proportions, and lighting MUST remain perfectly consistent across ALL frames.
+Do NOT allow:
+- Face reshaping or beautification of any kind
+- Skin smoothing or texture loss
+- Hair volume, length, or color shift
+- Makeup intensity, color, or coverage changes
+- Eye color changes
+- Lip shape or nose structure changes
+- Body proportion changes
+The subject MUST be visually identical from the first frame to the final frame — no exceptions.
+
+=== ENVIRONMENT LOCK (MANDATORY — ZERO TOLERANCE) ===
+The environment/setting MUST remain identical across ALL frames:
+- Wall colors, textures, and materials — locked
+- Floor, carpet, tiles — locked
+- Furniture position, style, and color — locked
+- Props, decorations, plants, objects — locked
+- Background elements — locked
+- No new objects appearing, no objects disappearing
+- No room/setting changes or reinterpretation
+The environment in frame 1 must be IDENTICAL to the environment in the final frame.
 
 === PRODUCT CONTINUITY (MANDATORY) ===
 - Product must remain visually identical during all movement
@@ -39,6 +57,7 @@ The first frame of the generated video MUST visually match the reference/start i
 - No auto-exposure shifts, no white balance changes, no color temperature drift
 - Lighting must feel locked to the original scene throughout the entire clip
 - Shadow direction and softness remain constant
+- No sudden brightness or contrast changes
 
 === PROMPT OUTPUT RULES ===
 - Output MUST be in English
@@ -61,13 +80,14 @@ export function buildVideoDirectorInstruction(opts: {
   contentTemplate?: string;
   templateStructure?: string;
   model?: VideoModelType;
+  environmentDescription?: string;
 }) {
   const {
     shotIndex, totalShots, duration, moduleType,
     previousPrompt, withDialogue, dialogueText,
     audioDirection, characterDescription,
     contentTemplate, templateStructure,
-    model,
+    model, environmentDescription,
   } = opts;
 
   const lengthGuidance = model
@@ -91,11 +111,23 @@ export function buildVideoDirectorInstruction(opts: {
     : `\nNo dialogue. Audio: ${audioDirection || "ambient sounds only"}`;
 
   const continuitySection = shotIndex > 0 && previousPrompt
-    ? `\nPrevious shot: ${previousPrompt.substring(0, 120)}\nMaintain EXACT visual continuity — same outfit, same appearance, same setting.`
+    ? `\n\n=== CONTINUITY FROM PREVIOUS SHOT (MANDATORY) ===
+Previous shot: ${previousPrompt.substring(0, 200)}
+You MUST maintain EXACT visual continuity:
+- Same person with identical face, skin, hair, body proportions
+- Same outfit, accessories, jewelry — no changes
+- Same environment, room, background, props — no changes
+- Same lighting direction, color temperature, shadow placement
+- Same product appearance if visible
+DO NOT reinterpret or "refresh" any visual element.`
     : "";
 
   const charSection = characterDescription
     ? `\nCharacter: ${characterDescription}`
+    : "";
+
+  const envSection = environmentDescription
+    ? `\n\n=== ENVIRONMENT ANCHOR (DO NOT CHANGE) ===\n${environmentDescription}\nThis environment description MUST be maintained exactly across all frames. No reinterpretation allowed.`
     : "";
 
   const templateSection = contentTemplate && templateStructure
@@ -109,5 +141,5 @@ ${lengthGuidance}
 
 === SHOT CONTEXT ===
 Shot #${shotIndex + 1} of ${totalShots}. Duration: ${duration}s.
-${moduleDir}${charSection}${continuitySection}${dialogueSection}${templateSection}`;
+${moduleDir}${charSection}${envSection}${continuitySection}${dialogueSection}${templateSection}`;
 }
