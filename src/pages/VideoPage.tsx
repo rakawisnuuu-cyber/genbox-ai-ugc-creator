@@ -1106,7 +1106,7 @@ Content template: ${template?.label}`,
           ? "bg-amber-500/5 border-amber-500/20 text-amber-400"
           : "bg-green-500/5 border-green-500/20 text-green-400"
       }`}>
-        💡 {modelRec.text}
+        <Lightbulb className="inline h-3.5 w-3.5 mr-1" /> {modelRec.text}
       </div>
 
       {/* Dialog Tip */}
