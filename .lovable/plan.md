@@ -1,35 +1,74 @@
 
+Goal: fix multi-shot generation failures and make model behavior consistent by reusing one shared generation/polling path across quick + multi-shot.
 
-## Keep Page State Alive Across Tab Navigation
+1) Root cause found (current failing run)
+- The failing multi-shot run is not primarily a polling bug.
+- Network responses show Grok task creation returns:
+  - `{"code":500,"msg":"duration is not within the range of allowed options"}`
+- Multi-shot currently sends module durations like 2/3/4/7s to Grok.
+- Grok image-to-video accepts limited duration values (6 or 10), so creation fails before polling.
+- Error display is misleading because code reads `message` but API returns `msg`, so user sees generic “Failed to create Grok task”.
 
-### Problem
-When navigating between dashboard tabs (e.g., `/generate` → `/video` → back), React Router unmounts the component and all `useState` is lost — including uploaded images, selected characters, generation results, and in-progress generation polling loops.
+2) Implementation plan (what to build)
+- Create a shared video generation client (single source of truth) used by:
+  - `src/pages/VideoPage.tsx` (quick mode)
+  - `src/hooks/useMultiShotGeneration.ts` (multi-shot mode)
+- Move all Kie logic into shared functions:
+  - task creation payload by model (Grok / Veo Fast / Veo Quality)
+  - polling endpoint + status parsing
+  - timeout + retry policy (including 404 retry cap)
+  - consistent URL extraction from result payloads
+  - consistent API error extraction (`msg || message || code`)
+- Remove duplicated inline generation logic from both call sites.
 
-### Approach: Keep-Alive Rendering
+3) Grok duration compatibility fix (critical)
+- Add duration normalization for Grok before createTask:
+  - map to allowed values only (6 or 10)
+  - recommended mapping: `<8 => 6`, `>=8 => 10`
+- Apply this in shared generator so both quick and multi-shot stay valid.
+- In Step 2 module editor, add Grok-specific UX guard:
+  - when model is Grok, show helper text “Durasi Grok hanya 6/10 detik”
+  - prevent silently invalid durations (either enforce picker options or show normalized final value per shot).
 
-Instead of relying on `<Outlet />` which unmounts inactive routes, render the heavy pages (`GeneratePage` and `VideoPage`) permanently inside `DashboardLayout` and toggle visibility with CSS `display: none`. Other lightweight pages continue using `<Outlet />`.
+4) Polling/404 hardening
+- Keep Veo polling on `/api/v1/veo/record-info?taskId=...` and Grok on `/api/v1/jobs/recordInfo?taskId=...` in shared client.
+- Add explicit debug logs in shared poller:
+  - model, taskId, poll URL, HTTP status, parsed state
+- Stop polling after 5 consecutive 404s with clear actionable error.
+- Keep model-specific timeout windows:
+  - Grok 3m, Veo Fast 5m, Veo Quality 10m.
 
-This preserves:
-- All form state (uploaded images, character selection, settings)
-- In-progress generation polling loops (they keep running in background)
-- Generated results and storyboard state
-- Video frame states and generated videos
+5) Multi-shot integration details
+- `generateSingleShot` in `useMultiShotGeneration.ts` becomes a thin wrapper:
+  - build image inputs + continuity image references
+  - call shared `generateVideoAndWait(...)`
+- Keep existing sequential behavior (continue next shot on failure).
+- Preserve shot-level retry/regenerate flow and status updates (no UX regression).
 
-### Plan
+6) Check “other modules” / regressions
+- Verify no breakage in:
+  - Quick video generation (`/video` quick mode)
+  - Multi-shot initial run
+  - Shot regenerate + “Save & Regenerate”
+  - Model switching between Grok / Veo Fast / Veo Quality
+  - Module insert/delete/reorder path still updates and generates correctly
+- Validate error toasts now show real provider messages (e.g., invalid duration).
 
-**File: `src/components/DashboardLayout.tsx`**
+Technical details (concise)
+- New shared file (example): `src/lib/kie-video-generation.ts`
+- Exposed API (example):
+  - `normalizeDurationForModel(model, duration)`
+  - `createVideoTask(params)`
+  - `pollVideoTask(params)`
+  - `generateVideoAndWait(params)` (used by both quick + multi-shot)
+- Parsing rules:
+  - Grok success: `jobs/recordInfo` + `data.state === "success"` + parse `resultJson`
+  - Veo success: `veo/record-info` + `data.successFlag === 1`
+- Error normalization:
+  - throw `msg || message || "Unknown generation error"` so UI shows true cause.
 
-1. Import `GeneratePage` and `VideoPage` directly
-2. In the main content area, render both pages permanently but wrap each in a `div` with `style={{ display: pathname === "/generate" ? "block" : "none" }}` (same for `/video`)
-3. Only render `<Outlet />` when the current route is NOT `/generate` or `/video`
-4. Update `isFullWidthPage` logic to apply correct container styling to the keep-alive wrappers independently
-
-**File: `src/App.tsx`**
-
-5. Remove the `<Route>` entries for `/generate` and `/video` from the nested dashboard routes since they're now rendered directly in `DashboardLayout`
-
-### Result
-- Generate and Video pages stay mounted across all tab switches
-- Running generations continue in background
-- All other pages work as before via Outlet
-
+Validation matrix after implementation
+- Grok multi-shot (5 shots with mixed durations): creation succeeds, no duration 500.
+- Veo Fast multi-shot: no repeated 404 loop, completes with valid URL.
+- Veo Quality single-shot: completes within timeout window.
+- At least one failed case (intentional invalid key) returns clear message in UI.

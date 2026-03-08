@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
+import GeneratePage from "@/pages/GeneratePage";
+import VideoPage from "@/pages/VideoPage";
 import {
   LayoutDashboard,
   ImagePlus,
@@ -64,7 +66,9 @@ const DashboardLayout = () => {
   const displayName = user?.email?.split("@")[0] || "User";
 
   const isActive = (path: string) => location.pathname === path;
-  const isFullWidthPage = location.pathname === "/generate" || location.pathname === "/video";
+  const pathname = location.pathname;
+  const isKeepAlivePage = pathname === "/generate" || pathname === "/video";
+  const isFullWidthPage = pathname === "/generate" || pathname === "/video";
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item.path);
@@ -198,9 +202,19 @@ const DashboardLayout = () => {
 
       {/* Main Content */}
       <main className="mt-12 min-h-screen lg:ml-[232px] lg:mt-0">
-        <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
-          <Outlet />
+        {/* Keep-alive pages: always mounted, toggled via display */}
+        <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
+          <GeneratePage />
         </div>
+        <div style={{ display: pathname === "/video" ? "block" : "none" }}>
+          <VideoPage />
+        </div>
+        {/* Other pages via Outlet */}
+        {!isKeepAlivePage && (
+          <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
+            <Outlet />
+          </div>
+        )}
       </main>
     </div>
   );
