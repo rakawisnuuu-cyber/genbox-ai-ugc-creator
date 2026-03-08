@@ -92,6 +92,29 @@ const ROLE_COLORS: Record<string, string> = {
   Convert: "bg-amber-500/20 text-amber-400 border-amber-500/30",
 };
 
+function BeatPreviewCard({ beat, index }: { beat: StoryboardBeat; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = beat.description.length > 50 || beat.label.length > 20;
+  return (
+    <div
+      className={`border border-border rounded-lg p-2 bg-muted/10 min-w-0 cursor-pointer transition-all ${expanded ? "col-span-5 sm:col-span-2" : ""}`}
+      onClick={() => isLong && setExpanded(!expanded)}
+    >
+      <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
+        {beat.storyRole}
+      </span>
+      <p className={`text-[10px] font-semibold text-foreground mt-1 ${expanded ? "" : "truncate"}`}>{beat.label}</p>
+      <p className="text-[8px] text-muted-foreground/60">{beat.beat}</p>
+      <p className={`text-[8px] text-muted-foreground mt-1 ${expanded ? "" : "line-clamp-3"}`}>{beat.description}</p>
+      {isLong && (
+        <span className="text-[7px] text-primary mt-1 inline-flex items-center gap-0.5">
+          {expanded ? "Sembunyikan" : "Selengkapnya"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /** Templates with heavy dialog → recommend Veo all */
 const DIALOG_HEAVY_TEMPLATES: ContentTemplateKey[] = ["problem_solution", "review_jujur", "quick_haul"];
 /** Templates mostly visual → mixed recommendation */
