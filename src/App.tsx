@@ -42,7 +42,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardHome />} />
               <Route path="/generate" element={<GeneratePage />} />
               <Route path="/characters" element={<CharactersPage />} />
-              
+              <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/prompt" element={<PromptPage />} />
               <Route path="/blueprint" element={<BlueprintPage />} />
               <Route path="/characters/create" element={<CreateCharacterPage />} />
