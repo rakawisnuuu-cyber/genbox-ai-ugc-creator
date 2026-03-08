@@ -1,23 +1,11 @@
 import { useEffect, useState } from "react";
+import DepthDeckCarousel from "@/components/DepthDeckCarousel";
 
 const particles = [
   { size: 5, top: "18%", left: "12%", delay: "0s" },
   { size: 7, top: "25%", left: "85%", delay: "-1.2s" },
   { size: 4, top: "70%", left: "8%", delay: "-2.5s" },
   { size: 6, top: "65%", left: "90%", delay: "-3.8s" },
-];
-
-const marqueeGradients = [
-  "from-purple-600 to-pink-500",
-  "from-blue-500 to-cyan-400",
-  "from-orange-500 to-yellow-400",
-  "from-green-500 to-emerald-400",
-  "from-rose-500 to-red-400",
-  "from-purple-600 to-pink-500",
-  "from-blue-500 to-cyan-400",
-  "from-orange-500 to-yellow-400",
-  "from-green-500 to-emerald-400",
-  "from-rose-500 to-red-400",
 ];
 
 const HeroSection = () => {
@@ -129,23 +117,12 @@ const HeroSection = () => {
         </p>
       </div>
 
-      {/* Marquee with edge fades */}
+      {/* DepthDeck Carousel */}
       <div
-        className="animate-fade-up relative z-10 mt-16 w-full overflow-hidden pb-12"
+        className="animate-fade-up relative z-10 mt-16 w-full max-w-4xl mx-auto pb-12"
         style={{ animationDelay: "0.6s" }}
       >
-        {/* Left edge fade */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24 bg-gradient-to-r from-background to-transparent" />
-        {/* Right edge fade */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24 bg-gradient-to-l from-background to-transparent" />
-        <div className="animate-marquee flex gap-4">
-          {[...marqueeGradients, ...marqueeGradients].map((g, i) => (
-            <div
-              key={i}
-              className={`h-[280px] w-[200px] flex-shrink-0 rounded-2xl bg-gradient-to-br ${g} opacity-80`}
-            />
-          ))}
-        </div>
+        <DepthDeckCarousel autoPlayInterval={3500} />
       </div>
     </section>
   );
