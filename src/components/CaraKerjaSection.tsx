@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Upload, ImagePlus, Download, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
-import afterUgcImg from "@/assets/after-ugc.jpeg";
+import caraKerjaUgc from "@/assets/cara-kerja-ugc.jpeg";
 
 function useCountUp(target: number, visible: boolean, duration = 800) {
   const [val, setVal] = useState(0);
@@ -68,7 +68,7 @@ const StepCharacterVisual = () => (
 const StepGenerateVisual = () => (
   <div className="w-full rounded-2xl border border-border/60 bg-card/80 p-4">
     <div className="relative h-32 overflow-hidden rounded-lg">
-      <img src={afterUgcImg} alt="Hasil UGC" className="h-full w-full object-cover object-top" />
+      <img src={caraKerjaUgc} alt="Hasil UGC" className="h-full w-full object-cover object-top" />
       <div className="absolute inset-0 flex items-center justify-center bg-background/20">
         <Sparkles size={24} className="text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.5)] animate-pulse-subtle" />
       </div>
