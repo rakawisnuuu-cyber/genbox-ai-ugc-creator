@@ -1260,7 +1260,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                   {storyboardDone && (
                     <div className="space-y-2">
                       <p className="text-[10px] text-muted-foreground/60 text-center">
-                        Storyboard ini bisa langsung dijadikan video di Buat Video → pilih template yang sama
+                        Storyboard ini bisa langsung dijadikan video di Buat Video — pilih template yang sama
                       </p>
                       <button
                         onClick={() => {
