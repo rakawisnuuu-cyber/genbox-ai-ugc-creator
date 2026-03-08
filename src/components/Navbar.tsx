@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import GenboxLogo from "./GenboxLogo";
 
 const navLinks = [
   { label: "Fitur", href: "#fitur" },
@@ -35,8 +36,8 @@ const Navbar = () => {
         }}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <a href="#" className="font-satoshi text-xl font-bold tracking-[0.1em] text-foreground">
-            GENBOX
+          <a href="#">
+            <GenboxLogo size={28} />
           </a>
 
           <div className="hidden items-center gap-8 md:flex">

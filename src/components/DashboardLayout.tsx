@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import GenboxLogo from "./GenboxLogo";
 
 interface NavItem {
   title: string;
@@ -114,10 +115,8 @@ const DashboardLayout = () => {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex" style={{ background: "hsl(220 8% 4.5%)" }}>
         {/* Logo */}
         <div className="px-5 pt-7 pb-1">
-          <p className="font-satoshi text-base font-bold uppercase tracking-[0.2em] text-foreground">
-            GENBOX
-          </p>
-          <span className="mt-1 block text-[10px] font-mono text-muted-foreground/40">v1.0</span>
+          <GenboxLogo size={26} />
+          <span className="mt-1.5 block text-[10px] font-mono text-muted-foreground/40">v1.0</span>
         </div>
 
         {/* Nav */}
@@ -152,9 +151,7 @@ const DashboardLayout = () => {
 
       {/* Mobile Top Bar */}
       <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl lg:hidden">
-        <p className="font-satoshi text-sm font-bold uppercase tracking-[0.2em] text-foreground">
-          GENBOX
-        </p>
+        <GenboxLogo size={22} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-foreground">
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
