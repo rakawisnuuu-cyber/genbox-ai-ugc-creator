@@ -1032,15 +1032,22 @@ Content template: ${template?.label}`,
           </div>
         </div>
 
-        {/* Start Button */}
+        {/* Start Button — Plan Storyboard */}
         <button
-          onClick={initializeFrames}
-          disabled={!sourceUrl}
+          onClick={planStoryboard}
+          disabled={!sourceUrl || planningStoryboard}
           className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40"
         >
-          <Film className="h-4 w-4" />
-          SETUP FRAME EDITOR
+          {planningStoryboard ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {planningStoryboard ? "MERENCANAKAN STORYBOARD..." : "PLAN STORYBOARD"}
         </button>
+        <p className="text-[10px] text-muted-foreground text-center -mt-3">
+          Satu panggilan AI untuk mendeteksi produk & merencanakan semua 5 frame sekaligus
+        </p>
       </div>
     );
   }
