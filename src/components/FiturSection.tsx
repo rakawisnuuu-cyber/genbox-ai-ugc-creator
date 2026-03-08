@@ -32,7 +32,7 @@ function CharacterShowcaseStack() {
 
   return (
     <div
-      className="relative mx-auto h-[300px] w-full max-w-[320px] cursor-pointer"
+      className="relative mx-auto h-[380px] w-full max-w-[320px] cursor-pointer"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onClick={() => setActiveIndex((prev) => (prev + 1) % total)}
