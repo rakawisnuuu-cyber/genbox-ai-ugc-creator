@@ -115,10 +115,8 @@ const DashboardLayout = () => {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex" style={{ background: "hsl(220 8% 4.5%)" }}>
         {/* Logo */}
         <div className="px-5 pt-7 pb-1">
-          <p className="font-satoshi text-base font-bold uppercase tracking-[0.2em] text-foreground">
-            GENBOX
-          </p>
-          <span className="mt-1 block text-[10px] font-mono text-muted-foreground/40">v1.0</span>
+          <GenboxLogo size={26} />
+          <span className="mt-1.5 block text-[10px] font-mono text-muted-foreground/40">v1.0</span>
         </div>
 
         {/* Nav */}
