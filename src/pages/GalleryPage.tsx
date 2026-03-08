@@ -92,7 +92,7 @@ const handleDownload = async (url: string, filename?: string) => {
   }
 
   // Last resort: open in new tab and let user right-click save
-  toast.info("Tidak bisa download otomatis. Klik kanan gambar → 'Save image as...'");
+  toast.info("Tidak bisa download otomatis. Klik kanan gambar — 'Save image as...'");
   window.open(url, "_blank");
 };
 
