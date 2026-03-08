@@ -47,6 +47,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
     kieApiKey,
     geminiApiKey,
     promptModel,
+    environmentDescription,
     onModuleUpdate,
     onProjectStatusChange,
   } = options;
