@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
 import GeneratePage from "@/pages/GeneratePage";
 import VideoPage from "@/pages/VideoPage";
@@ -62,6 +62,7 @@ const DashboardLayout = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const visitedPages = useRef(new Set<string>());
 
   const initial = user?.email?.charAt(0).toUpperCase() || "U";
   const displayName = user?.email?.split("@")[0] || "User";
@@ -70,6 +71,10 @@ const DashboardLayout = () => {
   const pathname = location.pathname;
   const isKeepAlivePage = pathname === "/generate" || pathname === "/video";
   const isFullWidthPage = pathname === "/generate" || pathname === "/video";
+
+  if (pathname === "/generate" || pathname === "/video") {
+    visitedPages.current.add(pathname);
+  }
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item.path);
@@ -199,13 +204,17 @@ const DashboardLayout = () => {
 
       {/* Main Content */}
       <main className="mt-12 min-h-[100dvh] lg:ml-[232px] lg:mt-0">
-        {/* Keep-alive pages: always mounted, toggled via display */}
-        <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
-          <GeneratePage />
-        </div>
-        <div style={{ display: pathname === "/video" ? "block" : "none" }}>
-          <VideoPage />
-        </div>
+        {/* Keep-alive pages: only mount after first visit, then toggle via display */}
+        {visitedPages.current.has("/generate") && (
+          <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
+            <GeneratePage />
+          </div>
+        )}
+        {visitedPages.current.has("/video") && (
+          <div style={{ display: pathname === "/video" ? "block" : "none" }}>
+            <VideoPage />
+          </div>
+        )}
         {/* Other pages via Outlet */}
         {!isKeepAlivePage && (
           <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
