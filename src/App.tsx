@@ -12,7 +12,7 @@ import DashboardHome from "./pages/DashboardHome";
 import CharactersPage from "./pages/CharactersPage";
 import GalleryPage from "./pages/GalleryPage";
 
-import PromptPage from "./pages/PromptPage";
+
 import BlueprintPage from "./pages/BlueprintPage";
 import SettingsPage from "./pages/SettingsPage";
 import CreateCharacterPage from "./pages/CreateCharacterPage";
