@@ -59,13 +59,28 @@ const Login = () => {
     setSignupLoading(true);
 
     // Validate invite code server-side
-    const { data: codeResult, error: codeError } = await supabase.functions.invoke("validate-invite-code", {
-      body: { code: inviteCode.trim(), email: signupEmail },
-    });
+    try {
+      const { data: codeResult, error: codeError } = await supabase.functions.invoke("validate-invite-code", {
+        body: { code: inviteCode.trim(), email: signupEmail },
+      });
 
-    if (codeError || !codeResult?.valid) {
+      console.log("Invite code validation:", { codeResult, codeError });
+
+      if (codeError) {
+        setSignupLoading(false);
+        toast({ title: "Kode tidak valid", description: codeError.message || "Gagal memvalidasi kode.", variant: "destructive" });
+        return;
+      }
+
+      if (!codeResult || typeof codeResult.valid === 'undefined' || !codeResult.valid) {
+        setSignupLoading(false);
+        toast({ title: "Kode tidak valid", description: codeResult?.error || "Kode akses tidak valid.", variant: "destructive" });
+        return;
+      }
+    } catch (err: any) {
+      console.error("Unexpected error during invite code validation:", err);
       setSignupLoading(false);
-      toast({ title: "Kode tidak valid", description: codeResult?.error || "Kode akses tidak valid.", variant: "destructive" });
+      toast({ title: "Terjadi Kesalahan", description: "Gagal memvalidasi kode. Silakan coba lagi.", variant: "destructive" });
       return;
     }
 
