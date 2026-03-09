@@ -30,13 +30,10 @@ const Index = () => {
       <SectionDivider />
       <CaraKerjaSection />
       <SectionDivider />
-      <HargaSection />
-      <SectionDivider />
+      {/* HargaSection & FinalCTASection hidden during early access */}
       <ApiCostSection />
       <SectionDivider />
       <FAQSection />
-      <FinalCTASection />
-      <TransactionPopup />
     </div>
   );
 };
