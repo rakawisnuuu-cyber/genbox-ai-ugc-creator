@@ -67,6 +67,7 @@ const settingsItem: NavItem = { title: "Settings", icon: Settings, path: "/setti
 
 const DashboardLayout = () => {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const visitedPages = useRef(new Set<string>());
