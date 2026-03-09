@@ -22,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import CheckoutPage from "./pages/CheckoutPage";
 import CheckoutSuccessPage from "./pages/CheckoutSuccessPage";
 import AdminPage from "./pages/AdminPage";
+import AdminRoute from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
 
