@@ -9,6 +9,7 @@ import {
   Film,
   Workflow,
   Settings,
+  Shield,
   Menu,
   X,
   LogOut,
@@ -51,6 +52,12 @@ const navGroups: NavGroup[] = [
     items: [
       
       { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
+    ],
+  },
+  {
+    label: "ADMIN",
+    items: [
+      { title: "Admin", icon: Shield, path: "/admin" },
     ],
   },
 ];
