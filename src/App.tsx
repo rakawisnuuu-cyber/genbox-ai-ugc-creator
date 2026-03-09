@@ -21,6 +21,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 import CheckoutPage from "./pages/CheckoutPage";
 import CheckoutSuccessPage from "./pages/CheckoutSuccessPage";
+import AdminPage from "./pages/AdminPage";
 
 const queryClient = new QueryClient();
 
