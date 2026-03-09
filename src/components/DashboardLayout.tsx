@@ -7,7 +7,6 @@ import {
   ImagePlus,
   Users,
   Film,
-  Wand2,
   Workflow,
   Settings,
   Menu,
