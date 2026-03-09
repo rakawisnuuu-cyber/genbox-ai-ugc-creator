@@ -94,31 +94,14 @@ const AdminPage = () => {
                   <TableCell className="text-muted-foreground text-xs">{fmt(u.created_at)}</TableCell>
                   <TableCell className="text-muted-foreground text-xs">{fmt(u.last_sign_in_at)}</TableCell>
                   <TableCell>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus user?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            User <span className="font-medium text-foreground">{u.email}</span> akan dihapus permanen. Aksi ini tidak bisa dibatalkan.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(u.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            disabled={deleting === u.id}
-                          >
-                            {deleting === u.id ? "Menghapus..." : "Hapus"}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setUserToDelete(u)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
