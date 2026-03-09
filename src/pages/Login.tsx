@@ -68,7 +68,17 @@ const Login = () => {
 
       if (codeError) {
         setSignupLoading(false);
-        toast({ title: "Kode tidak valid", description: codeError.message || "Gagal memvalidasi kode.", variant: "destructive" });
+        // Distinguish network/CORS errors from business errors
+        const isNetworkError = codeError.message?.includes("Failed to send") || 
+                               codeError.message?.includes("fetch") ||
+                               codeError.message?.includes("NetworkError");
+        toast({ 
+          title: isNetworkError ? "Koneksi Gagal" : "Kode tidak valid", 
+          description: isNetworkError 
+            ? "Tidak dapat terhubung ke server. Coba lagi dalam beberapa saat." 
+            : (codeError.message || "Gagal memvalidasi kode."), 
+          variant: "destructive" 
+        });
         return;
       }
 
