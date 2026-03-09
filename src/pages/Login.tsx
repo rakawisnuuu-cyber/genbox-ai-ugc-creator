@@ -51,11 +51,6 @@ const Login = () => {
       return;
     }
 
-    if (!VALID_CODES.includes(inviteCode.trim().toUpperCase())) {
-      toast({ title: "Kode tidak valid", description: "Kode akses tidak valid.", variant: "destructive" });
-      return;
-    }
-
     if (signupPassword.length < 6) {
       toast({ title: "Error", description: "Password minimal 6 karakter.", variant: "destructive" });
       return;
