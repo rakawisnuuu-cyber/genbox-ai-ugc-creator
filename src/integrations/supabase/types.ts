@@ -134,6 +134,30 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          uses_remaining: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          uses_remaining?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          uses_remaining?: number | null
+        }
+        Relationships: []
+      }
       user_api_keys: {
         Row: {
           created_at: string

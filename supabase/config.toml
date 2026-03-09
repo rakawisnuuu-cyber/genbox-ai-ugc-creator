@@ -2,3 +2,6 @@ project_id = "uxrxrsdasgvygoeavozp"
 
 [functions.admin-users]
 verify_jwt = false
+
+[functions.validate-invite-code]
+verify_jwt = false

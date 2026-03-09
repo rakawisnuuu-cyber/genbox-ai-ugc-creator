@@ -3,8 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
 
-const VALID_CODES = ["GENBOX-EA", "EARLYBIRD", "BETAUSER"];
-
 const Login = () => {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
 
@@ -53,17 +51,24 @@ const Login = () => {
       return;
     }
 
-    if (!VALID_CODES.includes(inviteCode.trim().toUpperCase())) {
-      toast({ title: "Kode tidak valid", description: "Kode akses tidak valid.", variant: "destructive" });
-      return;
-    }
-
     if (signupPassword.length < 6) {
       toast({ title: "Error", description: "Password minimal 6 karakter.", variant: "destructive" });
       return;
     }
 
     setSignupLoading(true);
+
+    // Validate invite code server-side
+    const { data: codeResult, error: codeError } = await supabase.functions.invoke("validate-invite-code", {
+      body: { code: inviteCode.trim(), email: signupEmail },
+    });
+
+    if (codeError || !codeResult?.valid) {
+      setSignupLoading(false);
+      toast({ title: "Kode tidak valid", description: codeResult?.error || "Kode akses tidak valid.", variant: "destructive" });
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({ email: signupEmail, password: signupPassword });
     setSignupLoading(false);
 
