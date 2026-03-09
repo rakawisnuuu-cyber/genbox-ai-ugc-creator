@@ -109,6 +109,27 @@ const AdminPage = () => {
           </Table>
         </div>
       )}
+
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              User <span className="font-medium text-foreground">{userToDelete?.email}</span> akan dihapus permanen. Aksi ini tidak bisa dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (userToDelete) { handleDelete(userToDelete.id); setUserToDelete(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting === userToDelete?.id}
+            >
+              {deleting === userToDelete?.id ? "Menghapus..." : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
