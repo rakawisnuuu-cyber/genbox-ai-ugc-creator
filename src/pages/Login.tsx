@@ -38,7 +38,7 @@ const Login = () => {
       toast({
         title: "Login gagal",
         description: error.message === "Invalid login credentials"
-          ? "Email atau password salah. Coba lagi."
+          ? "Email atau password salah, atau akun belum ada di environment ini. Cek console untuk info backend."
           : error.message,
         variant: "destructive",
       });
