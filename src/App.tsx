@@ -12,7 +12,7 @@ import DashboardHome from "./pages/DashboardHome";
 import CharactersPage from "./pages/CharactersPage";
 import GalleryPage from "./pages/GalleryPage";
 
-import PromptPage from "./pages/PromptPage";
+
 import BlueprintPage from "./pages/BlueprintPage";
 import SettingsPage from "./pages/SettingsPage";
 import CreateCharacterPage from "./pages/CreateCharacterPage";
@@ -49,7 +49,7 @@ const App = () => (
               {/* GeneratePage rendered permanently in DashboardLayout */}
               <Route path="/characters" element={<CharactersPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
-              <Route path="/prompt" element={<PromptPage />} />
+              
               <Route path="/blueprint" element={<BlueprintPage />} />
               <Route path="/characters/create" element={<CreateCharacterPage />} />
               {/* VideoPage rendered permanently in DashboardLayout */}
