@@ -29,7 +29,9 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log("[GENBOX Login]", { origin: window.location.origin, host: new URL(import.meta.env.VITE_SUPABASE_URL).hostname });
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     setLoading(false);
 
     if (error) {
