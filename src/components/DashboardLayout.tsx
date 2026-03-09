@@ -204,13 +204,17 @@ const DashboardLayout = () => {
 
       {/* Main Content */}
       <main className="mt-12 min-h-[100dvh] lg:ml-[232px] lg:mt-0">
-        {/* Keep-alive pages: always mounted, toggled via display */}
-        <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
-          <GeneratePage />
-        </div>
-        <div style={{ display: pathname === "/video" ? "block" : "none" }}>
-          <VideoPage />
-        </div>
+        {/* Keep-alive pages: only mount after first visit, then toggle via display */}
+        {visitedPages.current.has("/generate") && (
+          <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
+            <GeneratePage />
+          </div>
+        )}
+        {visitedPages.current.has("/video") && (
+          <div style={{ display: pathname === "/video" ? "block" : "none" }}>
+            <VideoPage />
+          </div>
+        )}
         {/* Other pages via Outlet */}
         {!isKeepAlivePage && (
           <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
