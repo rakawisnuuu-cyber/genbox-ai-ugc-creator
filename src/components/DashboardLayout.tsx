@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import GenboxLogo from "./GenboxLogo";
 
 interface NavItem {
