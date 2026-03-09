@@ -6,7 +6,6 @@ import GenboxLogo from "./GenboxLogo";
 const navLinks = [
   { label: "Fitur", href: "#fitur" },
   { label: "Cara Kerja", href: "#cara-kerja" },
-  { label: "Harga", href: "#harga" },
   { label: "FAQ", href: "#faq" },
 ];
 
