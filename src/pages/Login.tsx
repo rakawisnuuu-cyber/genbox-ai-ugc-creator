@@ -3,8 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
 
-const VALID_CODES = ["GENBOX-EA", "EARLYBIRD", "BETAUSER"];
-
 const Login = () => {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
 
