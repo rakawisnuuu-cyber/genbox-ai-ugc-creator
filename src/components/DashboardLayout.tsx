@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import GenboxLogo from "./GenboxLogo";
 
 interface NavItem {
@@ -66,6 +67,7 @@ const settingsItem: NavItem = { title: "Settings", icon: Settings, path: "/setti
 
 const DashboardLayout = () => {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const visitedPages = useRef(new Set<string>());
@@ -103,22 +105,27 @@ const DashboardLayout = () => {
     );
   };
 
-  const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => (
-    <div className="space-y-1">
-      {navGroups.map((group, gi) => (
-        <div key={gi}>
-          {group.label && (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40 px-3 mt-7 mb-2">
-              {group.label}
-            </p>
-          )}
-          <ul className="space-y-0.5">
-            {group.items.map((item) => renderNavItem(item, onNavigate))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
+  const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
+    const filteredGroups = navGroups.filter(
+      (group) => group.label !== "ADMIN" || isAdmin
+    );
+    return (
+      <div className="space-y-1">
+        {filteredGroups.map((group, gi) => (
+          <div key={gi}>
+            {group.label && (
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40 px-3 mt-7 mb-2">
+                {group.label}
+              </p>
+            )}
+            <ul className="space-y-0.5">
+              {group.items.map((item) => renderNavItem(item, onNavigate))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
