@@ -96,7 +96,8 @@ const Login = () => {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({ email: signupEmail, password: signupPassword });
+    const normalizedSignupEmail = signupEmail.trim().toLowerCase();
+    const { error } = await supabase.auth.signUp({ email: normalizedSignupEmail, password: signupPassword });
     setSignupLoading(false);
 
     if (error) {
