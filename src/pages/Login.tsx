@@ -29,14 +29,16 @@ const Login = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log("[GENBOX Login]", { origin: window.location.origin, host: new URL(import.meta.env.VITE_SUPABASE_URL).hostname });
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     setLoading(false);
 
     if (error) {
       toast({
         title: "Login gagal",
         description: error.message === "Invalid login credentials"
-          ? "Email atau password salah. Coba lagi."
+          ? "Email atau password salah, atau akun belum ada di environment ini. Cek console untuk info backend."
           : error.message,
         variant: "destructive",
       });
@@ -94,7 +96,8 @@ const Login = () => {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({ email: signupEmail, password: signupPassword });
+    const normalizedSignupEmail = signupEmail.trim().toLowerCase();
+    const { error } = await supabase.auth.signUp({ email: normalizedSignupEmail, password: signupPassword });
     setSignupLoading(false);
 
     if (error) {
