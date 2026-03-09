@@ -57,6 +57,18 @@ const Login = () => {
     }
 
     setSignupLoading(true);
+
+    // Validate invite code server-side
+    const { data: codeResult, error: codeError } = await supabase.functions.invoke("validate-invite-code", {
+      body: { code: inviteCode.trim(), email: signupEmail },
+    });
+
+    if (codeError || !codeResult?.valid) {
+      setSignupLoading(false);
+      toast({ title: "Kode tidak valid", description: codeResult?.error || "Kode akses tidak valid.", variant: "destructive" });
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({ email: signupEmail, password: signupPassword });
     setSignupLoading(false);
 

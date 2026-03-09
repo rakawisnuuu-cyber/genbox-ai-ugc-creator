@@ -56,7 +56,7 @@ const App = () => (
               <Route path="/characters/create" element={<CreateCharacterPage />} />
               {/* VideoPage rendered permanently in DashboardLayout */}
               <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
