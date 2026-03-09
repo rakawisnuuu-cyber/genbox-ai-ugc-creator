@@ -62,6 +62,11 @@ const DashboardLayout = () => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const visitedPages = useRef(new Set<string>());
+
+  if (pathname === "/generate" || pathname === "/video") {
+    visitedPages.current.add(pathname);
+  }
 
   const initial = user?.email?.charAt(0).toUpperCase() || "U";
   const displayName = user?.email?.split("@")[0] || "User";
