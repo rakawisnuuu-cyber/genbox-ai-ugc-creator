@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Trash2, RefreshCw, Shield } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -23,6 +22,7 @@ const AdminPage = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -94,31 +94,14 @@ const AdminPage = () => {
                   <TableCell className="text-muted-foreground text-xs">{fmt(u.created_at)}</TableCell>
                   <TableCell className="text-muted-foreground text-xs">{fmt(u.last_sign_in_at)}</TableCell>
                   <TableCell>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus user?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            User <span className="font-medium text-foreground">{u.email}</span> akan dihapus permanen. Aksi ini tidak bisa dibatalkan.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(u.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            disabled={deleting === u.id}
-                          >
-                            {deleting === u.id ? "Menghapus..." : "Hapus"}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setUserToDelete(u)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -126,6 +109,27 @@ const AdminPage = () => {
           </Table>
         </div>
       )}
+
+      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus user?</AlertDialogTitle>
+            <AlertDialogDescription>
+              User <span className="font-medium text-foreground">{userToDelete?.email}</span> akan dihapus permanen. Aksi ini tidak bisa dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { if (userToDelete) { handleDelete(userToDelete.id); setUserToDelete(null); } }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting === userToDelete?.id}
+            >
+              {deleting === userToDelete?.id ? "Menghapus..." : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
