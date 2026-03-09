@@ -64,10 +64,6 @@ const DashboardLayout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const visitedPages = useRef(new Set<string>());
 
-  if (pathname === "/generate" || pathname === "/video") {
-    visitedPages.current.add(pathname);
-  }
-
   const initial = user?.email?.charAt(0).toUpperCase() || "U";
   const displayName = user?.email?.split("@")[0] || "User";
 
@@ -75,6 +71,10 @@ const DashboardLayout = () => {
   const pathname = location.pathname;
   const isKeepAlivePage = pathname === "/generate" || pathname === "/video";
   const isFullWidthPage = pathname === "/generate" || pathname === "/video";
+
+  if (pathname === "/generate" || pathname === "/video") {
+    visitedPages.current.add(pathname);
+  }
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item.path);
