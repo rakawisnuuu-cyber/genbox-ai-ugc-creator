@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
 import GeneratePage from "@/pages/GeneratePage";
 import VideoPage from "@/pages/VideoPage";
