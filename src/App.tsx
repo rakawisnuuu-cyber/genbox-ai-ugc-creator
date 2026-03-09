@@ -49,7 +49,7 @@ const App = () => (
               {/* GeneratePage rendered permanently in DashboardLayout */}
               <Route path="/characters" element={<CharactersPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
-              <Route path="/prompt" element={<PromptPage />} />
+              
               <Route path="/blueprint" element={<BlueprintPage />} />
               <Route path="/characters/create" element={<CreateCharacterPage />} />
               {/* VideoPage rendered permanently in DashboardLayout */}
