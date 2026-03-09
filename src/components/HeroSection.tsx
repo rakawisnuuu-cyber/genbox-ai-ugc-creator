@@ -97,12 +97,12 @@ const HeroSection = () => {
           className="animate-fade-up mt-8 flex flex-col items-center gap-4 sm:flex-row"
           style={{ animationDelay: "0.4s" }}
         >
-          <a
-            href="#harga"
+          <Link
+            to="/login"
             className="flex h-12 items-center rounded-lg bg-primary px-6 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--lime-hover))]"
           >
             Cobain Sekarang <span className="ml-1.5">→</span>
-          </a>
+          </Link>
           <button className="flex h-12 items-center gap-2 rounded-lg border border-foreground/20 bg-transparent px-6 text-sm font-bold tracking-wider text-foreground transition-colors hover:bg-foreground/5">
             Lihat Demo
           </button>
