@@ -22,6 +22,7 @@ const AdminPage = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
