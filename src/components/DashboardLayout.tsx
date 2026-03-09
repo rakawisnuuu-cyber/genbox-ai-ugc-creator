@@ -9,6 +9,7 @@ import {
   Film,
   Workflow,
   Settings,
+  Shield,
   Menu,
   X,
   LogOut,
