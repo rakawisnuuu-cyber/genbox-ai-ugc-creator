@@ -54,6 +54,12 @@ const navGroups: NavGroup[] = [
       { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
     ],
   },
+  {
+    label: "ADMIN",
+    items: [
+      { title: "Admin", icon: Shield, path: "/admin" },
+    ],
+  },
 ];
 
 const settingsItem: NavItem = { title: "Settings", icon: Settings, path: "/settings" };
