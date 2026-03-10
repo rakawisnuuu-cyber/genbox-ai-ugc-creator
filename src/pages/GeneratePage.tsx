@@ -831,7 +831,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
         await supabase.from("generations").insert({
           user_id: user!.id,
           type: "ugc_image",
-          prompt: `Storyboard: ${beat.label}`,
+          prompt: beatPrompt || `Storyboard: ${beat.label}`,
           image_url: urlData.publicUrl,
           character_id: selectedChar!.id.startsWith("p") ? null : selectedChar!.id,
           provider: "kie_ai",
