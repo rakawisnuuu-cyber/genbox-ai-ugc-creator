@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Images } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useCustomCharacters } from "@/hooks/useCustomCharacters";
 import CharacterCard, { type CharacterData } from "@/components/CharacterCard";
 import CharacterDetailModal from "@/components/CharacterDetailModal";
 
@@ -11,47 +11,10 @@ import { PRESETS } from "@/lib/character-presets";
 
 const CharactersPage = () => {
   const [tab, setTab] = useState<"preset" | "custom">("preset");
-  const [customChars, setCustomChars] = useState<CharacterData[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<CharacterData | null>(null);
-  const { user } = useAuth();
+  const { customChars, loading, refetch: fetchCustom } = useCustomCharacters();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const fetchCustom = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data } = await supabase
-      .from("characters")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_preset", false)
-      .order("created_at", { ascending: false });
-    if (data) {
-      setCustomChars(
-        data.map((d) => ({
-          id: d.id,
-          name: d.name,
-          type: d.type,
-          age_range: d.age_range,
-          style: d.style,
-          description: d.description,
-          gradient_from: d.gradient_from,
-          gradient_to: d.gradient_to,
-          is_preset: false,
-          hero_image_url: d.hero_image_url ?? undefined,
-          reference_images: d.reference_images ?? undefined,
-          identity_prompt: d.identity_prompt ?? undefined,
-          reference_photo_url: d.reference_photo_url ?? undefined,
-        }))
-      );
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (tab === "custom") fetchCustom();
-  }, [tab, user]);
 
   const handleUse = (c: CharacterData) => {
     navigate("/generate", { state: { character: c } });
