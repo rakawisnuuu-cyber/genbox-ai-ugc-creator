@@ -3,7 +3,7 @@
  * Use this instead of raw fetch() for all Gemini calls.
  */
 
-const GEMINI_TIMEOUT_MS = 30_000;
+const GEMINI_TIMEOUT_MS = 60_000;
 
 export async function geminiFetch(
   model: string,
