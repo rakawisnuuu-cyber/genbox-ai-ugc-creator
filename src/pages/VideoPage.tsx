@@ -5,6 +5,7 @@ import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
 import { getActionChips, getShuffledChips } from "@/lib/action-chips";
 import { generateVideoAndWait } from "@/lib/kie-video-generation";
+import { fileToBase64 } from "@/lib/image-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
