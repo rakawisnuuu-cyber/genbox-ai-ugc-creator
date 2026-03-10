@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
-import DepthDeckCarousel from "@/components/DepthDeckCarousel";
+
+const DepthDeckCarousel = lazy(() => import("@/components/DepthDeckCarousel"));
 
 const particles = [
   { size: 5, top: "18%", left: "12%", delay: "0s" },
@@ -10,12 +11,24 @@ const particles = [
 ];
 
 const HeroSection = () => {
-  const [scrollY, setScrollY] = useState(0);
+  const scrollRef = useRef(0);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
+    let rafId: number;
+    const onScroll = () => {
+      scrollRef.current = window.scrollY;
+      rafId = requestAnimationFrame(() => {
+        if (gridRef.current) {
+          gridRef.current.style.transform = `translateY(${scrollRef.current * 0.15}px)`;
+        }
+      });
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
   return (
