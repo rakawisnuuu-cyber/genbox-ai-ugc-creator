@@ -157,6 +157,7 @@ interface ShotStatus {
   state: "pending" | "prompting" | "generating" | "completed" | "failed";
   imageUrl?: string;
   error?: string;
+  prompt?: string;
 }
 
 const GeneratePage = () => {
