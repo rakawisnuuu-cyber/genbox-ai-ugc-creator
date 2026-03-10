@@ -43,8 +43,8 @@ const HeroSection = () => {
 
       {/* Grid pattern with parallax */}
       <div
+        ref={gridRef}
         className="absolute inset-0 grid-pattern"
-        style={{ transform: `translateY(${scrollY * 0.15}px)` }}
       />
 
       {/* Ambient glow behind headline */}
