@@ -139,7 +139,9 @@ const HeroSection = () => {
         <p className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/40">
           Hasil generate dari GENBOX
         </p>
-        <DepthDeckCarousel autoPlayInterval={3500} />
+        <Suspense fallback={<div className="h-[340px] flex items-center justify-center"><div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+          <DepthDeckCarousel autoPlayInterval={3500} />
+        </Suspense>
       </div>
     </section>
   );
