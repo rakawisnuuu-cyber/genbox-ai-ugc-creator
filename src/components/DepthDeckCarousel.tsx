@@ -15,10 +15,6 @@ const showcaseCards: ShowcaseCard[] = [
   { id: 3, type: "video", url: `${STORAGE_BASE}/video-3.mp4` },
   { id: 4, type: "video", url: `${STORAGE_BASE}/video-4.mp4` },
   { id: 5, type: "video", url: `${STORAGE_BASE}/video-5.mp4` },
-  { id: 6, type: "video", url: `${STORAGE_BASE}/video-6.mp4` },
-  { id: 7, type: "video", url: `${STORAGE_BASE}/video-7.mp4` },
-  { id: 8, type: "video", url: `${STORAGE_BASE}/video-8.mp4` },
-  { id: 9, type: "video", url: "/showcase/ugc-video-merge.mp4" },
 ];
 
 interface DepthDeckCarouselProps {

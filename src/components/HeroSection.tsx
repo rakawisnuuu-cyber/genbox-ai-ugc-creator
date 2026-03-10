@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
-import DepthDeckCarousel from "@/components/DepthDeckCarousel";
+
+const DepthDeckCarousel = lazy(() => import("@/components/DepthDeckCarousel"));
 
 const particles = [
   { size: 5, top: "18%", left: "12%", delay: "0s" },
@@ -10,12 +11,24 @@ const particles = [
 ];
 
 const HeroSection = () => {
-  const [scrollY, setScrollY] = useState(0);
+  const scrollRef = useRef(0);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY);
+    let rafId: number;
+    const onScroll = () => {
+      scrollRef.current = window.scrollY;
+      rafId = requestAnimationFrame(() => {
+        if (gridRef.current) {
+          gridRef.current.style.transform = `translateY(${scrollRef.current * 0.15}px)`;
+        }
+      });
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
   return (
@@ -30,8 +43,8 @@ const HeroSection = () => {
 
       {/* Grid pattern with parallax */}
       <div
+        ref={gridRef}
         className="absolute inset-0 grid-pattern"
-        style={{ transform: `translateY(${scrollY * 0.15}px)` }}
       />
 
       {/* Ambient glow behind headline */}
@@ -126,7 +139,9 @@ const HeroSection = () => {
         <p className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/40">
           Hasil generate dari GENBOX
         </p>
-        <DepthDeckCarousel autoPlayInterval={3500} />
+        <Suspense fallback={<div className="h-[340px] flex items-center justify-center"><div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+          <DepthDeckCarousel autoPlayInterval={3500} />
+        </Suspense>
       </div>
     </section>
   );

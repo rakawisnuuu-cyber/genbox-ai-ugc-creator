@@ -157,6 +157,7 @@ interface ShotStatus {
   state: "pending" | "prompting" | "generating" | "completed" | "failed";
   imageUrl?: string;
   error?: string;
+  prompt?: string;
 }
 
 const GeneratePage = () => {
@@ -590,7 +591,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
       try {
         const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
         const parsed = JSON.parse(cleaned);
-        const enhancedPrompt = `${parsed.final_prompt}\n\n${SKIN_BLOCK}\n\n${ENV_REALISM_BLOCK}\n\n${UGC_STYLE_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
+        const enhancedPrompt = `${parsed.final_prompt}\n\n${NEGATIVE_BLOCK}`;
         setPrompt(enhancedPrompt);
 
         // Store scene fields for visual consistency in multi-angle
@@ -781,10 +782,10 @@ RULES:
 - Describe the EXACT same room/environment and lighting
 - Show the EXACT same product
 - Only the POSE, EXPRESSION, and PRODUCT INTERACTION change
-- ${SKIN_BLOCK}
-- ${UGC_STYLE_BLOCK}
-- ${QUALITY_BLOCK}
-- ${NEGATIVE_BLOCK}
+- Include realistic skin texture with natural pores and slight oil sheen
+- UGC smartphone style — shot on iPhone/Samsung, casual angle, natural HDR
+- High resolution, natural shallow depth of field, warm daylight tint
+- No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no watermark
 
 Output ONLY the final prompt text, no JSON, no explanation.` });
 
@@ -830,7 +831,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
         await supabase.from("generations").insert({
           user_id: user!.id,
           type: "ugc_image",
-          prompt: `Storyboard: ${beat.label}`,
+          prompt: beatPrompt || `Storyboard: ${beat.label}`,
           image_url: urlData.publicUrl,
           character_id: selectedChar!.id.startsWith("p") ? null : selectedChar!.id,
           provider: "kie_ai",
@@ -848,7 +849,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
 
         setShotStatuses((prev) => {
           const next = [...prev];
-          next[idx] = { state: "completed", imageUrl: urlData.publicUrl };
+          next[idx] = { state: "completed", imageUrl: urlData.publicUrl, prompt: beatPrompt };
           return next;
         });
       } catch (err: any) {
@@ -1412,10 +1413,22 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                                 alt={beat?.label || `Frame ${i + 1}`}
                                 className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
                               />
-                              <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
                                 <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                                   <Download className="h-3 w-3" />
                                 </a>
+                                {shot.prompt && (
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(shot.prompt!);
+                                      toast({ title: "Prompt disalin!" });
+                                    }}
+                                    className="text-[7px] text-white/60 hover:text-white/90 transition-colors"
+                                    title={shot.prompt}
+                                  >
+                                    📋 Copy Prompt
+                                  </button>
+                                )}
                               </div>
                               <div className="absolute top-1 right-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-400" /></div>
                             </>
