@@ -782,10 +782,10 @@ RULES:
 - Describe the EXACT same room/environment and lighting
 - Show the EXACT same product
 - Only the POSE, EXPRESSION, and PRODUCT INTERACTION change
-- ${SKIN_BLOCK}
-- ${UGC_STYLE_BLOCK}
-- ${QUALITY_BLOCK}
-- ${NEGATIVE_BLOCK}
+- Include realistic skin texture with natural pores and slight oil sheen
+- UGC smartphone style — shot on iPhone/Samsung, casual angle, natural HDR
+- High resolution, natural shallow depth of field, warm daylight tint
+- No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no watermark
 
 Output ONLY the final prompt text, no JSON, no explanation.` });
 
