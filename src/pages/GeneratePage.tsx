@@ -849,7 +849,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
 
         setShotStatuses((prev) => {
           const next = [...prev];
-          next[idx] = { state: "completed", imageUrl: urlData.publicUrl };
+          next[idx] = { state: "completed", imageUrl: urlData.publicUrl, prompt: beatPrompt };
           return next;
         });
       } catch (err: any) {
