@@ -752,7 +752,6 @@ Content template: ${template?.label}`,
     return frame.prompt;
   };
 
-  // Generate single frame video
   // Per-frame cancel ref for individual and batch generation
   const frameCancelRef = useRef(false);
 
