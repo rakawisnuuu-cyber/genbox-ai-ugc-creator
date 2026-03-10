@@ -590,7 +590,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
       try {
         const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
         const parsed = JSON.parse(cleaned);
-        const enhancedPrompt = `${parsed.final_prompt}\n\n${SKIN_BLOCK}\n\n${ENV_REALISM_BLOCK}\n\n${UGC_STYLE_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
+        const enhancedPrompt = `${parsed.final_prompt}\n\n${NEGATIVE_BLOCK}`;
         setPrompt(enhancedPrompt);
 
         // Store scene fields for visual consistency in multi-angle
