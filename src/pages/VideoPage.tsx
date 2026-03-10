@@ -760,6 +760,10 @@ Content template: ${template?.label}`,
   };
 
   // Generate single frame video
+  // Per-frame cancel ref for individual and batch generation
+  const frameCancelRef = useRef(false);
+
+  // Generate single frame video
   const generateFrame = async (idx: number) => {
     if (!kieApiKey || keys.kie_ai.status !== "valid") {
       toast({ title: "Kie AI API key belum di-setup", variant: "destructive" });
@@ -772,6 +776,7 @@ Content template: ${template?.label}`,
       return;
     }
 
+    frameCancelRef.current = false;
     updateFrame(idx, { status: "generating", videoUrl: null, errorMsg: "", elapsed: 0 });
 
     // Start timer
@@ -808,7 +813,7 @@ Content template: ${template?.label}`,
           aspectRatio,
           apiKey: kieApiKey,
         },
-        () => false,
+        () => frameCancelRef.current || batchCancelRef.current,
       );
 
       clearInterval(frameTimersRef.current[idx]);
