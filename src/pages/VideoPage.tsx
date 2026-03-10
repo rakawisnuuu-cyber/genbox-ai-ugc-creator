@@ -584,19 +584,11 @@ Rules:
     setSourcePreview(URL.createObjectURL(file));
     setUploading(true);
 
-    // Convert File to base64 immediately (CORS-free)
-    const b64 = await new Promise<{ mimeType: string; data: string } | null>((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const mimeType = result.split(",")[0].split(":")[1].split(";")[0];
-        const data = result.split(",")[1];
-        resolve(data ? { mimeType, data } : null);
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
-    });
-    if (b64) setImageAsBase64(b64);
+    // Convert File to base64 immediately (CORS-free) using shared utility
+    const b64Data = await fileToBase64(file);
+    const mimeType = file.type || "image/jpeg";
+    const b64 = { mimeType, data: b64Data };
+    setImageAsBase64(b64);
 
     const ext = file.name.split(".").pop();
     const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
