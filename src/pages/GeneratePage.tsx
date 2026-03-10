@@ -1413,10 +1413,22 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                                 alt={beat?.label || `Frame ${i + 1}`}
                                 className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
                               />
-                              <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
                                 <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
                                   <Download className="h-3 w-3" />
                                 </a>
+                                {shot.prompt && (
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(shot.prompt!);
+                                      toast({ title: "Prompt disalin!" });
+                                    }}
+                                    className="text-[7px] text-white/60 hover:text-white/90 transition-colors"
+                                    title={shot.prompt}
+                                  >
+                                    📋 Copy Prompt
+                                  </button>
+                                )}
                               </div>
                               <div className="absolute top-1 right-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-400" /></div>
                             </>
