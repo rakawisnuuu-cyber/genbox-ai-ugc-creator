@@ -1,74 +1,46 @@
 
-Goal: fix multi-shot generation failures and make model behavior consistent by reusing one shared generation/polling path across quick + multi-shot.
+Goal: Comprehensive codebase audit — fix bugs, compress prompts, optimize performance.
 
-1) Root cause found (current failing run)
-- The failing multi-shot run is not primarily a polling bug.
-- Network responses show Grok task creation returns:
-  - `{"code":500,"msg":"duration is not within the range of allowed options"}`
-- Multi-shot currently sends module durations like 2/3/4/7s to Grok.
-- Grok image-to-video accepts limited duration values (6 or 10), so creation fails before polling.
-- Error display is misleading because code reads `message` but API returns `msg`, so user sees generic “Failed to create Grok task”.
+## Completed Changes
 
-2) Implementation plan (what to build)
-- Create a shared video generation client (single source of truth) used by:
-  - `src/pages/VideoPage.tsx` (quick mode)
-  - `src/hooks/useMultiShotGeneration.ts` (multi-shot mode)
-- Move all Kie logic into shared functions:
-  - task creation payload by model (Grok / Veo Fast / Veo Quality)
-  - polling endpoint + status parsing
-  - timeout + retry policy (including 404 retry cap)
-  - consistent URL extraction from result payloads
-  - consistent API error extraction (`msg || message || code`)
-- Remove duplicated inline generation logic from both call sites.
+### 1. Cancel Buttons Fixed (VideoPage)
+- Added `frameCancelRef` threaded through `generateVideoAndWait` so individual frame and batch generation can be properly cancelled.
+- Both `frameCancelRef.current` and `batchCancelRef.current` are checked during polling.
 
-3) Grok duration compatibility fix (critical)
-- Add duration normalization for Grok before createTask:
-  - map to allowed values only (6 or 10)
-  - recommended mapping: `<8 => 6`, `>=8 => 10`
-- Apply this in shared generator so both quick and multi-shot stay valid.
-- In Step 2 module editor, add Grok-specific UX guard:
-  - when model is Grok, show helper text “Durasi Grok hanya 6/10 detik”
-  - prevent silently invalid durations (either enforce picker options or show normalized final value per shot).
+### 2. Prompt Compression (~400+ tokens saved per generation)
+- Removed doubled SKIN_BLOCK, ENV_REALISM_BLOCK, UGC_STYLE_BLOCK, QUALITY_BLOCK from final prompt appending in GeneratePage (Gemini already includes these in its output).
+- Only NEGATIVE_BLOCK is kept as a post-append since it's for the image generator, not Gemini.
+- Compressed storyboard per-beat rules from ~600 words of full block text to ~100 words of inline guidance.
+- Consolidated FRAME_LOCK_SYSTEM from ~500 words (4 separate "MANDATORY" sections) to ~200 words in one "Visual Consistency" block.
 
-4) Polling/404 hardening
-- Keep Veo polling on `/api/v1/veo/record-info?taskId=...` and Grok on `/api/v1/jobs/recordInfo?taskId=...` in shared client.
-- Add explicit debug logs in shared poller:
-  - model, taskId, poll URL, HTTP status, parsed state
-- Stop polling after 5 consecutive 404s with clear actionable error.
-- Keep model-specific timeout windows:
-  - Grok 3m, Veo Fast 5m, Veo Quality 10m.
+### 3. Storyboard Prompts Exposed
+- Added `prompt` field to `ShotStatus` interface.
+- Store actual generated `beatPrompt` in ShotStatus on completion.
+- Save real prompt (not just label) to `generations` table.
+- Added "Copy Prompt" button on hover for completed storyboard frames.
 
-5) Multi-shot integration details
-- `generateSingleShot` in `useMultiShotGeneration.ts` becomes a thin wrapper:
-  - build image inputs + continuity image references
-  - call shared `generateVideoAndWait(...)`
-- Keep existing sequential behavior (continue next shot on failure).
-- Preserve shot-level retry/regenerate flow and status updates (no UX regression).
+### 4. Gemini Timeout Increased
+- Changed default from 30s → 60s in `gemini-fetch.ts`.
 
-6) Check “other modules” / regressions
-- Verify no breakage in:
-  - Quick video generation (`/video` quick mode)
-  - Multi-shot initial run
-  - Shot regenerate + “Save & Regenerate”
-  - Model switching between Grok / Veo Fast / Veo Quality
-  - Module insert/delete/reorder path still updates and generates correctly
-- Validate error toasts now show real provider messages (e.g., invalid duration).
+### 5. Landing Page Performance
+- Lazy-loaded `DepthDeckCarousel` via `React.lazy()` + `Suspense`.
+- Replaced `useState`-based scroll listener with `useRef` + `requestAnimationFrame` for zero-rerender parallax.
+- Reduced carousel videos from 9 → 5 to cut initial load.
 
-Technical details (concise)
-- New shared file (example): `src/lib/kie-video-generation.ts`
-- Exposed API (example):
-  - `normalizeDurationForModel(model, duration)`
-  - `createVideoTask(params)`
-  - `pollVideoTask(params)`
-  - `generateVideoAndWait(params)` (used by both quick + multi-shot)
-- Parsing rules:
-  - Grok success: `jobs/recordInfo` + `data.state === "success"` + parse `resultJson`
-  - Veo success: `veo/record-info` + `data.successFlag === 1`
-- Error normalization:
-  - throw `msg || message || "Unknown generation error"` so UI shows true cause.
+### 6. Shared Code Extracted
+- Created `src/hooks/useCustomCharacters.ts` — eliminates duplicated character fetch logic.
+- Updated `CharactersPage` to use the shared hook.
+- Replaced inline FileReader base64 conversion in VideoPage with shared `fileToBase64` from `image-utils.ts`.
 
-Validation matrix after implementation
-- Grok multi-shot (5 shots with mixed durations): creation succeeds, no duration 500.
-- Veo Fast multi-shot: no repeated 404 loop, completes with valid URL.
-- Veo Quality single-shot: completes within timeout window.
-- At least one failed case (intentional invalid key) returns clear message in UI.
+### 7. Preset Character URLs
+- Verified old project URLs (`hgwojnluqkrypwttytxb`) are public buckets and still accessible — no change needed.
+
+## Files Changed
+- `src/pages/VideoPage.tsx` — cancel ref fix, base64 dedup, import cleanup
+- `src/pages/GeneratePage.tsx` — prompt compression, storyboard prompt storage, UI prompt visibility
+- `src/lib/frame-lock-prompt.ts` — compressed FRAME_LOCK_SYSTEM
+- `src/lib/gemini-fetch.ts` — timeout 30s → 60s
+- `src/components/HeroSection.tsx` — lazy carousel, RAF scroll
+- `src/components/DepthDeckCarousel.tsx` — reduced to 5 videos
+- `src/pages/CharactersPage.tsx` — uses shared useCustomCharacters hook
+- `src/hooks/useCustomCharacters.ts` — new shared hook
