@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCountUp } from "@/components/GenerationLoading";
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import GalleryContent from "@/components/GalleryContent";
+import { useApiKeys } from "@/hooks/useApiKeys";
+import ApiKeySetupModal from "@/components/ApiKeySetupModal";
 
 const MODEL_COST: Record<string, number> = {
   "nano-banana-pro": 1440, nano: 960, seedream: 440, grok: 1600, veo3_fast: 6400, veo3: 32000,
