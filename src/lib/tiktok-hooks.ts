@@ -122,6 +122,12 @@ const TEMPLATE_HOOK_MAP: Record<ContentTemplateKey, HookCategory[]> = {
   quick_haul: ["pattern_interrupt", "surprise", "recommendation"],
   asmr_aesthetic: ["curiosity", "pattern_interrupt"],
   pov_style: ["pov", "curiosity", "mini_story"],
+  grwm: ["mini_story", "relatable_problem", "recommendation"],
+  tiga_alasan: ["honest_review", "recommendation", "curiosity"],
+  expectation_reality: ["surprise", "pattern_interrupt", "honest_review"],
+  tutorial_singkat: ["curiosity", "recommendation", "mini_story"],
+  day_in_my_life: ["mini_story", "relatable_problem", "recommendation"],
+  first_impression: ["honest_review", "surprise", "curiosity"],
 };
 
 /** Get the relevant hook categories for a template */
