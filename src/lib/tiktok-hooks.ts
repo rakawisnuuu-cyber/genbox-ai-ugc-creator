@@ -220,6 +220,48 @@ export const BODY_SCRIPTS: Record<ContentTemplateKey, string[]> = {
     "POV: kamu ga nyangka hasilnya bakal secepat ini.",
     "POV: ini jadi produk favorit baru kamu.",
   ],
+  grwm: [
+    "Ini morning routine aku yang ga pernah skip.",
+    "GRWM! Sambil siapin diri, aku pake ini dulu.",
+    "Pagi-pagi gini wajib pake ini dulu sebelum ngapa-ngapain.",
+    "Step yang selalu aku lakuin tiap pagi.",
+    "Rutinitas pagi aku simpel tapi hasilnya kerasa banget.",
+  ],
+  tiga_alasan: [
+    "Ada 3 alasan kenapa aku suka banget sama produk ini.",
+    "Aku kasih tau 3 hal yang bikin ini beda dari yang lain.",
+    "Alasan pertama aja udah bikin aku yakin sih.",
+    "3 hal yang harus kamu tau sebelum beli ini.",
+    "Ini 3 alasan kenapa aku bakal repurchase.",
+  ],
+  expectation_reality: [
+    "Awalnya aku skeptis, tapi ternyata...",
+    "Ekspektasi vs realita ternyata beda jauh.",
+    "Aku kira bakal biasa aja, ternyata...",
+    "Ga nyangka hasilnya bakal kayak gini.",
+    "Plot twist: ternyata bagus banget.",
+  ],
+  tutorial_singkat: [
+    "Ini cara pake yang bener, simpel banget.",
+    "Tutorial singkat yang wajib kamu tau.",
+    "Ikutin step-step ini biar hasilnya maksimal.",
+    "Gampang banget ternyata pakenya.",
+    "Ini cara aku pake biar hasilnya optimal.",
+  ],
+  day_in_my_life: [
+    "Sehari-hari aku selalu pake ini.",
+    "Ini produk yang selalu nemenin hari-hari aku.",
+    "From morning to night, ini selalu ada.",
+    "Day in my life dan produk yang ga bisa aku tinggalin.",
+    "Ini udah jadi bagian dari hari-hari aku.",
+  ],
+  first_impression: [
+    "Ini pertama kalinya aku coba dan langsung suka.",
+    "First impression: aku kaget sih.",
+    "Belum pernah coba sama sekali, jadi ini honest reaction aku.",
+    "Kita liat ya first impression aku gimana.",
+    "Pertama kali pake dan ini reaksi jujur aku.",
+  ],
 };
 
 /** Get random body scripts for a template */
