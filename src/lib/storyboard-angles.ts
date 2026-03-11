@@ -12,6 +12,10 @@ export interface StoryboardBeat {
   beat: string;
   storyRole: "Hook" | "Build" | "Demo" | "Proof" | "Convert";
   description: string;
+  /** Constraints for this beat — e.g. noProductUsage means product must NOT be shown being used */
+  constraints?: {
+    noProductUsage?: boolean;
+  };
 }
 
 export interface StoryboardTemplate {
@@ -42,7 +46,7 @@ const STORYBOARDS: Record<ContentTemplateKey, StoryboardBeat[]> = {
     { label: "Verdict", beat: "8-10s", storyRole: "Convert", description: "Looking at camera with satisfied expression, product in hand. Impressed nod or happy smile. Product label visible." },
   ],
   before_after: [
-    { label: "Before State", beat: "0-2s", storyRole: "Hook", description: "Showing the before condition — frustrated or disappointed expression, pointing at or displaying the problem area." },
+    { label: "Before State", beat: "0-2s", storyRole: "Hook", description: "Showing the before condition — frustrated or disappointed expression, pointing at or displaying the problem area. Product must NOT be visible or used yet.", constraints: { noProductUsage: true } },
     { label: "Introduce Product", beat: "2-4s", storyRole: "Build", description: "Picking up product with hopeful expression. Looking at product then at camera, suggesting this might be the solution." },
     { label: "Application", beat: "4-6s", storyRole: "Demo", description: "Carefully applying or using the product. Focused, deliberate motion. Showing the process clearly." },
     { label: "After Reveal", beat: "6-8s", storyRole: "Proof", description: "Revealing the after result — amazed expression, touching improved area. Genuine surprise at the difference." },
@@ -75,6 +79,49 @@ const STORYBOARDS: Record<ContentTemplateKey, StoryboardBeat[]> = {
     { label: "POV Use", beat: "4-6s", storyRole: "Demo", description: "Using product from close POV angle — applying, opening, activating. Hands and product dominate frame." },
     { label: "POV Result", beat: "6-8s", storyRole: "Proof", description: "POV looking at result — mirror reflection, looking down at hands, checking outcome." },
     { label: "Face Reveal", beat: "8-10s", storyRole: "Convert", description: "Camera shifts to reveal the person's face with product. Breaking POV to show the person. Satisfied expression." },
+  ],
+  // ── NEW TEMPLATES ──
+  grwm: [
+    { label: "Just Woke Up", beat: "0-2s", storyRole: "Hook", description: "Morning shot — slightly messy hair, stretching or rubbing eyes. Soft golden light from window. Authentic 'baru bangun' energy. No product yet.", constraints: { noProductUsage: true } },
+    { label: "Start Routine", beat: "2-4s", storyRole: "Build", description: "Moving to vanity/bathroom, reaching for product among daily items on counter. Natural morning routine beginning." },
+    { label: "Apply/Use Product", beat: "4-6s", storyRole: "Demo", description: "Using product as natural step in morning routine. Comfortable practiced movement. Looking in mirror or at camera." },
+    { label: "Almost Ready", beat: "6-8s", storyRole: "Proof", description: "Checking result in mirror with satisfied expression. Quick hair/outfit adjustment. Confidence building, product visible on counter." },
+    { label: "Ready & Go", beat: "8-10s", storyRole: "Convert", description: "Final mirror check, warm smile, grabs bag or phone. Product visible in routine lineup. 'Siap jalan' energy." },
+  ],
+  tiga_alasan: [
+    { label: "Hook — 3 Alasan", beat: "0-2s", storyRole: "Hook", description: "Direct eye contact, holds up product with excited expression. Slight lean forward. 'Aku mau kasih tau 3 alasan' energy." },
+    { label: "Alasan 1", beat: "2-4s", storyRole: "Build", description: "Demonstrates first feature/benefit. Points at specific product detail, animated explaining gesture. Genuine enthusiasm." },
+    { label: "Alasan 2", beat: "4-6s", storyRole: "Demo", description: "Shows second benefit through use/application. Hands active on product. Impressed nodding, 'ini yang bikin beda' expression." },
+    { label: "Alasan 3", beat: "6-8s", storyRole: "Proof", description: "Final most convincing reason. Shows result or comparison. Wide eyes, emphatic gesture. The 'killer reason' moment." },
+    { label: "Summary CTA", beat: "8-10s", storyRole: "Convert", description: "Holds product to camera with confident smile. Slow nod, direct eye contact. 'Trust me on this' energy. Label clearly visible." },
+  ],
+  expectation_reality: [
+    { label: "Skeptical Look", beat: "0-2s", storyRole: "Hook", description: "Skeptical expression, examining product packaging. Raised eyebrow, slight doubt. 'Hmm, beneran nih?' energy. Holding product at arm's length." },
+    { label: "Expectation", beat: "2-4s", storyRole: "Build", description: "Points at label claims or packaging promises. Exaggerated doubtful expression. 'Let's see' shrug. Product details visible." },
+    { label: "Try It", beat: "4-6s", storyRole: "Demo", description: "Tries the product with curious expression. Face begins shifting from doubt to surprise. Natural transition." },
+    { label: "Reality Reveal", beat: "6-8s", storyRole: "Proof", description: "Genuine surprised reaction — 'Wait, this actually works?' Eyes widen, jaw drops. Touches result, new respect for product." },
+    { label: "Converted", beat: "8-10s", storyRole: "Convert", description: "Converted believer smile at camera. Holds product proudly. 'Okay I was wrong' slight laugh. Warm direct eye contact." },
+  ],
+  tutorial_singkat: [
+    { label: "Setup", beat: "0-2s", storyRole: "Hook", description: "Hands and product on clean surface. Person enters frame, picks up product. Calm focused expression, tutorial-mode. 'Let me show you' energy." },
+    { label: "Step 1", beat: "2-4s", storyRole: "Build", description: "First step shown clearly. Slow deliberate hand movements, product details visible. Glances at camera checking viewer follows." },
+    { label: "Step 2", beat: "4-6s", storyRole: "Demo", description: "Main application/usage step. Close-up on hands working. Shows correct way to use. Teaching energy, controlled pace." },
+    { label: "Step 3 Result", beat: "6-8s", storyRole: "Proof", description: "Finishing step showing result. Steps back to show full result. Approving nod, satisfied with demonstration." },
+    { label: "Easy Right?", beat: "8-10s", storyRole: "Convert", description: "Final result display — warm smile at camera, product visible. 'See? Easy!' expression. Inviting, helpful energy." },
+  ],
+  day_in_my_life: [
+    { label: "Morning", beat: "0-2s", storyRole: "Hook", description: "Morning establishing — stretching in bed, soft light, peaceful start. Authentic 'just another day' vibe. No product yet.", constraints: { noProductUsage: true } },
+    { label: "Midday Activity", beat: "2-4s", storyRole: "Build", description: "Midday scene — at desk, cafe, or errands. Product appears naturally as part of the activity. Not staged." },
+    { label: "Product Moment", beat: "4-6s", storyRole: "Demo", description: "Natural point in the day when they use the product. Casual integration, not a demo. Lunch, afternoon routine, or workout break." },
+    { label: "Enjoying Benefit", beat: "6-8s", storyRole: "Proof", description: "Enjoying the product's benefit. Relaxed, content expression. Product visible but not centered — it's part of life." },
+    { label: "End of Day", beat: "8-10s", storyRole: "Convert", description: "Cozy evening setting, soft warm light. Product on nightstand/table. Peaceful satisfied expression, looking at camera." },
+  ],
+  first_impression: [
+    { label: "First Look", beat: "0-2s", storyRole: "Hook", description: "Holding sealed/new product for first time. Curious expression, examining packaging. 'Never tried this before' energy." },
+    { label: "First Open", beat: "2-4s", storyRole: "Build", description: "Opens product for first time — careful unpeeling, cap twist. Reaction to smell/texture. 'Oh interesting...' moment." },
+    { label: "First Try", beat: "4-6s", storyRole: "Demo", description: "First use/application — tentative at first, then adjusting. Learning the product in real-time. Honest facial reactions." },
+    { label: "Assessment", beat: "6-8s", storyRole: "Proof", description: "Processing the result — touching, checking, comparing to expectations. Building genuine opinion. Mix of impressed and analytical." },
+    { label: "Honest Verdict", beat: "8-10s", storyRole: "Convert", description: "Final honest verdict — direct eye contact, genuine opinion. Authentic not forced. Product visible, natural close." },
   ],
 };
 
