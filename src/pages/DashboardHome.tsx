@@ -42,6 +42,7 @@ type DashboardTab = "overview" | "gallery";
 
 const DashboardHome = () => {
   const { user } = useAuth();
+  const { keys, isLoading: keysLoading } = useApiKeys();
   const [loading, setLoading] = useState(true);
   const [totalGen, setTotalGen] = useState(0);
   const [monthGen, setMonthGen] = useState(0);
@@ -49,6 +50,17 @@ const DashboardHome = () => {
   const [totalCost, setTotalCost] = useState(0);
   const [dailyData, setDailyData] = useState<DailyPoint[]>([]);
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
+  const [showApiSetup, setShowApiSetup] = useState(false);
+
+  // Show API key setup modal if keys are missing
+  useEffect(() => {
+    if (keysLoading) return;
+    const kieEmpty = !keys.kie_ai.key;
+    const geminiEmpty = !keys.gemini.key;
+    if (kieEmpty || geminiEmpty) {
+      setShowApiSetup(true);
+    }
+  }, [keysLoading, keys]);
 
   const firstName = user?.email?.split("@")[0] || "User";
   const now = new Date();
