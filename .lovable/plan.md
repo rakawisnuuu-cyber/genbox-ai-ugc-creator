@@ -1,46 +1,47 @@
 
-Goal: Comprehensive codebase audit — fix bugs, compress prompts, optimize performance.
+Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 
 ## Completed Changes
 
-### 1. Cancel Buttons Fixed (VideoPage)
-- Added `frameCancelRef` threaded through `generateVideoAndWait` so individual frame and batch generation can be properly cancelled.
-- Both `frameCancelRef.current` and `batchCancelRef.current` are checked during polling.
+### Phase 1 (Previous Audit)
+- Cancel buttons fixed, prompt compression, storyboard prompts exposed, Gemini timeout 60s, landing page perf, shared hooks
 
-### 2. Prompt Compression (~400+ tokens saved per generation)
-- Removed doubled SKIN_BLOCK, ENV_REALISM_BLOCK, UGC_STYLE_BLOCK, QUALITY_BLOCK from final prompt appending in GeneratePage (Gemini already includes these in its output).
-- Only NEGATIVE_BLOCK is kept as a post-append since it's for the image generator, not Gemini.
-- Compressed storyboard per-beat rules from ~600 words of full block text to ~100 words of inline guidance.
-- Consolidated FRAME_LOCK_SYSTEM from ~500 words (4 separate "MANDATORY" sections) to ~200 words in one "Visual Consistency" block.
+### Phase 2 (Current — Ad Engine Evolution)
 
-### 3. Storyboard Prompts Exposed
-- Added `prompt` field to `ShotStatus` interface.
-- Store actual generated `beatPrompt` in ShotStatus on completion.
-- Save real prompt (not just label) to `generations` table.
-- Added "Copy Prompt" button on hover for completed storyboard frames.
+### 1. Environment Library Overhaul
+- Replaced all Western-centric environments with Indonesian micro-environments per reference doc
+- Shortened descriptions from ~60 words to ~25 words (massive token savings)
+- Categories: Skincare (Bathroom Vanity, Morning Routine Sink, Bedroom Vanity, Spa Style), Fashion (Bedroom Mirror, Closet Area, Apartment Hallway, Balcony), Food (Kitchen Counter, Breakfast Table, Kitchen Island, Snack Table), Electronics (Creator Desk, Bedroom Work Desk, Gaming Setup, Coffee Table Review), Health (Living Room Workout, Home Yoga Corner, Balcony Workout, Home Gym Corner), Home (Couch Talk, Bed Talk, Desk Chat, Balcony Vlog, Kamar Kost)
 
-### 4. Gemini Timeout Increased
-- Changed default from 30s → 60s in `gemini-fetch.ts`.
+### 2. Content Templates Expanded (8 → 14)
+- Added: GRWM, 3 Alasan, Expectation vs Reality, Tutorial Singkat, Day in My Life, First Impression
+- Each with full timing (20s) and compressed timing (10s) beats
+- All with `recommendedFor` category mappings
+- Updated `tiktok-hooks.ts` with hook categories and body scripts for all 6 new templates
 
-### 5. Landing Page Performance
-- Lazy-loaded `DepthDeckCarousel` via `React.lazy()` + `Suspense`.
-- Replaced `useState`-based scroll listener with `useRef` + `requestAnimationFrame` for zero-rerender parallax.
-- Reduced carousel videos from 9 → 5 to cut initial load.
+### 3. Storyboard Beats for New Templates
+- Added all 6 new template beats to `storyboard-angles.ts`
+- Added `constraints` field to StoryboardBeat interface
+- Enforced `{ noProductUsage: true }` on Before>After frame 1, GRWM frame 1, Day in My Life frame 1
+- These constraints are available for Gemini prompt generation to enforce narrative logic
 
-### 6. Shared Code Extracted
-- Created `src/hooks/useCustomCharacters.ts` — eliminates duplicated character fetch logic.
-- Updated `CharactersPage` to use the shared hook.
-- Replaced inline FileReader base64 conversion in VideoPage with shared `fileToBase64` from `image-utils.ts`.
+### 4. API Key Setup Modal
+- Created `ApiKeySetupModal.tsx` — step-by-step wizard (Intro → Kie AI → Gemini → Done)
+- Shows instructions for obtaining each key with external links
+- Password toggle, test key, save & next flow
+- Progress bar across steps
+- Triggered from `DashboardHome.tsx` when API keys are missing
 
-### 7. Preset Character URLs
-- Verified old project URLs (`hgwojnluqkrypwttytxb`) are public buckets and still accessible — no change needed.
+## Remaining (Next Message)
+- Character prompt visibility in CreateCharacterPage
+- Gallery saving fix for single images (upload to storage before DB insert)
+- Media analysis panel (MediaInsightsPanel component)
+- Storyboard constraint enforcement in GeneratePage prompt generation
 
 ## Files Changed
-- `src/pages/VideoPage.tsx` — cancel ref fix, base64 dedup, import cleanup
-- `src/pages/GeneratePage.tsx` — prompt compression, storyboard prompt storage, UI prompt visibility
-- `src/lib/frame-lock-prompt.ts` — compressed FRAME_LOCK_SYSTEM
-- `src/lib/gemini-fetch.ts` — timeout 30s → 60s
-- `src/components/HeroSection.tsx` — lazy carousel, RAF scroll
-- `src/components/DepthDeckCarousel.tsx` — reduced to 5 videos
-- `src/pages/CharactersPage.tsx` — uses shared useCustomCharacters hook
-- `src/hooks/useCustomCharacters.ts` — new shared hook
+- `src/lib/category-options.ts` — full environment rewrite
+- `src/lib/content-templates.ts` — 6 new templates added
+- `src/lib/storyboard-angles.ts` — 6 new beat sets, constraints field
+- `src/lib/tiktok-hooks.ts` — hook maps and body scripts for new templates
+- `src/components/ApiKeySetupModal.tsx` — new setup wizard
+- `src/pages/DashboardHome.tsx` — triggers API key modal
