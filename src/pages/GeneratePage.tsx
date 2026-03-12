@@ -662,11 +662,26 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
       setResultUrl(imageUrl);
       setGenState("completed");
 
+      // Upload to storage for persistence
+      let persistedUrl = imageUrl;
+      try {
+        const imgRes = await fetch(imageUrl, { mode: "cors" });
+        if (imgRes.ok) {
+          const blob = await imgRes.blob();
+          const path = `${user!.id}/gen-${Date.now()}.jpg`;
+          const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, blob);
+          if (!uploadErr) {
+            const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+            persistedUrl = urlData.publicUrl;
+          }
+        }
+      } catch { /* keep original URL if upload fails */ }
+
       await supabase.from("generations").insert({
         user_id: user!.id,
         type: "ugc_image",
         prompt,
-        image_url: imageUrl,
+        image_url: persistedUrl,
         character_id: selectedChar.id.startsWith("p") ? null : selectedChar.id,
         provider: "kie_ai",
         model: "nano-banana-pro",
