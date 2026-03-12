@@ -82,7 +82,6 @@ const ENV_REALISM_BLOCK = "Environment must look like a REAL lived-in space phot
 const UGC_STYLE_BLOCK = "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
 
 import { imageUrlToBase64, fileToBase64 } from "@/lib/image-utils";
-import MediaInsightsPanel from "@/components/MediaInsightsPanel";
 
 /* ── Kie AI single image generation helper ──────────────────── */
 async function generateKieImage(
@@ -662,26 +661,11 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
       setResultUrl(imageUrl);
       setGenState("completed");
 
-      // Upload to storage for persistence
-      let persistedUrl = imageUrl;
-      try {
-        const imgRes = await fetch(imageUrl, { mode: "cors" });
-        if (imgRes.ok) {
-          const blob = await imgRes.blob();
-          const path = `${user!.id}/gen-${Date.now()}.jpg`;
-          const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, blob);
-          if (!uploadErr) {
-            const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-            persistedUrl = urlData.publicUrl;
-          }
-        }
-      } catch { /* keep original URL if upload fails */ }
-
       await supabase.from("generations").insert({
         user_id: user!.id,
         type: "ugc_image",
         prompt,
-        image_url: persistedUrl,
+        image_url: imageUrl,
         character_id: selectedChar.id.startsWith("p") ? null : selectedChar.id,
         provider: "kie_ai",
         model: "nano-banana-pro",
@@ -1521,19 +1505,6 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                 </div>
               )}
             </div>
-
-            {/* Media Insights */}
-            {geminiKey && (
-              <div className="w-full border-t border-border pt-4 mt-2">
-                <MediaInsightsPanel
-                  productDNA={productDNA}
-                  prompt={prompt}
-                  templateKey={storyboardTemplate || undefined}
-                  geminiKey={geminiKey}
-                  promptModel={promptModel}
-                />
-              </div>
-            )}
           </div>
         )}
 

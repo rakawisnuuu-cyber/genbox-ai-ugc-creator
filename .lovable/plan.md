@@ -1,37 +1,47 @@
 
+Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 
-# Storyboard Flow Revamp
+## Completed Changes
 
-## Current Flow (What Exists)
-1. Upload product → 2. Select character → 3. Scene settings → 4. Generate prompt → 5. Generate base image → 6. Pick template (hidden in right panel after image) → 7. Generate storyboard
+### Phase 1 (Previous Audit)
+- Cancel buttons fixed, prompt compression, storyboard prompts exposed, Gemini timeout 60s, landing page perf, shared hooks
 
-The template picker only appears AFTER a base image is generated (line 1326: `!storyboardActive && shotStatuses.length === 0` inside the `genState === "completed"` block on the right panel).
+### Phase 2 (Current — Ad Engine Evolution)
 
-## New Flow (What We're Building)
-1. Upload product → 2. Select character → 3. **Pick content template** → 4. Scene settings → 5. Generate prompt (template-aware) → 6. Generate base image → 7. Storyboard auto-populates with beat previews → 8. Generate storyboard
+### 1. Environment Library Overhaul
+- Replaced all Western-centric environments with Indonesian micro-environments per reference doc
+- Shortened descriptions from ~60 words to ~25 words (massive token savings)
+- Categories: Skincare (Bathroom Vanity, Morning Routine Sink, Bedroom Vanity, Spa Style), Fashion (Bedroom Mirror, Closet Area, Apartment Hallway, Balcony), Food (Kitchen Counter, Breakfast Table, Kitchen Island, Snack Table), Electronics (Creator Desk, Bedroom Work Desk, Gaming Setup, Coffee Table Review), Health (Living Room Workout, Home Yoga Corner, Balcony Workout, Home Gym Corner), Home (Couch Talk, Bed Talk, Desk Chat, Balcony Vlog, Kamar Kost)
 
-## Changes
+### 2. Content Templates Expanded (8 → 14)
+- Added: GRWM, 3 Alasan, Expectation vs Reality, Tutorial Singkat, Day in My Life, First Impression
+- Each with full timing (20s) and compressed timing (10s) beats
+- All with `recommendedFor` category mappings
+- Updated `tiktok-hooks.ts` with hook categories and body scripts for all 6 new templates
 
-### A. Move Template Picker to Left Panel
-Move the template selection UI from the right panel (after image generation) into the left panel, between "Pilih Karakter" and "Pengaturan Scene". This makes template selection a required step BEFORE prompt generation.
+### 3. Storyboard Beats for New Templates
+- Added all 6 new template beats to `storyboard-angles.ts`
+- Added `constraints` field to StoryboardBeat interface
+- Enforced `{ noProductUsage: true }` on Before>After frame 1, GRWM frame 1, Day in My Life frame 1
+- These constraints are available for Gemini prompt generation to enforce narrative logic
 
-### B. Make Prompt Generation Template-Aware
-When a template is selected, inject the template's narrative structure into the Gemini prompt so the base image is generated with the correct starting beat in mind. For example, if "Before After" is selected, the base prompt should match the "Before State" beat (frame 1).
+### 4. API Key Setup Modal
+- Created `ApiKeySetupModal.tsx` — step-by-step wizard (Intro → Kie AI → Gemini → Done)
+- Shows instructions for obtaining each key with external links
+- Password toggle, test key, save & next flow
+- Progress bar across steps
+- Triggered from `DashboardHome.tsx` when API keys are missing
 
-### C. Enforce `noProductUsage` Constraint
-In `generateSingleBeat`, check `beat.constraints?.noProductUsage`. If true, append instruction to the Gemini prompt: "The product must NOT be shown being used, held, or applied in this frame. It can be visible in the background or nearby but NOT actively used."
-
-### D. Auto-Show Storyboard After Base Image
-Once the base image generates AND a template is selected, immediately show the beat preview timeline on the right panel (no need to re-pick template). The "Generate Storyboard" button appears right away.
-
-### E. Recommended Templates Badge
-Show which templates are recommended for the detected product category using the existing `recommendedFor` field in content templates.
+## Remaining (Next Message)
+- Character prompt visibility in CreateCharacterPage
+- Gallery saving fix for single images (upload to storage before DB insert)
+- Media analysis panel (MediaInsightsPanel component)
+- Storyboard constraint enforcement in GeneratePage prompt generation
 
 ## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/pages/GeneratePage.tsx` | Move template picker to left panel, inject template into prompt generation, enforce constraints in storyboard beats, auto-show storyboard after base image |
-
-Single file change — all logic is in GeneratePage.tsx.
-
+- `src/lib/category-options.ts` — full environment rewrite
+- `src/lib/content-templates.ts` — 6 new templates added
+- `src/lib/storyboard-angles.ts` — 6 new beat sets, constraints field
+- `src/lib/tiktok-hooks.ts` — hook maps and body scripts for new templates
+- `src/components/ApiKeySetupModal.tsx` — new setup wizard
+- `src/pages/DashboardHome.tsx` — triggers API key modal
