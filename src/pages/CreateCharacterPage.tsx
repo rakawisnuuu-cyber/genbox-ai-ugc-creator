@@ -421,6 +421,8 @@ export default function CreateCharacterPage() {
       setShots((p) => ({ ...p, hero_portrait: { status: "generating", model: SHOT_CONFIGS.hero_portrait.model } }));
 
       const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors, { imperfection: form.imperfection, environment: form.environment, advancedContext });
+      setPromptPreview(heroPrompt);
+      setPromptPreviewOpen(true);
       const heroImageInput: string[] = refUrls.length > 0 ? [refUrls[0]] : [];
 
       const heroCreateRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
