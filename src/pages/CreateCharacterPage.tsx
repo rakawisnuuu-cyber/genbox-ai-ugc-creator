@@ -273,6 +273,8 @@ export default function CreateCharacterPage() {
 
   // Hero-first: store identity data for later variation generation
   const [identityData, setIdentityData] = useState<{ identityBlock: string; consistencyAnchors: string[]; advancedContext: string } | null>(null);
+  const [promptPreview, setPromptPreview] = useState<string | null>(null);
+  const [promptPreviewOpen, setPromptPreviewOpen] = useState(false);
   const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
   const [generatingSingleShot, setGeneratingSingleShot] = useState<ShotKey | null>(null);
 
