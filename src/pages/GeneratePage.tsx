@@ -1521,6 +1521,19 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                 </div>
               )}
             </div>
+
+            {/* Media Insights */}
+            {geminiKey && (
+              <div className="w-full border-t border-border pt-4 mt-2">
+                <MediaInsightsPanel
+                  productDNA={productDNA}
+                  prompt={prompt}
+                  templateKey={storyboardTemplate || undefined}
+                  geminiKey={geminiKey}
+                  promptModel={promptModel}
+                />
+              </div>
+            )}
           </div>
         )}
 
