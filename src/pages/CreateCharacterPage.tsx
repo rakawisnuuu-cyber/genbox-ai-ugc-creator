@@ -21,6 +21,11 @@ import {
 } from "lucide-react";
 import UpscaleButton from "@/components/UpscaleButton";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   VIBE_PACKS,
   IMPERFECTION_LEVELS,
   ENVIRONMENT_DETAILS,
