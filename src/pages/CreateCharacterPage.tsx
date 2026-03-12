@@ -17,9 +17,14 @@ import {
 import {
   Camera, RotateCcw, Mic, PersonStanding, Search, Hand,
   Zap, CheckCircle2, Loader2, AlertCircle, X, Download, Upload, ImageIcon,
-  Sparkles,
+  Sparkles, ScanSearch,
 } from "lucide-react";
 import UpscaleButton from "@/components/UpscaleButton";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   VIBE_PACKS,
   IMPERFECTION_LEVELS,
@@ -268,6 +273,8 @@ export default function CreateCharacterPage() {
 
   // Hero-first: store identity data for later variation generation
   const [identityData, setIdentityData] = useState<{ identityBlock: string; consistencyAnchors: string[]; advancedContext: string } | null>(null);
+  const [promptPreview, setPromptPreview] = useState<string | null>(null);
+  const [promptPreviewOpen, setPromptPreviewOpen] = useState(false);
   const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
   const [generatingSingleShot, setGeneratingSingleShot] = useState<ShotKey | null>(null);
 
@@ -414,6 +421,8 @@ export default function CreateCharacterPage() {
       setShots((p) => ({ ...p, hero_portrait: { status: "generating", model: SHOT_CONFIGS.hero_portrait.model } }));
 
       const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors, { imperfection: form.imperfection, environment: form.environment, advancedContext });
+      setPromptPreview(heroPrompt);
+      setPromptPreviewOpen(true);
       const heroImageInput: string[] = refUrls.length > 0 ? [refUrls[0]] : [];
 
       const heroCreateRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
@@ -961,6 +970,38 @@ export default function CreateCharacterPage() {
               );
             })}
           </div>
+
+          {/* Prompt Preview */}
+          {identityData && (
+            <Collapsible open={promptPreviewOpen} onOpenChange={setPromptPreviewOpen} className="mb-4">
+              <CollapsibleTrigger className="w-full flex items-center justify-between bg-card border border-border rounded-lg px-3 py-2.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <span className="flex items-center gap-2 font-medium uppercase tracking-wider">
+                  <ScanSearch className="w-3.5 h-3.5" /> Lihat Prompt yang Digunakan
+                </span>
+                <span className="text-[10px]">{promptPreviewOpen ? "▲" : "▼"}</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 bg-muted/50 border border-border rounded-lg p-3 animate-fade-in">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-2">Identity Block</p>
+                <p className="text-[12px] text-foreground leading-relaxed mb-3">{identityData.identityBlock}</p>
+                {identityData.consistencyAnchors.length > 0 && (
+                  <>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">Consistency Anchors</p>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {identityData.consistencyAnchors.map((a, i) => (
+                        <span key={i} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">{a}</span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {promptPreview && (
+                  <>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">Full Hero Prompt</p>
+                    <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap max-h-40 overflow-y-auto bg-background rounded p-2 border border-border">{promptPreview}</pre>
+                  </>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {/* Cost indicator — dynamic */}
           <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4 text-xs text-muted-foreground">
