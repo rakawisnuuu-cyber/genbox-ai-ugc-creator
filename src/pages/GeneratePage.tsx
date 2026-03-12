@@ -82,6 +82,7 @@ const ENV_REALISM_BLOCK = "Environment must look like a REAL lived-in space phot
 const UGC_STYLE_BLOCK = "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
 
 import { imageUrlToBase64, fileToBase64 } from "@/lib/image-utils";
+import MediaInsightsPanel from "@/components/MediaInsightsPanel";
 
 /* ── Kie AI single image generation helper ──────────────────── */
 async function generateKieImage(
