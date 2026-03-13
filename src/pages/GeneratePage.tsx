@@ -39,6 +39,7 @@ import {
   Play,
   ArrowRight,
   Camera,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,7 +72,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { CharacterData } from "@/components/CharacterCard";
-
 
 
 /* ── GENBOX Realism Blocks ──────────────────────────────────── */
@@ -244,6 +244,7 @@ const GeneratePage = () => {
   // Prompt-first state
   const [generatedPrompts, setGeneratedPrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Navigation blocker: warn on browser close/refresh
   const isGenerating = genState === "loading" || storyboardActive;
@@ -912,82 +913,107 @@ Output ONLY the JSON array. No explanation.` });
   const storyboardDone = totalShots > 0 && !storyboardActive && !promptsLoading && completedShots > 0 && (completedShots + failedShots === totalShots);
   const currentBeats = storyboardTemplate ? getStoryboardBeats(storyboardTemplate) : [];
 
+  /* ── helpers for step indicators ──────────────────────────── */
+  const stepDone = (n: number) => {
+    if (n === 1) return !!productUrl;
+    if (n === 2) return !!selectedChar;
+    if (n === 3) return !!storyboardTemplate;
+    if (n === 4) return !!background;
+    return false;
+  };
+
+  
+
+  const StepLabel = ({ num, label }: { num: number; label: string }) => (
+    <div className="flex items-center gap-3 mb-3">
+      <div className={`flex items-center gap-2 border-l-[3px] pl-3 py-0.5 ${stepDone(num) ? "border-primary" : "border-white/[0.06]"}`}>
+        <span className={`text-[10px] font-mono font-bold ${stepDone(num) ? "text-primary" : "text-muted-foreground/25"}`}>
+          {String(num).padStart(2, "0")}
+        </span>
+        <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30">{label}</span>
+      </div>
+    </div>
+  );
+
   /* ── Render ───────────────────────────────────────────────── */
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100dvh-48px)] lg:min-h-[calc(100dvh-0px)] -mx-4 -my-4 lg:-mx-6 lg:-my-8">
-      {/* Navigation blocker is handled via beforeunload */}
 
       {/* LEFT PANEL */}
       <div className="w-full lg:w-[55%] overflow-y-auto px-4 lg:px-6 py-6 lg:py-8 space-y-6">
         {/* Header */}
         <div className="animate-fade-up">
           <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Generate Gambar</h1>
-          <p className="text-xs text-muted-foreground mt-1">Buat konten UGC realistis dengan AI</p>
+          <p className="text-xs text-muted-foreground/50 mt-1">Buat konten UGC realistis dengan AI</p>
         </div>
 
-        {/* Upload Produk */}
+        {/* Step 01 — Upload Produk */}
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Upload Produk</label>
+          <StepLabel num={1} label="Upload Produk" />
           {productPreview ? (
-            <div className="space-y-2">
-              <div className="relative inline-block">
-                <img src={productPreview} alt="Product" className="h-32 w-32 rounded-xl object-cover border border-border" />
-                <button
-                  onClick={removeProduct}
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-                {uploading && (
-                  <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  </div>
-                )}
-              </div>
-
-              {/* Product DNA Badge */}
-              {detectingDNA && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <ScanSearch className="h-3.5 w-3.5 animate-pulse" />
-                  <span>Mendeteksi produk...</span>
-                </div>
-              )}
-              {productDNA && !detectingDNA && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Select
-                    value={productDNA.category}
-                    onValueChange={(val) =>
-                      setProductDNA((prev) => prev ? { ...prev, category: val as ProductCategory } : prev)
-                    }
+            <div className="border border-white/[0.06] rounded-2xl bg-white/[0.02] p-4 space-y-3">
+              <div className="flex items-start gap-4">
+                <div className="relative shrink-0">
+                  <img src={productPreview} alt="Product" className="h-24 w-24 rounded-xl object-cover border border-white/[0.06]" />
+                  <button
+                    onClick={removeProduct}
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
                   >
-                    <SelectTrigger className="h-7 w-auto min-w-[120px] text-xs bg-primary/10 border-primary/20 text-primary font-semibold px-2.5">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ALL_CATEGORIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value} className="text-xs">
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {productDNA.sub_category && (
-                    <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                      {productDNA.sub_category}
-                    </Badge>
-                  )}
-                  {productDNA.dominant_color && (
-                    <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                      {productDNA.dominant_color}
-                    </Badge>
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                  {uploading && (
+                    <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
                   )}
                 </div>
-              )}
+                {/* DNA badges inline */}
+                <div className="flex-1 min-w-0 pt-1">
+                  {detectingDNA && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <ScanSearch className="h-3.5 w-3.5 animate-pulse" />
+                      <span>Mendeteksi produk...</span>
+                    </div>
+                  )}
+                  {productDNA && !detectingDNA && (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Select
+                        value={productDNA.category}
+                        onValueChange={(val) =>
+                          setProductDNA((prev) => prev ? { ...prev, category: val as ProductCategory } : prev)
+                        }
+                      >
+                        <SelectTrigger className="h-7 w-auto min-w-[120px] text-xs bg-primary/10 border-primary/20 text-primary font-semibold px-2.5">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ALL_CATEGORIES.map((c) => (
+                            <SelectItem key={c.value} value={c.value} className="text-xs">
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {productDNA.sub_category && (
+                        <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                          {productDNA.sub_category}
+                        </Badge>
+                      )}
+                      {productDNA.dominant_color && (
+                        <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                          {productDNA.dominant_color}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <div
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={onDrop}
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("!border-primary/30"); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove("!border-primary/30"); }}
+              onDrop={(e) => { e.currentTarget.classList.remove("!border-primary/30"); onDrop(e); }}
               onClick={() => {
                 const inp = document.createElement("input");
                 inp.type = "file";
@@ -998,24 +1024,24 @@ Output ONLY the JSON array. No explanation.` });
                 };
                 inp.click();
               }}
-              className="border-2 border-dashed border-border rounded-xl p-8 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
+              className="border border-white/[0.06] rounded-2xl bg-white/[0.02] p-8 hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
             >
-              <Upload className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Drag & drop foto produk</p>
-              <p className="text-xs text-muted-foreground">atau klik untuk pilih file</p>
-              <p className="text-[11px] text-muted-foreground/60">JPEG, PNG, WebP — Maks 10MB</p>
+              <Upload className="h-6 w-6 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground/40">Drag & drop foto produk</p>
+              <p className="text-xs text-muted-foreground/30">atau klik untuk pilih file</p>
+              <p className="text-[11px] text-muted-foreground/20">JPEG, PNG, WebP — Maks 10MB</p>
             </div>
           )}
         </div>
 
-        {/* Pilih Karakter */}
+        {/* Step 02 — Pilih Karakter */}
         <div className="animate-fade-up" style={{ animationDelay: "150ms" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Pilih Karakter</label>
+          <StepLabel num={2} label="Pilih Karakter" />
 
-          {/* Pakai Foto Sendiri */}
-          {!ownPhotoPreview ? (
+          {/* Horizontal avatar strip */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 scrollbar-none">
+            {/* "Pakai Foto Sendiri" as first item */}
             <button
-              type="button"
               onClick={() => {
                 const inp = document.createElement("input");
                 inp.type = "file";
@@ -1026,141 +1052,148 @@ Output ONLY the JSON array. No explanation.` });
                 };
                 inp.click();
               }}
-              className="w-full border-2 border-dashed border-border rounded-xl p-4 bg-background hover:border-primary/30 transition-colors flex items-center gap-3 cursor-pointer mb-3"
+              className={`shrink-0 h-11 w-11 rounded-full border-2 border-dashed flex items-center justify-center transition-all ${
+                selectedCharId === "__own_photo__"
+                  ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background"
+                  : "border-white/[0.1] hover:border-primary/30"
+              }`}
+              title="Pakai Foto Sendiri"
             >
-              <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                <Camera className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="text-left">
-                <p className="text-sm font-medium text-foreground">Pakai Foto Sendiri</p>
-                <p className="text-[11px] text-muted-foreground">Upload foto kamu — AI akan analisis & cocokkan</p>
-              </div>
+              {ownPhotoPreview ? (
+                <img src={ownPhotoPreview} alt="Foto saya" className="h-full w-full rounded-full object-cover" />
+              ) : (
+                <Camera className="h-4 w-4 text-muted-foreground/40" />
+              )}
             </button>
-          ) : (
-            <div className="border border-border rounded-xl p-3 bg-card mb-3">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <img src={ownPhotoPreview} alt="Foto sendiri" className="h-12 w-12 rounded-full object-cover shrink-0" />
-                  {(ownPhotoUploading || ownPhotoAnalyzing) && (
-                    <div className="absolute inset-0 rounded-full bg-background/60 flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  {ownPhotoUploading ? (
-                    <p className="text-xs text-muted-foreground">Mengupload foto...</p>
-                  ) : ownPhotoAnalyzing ? (
-                    <p className="text-xs text-muted-foreground">AI sedang menganalisis...</p>
-                  ) : selectedChar?.id === "__own_photo__" ? (
-                    <>
-                      <p className="text-sm font-semibold text-foreground">{selectedChar.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {[selectedChar.type, selectedChar.age_range, selectedChar.style].filter(Boolean).join(" • ")}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Foto terupload</p>
-                  )}
-                </div>
-                <button onClick={removeOwnPhoto} className="p-1 rounded-md hover:bg-secondary transition-colors">
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </div>
+
+            {/* Preset + custom characters as avatar circles */}
+            {[...PRESETS, ...customChars].map((c) => (
+              <button
+                key={c.id}
+                onClick={() => onCharSelect(c.id)}
+                className={`shrink-0 h-11 w-11 rounded-full overflow-hidden transition-all ${
+                  selectedCharId === c.id
+                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                    : "hover:ring-1 hover:ring-white/20"
+                }`}
+                title={c.name}
+              >
+                {c.hero_image_url ? (
+                  <img src={c.hero_image_url} alt={c.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full w-full bg-secondary flex items-center justify-center">
+                    <UserCircle className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Own photo analyzing state */}
+          {ownPhotoPreview && (ownPhotoUploading || ownPhotoAnalyzing) && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+              <span>{ownPhotoUploading ? "Mengupload foto..." : "AI sedang menganalisis..."}</span>
             </div>
           )}
 
-          {/* Divider */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-[11px] text-muted-foreground">atau pilih karakter</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
+          {/* Selected character info card */}
+          {selectedChar && (
+            <div className="flex items-center gap-3 border border-white/[0.06] rounded-xl bg-white/[0.02] p-3 mb-2">
+              {selectedChar.hero_image_url ? (
+                <img src={selectedChar.hero_image_url} alt={selectedChar.name} className="h-9 w-9 rounded-full object-cover shrink-0" />
+              ) : (
+                <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                  <UserCircle className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">{selectedChar.name}</p>
+                <p className="text-[10px] text-muted-foreground truncate">
+                  {[selectedChar.type, selectedChar.age_range, selectedChar.style].filter(Boolean).join(" • ")}
+                </p>
+              </div>
+              {selectedCharId === "__own_photo__" && (
+                <button onClick={removeOwnPhoto} className="p-1 rounded-md hover:bg-secondary transition-colors">
+                  <X className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              )}
+            </div>
+          )}
 
-          <Select value={selectedCharId === "__own_photo__" ? "" : selectedCharId} onValueChange={onCharSelect}>
-            <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border">
-              <SelectValue placeholder="Pilih karakter..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Preset</SelectLabel>
-                {PRESETS.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    <span className="flex items-center gap-2">
-                      {c.hero_image_url ? (
-                        <img src={c.hero_image_url} alt={c.name} className="h-5 w-5 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
-                      )}
-                      {c.name}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-              {customChars.length > 0 && (
+          {/* Browse all fallback */}
+          <div className="flex items-center gap-3">
+            <Select value={selectedCharId === "__own_photo__" ? "" : selectedCharId} onValueChange={onCharSelect}>
+              <SelectTrigger className="bg-white/[0.03] border-white/[0.06] text-xs h-8">
+                <SelectValue placeholder="Browse all characters..." />
+              </SelectTrigger>
+              <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>Karakter Saya</SelectLabel>
-                  {customChars.map((c) => (
+                  <SelectLabel>Preset</SelectLabel>
+                  {PRESETS.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       <span className="flex items-center gap-2">
                         {c.hero_image_url ? (
-                          <img src={c.hero_image_url} alt={c.name} className="h-6 w-6 rounded-full object-cover shrink-0" />
+                          <img src={c.hero_image_url} alt={c.name} className="h-5 w-5 rounded-full object-cover shrink-0" />
                         ) : (
-                          <UserCircle className="h-4 w-4 text-primary shrink-0" />
+                          <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                         )}
                         {c.name}
                       </span>
                     </SelectItem>
                   ))}
                 </SelectGroup>
-              )}
-            </SelectContent>
-          </Select>
-
-          {selectedChar && (
-            <div className="mt-3 flex items-center gap-3 bg-card border border-border rounded-lg p-3">
-              {selectedChar.hero_image_url ? (
-                <img src={selectedChar.hero_image_url} alt={selectedChar.name} className="h-10 w-10 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                  <UserCircle className="h-5 w-5 text-muted-foreground" />
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{selectedChar.name}</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {[selectedChar.type, selectedChar.age_range, selectedChar.style].filter(Boolean).join(" • ")}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => navigate("/characters/create")}
-            className="mt-2 text-xs text-primary hover:underline inline-flex items-center gap-1"
-          >
-            Buat karakter baru <LinkIcon className="h-3 w-3" />
-          </button>
+                {customChars.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Karakter Saya</SelectLabel>
+                    {customChars.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        <span className="flex items-center gap-2">
+                          {c.hero_image_url ? (
+                            <img src={c.hero_image_url} alt={c.name} className="h-6 w-6 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <UserCircle className="h-4 w-4 text-primary shrink-0" />
+                          )}
+                          {c.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
+            <button
+              onClick={() => navigate("/characters/create")}
+              className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 shrink-0"
+            >
+              Buat baru <LinkIcon className="h-3 w-3" />
+            </button>
+          </div>
         </div>
 
-        {/* Pilih Gaya Konten (Template) */}
+        {/* Step 03 — Pilih Gaya Konten */}
         <div className="animate-fade-up" style={{ animationDelay: "175ms" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Pilih Gaya Konten</label>
+          <StepLabel num={3} label="Content Template" />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {CONTENT_TEMPLATES.map((t) => {
+            {CONTENT_TEMPLATES.map((t, ti) => {
               const isSelected = storyboardTemplate === t.key;
+              const accentColors = ["bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-rose-500", "bg-violet-500", "bg-cyan-500"];
+              const accent = accentColors[ti % accentColors.length];
               return (
                 <button
                   key={t.key}
                   onClick={() => setStoryboardTemplate(t.key)}
-                  className={`text-left rounded-lg px-3 py-2.5 transition-all ${
+                  className={`text-left rounded-xl overflow-hidden transition-all flex ${
                     isSelected
-                      ? "bg-primary/10 border border-primary/30 ring-1 ring-primary/10"
-                      : "bg-card border border-border hover:border-muted-foreground/30"
+                      ? "bg-primary/[0.04] border border-primary/30"
+                      : "bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12]"
                   }`}
                 >
-                  <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{t.label}</p>
-                  <p className="text-[10px] text-muted-foreground line-clamp-1">{t.desc}</p>
+                  <div className={`w-[2px] shrink-0 ${isSelected ? "bg-primary" : accent + "/30"}`} />
+                  <div className="px-3 py-2.5">
+                    <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{t.label}</p>
+                    <p className="text-[10px] text-muted-foreground/40 line-clamp-1">{t.desc}</p>
+                  </div>
                 </button>
               );
             })}
@@ -1169,123 +1202,144 @@ Output ONLY the JSON array. No explanation.` });
           {storyboardTemplate && (
             <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
               {currentBeats.map((beat, i) => (
-                <div key={i} className="shrink-0 w-[90px] border border-border rounded-lg p-1.5 bg-muted/10">
+                <div key={i} className="shrink-0 w-[90px] border border-white/[0.06] rounded-lg p-1.5 bg-white/[0.02]">
                   <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
                     {beat.storyRole}
                   </span>
                   <p className="text-[9px] font-semibold text-foreground mt-0.5 truncate">{beat.label}</p>
-                  <p className="text-[7px] text-muted-foreground line-clamp-2 mt-0.5">{beat.description}</p>
+                  <p className="text-[7px] text-muted-foreground/50 line-clamp-2 mt-0.5">{beat.description}</p>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Pengaturan Scene */}
-        <div className="animate-fade-up space-y-6" style={{ animationDelay: "200ms" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block">Pengaturan Scene</label>
+        {/* Step 04 — Scene Settings */}
+        <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
+          <StepLabel num={4} label="Scene Settings" />
+          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-4">
+            {/* Environment — top level */}
+            <div>
+              <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">Background / Environment</label>
+              <Select value={background} onValueChange={setBackground}>
+                <SelectTrigger className="bg-white/[0.03] border-white/[0.06]"><SelectValue placeholder="Pilih environment..." /></SelectTrigger>
+                <SelectContent>
+                  {envOptions.map((opt) => (
+                    <SelectItem key={opt.label} value={opt.label}>
+                      <div className="flex flex-col">
+                        <span>{opt.label}</span>
+                        {opt.description && <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {background === "Custom" && (
+                <Input
+                  value={customBg}
+                  onChange={(e) => setCustomBg(e.target.value)}
+                  placeholder="Deskripsikan environment secara detail..."
+                  className="mt-2 bg-white/[0.03] border-white/[0.06]"
+                />
+              )}
+            </div>
 
-          <div>
-            <label className="text-xs text-muted-foreground block mb-2.5">Background / Environment</label>
-            <Select value={background} onValueChange={setBackground}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih environment..." /></SelectTrigger>
-              <SelectContent>
-                {envOptions.map((opt) => (
-                  <SelectItem key={opt.label} value={opt.label}>
-                    <div className="flex flex-col">
-                      <span>{opt.label}</span>
-                      {opt.description && <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {background === "Custom" && (
-              <Input
-                value={customBg}
-                onChange={(e) => setCustomBg(e.target.value)}
-                placeholder="Deskripsikan environment secara detail..."
-                className="mt-2 bg-[hsl(0_0%_10%)] border-border"
-              />
-            )}
-          </div>
-
-          <div>
-            <label className="text-xs text-muted-foreground block mb-2.5">Pose</label>
-            <Select value={pose} onValueChange={setPose}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih pose..." /></SelectTrigger>
-              <SelectContent>
-                {poseOptions.map((opt) => (
-                  <SelectItem key={opt.label} value={opt.label}>
-                    <div className="flex flex-col">
-                      <span>{opt.label}</span>
-                      <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="text-xs text-muted-foreground block mb-2.5">Mood</label>
-            <Select value={mood} onValueChange={setMood}>
-              <SelectTrigger className="bg-[hsl(0_0%_10%)] border-border"><SelectValue placeholder="Pilih mood..." /></SelectTrigger>
-              <SelectContent>
-                {moodOptions.map((opt) => (
-                  <SelectItem key={opt.label} value={opt.label}>
-                    <div className="flex flex-col">
-                      <span>{opt.label}</span>
-                      <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Advanced — collapsible */}
+            <div>
+              <button
+                onClick={() => setAdvancedOpen(!advancedOpen)}
+                className="flex items-center gap-2 text-[11px] text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors"
+              >
+                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+                <span className="font-medium">Advanced options</span>
+              </button>
+              {advancedOpen && (
+                <div className="mt-3 bg-white/[0.02] rounded-xl p-4 border border-white/[0.04] space-y-4">
+                  <p className="text-[10px] text-muted-foreground/25">Optional — storyboard beats handle pose per frame</p>
+                  <div>
+                    <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">Pose</label>
+                    <Select value={pose} onValueChange={setPose}>
+                      <SelectTrigger className="bg-white/[0.03] border-white/[0.06]"><SelectValue placeholder="Pilih pose..." /></SelectTrigger>
+                      <SelectContent>
+                        {poseOptions.map((opt) => (
+                          <SelectItem key={opt.label} value={opt.label}>
+                            <div className="flex flex-col">
+                              <span>{opt.label}</span>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">Mood</label>
+                    <Select value={mood} onValueChange={setMood}>
+                      <SelectTrigger className="bg-white/[0.03] border-white/[0.06]"><SelectValue placeholder="Pilih mood..." /></SelectTrigger>
+                      <SelectContent>
+                        {moodOptions.map((opt) => (
+                          <SelectItem key={opt.label} value={opt.label}>
+                            <div className="flex flex-col">
+                              <span>{opt.label}</span>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Generate Prompts */}
+        {/* Generate Prompts CTA */}
         <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
           {!hasPrompts && (
-            <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4">
+            <div className="flex items-start gap-2 bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 mb-4">
               <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs text-muted-foreground">Step 1: Generate prompts, review & edit. Step 2: Generate gambar per frame.</p>
+                <p className="text-xs text-muted-foreground/40">Step 1: Generate prompts, review & edit. Step 2: Generate gambar per frame.</p>
               </div>
             </div>
           )}
           <button
             onClick={generatePrompts}
             disabled={!productUrl || !selectedChar || !storyboardTemplate || promptsLoading || storyboardActive}
-            className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40 animate-cta-glow disabled:animate-none"
+            className="w-full bg-primary text-primary-foreground font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-40 hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5"
           >
             {promptsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {promptsLoading ? "Generating Prompts..." : hasPrompts ? "Regenerate Prompts" : "Generate Prompts"}
+            {promptsLoading ? "Generating prompts..." : hasPrompts ? "Regenerate prompts" : "Generate prompts"}
           </button>
         </div>
       </div>
 
       {/* RIGHT PANEL */}
-      <div className="w-full lg:w-[45%] bg-[hsl(0_0%_5%)] border-t lg:border-t-0 lg:border-l border-border flex flex-col items-start justify-start p-6 lg:p-8 min-h-[400px] lg:min-h-0 overflow-y-auto">
+      <div className="w-full lg:w-[45%] bg-white/[0.015] border-t lg:border-t-0 lg:border-l border-white/[0.04] flex flex-col items-start justify-start p-6 lg:p-8 min-h-[400px] lg:min-h-0 overflow-y-auto">
 
         {/* State A: Empty — no prompts yet */}
         {!hasPrompts && !promptsLoading && (
-          <div className="flex flex-col items-center text-center w-full animate-fade-in mt-8">
-            <Film className="h-16 w-16 text-foreground/10 mb-4" />
-            <p className="text-sm text-muted-foreground">Storyboard akan muncul di sini</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Upload produk, pilih karakter & template, lalu Generate Prompts</p>
+          <div className="flex flex-col items-center text-center w-full animate-fade-in mt-12">
+            {/* Minimal stacked rectangles illustration */}
+            <div className="relative mb-6 h-20 w-28">
+              <div className="absolute top-0 left-2 right-2 h-14 rounded-lg border border-white/[0.06]" />
+              <div className="absolute top-2 left-1 right-1 h-14 rounded-lg border border-white/[0.06]" />
+              <div className="absolute top-4 left-0 right-0 h-14 rounded-lg border border-white/[0.08] bg-white/[0.02]" />
+            </div>
+            <p className="text-sm text-muted-foreground/30">Your storyboard will appear here</p>
+            <p className="text-[11px] text-muted-foreground/20 mt-1">Upload product & select character to begin</p>
             {storyboardTemplate && (
               <div className="mt-6 w-full">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2 text-left">Preview Beats — {CONTENT_TEMPLATES.find(t => t.key === storyboardTemplate)?.label}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/20 font-medium mb-2 text-left">Preview Beats — {CONTENT_TEMPLATES.find(t => t.key === storyboardTemplate)?.label}</p>
                 <div className="grid grid-cols-5 gap-1.5">
                   {currentBeats.map((beat, i) => (
-                    <div key={i} className="border border-border rounded-lg p-1.5 bg-muted/10">
+                    <div key={i} className="border border-white/[0.06] rounded-lg p-1.5 bg-white/[0.02]">
                       <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
                         {beat.storyRole}
                       </span>
                       <p className="text-[8px] font-semibold text-foreground mt-0.5 truncate">{beat.label}</p>
-                      <p className="text-[7px] text-muted-foreground line-clamp-2 mt-0.5">{beat.description}</p>
+                      <p className="text-[7px] text-muted-foreground/40 line-clamp-2 mt-0.5">{beat.description}</p>
                     </div>
                   ))}
                 </div>
@@ -1298,8 +1352,8 @@ Output ONLY the JSON array. No explanation.` });
         {promptsLoading && (
           <div className="flex flex-col items-center text-center w-full animate-fade-in mt-16">
             <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-            <p className="text-sm text-muted-foreground">Generating prompts...</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Gemini sedang membuat {currentBeats.length} prompt untuk storyboard</p>
+            <p className="text-sm text-muted-foreground/40">Generating prompts...</p>
+            <p className="text-xs text-muted-foreground/20 mt-1">Gemini sedang membuat {currentBeats.length} prompt untuk storyboard</p>
           </div>
         )}
 
@@ -1310,7 +1364,10 @@ Output ONLY the JSON array. No explanation.` });
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-foreground">
                 {storyboardDone ? (
-                  <><CheckCircle2 className="inline h-3.5 w-3.5 text-green-500 mr-1" />{completedShots} selesai{failedShots > 0 && <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" />{failedShots} gagal</>}</>
+                  <span className="flex items-center gap-1.5">
+                    <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px]">{completedShots} selesai</span>
+                    {failedShots > 0 && <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px]">{failedShots} gagal</span>}
+                  </span>
                 ) : storyboardActive ? (
                   <>Generating... <span className="text-primary">({completedShots}/{totalShots})</span></>
                 ) : (
@@ -1330,9 +1387,9 @@ Output ONLY the JSON array. No explanation.` });
                   <button
                     onClick={generateAllFrames}
                     disabled={!kieApiKey || storyboardActive}
-                    className="bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                    className="bg-primary text-primary-foreground font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all disabled:opacity-40 hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5 text-[11px]"
                   >
-                    <Film className="h-3 w-3" /> Generate All
+                    <Film className="h-3.5 w-3.5" /> Generate all frames
                   </button>
                 )}
               </div>
@@ -1343,76 +1400,102 @@ Output ONLY the JSON array. No explanation.` });
               {generatedPrompts.map((promptText, i) => {
                 const beat = currentBeats[i];
                 const shot = shotStatuses[i];
-                const isGenerating = shot?.state === "generating";
+                const isGeneratingFrame = shot?.state === "generating";
                 const isCompleted = shot?.state === "completed";
                 const isFailed = shot?.state === "failed";
 
-                return (
-                  <div key={i} className={`border rounded-lg p-3 transition-all ${
-                    isCompleted ? "border-green-500/30 bg-green-500/5" :
-                    isFailed ? "border-destructive/30 bg-destructive/5" :
-                    isGenerating ? "border-primary/30 bg-primary/5" :
-                    "border-border bg-card"
-                  }`}>
-                    {/* Header: badge + status */}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-muted-foreground">#{i + 1}</span>
-                        {beat && (
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
-                            {beat.storyRole}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-foreground font-medium">{beat?.label || `Frame ${i + 1}`}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
-                        {isFailed && <XCircle className="h-3.5 w-3.5 text-destructive" />}
-                        {isGenerating && <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />}
-                      </div>
-                    </div>
+                // Left bar color
+                const leftBarColor = isFailed
+                  ? "bg-red-500"
+                  : isCompleted
+                  ? "bg-emerald-500"
+                  : isGeneratingFrame
+                  ? "bg-primary"
+                  : (() => {
+                      const roleColors: Record<string, string> = {
+                        hook: "bg-amber-500",
+                        problem: "bg-rose-500",
+                        demo: "bg-blue-500",
+                        "social-proof": "bg-violet-500",
+                        result: "bg-emerald-500",
+                        cta: "bg-cyan-500",
+                        before: "bg-orange-500",
+                        after: "bg-green-500",
+                        benefit: "bg-sky-500",
+                        lifestyle: "bg-pink-500",
+                      };
+                      return roleColors[beat?.storyRole || ""] || "bg-muted-foreground/20";
+                    })();
 
-                    {/* Completed image thumbnail */}
-                    {isCompleted && shot.imageUrl && (
-                      <div className="mb-2 flex items-start gap-2">
-                        <img src={shot.imageUrl} alt={beat?.label} className="h-20 w-15 rounded-md object-cover border border-border" />
-                        <div className="flex flex-col gap-1">
-                          <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline flex items-center gap-1">
-                            <Download className="h-3 w-3" /> Download
-                          </a>
+                return (
+                  <div key={i} className="flex overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02] transition-all">
+                    {/* Colored left bar */}
+                    <div className={`w-[3px] shrink-0 rounded-l-xl ${leftBarColor}`} />
+
+                    <div className="flex-1 p-3">
+                      {/* Header: badge + status pill */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-muted-foreground/30">#{i + 1}</span>
+                          {beat && (
+                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
+                              {beat.storyRole}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-foreground font-medium">{beat?.label || `Frame ${i + 1}`}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {isCompleted && <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Done</span>}
+                          {isFailed && <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Failed</span>}
+                          {isGeneratingFrame && <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-medium flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Generating</span>}
                         </div>
                       </div>
-                    )}
 
-                    {/* Editable prompt textarea */}
-                    <Textarea
-                      value={promptText}
-                      onChange={(e) => updatePromptText(i, e.target.value)}
-                      disabled={isGenerating || storyboardActive}
-                      className="text-[11px] min-h-[60px] bg-background/50 border-border/50 resize-y"
-                      rows={3}
-                    />
-
-                    {/* Per-frame generate button */}
-                    {!isGenerating && !storyboardActive && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <button
-                          onClick={() => generateSingleFrame(i)}
-                          disabled={!kieApiKey || isGenerating}
-                          className={`text-[10px] font-bold px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors disabled:opacity-40 ${
-                            isCompleted
-                              ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                              : "bg-primary text-primary-foreground hover:bg-primary/90"
-                          }`}
-                        >
-                          {isCompleted ? <RefreshCw className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
-                          {isCompleted ? "Regenerate" : "Generate Frame"}
-                        </button>
-                        {isFailed && shot.error && (
-                          <span className="text-[9px] text-destructive">{shot.error}</span>
+                      {/* Content row: thumbnail + textarea */}
+                      <div className="flex gap-3">
+                        {/* Completed image thumbnail on left */}
+                        {isCompleted && shot.imageUrl && (
+                          <div className="shrink-0">
+                            <img src={shot.imageUrl} alt={beat?.label} className="h-16 w-12 rounded-lg object-cover border border-white/[0.06]" />
+                            <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="text-[8px] text-primary hover:underline flex items-center gap-0.5 mt-1 justify-center">
+                              <Download className="h-2.5 w-2.5" /> Save
+                            </a>
+                          </div>
                         )}
+
+                        {/* Editable prompt textarea */}
+                        <div className="flex-1">
+                          <Textarea
+                            value={promptText}
+                            onChange={(e) => updatePromptText(i, e.target.value)}
+                            disabled={isGeneratingFrame || storyboardActive}
+                            className="text-[11px] min-h-[60px] bg-background/30 border-white/[0.04] resize-y"
+                            rows={3}
+                          />
+                        </div>
                       </div>
-                    )}
+
+                      {/* Per-frame generate button */}
+                      {!isGeneratingFrame && !storyboardActive && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            onClick={() => generateSingleFrame(i)}
+                            disabled={!kieApiKey || isGeneratingFrame}
+                            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-40 ${
+                              isCompleted
+                                ? "bg-white/[0.04] text-muted-foreground hover:bg-white/[0.08]"
+                                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                            }`}
+                          >
+                            {isCompleted ? <RefreshCw className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
+                            {isCompleted ? "Regenerate" : "Generate frame"}
+                          </button>
+                          {isFailed && shot.error && (
+                            <span className="text-[9px] text-red-400">{shot.error}</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -1440,14 +1523,14 @@ Output ONLY the JSON array. No explanation.` });
                       },
                     });
                   }}
-                  className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+                  className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5"
                 >
                   <Play className="h-3.5 w-3.5" />
                   Buat Video dari Storyboard <ArrowRight className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={resetStoryboard}
-                  className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
+                  className="w-full border border-white/[0.06] text-muted-foreground text-xs py-2 rounded-xl hover:text-foreground transition-colors flex items-center justify-center gap-2"
                 >
                   <RefreshCw className="h-3 w-3" /> Mulai Ulang
                 </button>
