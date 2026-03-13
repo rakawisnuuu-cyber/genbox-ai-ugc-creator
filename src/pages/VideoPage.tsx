@@ -420,6 +420,32 @@ const VideoPage = () => {
     }
   }, [fromStoryboard, setupDone, sourceUrl, initializeFrames]);
 
+  // Keep-alive state sync: when location.state changes (re-navigation), re-sync all state
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.fromStoryboard && state?.sourceImage) {
+      setFromStoryboard(true);
+      setSourceUrl(state.sourceImage);
+      setSourcePreview(state.sourceImage);
+      if (state.storyboardImages) setStoryboardImages(state.storyboardImages);
+      if (state.template) setSelectedTemplate(state.template);
+      const dna = state.productDNA || state.productDna;
+      if (dna && (dna.category || dna.product_description)) {
+        setProductInfo({
+          category: dna.category || "",
+          sub_category: dna.sub_category || "",
+          product_description: dna.product_description || "",
+        });
+      } else if (state.productCategory) {
+        setProductInfo((prev) => ({ ...prev, category: state.productCategory }));
+      }
+      // Reset frames so initializeFrames runs again with new data
+      setSetupDone(false);
+      setFrames([]);
+      setStoryboardPlanned(false);
+    }
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /** Plan Storyboard — ONE Gemini call to detect product + plan all 5 frames */
   const planStoryboard = async () => {
     if (!geminiKey || keys.gemini.status !== "valid") {
