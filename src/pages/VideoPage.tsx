@@ -1247,11 +1247,14 @@ Content template: ${template?.label}`,
                 <span className="text-xs text-muted-foreground truncate">
                   {isCombined ? allBeatLabels.map((b) => b.label.split("—")[0].trim()).join(" + ") : beat.label}
                 </span>
-                {allBeatLabels.map((b, bi) => (
-                  <span key={bi} className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${ROLE_COLORS[b.storyRole] || roleColor}`}>
-                    {b.storyRole}
-                  </span>
-                ))}
+                {allBeatLabels.map((b, bi) => {
+                  const actualIdx = bi === 0 ? idx : frame.mergedFrames[bi - 1];
+                  return (
+                    <span key={bi} className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${getRoleColor(actualIdx)}`}>
+                      {b.storyRole}
+                    </span>
+                  );
+                })}
                 {frame.status === "completed" && <span className="text-[9px] text-green-400 font-medium shrink-0">✓</span>}
                 {frame.status === "generating" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
                 {frame.status === "failed" && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
