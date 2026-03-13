@@ -236,6 +236,10 @@ const GeneratePage = () => {
 
   // Storyboard state
   const [storyboardTemplate, setStoryboardTemplate] = useState<ContentTemplateKey>("problem_solution");
+  const prevTemplateRef = useRef<ContentTemplateKey>("problem_solution");
+  const pendingTemplateRef = useRef<ContentTemplateKey | null>(null);
+  const [templateChangeOpen, setTemplateChangeOpen] = useState(false);
+  const [regenAfterTemplateChange, setRegenAfterTemplateChange] = useState(0);
   const [storyboardActive, setStoryboardActive] = useState(false);
   const [shotStatuses, setShotStatuses] = useState<ShotStatus[]>([]);
   const [storyboardElapsed, setStoryboardElapsed] = useState(0);
@@ -247,6 +251,14 @@ const GeneratePage = () => {
   const [promptsLoading, setPromptsLoading] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [dnaExpanded, setDnaExpanded] = useState(false);
+
+  // Auto-regenerate after template change confirmation
+  useEffect(() => {
+    if (regenAfterTemplateChange > 0) {
+      generatePrompts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [regenAfterTemplateChange]);
 
   // Navigation blocker: warn on browser close/refresh
   const isGenerating = genState === "loading" || storyboardActive;
@@ -786,6 +798,7 @@ Output ONLY the JSON array. No explanation.` });
       setGeneratedPrompts(prompts);
       setShotStatuses(prompts.map((p: string) => ({ state: "prompt_ready" as const, prompt: p })));
       toast({ title: "Prompts siap!", description: `${prompts.length} prompt berhasil di-generate. Review & edit, lalu Generate.` });
+      prevTemplateRef.current = storyboardTemplate;
     } catch (err: any) {
       console.error("Generate prompts error:", err);
       toast({ title: "Gagal generate prompts", description: err.message, variant: "destructive" });
@@ -1240,7 +1253,14 @@ Output ONLY the JSON array. No explanation.` });
               return (
                 <button
                   key={t.key}
-                  onClick={() => setStoryboardTemplate(t.key)}
+                  onClick={() => {
+                    if (hasPrompts && t.key !== storyboardTemplate) {
+                      pendingTemplateRef.current = t.key;
+                      setTemplateChangeOpen(true);
+                    } else {
+                      setStoryboardTemplate(t.key);
+                    }
+                  }}
                   className={`relative text-left rounded-xl overflow-visible transition-all flex ${
                     isSelected
                       ? "bg-primary/[0.04] border border-primary/30"
@@ -1609,6 +1629,33 @@ Output ONLY the JSON array. No explanation.` });
           </div>
         )}
       </div>
+      {/* Template change confirmation dialog */}
+      <AlertDialog open={templateChangeOpen} onOpenChange={setTemplateChangeOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will regenerate all prompts. Any edits you made will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              pendingTemplateRef.current = null;
+            }}>
+              Keep current
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (pendingTemplateRef.current) {
+                setStoryboardTemplate(pendingTemplateRef.current);
+                pendingTemplateRef.current = null;
+              }
+              setRegenAfterTemplateChange((c) => c + 1);
+            }}>
+              Regenerate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
