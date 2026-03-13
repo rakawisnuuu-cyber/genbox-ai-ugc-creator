@@ -43,6 +43,7 @@ import {
   Lightbulb,
   MessageSquare,
   Clapperboard,
+  ArrowRight,
 } from "lucide-react";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
