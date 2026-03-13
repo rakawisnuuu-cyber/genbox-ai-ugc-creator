@@ -812,12 +812,16 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
           return next;
         });
 
-        // Build image inputs: base image + previous frame (if exists) + product image
-        // Max 3 images, no character hero/reference — base image already has the character
-        const frameImages: string[] = [resultUrl];
-        // Chain previous completed frame for visual continuity
+        // Build image inputs for Kie AI
+        // Frame 0: character refs + product image
+        // Frames 1+: frame 0 result + product + previous frame for chaining
+        const frameImages: string[] = [];
+        const firstCompletedUrl = completedFrameUrls[0];
+        if (idx > 0 && firstCompletedUrl) frameImages.push(firstCompletedUrl);
         const prevFrameUrl = idx > 0 ? completedFrameUrls[idx - 1] : null;
-        if (prevFrameUrl) frameImages.push(prevFrameUrl);
+        if (prevFrameUrl && !frameImages.includes(prevFrameUrl)) frameImages.push(prevFrameUrl);
+        if (selectedChar?.hero_image_url && frameImages.length < 3) frameImages.push(selectedChar.hero_image_url);
+        if (selectedChar?.reference_photo_url && selectedChar.reference_photo_url !== selectedChar?.hero_image_url && frameImages.length < 3) frameImages.push(selectedChar.reference_photo_url);
         if (productUrl && frameImages.length < 3) frameImages.push(productUrl);
 
         const imageUrl = await generateKieImage(
