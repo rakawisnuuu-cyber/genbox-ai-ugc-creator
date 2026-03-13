@@ -1248,20 +1248,6 @@ Output ONLY the JSON array. No explanation.` });
               );
             })}
           </div>
-          {/* Beat preview */}
-          {storyboardTemplate && (
-            <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
-              {currentBeats.map((beat, i) => (
-                <div key={i} className="shrink-0 w-[90px] border border-white/[0.06] rounded-lg p-1.5 bg-white/[0.02]">
-                  <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
-                    {beat.storyRole}
-                  </span>
-                  <p className="text-[9px] font-semibold text-foreground mt-0.5 truncate">{beat.label}</p>
-                  <p className="text-[7px] text-muted-foreground/50 line-clamp-2 mt-0.5">{beat.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Step 04 — Scene Settings */}
