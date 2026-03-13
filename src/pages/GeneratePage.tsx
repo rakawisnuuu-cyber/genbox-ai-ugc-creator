@@ -1591,8 +1591,8 @@ Output ONLY the JSON array. No explanation.` });
               })}
             </div>
 
-            {/* Actions after all frames done */}
-            {storyboardDone && (
+            {/* Actions when at least 1 frame is completed */}
+            {completedShots > 0 && !storyboardActive && !promptsLoading && (
               <div className="space-y-2 pt-2">
                 <button
                   onClick={() => {
@@ -1616,13 +1616,25 @@ Output ONLY the JSON array. No explanation.` });
                   className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5"
                 >
                   <Play className="h-3.5 w-3.5" />
-                  Buat Video dari Storyboard <ArrowRight className="h-3.5 w-3.5" />
+                  {`Continue to Video · ${completedShots} frame${completedShots > 1 ? 's' : ''}`} <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                {totalShots - completedShots > 0 && (
+                  <p className="text-[11px] text-muted-foreground/30 text-center">
+                    {totalShots - completedShots} frame{totalShots - completedShots > 1 ? 's' : ''} skipped — you can generate them later
+                  </p>
+                )}
+                <button
+                  onClick={generateAllFrames}
+                  disabled={!kieApiKey}
+                  className="w-full border border-white/[0.06] text-foreground font-semibold text-xs py-2 rounded-xl hover:bg-accent transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
+                >
+                  <Film className="h-3 w-3" /> Generate All Frames
                 </button>
                 <button
                   onClick={resetStoryboard}
-                  className="w-full border border-white/[0.06] text-muted-foreground text-xs py-2 rounded-xl hover:text-foreground transition-colors flex items-center justify-center gap-2"
+                  className="w-full text-muted-foreground text-xs py-2 rounded-xl hover:text-foreground transition-colors flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="h-3 w-3" /> Mulai Ulang
+                  <RefreshCw className="h-3 w-3" /> Reset
                 </button>
               </div>
             )}
