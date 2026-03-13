@@ -244,6 +244,7 @@ const GeneratePage = () => {
   // Prompt-first state
   const [generatedPrompts, setGeneratedPrompts] = useState<string[]>([]);
   const [promptsLoading, setPromptsLoading] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Navigation blocker: warn on browser close/refresh
   const isGenerating = genState === "loading" || storyboardActive;
