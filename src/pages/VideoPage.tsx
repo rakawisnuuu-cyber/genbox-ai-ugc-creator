@@ -255,7 +255,8 @@ const VideoPage = () => {
 
   // Navigation state from storyboard
   const navState = location.state as any;
-  const fromStoryboard = navState?.fromStoryboard === true;
+  const [fromStoryboard, setFromStoryboard] = useState(navState?.fromStoryboard === true);
+  const [storyboardImages, setStoryboardImages] = useState<string[]>(navState?.storyboardImages || []);
 
   // ─── First-class product info state ───
   interface ProductInfo {
