@@ -87,13 +87,18 @@ const MODEL_LABELS: Record<VideoModel, { label: string; badge: string; badgeColo
   veo_quality: { label: "Veo Quality", badge: "PREMIUM", badgeColor: "bg-primary/20 text-primary", audio: true, cost: "~Rp 32.000" },
 };
 
-const ROLE_COLORS: Record<string, string> = {
-  Hook: "bg-red-500/20 text-red-400 border-red-500/30",
-  Build: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  Demo: "bg-green-500/20 text-green-400 border-green-500/30",
-  Proof: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  Convert: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-};
+/** Position-based role colors — works with any flexible storyRole string */
+const POSITION_ROLE_COLORS = [
+  "bg-red-500/20 text-red-400 border-red-500/30",
+  "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  "bg-green-500/20 text-green-400 border-green-500/30",
+  "bg-purple-500/20 text-purple-400 border-purple-500/30",
+];
+
+function getRoleColor(beatIndex: number): string {
+  return POSITION_ROLE_COLORS[beatIndex % POSITION_ROLE_COLORS.length];
+}
 
 function BeatPreviewCard({ beat, index }: { beat: StoryboardBeat; index: number }) {
   const [expanded, setExpanded] = useState(false);
@@ -103,7 +108,7 @@ function BeatPreviewCard({ beat, index }: { beat: StoryboardBeat; index: number 
       className={`border border-border rounded-lg p-2 bg-muted/10 min-w-0 cursor-pointer transition-all ${expanded ? "col-span-5 sm:col-span-2" : ""}`}
       onClick={() => isLong && setExpanded(!expanded)}
     >
-      <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
+      <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, index)}`}>
         {beat.storyRole}
       </span>
       <p className={`text-[10px] font-semibold text-foreground mt-1 ${expanded ? "" : "truncate"}`}>{beat.label}</p>
@@ -142,58 +147,99 @@ function getModelRecommendation(template: ContentTemplateKey): { text: string; v
   };
 }
 
-/** Smart dialog suggestions per frame role and product category */
-const DEMO_DIALOGS: Record<string, string> = {
-  skincare: "Aku coba pake langsung ya di kulit aku...",
-  fashion: "Aku coba pakai nih, liat deh hasilnya...",
-  food: "Kita cobain rasanya langsung ya...",
-  electronics: "Aku nyalain dulu nih, kita liat fiturnya...",
-  health: "Aku minum langsung ya, biasa tiap pagi...",
-  home: "Aku coba pasang langsung ya...",
-  other: "Aku coba langsung ya biar kalian liat...",
+/** Smart dialog suggestions — maps flexible storyRoles to casual Indonesian dialog */
+const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
+  // Opening / Hook roles
+  "Problem": () => "Guys, kalian pernah ngalamin ini nggak sih...",
+  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Eh guys, ini sih harus cobain..."; },
+  "Skeptical": () => "Hmm, beneran nih ini bagus? Aku agak ragu sih...",
+  "Morning": () => "Pagi-pagi gini langsung skincare-an dulu dong...",
+  "First Look": () => "Baru pertama kali nih liat produk ini...",
+  "Excitement": () => "GUYS! Akhirnya dateng juga nih!",
+  "Anticipation": () => "Aku udah penasaran banget sama ini...",
+  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya ya...",
+  "POV Reach": () => "",
+  "Texture": () => "",
+
+  // Mid roles
+  "Pain Amplification": () => "Udah capek banget sih ngerasain kayak gini terus...",
+  "Personal": () => "Jadi aku udah pake ini sekitar seminggu...",
+  "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine...",
+  "Expectation": () => "Di packaging-nya sih bilang bisa gini gitu ya...",
+  "Alasan 1": () => "Alasan pertama, ini tuh...",
+  "Midday": () => "Siang-siang gini tetep fresh karena...",
+  "First Open": () => "Wah, packaging-nya ternyata...",
+  "Reveal": () => "Ini nih isinya, cakep banget...",
+  "Step 1": () => "Pertama, kalian ambil secukupnya...",
+
+  // Demo / Usage roles  
+  "Demo": (cat) => {
+    const demos: Record<string, string> = {
+      skincare: "Aku coba pake langsung ya di kulit aku...",
+      fashion: "Aku coba pakai nih, liat deh hasilnya...",
+      food: "Kita cobain rasanya langsung ya...",
+      electronics: "Aku nyalain dulu nih, kita liat fiturnya...",
+      health: "Aku minum langsung ya, biasa tiap pagi...",
+      home: "Aku coba pasang langsung ya...",
+    };
+    return demos[(cat || "").toLowerCase()] || "Aku coba langsung ya biar kalian liat...";
+  },
+  "Usage": (cat) => ROLE_DIALOG_MAP["Demo"]?.(cat) || "Aku pake langsung nih...",
+  "Product Step": () => "Nah ini step paling penting nih...",
+  "Application": () => "Apply-nya gampang banget, tinggal...",
+  "Try": () => "Oke aku cobain langsung ya...",
+  "First Try": () => "Pertama kali pake nih, deg-degan...",
+  "Product Moment": () => "Nah di siang hari gini aku selalu pake ini...",
+  "Alasan 2": () => "Alasan kedua yang bikin aku suka...",
+  "Step 2": () => "Terus step kedua, kalian tinggal...",
+  "Speed Demo": () => "Cepet banget nih cara makenya...",
+  "Sensory": () => "",
+  "Slow Reveal": () => "",
+  "POV Inspect": () => "",
+  "POV Use": () => "",
+  "Discovery": () => "Wah, ini ternyata...",
+
+  // Result / Proof roles
+  "Result": () => "Hasilnya ternyata beneran kerasa bedanya...",
+  "After Reveal": () => "Wah beneran kerasa bedanya sih ini...",
+  "Reality": () => "Wait, ini beneran bagus dong?!",
+  "Alasan 3": () => "Dan alasan ketiga yang paling bikin yakin...",
+  "Almost Ready": () => "Tinggal finishing touch aja...",
+  "Benefit": () => "Kerasa banget sih benefitnya...",
+  "Assessment": () => "Hmm, overall menurutku sih...",
+  "Impressed": () => "Oke aku kaget sih, hasilnya sebagus ini...",
+  "First Try": () => "Baru pertama pake udah kerasa bedanya...",
+  "POV Result": () => "",
+  "Serene": () => "",
+
+  // CTA / Close roles
+  "CTA": () => ["Worth it sih, kalian coba deh!", "Link di bio ya! Cobain deh.", "Aku recommend banget sih ini."][Math.floor(Math.random() * 3)],
+  "Soft CTA": () => ["Kalian harus coba ini sih.", "Recommended banget deh!", "Cek link di bio ya!"][Math.floor(Math.random() * 3)],
+  "Confidence": () => "Pede banget jadinya, coba deh!",
+  "Ready": () => "Siap jalan! Makasih produk ini sih...",
+  "Converted": () => "Oke aku tarik kata-kata aku, ini bagus banget!",
+  "Summary": () => "Jadi kesimpulannya, ini worth it banget!",
+  "Verdict": () => "Honest opinion aku sih, ini recommended!",
+  "Evening": () => "Malam-malam gini masih kerasa efeknya...",
+  "Wrap Up": () => "Gampang kan? Kalian coba deh!",
+  "Show Off": () => "Ini sih harus punya, serius!",
+  "Face Reveal": () => "Tadaaa! Hasilnya kayak gini...",
 };
-
-const PROOF_DIALOGS = [
-  "Hasilnya ternyata beneran kerasa bedanya...",
-  "Wah beneran kerasa bedanya sih ini...",
-  "Oke aku kaget sih, hasilnya sebagus ini...",
-  "Ini beneran di luar ekspektasi aku...",
-];
-
-const CTA_DIALOGS = [
-  "Worth it sih, kalian coba deh!",
-  "Link di bio ya! Cobain deh.",
-  "Aku recommend banget sih ini. Cek link di bio!",
-  "Kalian harus coba ini sih, worth it banget.",
-];
 
 function getSmartDialogSuggestion(
   role: string,
   templateKey: ContentTemplateKey,
   productCategory?: string,
 ): string {
-  switch (role) {
-    case "Hook": {
-      const hooks = getRandomHooks(templateKey, 1);
-      return hooks[0] || "";
-    }
-    case "Build": {
-      const bodies = getRandomBodyScripts(templateKey, 1);
-      return bodies[0] || "";
-    }
-    case "Demo": {
-      const cat = (productCategory || "other").toLowerCase();
-      return DEMO_DIALOGS[cat] || DEMO_DIALOGS.other;
-    }
-    case "Proof": {
-      return PROOF_DIALOGS[Math.floor(Math.random() * PROOF_DIALOGS.length)];
-    }
-    case "Convert": {
-      return CTA_DIALOGS[Math.floor(Math.random() * CTA_DIALOGS.length)];
-    }
-    default:
-      return "";
-  }
+  // Try exact role match first
+  const generator = ROLE_DIALOG_MAP[role];
+  if (generator) return generator(productCategory);
+  
+  // Fallback: try to find via template hooks
+  const hooks = getRandomHooks(templateKey, 1);
+  if (hooks[0]) return hooks[0];
+  
+  return "";
 }
 
 import { imageUrlToBase64WithMime as imageUrlToBase64 } from "@/lib/image-utils";
