@@ -1015,19 +1015,28 @@ Content template: ${template?.label}`,
     );
   }
 
+  // Status pill helper
+  const getStatusPill = (status: FrameStatus) => {
+    switch (status) {
+      case "completed": return <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Done</span>;
+      case "failed": return <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Failed</span>;
+      case "generating": return <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-medium flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Generating</span>;
+      default: return <span className="bg-white/[0.04] text-muted-foreground/40 rounded-md px-2 py-0.5 text-[10px] font-medium">Idle</span>;
+    }
+  };
+
   // Main frame editor
   return (
-    <div className="space-y-4 max-w-2xl mx-auto pb-20">
+    <div className="space-y-3 max-w-2xl mx-auto pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Buat Video</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground/40 mt-0.5">
             {getContentTemplate(selectedTemplate)?.label} • {activeFrames.length} frame • Est. {formatRupiah(totalCost)}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Aspect ratio toggle */}
           <div className="flex rounded-lg overflow-hidden border border-white/[0.06]">
             {(["9:16", "16:9"] as const).map((ar) => (
               <button
@@ -1054,16 +1063,17 @@ Content template: ${template?.label}`,
         </div>
       </div>
 
-      {/* Product Info Banner (compact) */}
+      {/* Product Info Banner */}
       {productInfo.product_description && (
-        <div className="rounded-xl px-4 py-2 border border-primary/20 bg-primary/5 text-[11px] flex items-center gap-2">
+        <div className="rounded-xl px-4 py-2 border border-white/[0.06] bg-white/[0.02] text-[11px] flex items-center gap-2">
           <span>🏷️</span>
           <span className="font-medium text-foreground">{productInfo.product_description}</span>
-          <span className="text-muted-foreground">({productInfo.category}/{productInfo.sub_category || "general"})</span>
+          <span className="text-muted-foreground/40">({productInfo.category}/{productInfo.sub_category || "general"})</span>
         </div>
       )}
 
-      <div className={`rounded-xl px-4 py-3 border text-[11px] ${
+      {/* Model recommendation */}
+      <div className={`rounded-xl px-4 py-2.5 border text-[11px] ${
         modelRec.variant === "dialog"
           ? "bg-blue-500/5 border-blue-500/20 text-blue-400"
           : modelRec.variant === "visual"
@@ -1073,486 +1083,434 @@ Content template: ${template?.label}`,
         <Lightbulb className="inline h-3.5 w-3.5 mr-1" /> {modelRec.text}
       </div>
 
-      {/* Dialog Tip */}
-      <div className="rounded-xl px-4 py-2.5 border border-border bg-muted/20">
-        <p className="text-[10px] text-muted-foreground">
-          <MessageSquare className="inline h-3 w-3 mr-1" /> <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
-        </p>
-      </div>
-
-      {/* Planning loading state */}
+      {/* Planning loading */}
       {planningStoryboard && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <div>
             <p className="text-xs font-medium text-foreground">Merencanakan storyboard...</p>
-            <p className="text-[10px] text-muted-foreground">Menganalisis produk & membuat rencana 5 frame</p>
+            <p className="text-[10px] text-muted-foreground/40">Menganalisis produk & membuat rencana 5 frame</p>
           </div>
         </div>
       )}
 
-      {/* 5 Frame Cards */}
-      {frames.map((frame, idx) => {
-        const beat = beats[idx];
-        if (!beat) return null;
+      {/* 5 Frame Cards — Accordion Style */}
+      <div className="space-y-2">
+        {frames.map((frame, idx) => {
+          const beat = beats[idx];
+          if (!beat) return null;
 
-        // Show skeleton during planning
-        if (planningStoryboard) {
-          return (
-            <div key={idx} className="border border-border rounded-xl p-4 space-y-3 animate-pulse">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-5 w-8" />
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-12 rounded-full" />
+          // Skeleton during planning
+          if (planningStoryboard) {
+            return (
+              <div key={idx} className="border border-white/[0.06] rounded-xl p-4 space-y-3 animate-pulse bg-white/[0.02]">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-8" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-12 rounded-md" />
+                </div>
+                <Skeleton className="h-10 w-full" />
               </div>
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-          );
-        }
+            );
+          }
 
-        // If this frame is merged into another, show collapsed indicator
-        if (frame.mergedInto !== null) {
+          // Merged-into indicator
+          if (frame.mergedInto !== null) {
+            return (
+              <div key={idx} className="border border-dashed border-white/[0.06] rounded-xl px-4 py-2 opacity-40 flex items-center gap-2">
+                <Link2 className="h-3 w-3 text-muted-foreground/40" />
+                <span className="text-[10px] text-muted-foreground/40">
+                  F{idx + 1} ({beat.label}) — digabungkan ke F{frame.mergedInto + 1}
+                </span>
+              </div>
+            );
+          }
+
+          const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
+          const isCombined = mergedBeats.length > 0;
+          const allBeatLabels = [beat, ...mergedBeats];
+          const canCombineMore = frame.mergedFrames.length + 1 < 3;
+
           return (
-            <div key={idx} className="border border-dashed border-border rounded-xl px-4 py-2 opacity-40 flex items-center gap-2">
-              <Link2 className="h-3 w-3 text-muted-foreground" />
-              <span className="text-[10px] text-muted-foreground">
-                F{idx + 1} ({beat.label}) — digabungkan ke F{frame.mergedInto + 1}
-              </span>
-            </div>
-          );
-        }
-
-        const roleColor = getRoleColor(idx);
-        const modelInfo = MODEL_LABELS[frame.model];
-        const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
-        const isCombined = mergedBeats.length > 0;
-        const allBeatLabels = [beat, ...mergedBeats];
-        const canCombineMore = frame.mergedFrames.length + 1 < 3; // max 3
-
-        return (
-          <div
-            key={idx}
-            className={`border rounded-xl overflow-hidden transition-all ${
-              frame.skipped ? "opacity-40 border-border" : frame.status === "completed" ? "border-green-500/30 bg-green-500/5" : isCombined ? "border-primary/30 bg-primary/5" : "border-border bg-card"
-            }`}
-          >
-            {/* Frame Header */}
             <div
-              className="px-4 py-3 flex items-center justify-between cursor-pointer"
-              onClick={() => updateFrame(idx, { expanded: !frame.expanded })}
+              key={idx}
+              className={`border rounded-xl overflow-hidden transition-all ${
+                frame.skipped ? "opacity-40 border-white/[0.04]" :
+                frame.status === "completed" ? "border-emerald-500/20 bg-white/[0.02]" :
+                isCombined ? "border-primary/20 bg-white/[0.02]" :
+                "border-white/[0.06] bg-white/[0.02]"
+              }`}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm font-bold text-foreground shrink-0">
-                  {isCombined ? `F${idx + 1}+${frame.mergedFrames.map((m) => m + 1).join("+")}` : `F${idx + 1}`}
-                </span>
-                <span className="text-xs text-muted-foreground truncate">
-                  {isCombined ? allBeatLabels.map((b) => b.label.split("—")[0].trim()).join(" + ") : beat.label}
-                </span>
-                {allBeatLabels.map((b, bi) => {
-                  const actualIdx = bi === 0 ? idx : frame.mergedFrames[bi - 1];
-                  return (
-                    <span key={bi} className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${getRoleColor(actualIdx)}`}>
-                      {b.storyRole}
-                    </span>
-                  );
-                })}
-                {frame.status === "completed" && <span className="text-[9px] text-green-400 font-medium shrink-0">✓</span>}
-                {frame.status === "generating" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
-                {frame.status === "failed" && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
-                {isCombined && <Link2 className="h-3 w-3 text-primary shrink-0" />}
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Skip toggle */}
-                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  <span className="text-[9px] text-muted-foreground">Skip</span>
-                  <Switch
-                    checked={frame.skipped}
-                    onCheckedChange={(v) => updateFrame(idx, { skipped: v })}
-                    className="scale-75"
-                  />
-                </div>
-                {frame.expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-              </div>
-            </div>
-
-            {/* Expanded content */}
-            {frame.expanded && !frame.skipped && (
-              <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
-                {/* Beat description(s) */}
-                {isCombined ? (
-                  <div className="space-y-1">
-                    {allBeatLabels.map((b, bi) => (
-                      <p key={bi} className="text-[10px] text-muted-foreground italic">
-                        <span className="font-medium text-foreground not-italic">{b.storyRole}:</span> {b.description}
-                      </p>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-muted-foreground italic">{beat.description}</p>
-                )}
-
-                {/* Split button for combined frames */}
-                {isCombined && (
-                  <button
-                    onClick={() => splitFrame(idx)}
-                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                  >
-                    <Unlink className="h-3 w-3" /> Pisahkan kembali
-                  </button>
-                )}
-
-                {/* Source image */}
-                <div>
-                  <label className="text-[10px] text-muted-foreground font-medium block mb-1">Referensi gambar</label>
-                  <div className="flex items-center gap-2">
-                    {(frame.sourceImageUrl || sourceUrl) ? (
-                      <img
-                        src={frame.sourceImageUrl || sourceUrl!}
-                        alt={`Frame ${idx + 1} ref`}
-                        className="h-16 w-16 rounded-lg object-cover border border-border"
-                      />
-                    ) : (
-                      <div className="h-16 w-16 rounded-lg border border-dashed border-border bg-muted/20 flex items-center justify-center">
-                        <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1">
-                      <button
-                        onClick={() => {
-                          const inp = document.createElement("input");
-                          inp.type = "file";
-                          inp.accept = "image/jpeg,image/png,image/webp";
-                          inp.onchange = async (e) => {
-                            const f = (e.target as HTMLInputElement).files?.[0];
-                            if (!f) return;
-                            const preview = URL.createObjectURL(f);
-                            updateFrame(idx, { sourceImageUrl: preview });
-                            const ext = f.name.split(".").pop();
-                            const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
-                            const { error } = await supabase.storage.from("product-images").upload(path, f);
-                            if (!error) {
-                              const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                              updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
-                            }
-                          };
-                          inp.click();
-                        }}
-                        className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                      >
-                        <Upload className="h-3 w-3" /> Upload
-                      </button>
-                      {galleryImages.length > 0 && (
-                        <button
-                          onClick={() => updateFrame(idx, { showGalleryPicker: !frame.showGalleryPicker })}
-                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                        >
-                          <ImageIcon className="h-3 w-3" /> Dari gallery
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  {/* Inline gallery picker */}
-                  {frame.showGalleryPicker && galleryImages.length > 0 && (
-                    <div className="mt-2 p-2 rounded-lg border border-border bg-muted/20">
-                      <p className="text-[10px] text-muted-foreground mb-1.5">Pilih dari gallery:</p>
-                      <div className="flex gap-1.5 overflow-x-auto pb-1">
-                        {galleryImages.slice(0, 12).map((img) => (
-                          <button
-                            key={img.id}
-                            onClick={() => {
-                              updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false });
-                            }}
-                            className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-border hover:border-primary/50 transition-colors"
-                          >
-                            <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Gerakan / Action */}
-                <div>
-                  <label className="text-[10px] text-muted-foreground font-medium block mb-1">Gerakan:</label>
-                  <Textarea
-                    value={frame.action}
-                    onChange={(e) => updateFrame(idx, { action: e.target.value })}
-                    rows={2}
-                    placeholder="Deskripsi gerakan/aksi untuk frame ini..."
-                    className="bg-muted/30 border-border text-[11px] mb-2"
-                  />
-                  <div className="flex flex-wrap gap-1.5 items-center">
-                    {frame.actionChips.map((chip, ci) => (
-                      <button
-                        key={ci}
-                        onClick={() => updateFrame(idx, { action: chip })}
-                        className="text-[9px] px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/15 transition-colors"
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => updateFrame(idx, { actionChips: getShuffledChips(beat.storyRole, productCategory) })}
-                      className="text-[9px] px-2 py-1 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors flex items-center gap-0.5"
-                    >
-                      <RefreshCw className="h-2.5 w-2.5" /> Acak
-                    </button>
-                  </div>
-                </div>
-
-                {/* Dialog */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] text-muted-foreground font-medium">Dialog</label>
-                    <button
-                      onClick={() => generateFrameScript(idx)}
-                      disabled={frame.scriptGenerating || frame.dialogue === "..."}
-                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
-                    >
-                      {frame.scriptGenerating ? (
-                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...</>
-                      ) : (
-                        <><Sparkles className="h-2.5 w-2.5" /> Generate Script AI</>
-                      )}
-                    </button>
-                  </div>
-                  <Textarea
-                    value={frame.dialogue}
-                    onChange={(e) => {
-                      updateFrame(idx, { dialogue: e.target.value });
-                      // Auto-switch model based on dialog
-                      if (e.target.value.trim() && frame.model === "grok") {
-                        updateFrame(idx, { model: "veo_fast" });
-                      } else if (!e.target.value.trim() && frame.model === "veo_fast") {
-                        updateFrame(idx, { model: "grok" });
-                      }
-                    }}
-                    rows={2}
-                    placeholder="Dialog untuk frame ini..."
-                    className="bg-muted/30 border-border text-[11px]"
-                  />
-                </div>
-
-                {/* Prompt */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] text-muted-foreground font-medium">Video Prompt</label>
-                    <button
-                      onClick={() => generateFramePrompt(idx)}
-                      disabled={frame.promptGenerating}
-                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
-                    >
-                      {frame.promptGenerating ? (
-                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...</>
-                      ) : (
-                        <><Sparkles className="h-2.5 w-2.5" /> Generate Prompt</>
-                      )}
-                    </button>
-                  </div>
-                  <Textarea
-                    value={frame.prompt}
-                    onChange={(e) => updateFrame(idx, { prompt: e.target.value })}
-                    rows={3}
-                    placeholder="Auto-generate saat Generate Frame, atau tulis manual..."
-                    className="bg-muted/30 border-border text-[11px]"
-                  />
-                </div>
-
-                {/* Model selector */}
-                <div>
-                  <label className="text-[10px] text-muted-foreground font-medium block mb-1.5">Model</label>
-                  <div className="flex gap-2">
-                    {(["grok", "veo_fast", "veo_quality"] as VideoModel[]).map((m) => {
-                      const mi = MODEL_LABELS[m];
-                      const selected = frame.model === m;
-                      return (
-                        <button
-                          key={m}
-                          onClick={() => updateFrame(idx, { model: m })}
-                          className={`flex-1 text-left rounded-lg p-2 transition-all text-[10px] ${
-                            selected
-                              ? "border-2 border-primary bg-primary/5"
-                              : "border border-border hover:border-muted-foreground/30"
-                          }`}
-                        >
-                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${mi.badgeColor}`}>
-                            {mi.badge}
-                          </span>
-                          <p className="font-semibold text-foreground mt-1">{mi.label}</p>
-                          <p className="text-muted-foreground/60">
-                            {mi.audio ? "🔊 Audio + Lip Sync" : "🔇 No audio"} • {mi.cost}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Generate / Result */}
-                {frame.status === "completed" && frame.videoUrl ? (
-                  <div className="space-y-2">
+              {/* Collapsed Header — ~56px */}
+              <div
+                className="h-14 px-4 flex items-center justify-between cursor-pointer"
+                onClick={() => updateFrame(idx, { expanded: !frame.expanded })}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {/* Thumbnail if completed */}
+                  {frame.status === "completed" && frame.videoUrl && (
                     <video
                       src={frame.videoUrl}
-                      controls
-                      playsInline
-                      className={`w-full rounded-lg border border-border ${aspectRatio === "9:16" ? "aspect-[9/16] max-w-[200px] mx-auto" : "aspect-[16/9]"} object-cover`}
+                      muted
+                      className="h-10 w-8 rounded-md object-cover shrink-0 border border-white/[0.06]"
                     />
-                    <div className="flex gap-2">
-                      <a
-                        href={frame.videoUrl}
-                        download
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex-1 text-xs py-2 rounded-lg bg-primary text-primary-foreground flex items-center justify-center gap-1"
-                      >
-                        <Download className="h-3 w-3" /> Download
-                      </a>
+                  )}
+                  <span className="text-[13px] font-bold text-muted-foreground/30 shrink-0">
+                    {isCombined ? `#${idx + 1}+${frame.mergedFrames.map((m) => m + 1).join("+")}` : `#${idx + 1}`}
+                  </span>
+                  <span className="text-[13px] font-medium text-foreground truncate">
+                    {isCombined ? allBeatLabels.map((b) => b.label.split("—")[0].trim()).join(" + ") : beat.label}
+                  </span>
+                  {allBeatLabels.map((b, bi) => {
+                    const actualIdx = bi === 0 ? idx : frame.mergedFrames[bi - 1];
+                    return (
+                      <span key={bi} className={`text-[9px] px-2 py-0.5 rounded-md font-medium shrink-0 ${getRoleColor(actualIdx)}`}>
+                        {b.storyRole}
+                      </span>
+                    );
+                  })}
+                  {isCombined && <Link2 className="h-3 w-3 text-primary shrink-0" />}
+                </div>
+                <div className="flex items-center gap-2">
+                  {getStatusPill(frame.status)}
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-[9px] text-muted-foreground/30">Skip</span>
+                    <Switch
+                      checked={frame.skipped}
+                      onCheckedChange={(v) => updateFrame(idx, { skipped: v })}
+                      className="scale-75"
+                    />
+                  </div>
+                  {frame.expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground/30" /> : <ChevronDown className="h-4 w-4 text-muted-foreground/30" />}
+                </div>
+              </div>
+
+              {/* Expanded Content */}
+              {frame.expanded && !frame.skipped && (
+                <div className="px-4 pb-4 space-y-3 border-t border-white/[0.04] pt-3">
+                  {/* Beat descriptions */}
+                  {isCombined ? (
+                    <div className="space-y-1">
+                      {allBeatLabels.map((b, bi) => (
+                        <p key={bi} className="text-[10px] text-muted-foreground/40 italic">
+                          <span className="font-medium text-foreground not-italic">{b.storyRole}:</span> {b.description}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground/40 italic">{beat.description}</p>
+                  )}
+
+                  {/* Split button */}
+                  {isCombined && (
+                    <button
+                      onClick={() => splitFrame(idx)}
+                      className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                    >
+                      <Unlink className="h-3 w-3" /> Pisahkan kembali
+                    </button>
+                  )}
+
+                  {/* Source image */}
+                  <div>
+                    <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1">Referensi gambar</label>
+                    <div className="flex items-center gap-2">
+                      {(frame.sourceImageUrl || sourceUrl) ? (
+                        <img
+                          src={frame.sourceImageUrl || sourceUrl!}
+                          alt={`Frame ${idx + 1} ref`}
+                          className="h-14 w-14 rounded-lg object-cover border border-white/[0.06]"
+                        />
+                      ) : (
+                        <div className="h-14 w-14 rounded-lg border border-dashed border-white/[0.06] bg-white/[0.02] flex items-center justify-center">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => {
+                            const inp = document.createElement("input");
+                            inp.type = "file";
+                            inp.accept = "image/jpeg,image/png,image/webp";
+                            inp.onchange = async (e) => {
+                              const f = (e.target as HTMLInputElement).files?.[0];
+                              if (!f) return;
+                              const preview = URL.createObjectURL(f);
+                              updateFrame(idx, { sourceImageUrl: preview });
+                              const ext = f.name.split(".").pop();
+                              const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
+                              const { error } = await supabase.storage.from("product-images").upload(path, f);
+                              if (!error) {
+                                const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                                updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
+                              }
+                            };
+                            inp.click();
+                          }}
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                        >
+                          <Upload className="h-3 w-3" /> Upload
+                        </button>
+                        {galleryImages.length > 0 && (
+                          <button
+                            onClick={() => updateFrame(idx, { showGalleryPicker: !frame.showGalleryPicker })}
+                            className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                          >
+                            <ImageIcon className="h-3 w-3" /> Dari gallery
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {frame.showGalleryPicker && galleryImages.length > 0 && (
+                      <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                        <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih dari gallery:</p>
+                        <div className="flex gap-1.5 overflow-x-auto pb-1">
+                          {galleryImages.slice(0, 12).map((img) => (
+                            <button
+                              key={img.id}
+                              onClick={() => updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false })}
+                              className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
+                            >
+                              <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action / Gerakan */}
+                  <div>
+                    <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1">Gerakan:</label>
+                    <Textarea
+                      value={frame.action}
+                      onChange={(e) => updateFrame(idx, { action: e.target.value })}
+                      rows={2}
+                      placeholder="Deskripsi gerakan/aksi untuk frame ini..."
+                      className="bg-white/[0.02] border-white/[0.06] rounded-xl text-[11px] placeholder:text-muted-foreground/20 mb-2"
+                    />
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      {frame.actionChips.map((chip, ci) => (
+                        <button
+                          key={ci}
+                          onClick={() => updateFrame(idx, { action: chip })}
+                          className={`text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${
+                            frame.action === chip
+                              ? "bg-primary/10 border-primary/20 text-primary"
+                              : "bg-white/[0.04] border-white/[0.06] text-muted-foreground hover:text-foreground"
+                          }`}
+                        >
+                          {chip}
+                        </button>
+                      ))}
                       <button
-                        onClick={() => { updateFrame(idx, { status: "idle", videoUrl: null }); generateFrame(idx); }}
-                        className="text-xs py-2 px-3 rounded-lg border border-border text-muted-foreground hover:text-foreground flex items-center gap-1"
+                        onClick={() => updateFrame(idx, { actionChips: getShuffledChips(beat.storyRole, productCategory) })}
+                        className="text-[10px] px-2.5 py-1.5 rounded-lg border border-white/[0.06] text-muted-foreground/30 hover:text-foreground transition-colors flex items-center gap-0.5"
                       >
-                        <RefreshCw className="h-3 w-3" /> Retry
+                        <RefreshCw className="h-2.5 w-2.5" /> Acak
                       </button>
                     </div>
                   </div>
-                ) : frame.status === "generating" ? (
-                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <div>
-                      <p className="text-xs text-foreground font-medium">Generating Frame {idx + 1}...</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">{formatTime(frame.elapsed)}</p>
+
+                  {/* Dialog */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] text-muted-foreground/30 font-medium">Dialog</label>
+                      <button
+                        onClick={() => generateFrameScript(idx)}
+                        disabled={frame.scriptGenerating || frame.dialogue === "..."}
+                        className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {frame.scriptGenerating ? (
+                          <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...</>
+                        ) : (
+                          <><Sparkles className="h-2.5 w-2.5" /> Generate Script AI</>
+                        )}
+                      </button>
+                    </div>
+                    <Textarea
+                      value={frame.dialogue}
+                      onChange={(e) => {
+                        updateFrame(idx, { dialogue: e.target.value });
+                        if (e.target.value.trim() && frame.model === "grok") {
+                          updateFrame(idx, { model: "veo_fast" });
+                        } else if (!e.target.value.trim() && frame.model === "veo_fast") {
+                          updateFrame(idx, { model: "grok" });
+                        }
+                      }}
+                      rows={2}
+                      placeholder="Dialog untuk frame ini..."
+                      className="bg-white/[0.02] border-white/[0.06] rounded-xl text-[11px] placeholder:text-muted-foreground/20"
+                    />
+                  </div>
+
+                  {/* Prompt */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] text-muted-foreground/30 font-medium">Video Prompt</label>
+                      <button
+                        onClick={() => generateFramePrompt(idx)}
+                        disabled={frame.promptGenerating}
+                        className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {frame.promptGenerating ? (
+                          <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...</>
+                        ) : (
+                          <><Sparkles className="h-2.5 w-2.5" /> Generate Prompt</>
+                        )}
+                      </button>
+                    </div>
+                    <Textarea
+                      value={frame.prompt}
+                      onChange={(e) => updateFrame(idx, { prompt: e.target.value })}
+                      rows={3}
+                      placeholder="Auto-generate saat Generate Frame, atau tulis manual..."
+                      className="bg-white/[0.02] border-white/[0.06] rounded-xl text-[11px] placeholder:text-muted-foreground/20"
+                    />
+                  </div>
+
+                  {/* Model selector — inline radio pills */}
+                  <div>
+                    <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1.5">Model</label>
+                    <div className="flex gap-2">
+                      {(["grok", "veo_fast", "veo_quality"] as VideoModel[]).map((m) => {
+                        const mi = MODEL_LABELS[m];
+                        const selected = frame.model === m;
+                        return (
+                          <button
+                            key={m}
+                            onClick={() => updateFrame(idx, { model: m })}
+                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] transition-all text-center ${
+                              selected
+                                ? "border border-primary/20 bg-primary/[0.04] text-primary font-semibold"
+                                : "border border-white/[0.06] bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            <span className="font-medium">{mi.label}</span>
+                            <span className="text-[9px] opacity-60 ml-1">{mi.cost}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                ) : frame.status === "failed" ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 p-2 bg-destructive/5 border border-destructive/20 rounded-lg">
-                      <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
-                      <p className="text-[10px] text-destructive">{frame.errorMsg || "Gagal"}</p>
+
+                  {/* Generate / Result */}
+                  {frame.status === "completed" && frame.videoUrl ? (
+                    <div className="space-y-2">
+                      <video
+                        src={frame.videoUrl}
+                        controls
+                        playsInline
+                        className={`w-full rounded-xl border border-white/[0.06] ${aspectRatio === "9:16" ? "aspect-[9/16] max-w-[200px] mx-auto" : "aspect-[16/9]"} object-cover`}
+                      />
+                      <div className="flex gap-2">
+                        <a
+                          href={frame.videoUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 text-xs py-2 rounded-xl bg-primary text-primary-foreground flex items-center justify-center gap-1"
+                        >
+                          <Download className="h-3 w-3" /> Download
+                        </a>
+                        <button
+                          onClick={() => { updateFrame(idx, { status: "idle", videoUrl: null }); generateFrame(idx); }}
+                          className="text-xs py-2 px-3 rounded-xl border border-white/[0.06] text-muted-foreground hover:text-foreground flex items-center gap-1"
+                        >
+                          <RefreshCw className="h-3 w-3" /> Retry
+                        </button>
+                      </div>
                     </div>
-                    {anyGenerating ? (
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground p-2">
-                        <Lock className="h-3 w-3" /> Tunggu frame lain selesai...
+                  ) : frame.status === "generating" ? (
+                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <div>
+                        <p className="text-xs text-foreground font-medium">Generating Frame {idx + 1}...</p>
+                        <p className="text-[10px] text-muted-foreground/40 font-mono">{formatTime(frame.elapsed)}</p>
+                      </div>
+                    </div>
+                  ) : frame.status === "failed" ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
+                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+                        <p className="text-[10px] text-red-400">{frame.errorMsg || "Gagal"}</p>
+                      </div>
+                      {anyGenerating ? (
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2">
+                          <Lock className="h-3 w-3" /> Tunggu frame lain selesai...
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => generateFrame(idx)}
+                          className="text-xs py-2 px-4 rounded-xl bg-primary text-primary-foreground"
+                        >
+                          Coba Lagi
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    anyGenerating ? (
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2 rounded-xl bg-white/[0.02]">
+                        <Lock className="h-3 w-3" /> Tunggu frame sebelumnya selesai...
                       </div>
                     ) : (
                       <button
                         onClick={() => generateFrame(idx)}
-                        className="text-xs py-2 px-4 rounded-lg bg-primary text-primary-foreground"
+                        disabled={batchGenerating}
+                        className="w-full text-xs py-2.5 rounded-xl border border-primary/30 text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
                       >
-                        Coba Lagi
+                        <Film className="h-3.5 w-3.5" />
+                        Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
                       </button>
-                    )}
-                  </div>
-                ) : (
-                  anyGenerating ? (
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground p-2 rounded-lg bg-muted/20">
-                      <Lock className="h-3 w-3" /> Tunggu frame sebelumnya selesai...
-                    </div>
-                  ) : (
+                    )
+                  )}
+
+                  {/* Combine links */}
+                  {!isCombined && idx < frames.length - 1 && frames[idx + 1]?.mergedInto === null && !frames[idx + 1]?.mergedFrames.length && !frame.skipped && frame.status !== "generating" && (
                     <button
-                      onClick={() => generateFrame(idx)}
-                      disabled={batchGenerating}
-                      className="w-full text-xs py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                      onClick={() => combineWithNext(idx)}
+                      className="text-[10px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors mt-1"
                     >
-                      <Film className="h-3.5 w-3.5" />
-                      Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
+                      <Link2 className="h-3 w-3" /> Gabungkan dengan frame berikutnya ↓
                     </button>
-                  )
-                )}
-
-                {/* Combine with next frame link */}
-                {!isCombined && idx < frames.length - 1 && frames[idx + 1]?.mergedInto === null && !frames[idx + 1]?.mergedFrames.length && !frame.skipped && frame.status !== "generating" && (
-                  <button
-                    onClick={() => combineWithNext(idx)}
-                    className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors mt-1"
-                  >
-                    <Link2 className="h-3 w-3" /> Gabungkan dengan frame berikutnya ↓
-                  </button>
-                )}
-                {isCombined && canCombineMore && (() => {
-                  const lastMerged = frame.mergedFrames[frame.mergedFrames.length - 1];
-                  const nextAfterMerged = lastMerged + 1;
-                  if (nextAfterMerged < frames.length && frames[nextAfterMerged]?.mergedInto === null && !frames[nextAfterMerged]?.mergedFrames.length) {
-                    return (
-                      <button
-                        onClick={() => combineWithNext(idx)}
-                        className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
-                      >
-                        <Link2 className="h-3 w-3" /> Gabungkan frame berikutnya juga ↓
-                      </button>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {/* Batch Generate */}
-      <div className="border border-border rounded-xl p-4 bg-card space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-foreground">Generate Semua Frame</p>
-            <p className="text-[10px] text-muted-foreground">
-              {activeFrames.length} frame aktif • Total est. {formatRupiah(totalCost)}
-            </p>
-          </div>
-          {batchGenerating && (
-            <button onClick={cancelBatch} className="text-[10px] text-destructive hover:underline">Cancel</button>
-          )}
-        </div>
-
-        {batchGenerating && batchCurrentFrame >= 0 && (
-          <div className="space-y-1.5">
-            <p className="text-[11px] text-muted-foreground">
-              Generating Frame {batchCurrentFrame + 1}/{activeFrames.length} — {beats[batchCurrentFrame]?.storyRole}... ({formatTime(frames[batchCurrentFrame]?.elapsed || 0)})
-            </p>
-            <Progress value={(completedFrames.length / activeFrames.length) * 100} className="h-1.5" />
-          </div>
-        )}
-
-        {!batchGenerating && completedFrames.length > 0 && (
-          <p className="text-[10px] text-muted-foreground">
-            {completedFrames.length}/{frames.length} selesai ✓
-            {skippedCount > 0 ? ` · ${skippedCount} di-skip` : ""}
-            {failedCount > 0 ? ` · ${failedCount} gagal` : ""}
-            {` · ${formatRupiah(actualCost)} total`}
-          </p>
-        )}
-
-        <button
-          onClick={generateAll}
-          disabled={batchGenerating || !kieApiKey || activeFrames.length === 0}
-          className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40"
-        >
-          {batchGenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Film className="h-4 w-4" />
-          )}
-          GENERATE SEMUA FRAME
-        </button>
+                  )}
+                  {isCombined && canCombineMore && (() => {
+                    const lastMerged = frame.mergedFrames[frame.mergedFrames.length - 1];
+                    const nextAfterMerged = lastMerged + 1;
+                    if (nextAfterMerged < frames.length && frames[nextAfterMerged]?.mergedInto === null && !frames[nextAfterMerged]?.mergedFrames.length) {
+                      return (
+                        <button
+                          onClick={() => combineWithNext(idx)}
+                          className="text-[10px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors"
+                        >
+                          <Link2 className="h-3 w-3" /> Gabungkan frame berikutnya juga ↓
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Preview & Combine Section */}
       {allDone && completedVideos.length > 0 && (
-        <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 space-y-4">
+        <div className="border border-white/[0.06] rounded-xl p-5 bg-white/[0.02] space-y-4">
           <div>
             <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Clapperboard className="h-4 w-4" /> Semua Frame Selesai!</p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground/40">
               Total: {totalDuration}s ({completedVideos.length} × {completedVideos.length > 0 ? (completedVideos[0].model === "grok" ? "10s" : "8s") : "8s"})
             </p>
           </div>
 
-          {/* Sequential player */}
+          {/* Sequential player with filmstrip */}
           {playingAll && completedVideos[playIndex] && (
-            <div className="space-y-2">
-              <p className="text-[10px] text-muted-foreground text-center">
-                Playing: Frame {completedVideos[playIndex].idx + 1} — {completedVideos[playIndex].beat?.label} ({playIndex + 1}/{completedVideos.length})
+            <div className="space-y-3">
+              <p className="text-[10px] text-muted-foreground/40 text-center">
+                Frame {completedVideos[playIndex].idx + 1} — {completedVideos[playIndex].beat?.label} ({playIndex + 1}/{completedVideos.length})
               </p>
               <video
                 ref={playerRef}
@@ -1560,31 +1518,78 @@ Content template: ${template?.label}`,
                 autoPlay
                 playsInline
                 onEnded={handleVideoEnded}
-                className={`w-full rounded-lg border border-border mx-auto ${aspectRatio === "9:16" ? "aspect-[9/16] max-w-[220px]" : "aspect-[16/9]"} object-cover`}
+                className={`w-full rounded-xl border border-white/[0.06] mx-auto ${aspectRatio === "9:16" ? "aspect-[9/16] max-w-[220px]" : "aspect-[16/9]"} object-cover`}
               />
+              {/* Filmstrip thumbnails */}
+              <div className="flex gap-1.5 justify-center">
+                {completedVideos.map((v, vi) => (
+                  <button
+                    key={vi}
+                    onClick={() => setPlayIndex(vi)}
+                    className={`h-12 w-9 rounded-md overflow-hidden border-2 transition-all ${
+                      vi === playIndex ? "ring-2 ring-primary border-primary" : "border-white/[0.06] opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <video src={v.videoUrl!} muted className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={handlePlayAll}
-              className="flex-1 min-w-[140px] text-xs py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
+              className="flex-1 min-w-[140px] text-xs py-2.5 rounded-xl border border-primary/30 text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
             >
               <Play className="h-3.5 w-3.5" /> Preview Full Video
             </button>
             <button
               onClick={downloadAll}
-              className="flex-1 min-w-[140px] text-xs py-2.5 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 min-w-[140px] text-xs py-2.5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
             >
               <Download className="h-3.5 w-3.5" /> Download Semua
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground/60 text-center">
-            Edit dan gabungkan clip di CapCut atau InShot untuk hasil terbaik. Trim bagian yang tidak diperlukan.
+          <p className="text-[10px] text-muted-foreground/20 text-center">
+            Edit dan gabungkan clip di CapCut atau InShot untuk hasil terbaik
           </p>
         </div>
       )}
+
+      {/* Sticky Bottom Bar — Batch Controls */}
+      <div className="fixed bottom-0 left-0 right-0 lg:left-[232px] bg-background/80 backdrop-blur-xl border-t border-white/[0.04] px-6 py-3 z-30">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[12px] text-muted-foreground/40">
+              {completedFrames.length}/{activeFrames.length} frames
+            </span>
+            <span className="bg-white/[0.04] text-muted-foreground/50 rounded-md px-2 py-0.5 text-[10px] font-medium">
+              Est. {formatRupiah(totalCost)}
+            </span>
+            {batchGenerating && batchCurrentFrame >= 0 && (
+              <span className="text-[10px] text-primary flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                F{batchCurrentFrame + 1} — {formatTime(frames[batchCurrentFrame]?.elapsed || 0)}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {batchGenerating && (
+              <button onClick={cancelBatch} className="text-[11px] text-red-400 hover:underline px-3 py-1.5">Cancel</button>
+            )}
+            <button
+              onClick={generateAll}
+              disabled={batchGenerating || !kieApiKey || activeFrames.length === 0}
+              className="bg-primary text-primary-foreground font-bold text-[12px] px-5 py-2 rounded-xl flex items-center gap-2 transition-all disabled:opacity-40 hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5"
+            >
+              {batchGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Film className="h-3.5 w-3.5" />}
+              {batchGenerating ? "Generating..." : "Generate all frames"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
