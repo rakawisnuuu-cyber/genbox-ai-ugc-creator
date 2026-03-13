@@ -73,7 +73,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { CharacterData } from "@/components/CharacterCard";
 
-
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
 /* ── GENBOX Realism Blocks ──────────────────────────────────── */
 const SKIN_BLOCK = "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
