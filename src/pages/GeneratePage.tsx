@@ -1264,16 +1264,35 @@ Output ONLY the final prompt text.` });
         </div>
       </div>
 
-      {/* RIGHT PANEL */}
-      <div className="w-full lg:w-[45%] bg-[hsl(0_0%_5%)] border-t lg:border-t-0 lg:border-l border-border flex flex-col items-center justify-start p-6 lg:p-10 min-h-[400px] lg:min-h-0 overflow-y-auto">
-        {genState === "idle" && (
-          <div className="flex flex-col items-center text-center animate-fade-in">
-            <ImageIcon className="h-16 w-16 text-foreground/10 mb-4" />
-            <p className="text-sm text-muted-foreground">Hasil generasi akan muncul di sini</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Upload produk dan pilih karakter untuk mulai</p>
+      {/* RIGHT PANEL — Storyboard Direct View */}
+      <div className="w-full lg:w-[45%] bg-[hsl(0_0%_5%)] border-t lg:border-t-0 lg:border-l border-border flex flex-col items-start justify-start p-6 lg:p-8 min-h-[400px] lg:min-h-0 overflow-y-auto">
+        {/* Empty state — before generation */}
+        {!storyboardActive && shotStatuses.length === 0 && genState === "idle" && (
+          <div className="flex flex-col items-center text-center w-full animate-fade-in mt-8">
+            <Film className="h-16 w-16 text-foreground/10 mb-4" />
+            <p className="text-sm text-muted-foreground">Storyboard akan muncul di sini</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Upload produk, pilih karakter & template, lalu Generate Storyboard</p>
+            {/* Beat preview in right panel */}
+            {storyboardTemplate && (
+              <div className="mt-6 w-full">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2 text-left">Preview Beats — {CONTENT_TEMPLATES.find(t => t.key === storyboardTemplate)?.label}</p>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {currentBeats.map((beat, i) => (
+                    <div key={i} className="border border-border rounded-lg p-1.5 bg-muted/10">
+                      <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
+                        {beat.storyRole}
+                      </span>
+                      <p className="text-[8px] font-semibold text-foreground mt-0.5 truncate">{beat.label}</p>
+                      <p className="text-[7px] text-muted-foreground line-clamp-2 mt-0.5">{beat.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
+        {/* Loading — single image gen (legacy, kept for backward compat) */}
         {genState === "loading" && (
           <GenerationLoading
             model="image"
@@ -1286,258 +1305,147 @@ Output ONLY the final prompt text.` });
           />
         )}
 
-        {genState === "completed" && resultUrl && (
-          <div className="flex flex-col items-center gap-4 w-full max-w-sm animate-fade-in">
-            <img
-              src={resultUrl}
-              alt="Generated UGC"
-              className="w-full rounded-xl border-2 border-primary/20 shadow-lg object-cover"
-            />
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>nano-banana-pro</span>
-              <span>•</span>
-              <span>{elapsed}s</span>
-              {productDNA && (
-                <>
-                  <span>•</span>
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                    {productDNA.category}
-                  </Badge>
-                </>
-              )}
+        {genState === "failed" && (
+          <div className="flex flex-col items-center gap-4 w-full max-w-xs animate-fade-in mx-auto mt-8">
+            <div className="w-full border border-destructive/30 bg-destructive/5 rounded-xl p-6 flex flex-col items-center gap-3 text-center">
+              <AlertTriangle className="h-8 w-8 text-destructive" />
+              <p className="text-sm text-destructive">{errorMsg || "Terjadi kesalahan"}</p>
             </div>
-            <div className="flex gap-2 w-full">
-              <a
-                href={getUpscaleState("ugc_result").resultUrl || resultUrl}
-                download
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download
-              </a>
-              <UpscaleButton
-                imageUrl={resultUrl}
-                imageKey="ugc_result"
-                loading={getUpscaleState("ugc_result").loading}
-                currentFactor={getUpscaleState("ugc_result").factor}
-                onUpscale={(k, u, f) => upscale(k, u, f)}
-              />
-              <button
-                onClick={() => { setGenState("idle"); setResultUrl(null); resetStoryboard(); }}
-                className="border border-border text-muted-foreground text-xs py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 hover:text-foreground transition-colors"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Video Storyboard Section */}
-            <div className="w-full border-t border-border pt-4 mt-2">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-3">Video Storyboard</p>
-
-              {/* Template picker */}
-              {!storyboardActive && shotStatuses.length === 0 && (
-                <div className="space-y-3">
-                  <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-                    {CONTENT_TEMPLATES.map((t) => {
-                      const isSelected = storyboardTemplate === t.key;
-                      return (
-                        <button
-                          key={t.key}
-                          onClick={() => setStoryboardTemplate(t.key)}
-                          className={`shrink-0 text-left rounded-lg px-3 py-2 transition-all ${
-                            isSelected
-                              ? "bg-primary/10 border border-primary/30 ring-1 ring-primary/10"
-                              : "bg-muted/30 border border-border hover:border-muted-foreground/30"
-                          }`}
-                        >
-                          <p className={`text-[11px] font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{t.label}</p>
-                          <p className="text-[9px] text-muted-foreground line-clamp-1 max-w-[90px]">{t.desc}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Beat preview */}
-                  {storyboardTemplate && (
-                    <div className="space-y-2">
-                      <div className="flex gap-1.5 overflow-x-auto pb-1">
-                        {currentBeats.map((beat, i) => (
-                          <div key={i} className="shrink-0 w-[100px] border border-border rounded-lg p-2 bg-muted/10">
-                            <div className="flex items-center gap-1 mb-1">
-                              <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
-                                {beat.storyRole}
-                              </span>
-                            </div>
-                            <p className="text-[10px] font-semibold text-foreground">{beat.label}</p>
-                            <p className="text-[8px] text-muted-foreground/60">{beat.beat}</p>
-                            <p className="text-[8px] text-muted-foreground line-clamp-3 mt-1">{beat.description}</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      <button
-                        onClick={generateStoryboard}
-                        className="w-full border border-primary text-primary font-bold text-xs py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-                      >
-                        <Film className="h-4 w-4" />
-                        Generate Storyboard (5 shots ~Rp 2.400)
-                      </button>
-                      <p className="text-[10px] text-muted-foreground/60 text-center">5 API calls paralel • Base image sebagai referensi visual</p>
-                    </div>
-                  )}
-
-                  {!storyboardTemplate && (
-                    <p className="text-[10px] text-muted-foreground/60 text-center">Pilih template video untuk generate storyboard</p>
-                  )}
-                </div>
-              )}
-
-              {/* Active or completed — horizontal timeline */}
-              {shotStatuses.length > 0 && (
-                <div className="space-y-3">
-                  {storyboardActive && (
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">
-                        Generating storyboard... <span className="text-primary font-bold">({completedShots}/5 selesai)</span>
-                      </p>
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
-                        </span>
-                        <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {storyboardDone && (
-                    <p className="text-xs text-muted-foreground text-center">
-                      <CheckCircle2 className="inline h-3.5 w-3.5 text-green-400 mr-1" /> {completedShots} selesai{failedShots > 0 ? <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" /> {failedShots} gagal</> : ""} — {storyboardElapsed}s
-                    </p>
-                  )}
-
-                  {/* Timeline: Base + 5 beats */}
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {/* Base frame */}
-                    <div className="shrink-0 w-[90px]">
-                      <img
-                        src={resultUrl!}
-                        alt="Base"
-                        className="w-full aspect-[3/4] object-cover rounded-lg border-2 border-primary/30"
-                      />
-                      <p className="text-[9px] text-primary font-semibold text-center mt-1">Base</p>
-                      <p className="text-[8px] text-muted-foreground/60 text-center">Frame 0</p>
-                    </div>
-
-                    {/* Beat frames */}
-                    {shotStatuses.map((shot, i) => {
-                      const beat = currentBeats[i];
-                      return (
-                        <div key={i} className="shrink-0 w-[90px] relative group">
-                          {shot.state === "completed" && shot.imageUrl ? (
-                            <>
-                              <img
-                                src={shot.imageUrl}
-                                alt={beat?.label || `Frame ${i + 1}`}
-                                className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
-                              />
-                              <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
-                                <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                                  <Download className="h-3 w-3" />
-                                </a>
-                                {shot.prompt && (
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(shot.prompt!);
-                                      toast({ title: "Prompt disalin!" });
-                                    }}
-                                    className="text-[7px] text-white/60 hover:text-white/90 transition-colors"
-                                    title={shot.prompt}
-                                  >
-                                    📋 Copy Prompt
-                                  </button>
-                                )}
-                              </div>
-                              <div className="absolute top-1 right-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-400" /></div>
-                            </>
-                          ) : shot.state === "failed" ? (
-                            <div className="w-full aspect-[3/4] rounded-lg border border-destructive/30 bg-destructive/5 flex items-center justify-center">
-                              <XCircle className="h-4 w-4 text-destructive/60" />
-                            </div>
-                          ) : shot.state === "generating" ? (
-                            <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center gap-1.5">
-                              <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                              <span className="text-[7px] text-primary/70 font-medium">Generating...</span>
-                            </div>
-                          ) : shot.state === "prompting" ? (
-                            <div className="w-full aspect-[3/4] rounded-lg border border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-1.5">
-                              <Sparkles className="h-4 w-4 text-primary/60 animate-pulse" />
-                              <span className="text-[7px] text-primary/70 font-medium">Building prompt...</span>
-                            </div>
-                          ) : (
-                            <div className="w-full aspect-[3/4] rounded-lg border border-dashed border-border bg-muted/10 flex items-center justify-center">
-                              <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
-                            </div>
-                          )}
-                          <div className="mt-1 text-center">
-                            {beat && (
-                              <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
-                                {beat.storyRole}
-                              </span>
-                            )}
-                            <p className="text-[9px] text-foreground font-medium mt-0.5 truncate">{beat?.label || `Frame ${i + 1}`}</p>
-                            <p className="text-[7px] text-muted-foreground/60">{beat?.beat}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {storyboardDone && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-muted-foreground/60 text-center">
-                        Storyboard ini bisa langsung dijadikan video di Buat Video — pilih template yang sama
-                      </p>
-                      <button
-                        onClick={() => {
-                          const storyboardImgs = shotStatuses
-                            .filter((s) => s.state === "completed" && s.imageUrl)
-                            .map((s) => s.imageUrl!);
-                          navigate("/video", {
-                            state: {
-                              fromStoryboard: true,
-                              template: storyboardTemplate,
-                              storyboardImages: storyboardImgs,
-                              sourceImage: resultUrl || storyboardImgs[0],
-                              baseImageUrl: resultUrl,
-                              productDNA: productDNA || null,
-                              productCategory: productDNA?.category || "other",
-                              characterId: selectedChar?.id?.startsWith("p") ? null : selectedChar?.id || null,
-                              characterIdentity: selectedChar?.identity_prompt || selectedChar?.description || null,
-                            },
-                          });
-                        }}
-                        className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
-                      >
-                        <Play className="h-3.5 w-3.5" />
-                        Buat Video dari Storyboard <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={resetStoryboard}
-                        className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
-                      >
-                        <RefreshCw className="h-3 w-3" /> Generate lagi
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <button
+              onClick={generateStoryboard}
+              className="bg-primary text-primary-foreground font-bold text-xs px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Coba Lagi
+            </button>
           </div>
         )}
 
+        {/* Storyboard Active or Completed */}
+        {shotStatuses.length > 0 && (
+          <div className="w-full space-y-4 animate-fade-in">
+            {/* Header status */}
+            {storyboardActive && (
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Generating storyboard... <span className="text-primary font-bold">({completedShots}/{totalShots} selesai)</span>
+                </p>
+                <div className="flex items-center gap-3">
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
+                  </span>
+                  <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+            {storyboardDone && (
+              <p className="text-xs text-muted-foreground text-center">
+                <CheckCircle2 className="inline h-3.5 w-3.5 text-green-400 mr-1" /> {completedShots} selesai{failedShots > 0 ? <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" /> {failedShots} gagal</> : ""} — {storyboardElapsed}s
+              </p>
+            )}
+
+            {/* Storyboard Grid — 5 frames */}
+            <div className="grid grid-cols-5 gap-2">
+              {shotStatuses.map((shot, i) => {
+                const beat = currentBeats[i];
+                return (
+                  <div key={i} className="relative group">
+                    {shot.state === "completed" && shot.imageUrl ? (
+                      <>
+                        <img
+                          src={shot.imageUrl}
+                          alt={beat?.label || `Frame ${i + 1}`}
+                          className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
+                        />
+                        <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
+                          <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                            <Download className="h-3 w-3" />
+                          </a>
+                          {shot.prompt && (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(shot.prompt!);
+                                toast({ title: "Prompt disalin!" });
+                              }}
+                              className="text-[7px] text-white/60 hover:text-white/90 transition-colors"
+                              title={shot.prompt}
+                            >
+                              📋 Copy Prompt
+                            </button>
+                          )}
+                        </div>
+                        <div className="absolute top-1 right-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-400" /></div>
+                      </>
+                    ) : shot.state === "failed" ? (
+                      <div className="w-full aspect-[3/4] rounded-lg border border-destructive/30 bg-destructive/5 flex items-center justify-center">
+                        <XCircle className="h-4 w-4 text-destructive/60" />
+                      </div>
+                    ) : shot.state === "generating" ? (
+                      <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center gap-1.5">
+                        <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                        <span className="text-[7px] text-primary/70 font-medium">Generating...</span>
+                      </div>
+                    ) : shot.state === "prompting" ? (
+                      <div className="w-full aspect-[3/4] rounded-lg border border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-1.5">
+                        <Sparkles className="h-4 w-4 text-primary/60 animate-pulse" />
+                        <span className="text-[7px] text-primary/70 font-medium">Prompt...</span>
+                      </div>
+                    ) : (
+                      <div className="w-full aspect-[3/4] rounded-lg border border-dashed border-border bg-muted/10 flex items-center justify-center">
+                        <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
+                      </div>
+                    )}
+                    <div className="mt-1 text-center">
+                      {beat && (
+                        <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
+                          {beat.storyRole}
+                        </span>
+                      )}
+                      <p className="text-[8px] text-foreground font-medium mt-0.5 truncate">{beat?.label || `Frame ${i + 1}`}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Actions after completion */}
+            {storyboardDone && (
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={() => {
+                    const storyboardImgs = shotStatuses
+                      .filter((s) => s.state === "completed" && s.imageUrl)
+                      .map((s) => s.imageUrl!);
+                    navigate("/video", {
+                      state: {
+                        fromStoryboard: true,
+                        template: storyboardTemplate,
+                        storyboardImages: storyboardImgs,
+                        sourceImage: storyboardImgs[0] || null,
+                        baseImageUrl: storyboardImgs[0] || null,
+                        productDNA: productDNA || null,
+                        productCategory: productDNA?.category || "other",
+                        characterId: selectedChar?.id?.startsWith("p") ? null : selectedChar?.id || null,
+                        characterIdentity: selectedChar?.identity_prompt || selectedChar?.description || null,
+                      },
+                    });
+                  }}
+                  className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  Buat Video dari Storyboard <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={resetStoryboard}
+                  className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="h-3 w-3" /> Generate lagi
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         {genState === "failed" && (
           <div className="flex flex-col items-center gap-4 w-full max-w-xs animate-fade-in">
             <div className="w-full border border-destructive/30 bg-destructive/5 rounded-xl p-6 flex flex-col items-center gap-3 text-center">

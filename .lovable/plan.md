@@ -6,7 +6,7 @@ Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 ### Phase 1 (Previous Audit)
 - Cancel buttons fixed, prompt compression, storyboard prompts exposed, Gemini timeout 60s, landing page perf, shared hooks
 
-### Phase 2 (Current — Ad Engine Evolution)
+### Phase 2 — Ad Engine Evolution
 
 ### 1. Environment Library Overhaul
 - Replaced all Western-centric environments with Indonesian micro-environments per reference doc
@@ -32,16 +32,52 @@ Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 - Progress bar across steps
 - Triggered from `DashboardHome.tsx` when API keys are missing
 
-## Remaining (Next Message)
+### Phase 3 — Template-First Flow & Dynamic Narratives
+
+### 5. Flexible Narrative Engine
+- Replaced rigid Hook/Build/Demo/Proof/Convert roles with per-template flexible strings (35+ unique roles)
+- `storyboard-angles.ts`: Each template defines its own narrative stages (e.g., Problem→Pain Amplification→Demo→Result→CTA)
+- Position-based badge coloring system (works with any storyRole string)
+- `frame-lock-prompt.ts`: Updated with 35+ role-to-motion mappings for flexible roles
+
+### 6. Template-First GeneratePage Flow
+- Moved template picker to left panel Step 3 ("Pilih Gaya Konten")
+- Removed mandatory "Base Image" step — Frame 1 is the establishing shot
+- "Generate Storyboard" replaces old "Generate Prompt" + "Generate Image" flow
+- Right panel now shows storyboard grid directly (removed old single-image view)
+- Beat preview shown in both left panel and right panel empty state
+- Frames 1-4 chain from Frame 0's result for visual consistency
+
+### 7. Dynamic Motion Suggestions
+- Replaced static `action-chips.ts` hardcoded lists with `generateDynamicChips()` using Gemini
+- Product-aware casual Indonesian motion instructions
+- Cached per template+beat+category combo
+
+### 8. Product DNA Enrichment
+- Added `getProductContext()` to `product-dna.ts`
+- Extracts target user, usage context, emotional angle from DNA fields
+- Injected into prompt generation for more authentic outputs
+
+### 9. VideoPage Flexible Roles
+- Replaced rigid ROLE_COLORS with position-based getRoleColor()
+- Replaced getSmartDialogSuggestion with comprehensive ROLE_DIALOG_MAP (35+ roles)
+- Each role maps to natural casual Indonesian dialog suggestions
+- Role badges now use position-based coloring matching storyboard-angles.ts
+
+## Remaining
 - Character prompt visibility in CreateCharacterPage
 - Gallery saving fix for single images (upload to storage before DB insert)
 - Media analysis panel (MediaInsightsPanel component)
-- Storyboard constraint enforcement in GeneratePage prompt generation
 
 ## Files Changed
 - `src/lib/category-options.ts` — full environment rewrite
 - `src/lib/content-templates.ts` — 6 new templates added
-- `src/lib/storyboard-angles.ts` — 6 new beat sets, constraints field
+- `src/lib/storyboard-angles.ts` — flexible narrative roles, per-template beats, constraints
 - `src/lib/tiktok-hooks.ts` — hook maps and body scripts for new templates
+- `src/lib/action-chips.ts` — dynamic Gemini-powered suggestions
+- `src/lib/product-dna.ts` — getProductContext() enrichment
+- `src/lib/frame-lock-prompt.ts` — 35+ flexible role mappings
 - `src/components/ApiKeySetupModal.tsx` — new setup wizard
 - `src/pages/DashboardHome.tsx` — triggers API key modal
+- `src/pages/GeneratePage.tsx` — template-first flow, storyboard-direct right panel
+- `src/pages/VideoPage.tsx` — flexible narrative roles, position-based coloring
