@@ -208,7 +208,7 @@ const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
   "Benefit": () => "Kerasa banget sih benefitnya...",
   "Assessment": () => "Hmm, overall menurutku sih...",
   "Impressed": () => "Oke aku kaget sih, hasilnya sebagus ini...",
-  "First Try": () => "Baru pertama pake udah kerasa bedanya...",
+  "First Try ": () => "Baru pertama pake udah kerasa bedanya...",
   "POV Result": () => "",
   "Serene": () => "",
 
