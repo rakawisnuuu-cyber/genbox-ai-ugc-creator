@@ -1244,43 +1244,22 @@ Output ONLY the final prompt text.` });
           </div>
         </div>
 
-        {/* Prompt */}
-        <div className="animate-fade-up" style={{ animationDelay: "250ms" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Prompt</label>
-          <button
-            onClick={generatePrompt}
-            disabled={generatingPrompt || !selectedChar}
-            className="mb-3 inline-flex items-center gap-2 border border-primary text-primary text-xs font-bold px-4 py-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
-          >
-            {generatingPrompt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            GENERATE PROMPT
-          </button>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            rows={5}
-            placeholder="Prompt akan di-generate otomatis atau tulis manual..."
-            className="bg-[hsl(0_0%_10%)] border-border text-sm"
-          />
-          <p className="text-[11px] text-muted-foreground/60 mt-1.5">Edit prompt untuk hasil yang lebih baik</p>
-        </div>
-
-        {/* Generate */}
+        {/* Generate Storyboard */}
         <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
           <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4">
             <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <div>
-              <p className="text-xs text-muted-foreground">Estimasi biaya: ~Rp 150-500 dari API key kamu</p>
-              <p className="text-[11px] text-muted-foreground/60">Output tanpa watermark</p>
+              <p className="text-xs text-muted-foreground">Estimasi biaya: ~Rp 2.400 untuk 5 frame storyboard</p>
+              <p className="text-[11px] text-muted-foreground/60">5 API calls sequential • Output tanpa watermark</p>
             </div>
           </div>
           <button
-            onClick={generate}
-            disabled={!canGenerate}
+            onClick={generateStoryboard}
+            disabled={!productUrl || !selectedChar || !storyboardTemplate || storyboardActive}
             className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40 animate-cta-glow disabled:animate-none"
           >
-            <Paintbrush className="h-4 w-4" />
-            Generate Gambar
+            {storyboardActive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
+            {storyboardActive ? "Generating Storyboard..." : "Generate Storyboard"}
           </button>
         </div>
       </div>
