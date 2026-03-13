@@ -18,7 +18,7 @@ import {
   findOption,
   type RichOption,
 } from "@/lib/category-options";
-import { CONTENT_TEMPLATES, type ContentTemplateKey } from "@/lib/content-templates";
+import { CONTENT_TEMPLATES, isRecommendedForCategory, type ContentTemplateKey } from "@/lib/content-templates";
 import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
 import {
   Upload,
@@ -1225,20 +1225,35 @@ Output ONLY the JSON array. No explanation.` });
         <div className="animate-fade-up" style={{ animationDelay: "175ms" }}>
           <StepLabel num={3} label="Content Template" />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {CONTENT_TEMPLATES.map((t, ti) => {
+            {[...CONTENT_TEMPLATES]
+              .sort((a, b) => {
+                if (!productDNA?.category) return 0;
+                const aRec = isRecommendedForCategory(a, productDNA.category) ? 0 : 1;
+                const bRec = isRecommendedForCategory(b, productDNA.category) ? 0 : 1;
+                return aRec - bRec;
+              })
+              .map((t, ti) => {
               const isSelected = storyboardTemplate === t.key;
+              const isRecommended = productDNA?.category ? isRecommendedForCategory(t, productDNA.category) : false;
               const accentColors = ["bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-rose-500", "bg-violet-500", "bg-cyan-500"];
               const accent = accentColors[ti % accentColors.length];
               return (
                 <button
                   key={t.key}
                   onClick={() => setStoryboardTemplate(t.key)}
-                  className={`text-left rounded-xl overflow-hidden transition-all flex ${
+                  className={`relative text-left rounded-xl overflow-visible transition-all flex ${
                     isSelected
                       ? "bg-primary/[0.04] border border-primary/30"
-                      : "bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12]"
+                      : isRecommended
+                        ? "bg-primary/[0.03] border border-primary/20 hover:border-primary/30"
+                        : "bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12]"
                   }`}
                 >
+                  {isRecommended && !isSelected && (
+                    <span className="absolute -top-2 -right-2 text-[8px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold z-10">
+                      Recommended
+                    </span>
+                  )}
                   <div className={`w-[2px] shrink-0 ${isSelected ? "bg-primary" : accent + "/30"}`} />
                   <div className="px-3 py-2.5">
                     <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{t.label}</p>
