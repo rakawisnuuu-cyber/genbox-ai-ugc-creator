@@ -708,22 +708,28 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
     // Image inputs are now built per-frame inside generateSingleBeat
     // (base image + previous frame + product — no character hero/reference URLs needed)
 
-    const consistencyLock = baseSceneFields
-      ? `VISUAL CONSISTENCY LOCK — Every detail must match the base image (Frame 0):
-- Environment: ${baseSceneFields.background}
-- Outfit & appearance: ${baseSceneFields.scene_description}
-- Lighting: ${baseSceneFields.lighting}
-- Product: ${baseSceneFields.product_placement}
-Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything else — room, clothing, accessories, hair, lighting direction, color palette — must remain identical to the base image.`
-      : "";
+    // Template-first flow: no base image yet. Frame 0 establishes the visual.
+    // Frames 1-4 will chain from frame 0's result for consistency.
+    const consistencyLock = "";
 
-    // Convert base image to base64 once for Gemini vision
-    let baseImageBase64 = "";
+    // Convert product image to base64 for Gemini vision
+    let productImageBase64 = "";
     try {
-      baseImageBase64 = await imageUrlToBase64(resultUrl);
-      console.log("[storyboard] Base image converted to base64 for Gemini vision");
+      productImageBase64 = await imageUrlToBase64(productUrl!);
+      console.log("[storyboard] Product image converted to base64 for Gemini vision");
     } catch (e) {
-      console.warn("[storyboard] Failed to convert base image to base64, falling back to text-only", e);
+      console.warn("[storyboard] Failed to convert product image to base64", e);
+    }
+
+    // Convert character ref to base64 for Gemini vision
+    let charImageBase64 = "";
+    const charRefUrl = selectedChar?.hero_image_url || selectedChar?.reference_photo_url;
+    if (charRefUrl) {
+      try {
+        charImageBase64 = await imageUrlToBase64(charRefUrl);
+      } catch (e) {
+        console.warn("[storyboard] Failed to convert character image to base64", e);
+      }
     }
 
     // Track completed frame URLs for chaining into subsequent Kie AI calls
