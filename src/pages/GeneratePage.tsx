@@ -1620,6 +1620,33 @@ Output ONLY the JSON array. No explanation.` });
           </div>
         )}
       </div>
+      {/* Template change confirmation dialog */}
+      <AlertDialog open={templateChangeOpen} onOpenChange={setTemplateChangeOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change template?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will regenerate all prompts. Any edits you made will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              pendingTemplateRef.current = null;
+            }}>
+              Keep current
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (pendingTemplateRef.current) {
+                setStoryboardTemplate(pendingTemplateRef.current);
+                pendingTemplateRef.current = null;
+              }
+              setTimeout(() => generatePrompts(), 50);
+            }}>
+              Regenerate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
