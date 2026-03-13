@@ -1649,7 +1649,8 @@ Output ONLY the JSON array. No explanation.` });
                 setStoryboardTemplate(pendingTemplateRef.current);
                 pendingTemplateRef.current = null;
               }
-              setTimeout(() => generatePrompts(), 50);
+              setRegenAfterTemplateChange((c) => c + 1);
+            }}>
             }}>
               Regenerate
             </AlertDialogAction>
