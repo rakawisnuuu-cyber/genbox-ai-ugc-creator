@@ -359,7 +359,7 @@ const VideoPage = () => {
   const frameTimersRef = useRef<Record<number, ReturnType<typeof setInterval>>>({});
 
   const beats = getStoryboardBeats(selectedTemplate);
-  const storyboardImages: string[] = navState?.storyboardImages || [];
+  // storyboardImages is now state (synced via keep-alive useEffect)
   const modelRec = getModelRecommendation(selectedTemplate);
 
   // Load gallery
