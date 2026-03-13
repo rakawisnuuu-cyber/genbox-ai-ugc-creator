@@ -789,6 +789,7 @@ Output ONLY the JSON array. No explanation.` });
       setGeneratedPrompts(prompts);
       setShotStatuses(prompts.map((p: string) => ({ state: "prompt_ready" as const, prompt: p })));
       toast({ title: "Prompts siap!", description: `${prompts.length} prompt berhasil di-generate. Review & edit, lalu Generate.` });
+      prevTemplateRef.current = storyboardTemplate;
     } catch (err: any) {
       console.error("Generate prompts error:", err);
       toast({ title: "Gagal generate prompts", description: err.message, variant: "destructive" });
