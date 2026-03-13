@@ -1142,6 +1142,44 @@ Output ONLY the final prompt text.` });
           </button>
         </div>
 
+        {/* Pilih Gaya Konten (Template) */}
+        <div className="animate-fade-up" style={{ animationDelay: "175ms" }}>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Pilih Gaya Konten</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {CONTENT_TEMPLATES.map((t) => {
+              const isSelected = storyboardTemplate === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setStoryboardTemplate(t.key)}
+                  className={`text-left rounded-lg px-3 py-2.5 transition-all ${
+                    isSelected
+                      ? "bg-primary/10 border border-primary/30 ring-1 ring-primary/10"
+                      : "bg-card border border-border hover:border-muted-foreground/30"
+                  }`}
+                >
+                  <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{t.label}</p>
+                  <p className="text-[10px] text-muted-foreground line-clamp-1">{t.desc}</p>
+                </button>
+              );
+            })}
+          </div>
+          {/* Beat preview */}
+          {storyboardTemplate && (
+            <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+              {currentBeats.map((beat, i) => (
+                <div key={i} className="shrink-0 w-[90px] border border-border rounded-lg p-1.5 bg-muted/10">
+                  <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
+                    {beat.storyRole}
+                  </span>
+                  <p className="text-[9px] font-semibold text-foreground mt-0.5 truncate">{beat.label}</p>
+                  <p className="text-[7px] text-muted-foreground line-clamp-2 mt-0.5">{beat.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Pengaturan Scene */}
         <div className="animate-fade-up space-y-6" style={{ animationDelay: "200ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block">Pengaturan Scene</label>
