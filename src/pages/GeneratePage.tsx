@@ -922,7 +922,7 @@ Output ONLY the JSON array. No explanation.` });
     return false;
   };
 
-  // advancedOpen is declared at top level — moved above
+  
 
   const StepLabel = ({ num, label }: { num: number; label: string }) => (
     <div className="flex items-center gap-3 mb-3">
