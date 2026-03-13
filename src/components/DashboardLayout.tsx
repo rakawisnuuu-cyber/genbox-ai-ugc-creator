@@ -96,6 +96,7 @@ const DashboardLayout = () => {
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item.path);
+    const isVideoLocked = item.path === "/video" && !videoUnlocked;
     return (
       <li key={item.path}>
         <Link
@@ -105,11 +106,21 @@ const DashboardLayout = () => {
             active
               ? "bg-primary/[0.08] text-foreground"
               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          }`}
+          } ${isVideoLocked && !active ? "opacity-50" : ""}`}
         >
-          <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
-          {item.title}
-          {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+          {isVideoLocked ? (
+            <>
+              <item.icon className="h-4 w-4 shrink-0 text-muted-foreground/25" />
+              <span className="truncate text-muted-foreground/25">{item.title}</span>
+              <Lock className="h-3 w-3 text-muted-foreground/15 ml-auto" />
+            </>
+          ) : (
+            <>
+              <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
+              {item.title}
+              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+            </>
+          )}
         </Link>
       </li>
     );
