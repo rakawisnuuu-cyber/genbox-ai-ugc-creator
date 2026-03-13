@@ -1027,12 +1027,22 @@ Content template: ${template?.label}`,
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => { setSetupDone(false); setFrames([]); setStoryboardPlanned(false); }}
-            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Kembali
-          </button>
+          {/* Aspect ratio toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-white/[0.06]">
+            {(["9:16", "16:9"] as const).map((ar) => (
+              <button
+                key={ar}
+                onClick={() => setAspectRatio(ar)}
+                className={`text-[10px] px-2.5 py-1 transition-colors ${
+                  aspectRatio === ar
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {ar}
+              </button>
+            ))}
+          </div>
           <button
             onClick={planStoryboard}
             disabled={planningStoryboard}
