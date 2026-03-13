@@ -691,7 +691,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
   /* ── Storyboard: 5 Narrative Shots ──────────────────────────── */
   const generateStoryboard = async () => {
-    if (!kieApiKey || !geminiKey || !resultUrl || !selectedChar || !storyboardTemplate) return;
+    if (!kieApiKey || !geminiKey || !productUrl || !selectedChar || !storyboardTemplate) return;
     const dna = productDNA || EMPTY_DNA;
     const beats = getStoryboardBeats(storyboardTemplate);
     const templateObj = CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate);
