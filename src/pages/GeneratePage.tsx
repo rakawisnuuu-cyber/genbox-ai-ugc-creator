@@ -18,7 +18,7 @@ import {
   findOption,
   type RichOption,
 } from "@/lib/category-options";
-import { CONTENT_TEMPLATES, type ContentTemplateKey } from "@/lib/content-templates";
+import { CONTENT_TEMPLATES, isRecommendedForCategory, type ContentTemplateKey } from "@/lib/content-templates";
 import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
 import {
   Upload,
