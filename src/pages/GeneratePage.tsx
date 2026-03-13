@@ -234,7 +234,7 @@ const GeneratePage = () => {
   const abortRef = useRef(false);
 
   // Storyboard state
-  const [storyboardTemplate, setStoryboardTemplate] = useState<ContentTemplateKey | null>(null);
+  const [storyboardTemplate, setStoryboardTemplate] = useState<ContentTemplateKey>("problem_solution");
   const [storyboardActive, setStoryboardActive] = useState(false);
   const [shotStatuses, setShotStatuses] = useState<ShotStatus[]>([]);
   const [storyboardElapsed, setStoryboardElapsed] = useState(0);
