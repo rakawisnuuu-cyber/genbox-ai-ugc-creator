@@ -969,8 +969,8 @@ Output ONLY the JSON array. No explanation.` });
                     </div>
                   )}
                 </div>
-                {/* DNA badges inline */}
-                <div className="flex-1 min-w-0 pt-1">
+                {/* Product DNA card */}
+                <div className="flex-1 min-w-0">
                   {detectingDNA && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <ScanSearch className="h-3.5 w-3.5 animate-pulse" />
@@ -978,33 +978,81 @@ Output ONLY the JSON array. No explanation.` });
                     </div>
                   )}
                   {productDNA && !detectingDNA && (
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Select
-                        value={productDNA.category}
-                        onValueChange={(val) =>
-                          setProductDNA((prev) => prev ? { ...prev, category: val as ProductCategory } : prev)
-                        }
-                      >
-                        <SelectTrigger className="h-7 w-auto min-w-[120px] text-xs bg-primary/10 border-primary/20 text-primary font-semibold px-2.5">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ALL_CATEGORIES.map((c) => (
-                            <SelectItem key={c.value} value={c.value} className="text-xs">
-                              {c.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {productDNA.sub_category && (
-                        <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                          {productDNA.sub_category}
-                        </Badge>
+                    <div className="space-y-0">
+                      {/* Collapsed header row */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Select
+                          value={productDNA.category}
+                          onValueChange={(val) =>
+                            setProductDNA((prev) => prev ? { ...prev, category: val as ProductCategory } : prev)
+                          }
+                        >
+                          <SelectTrigger className="h-7 w-auto min-w-[120px] text-xs bg-primary/10 border-primary/20 text-primary font-semibold px-2.5">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ALL_CATEGORIES.map((c) => (
+                              <SelectItem key={c.value} value={c.value} className="text-xs">
+                                {c.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {productDNA.sub_category && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-muted-foreground/60">
+                            {productDNA.sub_category}
+                          </span>
+                        )}
+                        {productDNA.dominant_color && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-muted-foreground/60">
+                            {productDNA.dominant_color}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => setDnaExpanded(!dnaExpanded)}
+                          className="ml-auto text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors"
+                        >
+                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${dnaExpanded ? "rotate-180" : ""}`} />
+                        </button>
+                      </div>
+                      {productDNA.product_description && (
+                        <p className="text-[13px] text-foreground line-clamp-1 mt-1.5">{productDNA.product_description}</p>
                       )}
-                      {productDNA.dominant_color && (
-                        <Badge variant="outline" className="text-[10px] px-2 py-0.5">
-                          {productDNA.dominant_color}
-                        </Badge>
+
+                      {/* Expanded detail grid */}
+                      {dnaExpanded && (
+                        <div className="pt-3 mt-3 border-t border-white/[0.04] space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            {productDNA.material && (
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">Material</p>
+                                <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.material}</p>
+                              </div>
+                            )}
+                            {productDNA.brand_name && productDNA.brand_name !== "unknown" && (
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">Brand</p>
+                                <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.brand_name}</p>
+                              </div>
+                            )}
+                            {productDNA.key_features && (
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">Key Features</p>
+                                <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.key_features}</p>
+                              </div>
+                            )}
+                            {productDNA.usage_type && (
+                              <div>
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">Usage Type</p>
+                                <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.usage_type}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/20">
+                            <Info className="h-3 w-3 shrink-0" />
+                            <span>AI uses this to generate accurate product placement</span>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
