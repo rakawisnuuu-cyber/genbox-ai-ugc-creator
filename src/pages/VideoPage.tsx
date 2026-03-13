@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
 import { getActionChips, getShuffledChips } from "@/lib/action-chips";
@@ -43,6 +43,7 @@ import {
   Lightbulb,
   MessageSquare,
   Clapperboard,
+  ArrowRight,
 } from "lucide-react";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
@@ -254,7 +255,8 @@ const VideoPage = () => {
 
   // Navigation state from storyboard
   const navState = location.state as any;
-  const fromStoryboard = navState?.fromStoryboard === true;
+  const [fromStoryboard, setFromStoryboard] = useState(navState?.fromStoryboard === true);
+  const [storyboardImages, setStoryboardImages] = useState<string[]>(navState?.storyboardImages || []);
 
   // ─── First-class product info state ───
   interface ProductInfo {
@@ -357,7 +359,7 @@ const VideoPage = () => {
   const frameTimersRef = useRef<Record<number, ReturnType<typeof setInterval>>>({});
 
   const beats = getStoryboardBeats(selectedTemplate);
-  const storyboardImages: string[] = navState?.storyboardImages || [];
+  // storyboardImages is now state (synced via keep-alive useEffect)
   const modelRec = getModelRecommendation(selectedTemplate);
 
   // Load gallery
@@ -417,6 +419,32 @@ const VideoPage = () => {
       initializeFrames();
     }
   }, [fromStoryboard, setupDone, sourceUrl, initializeFrames]);
+
+  // Keep-alive state sync: when location.state changes (re-navigation), re-sync all state
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.fromStoryboard && state?.sourceImage) {
+      setFromStoryboard(true);
+      setSourceUrl(state.sourceImage);
+      setSourcePreview(state.sourceImage);
+      if (state.storyboardImages) setStoryboardImages(state.storyboardImages);
+      if (state.template) setSelectedTemplate(state.template);
+      const dna = state.productDNA || state.productDna;
+      if (dna && (dna.category || dna.product_description)) {
+        setProductInfo({
+          category: dna.category || "",
+          sub_category: dna.sub_category || "",
+          product_description: dna.product_description || "",
+        });
+      } else if (state.productCategory) {
+        setProductInfo((prev) => ({ ...prev, category: state.productCategory }));
+      }
+      // Reset frames so initializeFrames runs again with new data
+      setSetupDone(false);
+      setFrames([]);
+      setStoryboardPlanned(false);
+    }
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Plan Storyboard — ONE Gemini call to detect product + plan all 5 frames */
   const planStoryboard = async () => {
@@ -965,158 +993,23 @@ Content template: ${template?.label}`,
   const formatRupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-  // Show setup if not done
-  if (!setupDone) {
+  // Show gate screen if no storyboard data
+  if (!fromStoryboard || !sourceUrl) {
     return (
-      <div className="space-y-6 max-w-2xl mx-auto">
-        <div>
-          <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Buat Video</h1>
-          <p className="text-xs text-muted-foreground mt-1">Generate video UGC frame-by-frame dari storyboard</p>
-        </div>
-
-        {/* Source Image */}
-        <div>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Source Image</label>
-          {sourcePreview ? (
-            <div className="relative inline-block">
-              <img src={sourcePreview} alt="Source" className="max-w-[180px] rounded-xl object-cover border border-border" />
-              <button onClick={() => { setSourcePreview(null); setSourceUrl(null); }} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                <X className="h-3 w-3" />
-              </button>
-              {uploading && (
-                <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div
-                onClick={() => {
-                  const inp = document.createElement("input");
-                  inp.type = "file";
-                  inp.accept = "image/jpeg,image/png,image/webp";
-                  inp.onchange = (e) => {
-                    const f = (e.target as HTMLInputElement).files?.[0];
-                    if (f) handleFileSelect(f);
-                  };
-                  inp.click();
-                }}
-                className="border-2 border-dashed border-border rounded-xl p-6 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <Upload className="h-6 w-6 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">Upload gambar</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Product Detection Banner */}
-        {(productInfo.product_description || detectingProduct) && (
-          <div className={`rounded-xl px-4 py-2.5 border text-[11px] flex items-center gap-2 ${
-            detectingProduct
-              ? "bg-muted/30 border-border text-muted-foreground"
-              : "bg-primary/5 border-primary/20 text-foreground"
-          }`}>
-            {detectingProduct ? (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin text-primary" />
-                <span>Mendeteksi produk...</span>
-              </>
-            ) : (
-              <>
-                <span>🏷️</span>
-                <span>
-                  <span className="font-medium">Produk:</span> {productInfo.product_description}
-                  {productInfo.category && (
-                    <span className="text-muted-foreground"> ({productInfo.category}/{productInfo.sub_category || "general"})</span>
-                  )}
-                </span>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Template Selector */}
-        <div>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Template Konten</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {CONTENT_TEMPLATES.map((t) => {
-              const isSelected = selectedTemplate === t.key;
-              const isRecommended = productInfo.category ? isRecommendedForCategory(t, productInfo.category) : false;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setSelectedTemplate(t.key)}
-                  className={`text-left rounded-xl p-3 transition-all relative ${
-                    isSelected
-                      ? "border-2 border-primary bg-primary/5 ring-1 ring-primary/20"
-                      : isRecommended
-                        ? "border border-primary/40 bg-primary/5 hover:border-primary/60"
-                        : "border border-border bg-card hover:border-muted-foreground/30"
-                  }`}
-                >
-                  {isRecommended && !isSelected && (
-                    <span className="absolute -top-1.5 -right-1.5 text-[7px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
-                      ✦ REC
-                    </span>
-                  )}
-                  <p className="text-[11px] font-bold text-foreground">{t.label}</p>
-                  <p className={`text-[9px] text-muted-foreground mt-0.5 ${isSelected ? "" : "line-clamp-2"}`}>{t.desc}</p>
-                  {!isSelected && t.desc.length > 60 && (
-                    <span className="text-[8px] text-primary mt-0.5 inline-block">Selengkapnya</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Beat preview */}
-        <div>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Storyboard Preview</label>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            {beats.map((beat, i) => (
-              <BeatPreviewCard key={i} beat={beat} index={i} />
-            ))}
-          </div>
-        </div>
-
-        {/* Aspect Ratio */}
-        <div>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2">Aspect Ratio</label>
-          <div className="flex gap-2">
-            {(["9:16", "16:9"] as const).map((ar) => (
-              <button
-                key={ar}
-                onClick={() => setAspectRatio(ar)}
-                className={`text-xs px-4 py-2 rounded-lg transition-colors ${
-                  aspectRatio === ar
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {ar === "9:16" ? "9:16 Portrait" : "16:9 Landscape"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Start Button — Plan Storyboard */}
-        <button
-          onClick={planStoryboard}
-          disabled={!sourceUrl || planningStoryboard}
-          className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40"
+      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-120px)] lg:min-h-[calc(100dvh-60px)] text-center px-6">
+        <Film className="h-14 w-14 text-muted-foreground/10 mb-6" />
+        <h2 className="text-[20px] font-satoshi font-bold text-foreground mb-3">Create a storyboard first</h2>
+        <p className="text-[14px] text-muted-foreground/40 max-w-[420px] leading-relaxed mb-6">
+          Generate your image storyboard in the Image Studio, then come back to turn frames into video.
+        </p>
+        <Link
+          to="/generate"
+          className="rounded-xl bg-primary text-primary-foreground px-6 py-3 text-[14px] font-semibold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors"
         >
-          {planningStoryboard ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
-          {planningStoryboard ? "MERENCANAKAN STORYBOARD..." : "PLAN STORYBOARD"}
-        </button>
-        <p className="text-[10px] text-muted-foreground text-center -mt-3">
-          Satu panggilan AI untuk mendeteksi produk & merencanakan semua 5 frame sekaligus
+          Go to Image Studio <ArrowRight className="h-4 w-4" />
+        </Link>
+        <p className="text-[12px] text-muted-foreground/25 mt-4">
+          Storyboard images will flow into the video editor automatically
         </p>
       </div>
     );
@@ -1134,12 +1027,22 @@ Content template: ${template?.label}`,
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => { setSetupDone(false); setFrames([]); setStoryboardPlanned(false); }}
-            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Kembali
-          </button>
+          {/* Aspect ratio toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-white/[0.06]">
+            {(["9:16", "16:9"] as const).map((ar) => (
+              <button
+                key={ar}
+                onClick={() => setAspectRatio(ar)}
+                className={`text-[10px] px-2.5 py-1 transition-colors ${
+                  aspectRatio === ar
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {ar}
+              </button>
+            ))}
+          </div>
           <button
             onClick={planStoryboard}
             disabled={planningStoryboard}
