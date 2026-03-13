@@ -50,7 +50,7 @@ import { useUpscale } from "@/hooks/useUpscale";
 import { useToast } from "@/hooks/use-toast";
 import UpscaleButton from "@/components/UpscaleButton";
 import GenerationLoading from "@/components/GenerationLoading";
-import { Badge } from "@/components/ui/badge";
+
 import {
   Select,
   SelectContent,
