@@ -76,8 +76,17 @@ const DashboardLayout = () => {
   const initial = user?.email?.charAt(0).toUpperCase() || "U";
   const displayName = user?.email?.split("@")[0] || "User";
 
+  const videoUnlockedRef = useRef(false);
+  const [videoUnlocked, setVideoUnlocked] = useState(false);
+
   const isActive = (path: string) => location.pathname === path;
   const pathname = location.pathname;
+
+  // Unlock video when navigating with fromStoryboard state
+  if (pathname === "/video" && (location.state as any)?.fromStoryboard && !videoUnlockedRef.current) {
+    videoUnlockedRef.current = true;
+    if (!videoUnlocked) setVideoUnlocked(true);
+  }
   const isKeepAlivePage = pathname === "/generate" || pathname === "/video";
   const isFullWidthPage = pathname === "/generate" || pathname === "/video";
 
