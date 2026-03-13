@@ -1,83 +1,65 @@
 
-Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 
-## Completed Changes
+# Plan: Two-Step Storyboard — Prompts First, Then Generate Per Frame
 
-### Phase 1 (Previous Audit)
-- Cancel buttons fixed, prompt compression, storyboard prompts exposed, Gemini timeout 60s, landing page perf, shared hooks
+## Current vs New Flow
 
-### Phase 2 — Ad Engine Evolution
+**Current:** Click "Generate Storyboard" → system generates prompt + image for each frame sequentially (all 5 at once, no user review)
 
-### 1. Environment Library Overhaul
-- Replaced all Western-centric environments with Indonesian micro-environments per reference doc
-- Shortened descriptions from ~60 words to ~25 words (massive token savings)
-- Categories: Skincare (Bathroom Vanity, Morning Routine Sink, Bedroom Vanity, Spa Style), Fashion (Bedroom Mirror, Closet Area, Apartment Hallway, Balcony), Food (Kitchen Counter, Breakfast Table, Kitchen Island, Snack Table), Electronics (Creator Desk, Bedroom Work Desk, Gaming Setup, Coffee Table Review), Health (Living Room Workout, Home Yoga Corner, Balcony Workout, Home Gym Corner), Home (Couch Talk, Bed Talk, Desk Chat, Balcony Vlog, Kamar Kost)
+**New:**
+1. Click **"Generate Prompts"** → Gemini generates all 5 beat prompts in one call → displayed in right panel as editable text cards
+2. User **reviews/edits** each prompt
+3. User clicks **"Generate"** on individual frames (or "Generate All" for convenience)
 
-### 2. Content Templates Expanded (8 → 14)
-- Added: GRWM, 3 Alasan, Expectation vs Reality, Tutorial Singkat, Day in My Life, First Impression
-- Each with full timing (20s) and compressed timing (10s) beats
-- All with `recommendedFor` category mappings
-- Updated `tiktok-hooks.ts` with hook categories and body scripts for all 6 new templates
+## Changes to `src/pages/GeneratePage.tsx`
 
-### 3. Storyboard Beats for New Templates
-- Added all 6 new template beats to `storyboard-angles.ts`
-- Added `constraints` field to StoryboardBeat interface
-- Enforced `{ noProductUsage: true }` on Before>After frame 1, GRWM frame 1, Day in My Life frame 1
-- These constraints are available for Gemini prompt generation to enforce narrative logic
+### New State
+```typescript
+// Prompt-first state
+const [generatedPrompts, setGeneratedPrompts] = useState<string[]>([]);
+const [promptsLoading, setPromptsLoading] = useState(false);
+```
 
-### 4. API Key Setup Modal
-- Created `ApiKeySetupModal.tsx` — step-by-step wizard (Intro → Kie AI → Gemini → Done)
-- Shows instructions for obtaining each key with external links
-- Password toggle, test key, save & next flow
-- Progress bar across steps
-- Triggered from `DashboardHome.tsx` when API keys are missing
+### Step 1 — "Generate Prompts" Button
+Replaces current "Generate Storyboard" button. Calls Gemini ONCE with all 5 beats + product DNA + character, asks for a JSON array of 5 prompts. Populates `generatedPrompts[]`.
 
-### Phase 3 — Template-First Flow & Dynamic Narratives
+### Step 2 — Right Panel Shows Prompt Cards
+Each frame shows:
+- Beat role badge + label
+- Editable textarea with the generated prompt
+- "Generate" button per frame (calls `generateKieImage` for that single frame)
+- Status indicator (pending / generating / completed / failed)
 
-### 5. Flexible Narrative Engine
-- Replaced rigid Hook/Build/Demo/Proof/Convert roles with per-template flexible strings (35+ unique roles)
-- `storyboard-angles.ts`: Each template defines its own narrative stages (e.g., Problem→Pain Amplification→Demo→Result→CTA)
-- Position-based badge coloring system (works with any storyRole string)
-- `frame-lock-prompt.ts`: Updated with 35+ role-to-motion mappings for flexible roles
+### Step 3 — Per-Frame Generation
+Each "Generate" button triggers Kie AI for that single frame. Frame 0 generates first (anchor), frames 1-4 use frame 0's result as visual reference. A "Generate All" button runs them sequentially.
 
-### 6. Template-First GeneratePage Flow
-- Moved template picker to left panel Step 3 ("Pilih Gaya Konten")
-- Removed mandatory "Base Image" step — Frame 1 is the establishing shot
-- "Generate Storyboard" replaces old "Generate Prompt" + "Generate Image" flow
-- Right panel now shows storyboard grid directly (removed old single-image view)
-- Beat preview shown in both left panel and right panel empty state
-- Frames 1-4 chain from Frame 0's result for visual consistency
+### Right Panel Layout (new states)
 
-### 7. Dynamic Motion Suggestions
-- Replaced static `action-chips.ts` hardcoded lists with `generateDynamicChips()` using Gemini
-- Product-aware casual Indonesian motion instructions
-- Cached per template+beat+category combo
+```text
+State A: No prompts yet → empty state with beat preview (current)
+State B: Prompts generated → 5 editable prompt cards with per-frame Generate buttons
+State C: Frames generating/completed → current grid but with prompt visibility
+```
 
-### 8. Product DNA Enrichment
-- Added `getProductContext()` to `product-dna.ts`
-- Extracts target user, usage context, emotional angle from DNA fields
-- Injected into prompt generation for more authentic outputs
+### Gemini Prompt Generation Call
+Single call returns all 5 prompts as JSON array. System instruction includes product DNA, character identity, template beats, environment, and constraints. Output format: `["prompt1", "prompt2", ...]`
 
-### 9. VideoPage Flexible Roles
-- Replaced rigid ROLE_COLORS with position-based getRoleColor()
-- Replaced getSmartDialogSuggestion with comprehensive ROLE_DIALOG_MAP (35+ roles)
-- Each role maps to natural casual Indonesian dialog suggestions
-- Role badges now use position-based coloring matching storyboard-angles.ts
+### UI Detail for State B (prompt cards)
+- Vertical list (not grid) for readability
+- Each card: role badge, beat label, textarea (auto-height), "Generate Frame" button
+- Top bar: "Generate All Frames" button + "Regenerate Prompts" button
+- Prompts are editable — user can tweak before generating
 
-## Remaining
-- Character prompt visibility in CreateCharacterPage
-- Gallery saving fix for single images (upload to storage before DB insert)
-- Media analysis panel (MediaInsightsPanel component)
+### File Changes
 
-## Files Changed
-- `src/lib/category-options.ts` — full environment rewrite
-- `src/lib/content-templates.ts` — 6 new templates added
-- `src/lib/storyboard-angles.ts` — flexible narrative roles, per-template beats, constraints
-- `src/lib/tiktok-hooks.ts` — hook maps and body scripts for new templates
-- `src/lib/action-chips.ts` — dynamic Gemini-powered suggestions
-- `src/lib/product-dna.ts` — getProductContext() enrichment
-- `src/lib/frame-lock-prompt.ts` — 35+ flexible role mappings
-- `src/components/ApiKeySetupModal.tsx` — new setup wizard
-- `src/pages/DashboardHome.tsx` — triggers API key modal
-- `src/pages/GeneratePage.tsx` — template-first flow, storyboard-direct right panel
-- `src/pages/VideoPage.tsx` — flexible narrative roles, position-based coloring
+| Area | Change |
+|------|--------|
+| Left panel button | "Generate Storyboard" → "Generate Prompts" |
+| New function | `generatePrompts()` — single Gemini call → 5 prompts |
+| Existing `generateStoryboard()` | Refactored to `generateAllFrames()` — uses `generatedPrompts[]` instead of generating prompts inline |
+| New function | `generateSingleFrame(idx)` — generates one frame from `generatedPrompts[idx]` |
+| Right panel | New "prompt review" state between empty and generating |
+| `shotStatuses` | Add `"prompt_ready"` state |
+
+Only `src/pages/GeneratePage.tsx` changes. No other files affected.
+
