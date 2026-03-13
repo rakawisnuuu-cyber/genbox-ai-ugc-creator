@@ -239,6 +239,7 @@ const GeneratePage = () => {
   const prevTemplateRef = useRef<ContentTemplateKey>("problem_solution");
   const pendingTemplateRef = useRef<ContentTemplateKey | null>(null);
   const [templateChangeOpen, setTemplateChangeOpen] = useState(false);
+  const [regenAfterTemplateChange, setRegenAfterTemplateChange] = useState(0);
   const [storyboardActive, setStoryboardActive] = useState(false);
   const [shotStatuses, setShotStatuses] = useState<ShotStatus[]>([]);
   const [storyboardElapsed, setStoryboardElapsed] = useState(0);
