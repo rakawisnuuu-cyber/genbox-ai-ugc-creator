@@ -1221,7 +1221,7 @@ Content template: ${template?.label}`,
           );
         }
 
-        const roleColor = ROLE_COLORS[beat.storyRole] || "bg-muted text-muted-foreground";
+        const roleColor = getRoleColor(idx);
         const modelInfo = MODEL_LABELS[frame.model];
         const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
         const isCombined = mergedBeats.length > 0;
