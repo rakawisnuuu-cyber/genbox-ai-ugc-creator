@@ -1248,20 +1248,6 @@ Output ONLY the JSON array. No explanation.` });
               );
             })}
           </div>
-          {/* Beat preview */}
-          {storyboardTemplate && (
-            <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
-              {currentBeats.map((beat, i) => (
-                <div key={i} className="shrink-0 w-[90px] border border-white/[0.06] rounded-lg p-1.5 bg-white/[0.02]">
-                  <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
-                    {beat.storyRole}
-                  </span>
-                  <p className="text-[9px] font-semibold text-foreground mt-0.5 truncate">{beat.label}</p>
-                  <p className="text-[7px] text-muted-foreground/50 line-clamp-2 mt-0.5">{beat.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Step 04 — Scene Settings */}
@@ -1381,17 +1367,36 @@ Output ONLY the JSON array. No explanation.` });
             <p className="text-[11px] text-muted-foreground/20 mt-1">Upload product & select character to begin</p>
             {storyboardTemplate && (
               <div className="mt-6 w-full">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/20 font-medium mb-2 text-left">Preview Beats — {CONTENT_TEMPLATES.find(t => t.key === storyboardTemplate)?.label}</p>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {currentBeats.map((beat, i) => (
-                    <div key={i} className="border border-white/[0.06] rounded-lg p-1.5 bg-white/[0.02]">
-                      <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
-                        {beat.storyRole}
-                      </span>
-                      <p className="text-[8px] font-semibold text-foreground mt-0.5 truncate">{beat.label}</p>
-                      <p className="text-[7px] text-muted-foreground/40 line-clamp-2 mt-0.5">{beat.description}</p>
-                    </div>
-                  ))}
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/20 font-medium mb-3 text-left">Preview Beats — {CONTENT_TEMPLATES.find(t => t.key === storyboardTemplate)?.label}</p>
+                <div className="space-y-0">
+                  {currentBeats.map((beat, i) => {
+                    const roleColor = getStoryRoleColor(beat.storyRole, i);
+                    const bgClass = roleColor.split(" ")[0];
+                    const textClass = roleColor.split(" ")[1];
+                    return (
+                      <div key={i} className="flex gap-3 items-start">
+                        {/* Left: number circle + connector */}
+                        <div className="flex flex-col items-center shrink-0">
+                          <div className={`w-7 h-7 rounded-lg ${bgClass} border border-current/10 flex items-center justify-center`}>
+                            <span className={`text-[11px] font-bold ${textClass}`}>{i + 1}</span>
+                          </div>
+                          {i < currentBeats.length - 1 && (
+                            <div className="w-px h-6 bg-border/40 mx-auto" />
+                          )}
+                        </div>
+                        {/* Right: role pill + label + description */}
+                        <div className="pb-4 min-w-0">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${bgClass} ${textClass}`}>
+                              {beat.storyRole}
+                            </span>
+                            <span className="text-[13px] font-medium text-foreground">{beat.label}</span>
+                          </div>
+                          <p className="text-[12px] text-muted-foreground/50 leading-relaxed">{beat.description}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
