@@ -1651,7 +1651,6 @@ Output ONLY the JSON array. No explanation.` });
               }
               setRegenAfterTemplateChange((c) => c + 1);
             }}>
-            }}>
               Regenerate
             </AlertDialogAction>
           </AlertDialogFooter>
