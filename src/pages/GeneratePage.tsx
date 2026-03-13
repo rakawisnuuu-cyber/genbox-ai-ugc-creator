@@ -241,6 +241,10 @@ const GeneratePage = () => {
   const storyboardTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const storyboardAbortRef = useRef(false);
 
+  // Prompt-first state
+  const [generatedPrompts, setGeneratedPrompts] = useState<string[]>([]);
+  const [promptsLoading, setPromptsLoading] = useState(false);
+
   // Navigation blocker: warn on browser close/refresh
   const isGenerating = genState === "loading" || storyboardActive;
 
