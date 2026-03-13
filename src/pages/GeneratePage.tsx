@@ -1245,35 +1245,36 @@ Output ONLY the JSON array. No explanation.` });
           </div>
         </div>
 
-        {/* Generate Storyboard */}
+        {/* Generate Prompts */}
         <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
-          <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4">
-            <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Estimasi biaya: ~Rp 2.400 untuk 5 frame storyboard</p>
-              <p className="text-[11px] text-muted-foreground/60">5 API calls sequential • Output tanpa watermark</p>
+          {!hasPrompts && (
+            <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4">
+              <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Step 1: Generate prompts, review & edit. Step 2: Generate gambar per frame.</p>
+              </div>
             </div>
-          </div>
+          )}
           <button
-            onClick={generateStoryboard}
-            disabled={!productUrl || !selectedChar || !storyboardTemplate || storyboardActive}
+            onClick={generatePrompts}
+            disabled={!productUrl || !selectedChar || !storyboardTemplate || promptsLoading || storyboardActive}
             className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40 animate-cta-glow disabled:animate-none"
           >
-            {storyboardActive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-            {storyboardActive ? "Generating Storyboard..." : "Generate Storyboard"}
+            {promptsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {promptsLoading ? "Generating Prompts..." : hasPrompts ? "Regenerate Prompts" : "Generate Prompts"}
           </button>
         </div>
       </div>
 
-      {/* RIGHT PANEL — Storyboard Direct View */}
+      {/* RIGHT PANEL */}
       <div className="w-full lg:w-[45%] bg-[hsl(0_0%_5%)] border-t lg:border-t-0 lg:border-l border-border flex flex-col items-start justify-start p-6 lg:p-8 min-h-[400px] lg:min-h-0 overflow-y-auto">
-        {/* Empty state — before generation */}
-        {!storyboardActive && shotStatuses.length === 0 && genState === "idle" && (
+
+        {/* State A: Empty — no prompts yet */}
+        {!hasPrompts && !promptsLoading && (
           <div className="flex flex-col items-center text-center w-full animate-fade-in mt-8">
             <Film className="h-16 w-16 text-foreground/10 mb-4" />
             <p className="text-sm text-muted-foreground">Storyboard akan muncul di sini</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Upload produk, pilih karakter & template, lalu Generate Storyboard</p>
-            {/* Beat preview in right panel */}
+            <p className="text-xs text-muted-foreground/60 mt-1">Upload produk, pilih karakter & template, lalu Generate Prompts</p>
             {storyboardTemplate && (
               <div className="mt-6 w-full">
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2 text-left">Preview Beats — {CONTENT_TEMPLATES.find(t => t.key === storyboardTemplate)?.label}</p>
@@ -1293,124 +1294,131 @@ Output ONLY the JSON array. No explanation.` });
           </div>
         )}
 
-        {/* Loading — single image gen (legacy, kept for backward compat) */}
-        {genState === "loading" && (
-          <GenerationLoading
-            model="image"
-            elapsed={elapsed}
-            aspectRatio="3:4"
-            prompt={prompt}
-            modelLabel="nano-banana-pro"
-            badgeColor="bg-primary/20 text-primary"
-            onCancel={cancelGeneration}
-          />
-        )}
-
-        {genState === "failed" && (
-          <div className="flex flex-col items-center gap-4 w-full max-w-xs animate-fade-in mx-auto mt-8">
-            <div className="w-full border border-destructive/30 bg-destructive/5 rounded-xl p-6 flex flex-col items-center gap-3 text-center">
-              <AlertTriangle className="h-8 w-8 text-destructive" />
-              <p className="text-sm text-destructive">{errorMsg || "Terjadi kesalahan"}</p>
-            </div>
-            <button
-              onClick={generateStoryboard}
-              className="bg-primary text-primary-foreground font-bold text-xs px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Coba Lagi
-            </button>
+        {/* Loading prompts */}
+        {promptsLoading && (
+          <div className="flex flex-col items-center text-center w-full animate-fade-in mt-16">
+            <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+            <p className="text-sm text-muted-foreground">Generating prompts...</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Gemini sedang membuat {currentBeats.length} prompt untuk storyboard</p>
           </div>
         )}
 
-        {/* Storyboard Active or Completed */}
-        {shotStatuses.length > 0 && (
+        {/* State B: Prompts ready — editable cards with per-frame Generate */}
+        {hasPrompts && !promptsLoading && (
           <div className="w-full space-y-4 animate-fade-in">
-            {/* Header status */}
-            {storyboardActive && (
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Generating storyboard... <span className="text-primary font-bold">({completedShots}/{totalShots} selesai)</span>
-                </p>
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
-                  </span>
-                  <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-            {storyboardDone && (
-              <p className="text-xs text-muted-foreground text-center">
-                <CheckCircle2 className="inline h-3.5 w-3.5 text-green-400 mr-1" /> {completedShots} selesai{failedShots > 0 ? <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" /> {failedShots} gagal</> : ""} — {storyboardElapsed}s
+            {/* Top bar */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-foreground">
+                {storyboardDone ? (
+                  <><CheckCircle2 className="inline h-3.5 w-3.5 text-green-500 mr-1" />{completedShots} selesai{failedShots > 0 && <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" />{failedShots} gagal</>}</>
+                ) : storyboardActive ? (
+                  <>Generating... <span className="text-primary">({completedShots}/{totalShots})</span></>
+                ) : (
+                  <>Review & Edit Prompts ({generatedPrompts.length} beats)</>
+                )}
               </p>
-            )}
+              <div className="flex items-center gap-2">
+                {storyboardActive && (
+                  <>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
+                    </span>
+                    <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">Cancel</button>
+                  </>
+                )}
+                {!storyboardActive && !storyboardDone && (
+                  <button
+                    onClick={generateAllFrames}
+                    disabled={!kieApiKey || storyboardActive}
+                    className="bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                  >
+                    <Film className="h-3 w-3" /> Generate All
+                  </button>
+                )}
+              </div>
+            </div>
 
-            {/* Storyboard Grid — 5 frames */}
-            <div className="grid grid-cols-5 gap-2">
-              {shotStatuses.map((shot, i) => {
+            {/* Prompt cards — vertical list */}
+            <div className="space-y-3">
+              {generatedPrompts.map((promptText, i) => {
                 const beat = currentBeats[i];
+                const shot = shotStatuses[i];
+                const isGenerating = shot?.state === "generating";
+                const isCompleted = shot?.state === "completed";
+                const isFailed = shot?.state === "failed";
+
                 return (
-                  <div key={i} className="relative group">
-                    {shot.state === "completed" && shot.imageUrl ? (
-                      <>
-                        <img
-                          src={shot.imageUrl}
-                          alt={beat?.label || `Frame ${i + 1}`}
-                          className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
-                        />
-                        <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
-                          <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                            <Download className="h-3 w-3" />
+                  <div key={i} className={`border rounded-lg p-3 transition-all ${
+                    isCompleted ? "border-green-500/30 bg-green-500/5" :
+                    isFailed ? "border-destructive/30 bg-destructive/5" :
+                    isGenerating ? "border-primary/30 bg-primary/5" :
+                    "border-border bg-card"
+                  }`}>
+                    {/* Header: badge + status */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground">#{i + 1}</span>
+                        {beat && (
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
+                            {beat.storyRole}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-foreground font-medium">{beat?.label || `Frame ${i + 1}`}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
+                        {isFailed && <XCircle className="h-3.5 w-3.5 text-destructive" />}
+                        {isGenerating && <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />}
+                      </div>
+                    </div>
+
+                    {/* Completed image thumbnail */}
+                    {isCompleted && shot.imageUrl && (
+                      <div className="mb-2 flex items-start gap-2">
+                        <img src={shot.imageUrl} alt={beat?.label} className="h-20 w-15 rounded-md object-cover border border-border" />
+                        <div className="flex flex-col gap-1">
+                          <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline flex items-center gap-1">
+                            <Download className="h-3 w-3" /> Download
                           </a>
-                          {shot.prompt && (
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(shot.prompt!);
-                                toast({ title: "Prompt disalin!" });
-                              }}
-                              className="text-[7px] text-white/60 hover:text-white/90 transition-colors"
-                              title={shot.prompt}
-                            >
-                              📋 Copy Prompt
-                            </button>
-                          )}
                         </div>
-                        <div className="absolute top-1 right-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-400" /></div>
-                      </>
-                    ) : shot.state === "failed" ? (
-                      <div className="w-full aspect-[3/4] rounded-lg border border-destructive/30 bg-destructive/5 flex items-center justify-center">
-                        <XCircle className="h-4 w-4 text-destructive/60" />
-                      </div>
-                    ) : shot.state === "generating" ? (
-                      <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center gap-1.5">
-                        <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                        <span className="text-[7px] text-primary/70 font-medium">Generating...</span>
-                      </div>
-                    ) : shot.state === "prompting" ? (
-                      <div className="w-full aspect-[3/4] rounded-lg border border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-1.5">
-                        <Sparkles className="h-4 w-4 text-primary/60 animate-pulse" />
-                        <span className="text-[7px] text-primary/70 font-medium">Prompt...</span>
-                      </div>
-                    ) : (
-                      <div className="w-full aspect-[3/4] rounded-lg border border-dashed border-border bg-muted/10 flex items-center justify-center">
-                        <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
                       </div>
                     )}
-                    <div className="mt-1 text-center">
-                      {beat && (
-                        <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
-                          {beat.storyRole}
-                        </span>
-                      )}
-                      <p className="text-[8px] text-foreground font-medium mt-0.5 truncate">{beat?.label || `Frame ${i + 1}`}</p>
-                    </div>
+
+                    {/* Editable prompt textarea */}
+                    <Textarea
+                      value={promptText}
+                      onChange={(e) => updatePromptText(i, e.target.value)}
+                      disabled={isGenerating || storyboardActive}
+                      className="text-[11px] min-h-[60px] bg-background/50 border-border/50 resize-y"
+                      rows={3}
+                    />
+
+                    {/* Per-frame generate button */}
+                    {!isGenerating && !storyboardActive && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => generateSingleFrame(i)}
+                          disabled={!kieApiKey || isGenerating}
+                          className={`text-[10px] font-bold px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors disabled:opacity-40 ${
+                            isCompleted
+                              ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                              : "bg-primary text-primary-foreground hover:bg-primary/90"
+                          }`}
+                        >
+                          {isCompleted ? <RefreshCw className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
+                          {isCompleted ? "Regenerate" : "Generate Frame"}
+                        </button>
+                        {isFailed && shot.error && (
+                          <span className="text-[9px] text-destructive">{shot.error}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Actions after completion */}
+            {/* Actions after all frames done */}
             {storyboardDone && (
               <div className="space-y-2 pt-2">
                 <button
@@ -1441,24 +1449,10 @@ Output ONLY the JSON array. No explanation.` });
                   onClick={resetStoryboard}
                   className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="h-3 w-3" /> Generate lagi
+                  <RefreshCw className="h-3 w-3" /> Mulai Ulang
                 </button>
               </div>
             )}
-          </div>
-        )}
-        {genState === "failed" && (
-          <div className="flex flex-col items-center gap-4 w-full max-w-xs animate-fade-in">
-            <div className="w-full border border-destructive/30 bg-destructive/5 rounded-xl p-6 flex flex-col items-center gap-3 text-center">
-              <AlertTriangle className="h-8 w-8 text-destructive" />
-              <p className="text-sm text-destructive">{errorMsg || "Terjadi kesalahan"}</p>
-            </div>
-            <button
-              onClick={generate}
-              className="bg-primary text-primary-foreground font-bold text-xs px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Coba Lagi
-            </button>
           </div>
         )}
       </div>
