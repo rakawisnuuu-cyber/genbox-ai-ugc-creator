@@ -747,60 +747,63 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
         let beatPrompt: string;
 
         try {
-          // Build Gemini parts: base image (vision) + text prompt
           const geminiParts: any[] = [];
 
-          // Include base image as inlineData so Gemini can SEE it
-          if (baseImageBase64) {
-            geminiParts.push({
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: baseImageBase64,
-              },
-            });
+          // For frame 0: send product image + character ref
+          // For frames 1+: send first completed frame as visual reference
+          const firstFrameUrl = idx > 0 ? completedFrameUrls[0] : null;
+          let referenceBase64 = "";
+          if (idx > 0 && firstFrameUrl) {
+            try {
+              referenceBase64 = await imageUrlToBase64(firstFrameUrl);
+            } catch { /* fallback to product image */ }
           }
+
+          if (charImageBase64) {
+            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: charImageBase64 } });
+            geminiParts.push({ text: "CHARACTER REFERENCE — recreate this EXACT person." });
+          }
+          if (referenceBase64) {
+            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: referenceBase64 } });
+            geminiParts.push({ text: "FRAME 1 REFERENCE — match this exact person, outfit, room, lighting." });
+          }
+          if (productImageBase64) {
+            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: productImageBase64 } });
+            geminiParts.push({ text: "PRODUCT REFERENCE — match this exact product." });
+          }
+
+          const isFirstFrame = idx === 0;
+          const frameContext = isFirstFrame
+            ? "This is Frame 1 — the ESTABLISHING frame. Set up the character, environment, and mood."
+            : `Frame ${idx + 1}/5. Previous beat: '${prevBeat?.label}' — ${prevBeat?.description}. Natural next moment.`;
 
           geminiParts.push({ text: `You are a UGC storyboard prompt expert. Create a SINGLE image prompt for this narrative beat.
 
-THIS IS THE BASE IMAGE (attached above). Your prompt MUST match this EXACT person, outfit, room, and product. Study every detail: face shape, skin tone, hair style/color, clothing colors and patterns, accessories, room layout, furniture, wall color, lighting direction, product shape and packaging.
+${frameContext}
 
-${consistencyLock}
-
-This is storyboard frame ${idx + 1}/5 for a '${templateObj?.label || storyboardTemplate}' video.
-${prevBeat ? `Previous beat was: '${prevBeat.label}' — ${prevBeat.description}` : "This is the first storyboard frame after the base image."}
-This frame should feel like the natural next moment in the sequence.
-
+Template: '${templateObj?.label || storyboardTemplate}'
 Character: ${selectedChar!.name} — ${characterIdentity}
-Beat: ${beat.label} (${beat.beat})
-Story Role: ${beat.storyRole}
+Beat: ${beat.label} (${beat.beat}) | Role: ${beat.storyRole}
 Direction: ${beat.description}
+${beat.constraints?.noProductUsage ? "\n⚠️ CONSTRAINT: Product must NOT be shown being used yet.\n" : ""}
 
-Product DNA:
-Category: ${dna.category} / ${dna.sub_category}
-Product: ${dna.product_description}
+Product: ${dna.category}/${dna.sub_category} — ${dna.product_description}
 ${consistencyBlock}
 
-ADAPT the beat action to this specific product type. For example, 'Demo' with skincare means applying serum on cheek, with fashion means trying on the item, with electronics means pressing buttons and showing screen. The narrative beat stays the same, the specific product interaction changes.
-
 RULES:
-- Describe the EXACT same person you see in the attached base image — same face, skin, hair, body type
-- Describe the EXACT same outfit, accessories, and jewelry
-- Describe the EXACT same room/environment and lighting
-- Show the EXACT same product
-- Only the POSE, EXPRESSION, and PRODUCT INTERACTION change
-- Include realistic skin texture with natural pores and slight oil sheen
-- UGC smartphone style — shot on iPhone/Samsung, casual angle, natural HDR
-- High resolution, natural shallow depth of field, warm daylight tint
-- No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no watermark
+- ${isFirstFrame ? "Create character and environment from references" : "Match EXACT same person, outfit, room, lighting from Frame 1"}
+- Realistic skin, natural pores, slight oil sheen
+- UGC smartphone style, casual angle, natural HDR, warm daylight
+- No cartoon, no CGI, no 3D render, no plastic skin, no watermark
 
-Output ONLY the final prompt text, no JSON, no explanation.` });
+Output ONLY the final prompt text.` });
 
           const promptResult = await geminiFetch(promptModel, geminiKey!, {
             contents: [{ parts: geminiParts }],
           });
           beatPrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
         } catch {
-          beatPrompt = `${consistencyLock}\n\nPhotorealistic UGC photo. ${beat.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
+          beatPrompt = `Photorealistic UGC photo. ${beat.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
         }
 
         if (storyboardAbortRef.current) throw new Error("Cancelled");
