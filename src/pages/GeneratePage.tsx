@@ -154,7 +154,7 @@ type GenState = "idle" | "loading" | "completed" | "failed";
 
 // Per-shot status for multi-angle
 interface ShotStatus {
-  state: "pending" | "prompting" | "generating" | "completed" | "failed";
+  state: "pending" | "prompt_ready" | "prompting" | "generating" | "completed" | "failed";
   imageUrl?: string;
   error?: string;
   prompt?: string;
@@ -240,6 +240,10 @@ const GeneratePage = () => {
   const [storyboardElapsed, setStoryboardElapsed] = useState(0);
   const storyboardTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const storyboardAbortRef = useRef(false);
+
+  // Prompt-first state
+  const [generatedPrompts, setGeneratedPrompts] = useState<string[]>([]);
+  const [promptsLoading, setPromptsLoading] = useState(false);
 
   // Navigation blocker: warn on browser close/refresh
   const isGenerating = genState === "loading" || storyboardActive;
@@ -689,226 +693,223 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
   const canGenerate = !!productUrl && !!selectedChar && !!prompt.trim() && genState !== "loading";
 
-  /* ── Storyboard: 5 Narrative Shots ──────────────────────────── */
-  const generateStoryboard = async () => {
-    if (!kieApiKey || !geminiKey || !productUrl || !selectedChar || !storyboardTemplate) return;
+  /* ── Step 1: Generate Prompts via Gemini (single call → 5 prompts) ─── */
+  const generatePrompts = async () => {
+    if (!geminiKey || keys.gemini.status !== "valid") {
+      toast({ title: "Gemini API key belum di-setup", variant: "destructive" });
+      return;
+    }
+    if (!productUrl || !selectedChar || !storyboardTemplate) return;
+
     const dna = productDNA || EMPTY_DNA;
     const beats = getStoryboardBeats(storyboardTemplate);
     const templateObj = CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate);
-
-    storyboardAbortRef.current = false;
-    setStoryboardActive(true);
-    setShotStatuses(beats.map(() => ({ state: "pending" as const })));
-    setStoryboardElapsed(0);
-    storyboardTimerRef.current = setInterval(() => setStoryboardElapsed((p) => p + 1), 1000);
-
     const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
     const consistencyBlock = buildProductConsistencyBlock(dna);
 
-    // Image inputs are now built per-frame inside generateSingleBeat
-    // (base image + previous frame + product — no character hero/reference URLs needed)
+    setPromptsLoading(true);
+    setGeneratedPrompts([]);
+    setShotStatuses(beats.map(() => ({ state: "pending" as const })));
 
-    // Template-first flow: no base image yet. Frame 0 establishes the visual.
-    // Frames 1-4 will chain from frame 0's result for consistency.
-    const consistencyLock = "";
-
-    // Convert product image to base64 for Gemini vision
-    let productImageBase64 = "";
     try {
-      productImageBase64 = await imageUrlToBase64(productUrl!);
-      console.log("[storyboard] Product image converted to base64 for Gemini vision");
-    } catch (e) {
-      console.warn("[storyboard] Failed to convert product image to base64", e);
-    }
+      const geminiParts: any[] = [];
 
-    // Convert character ref to base64 for Gemini vision
-    let charImageBase64 = "";
-    const charRefUrl = selectedChar?.hero_image_url || selectedChar?.reference_photo_url;
-    if (charRefUrl) {
-      try {
-        charImageBase64 = await imageUrlToBase64(charRefUrl);
-      } catch (e) {
-        console.warn("[storyboard] Failed to convert character image to base64", e);
-      }
-    }
-
-    // Track completed frame URLs for chaining into subsequent Kie AI calls
-    const completedFrameUrls: (string | null)[] = beats.map(() => null);
-
-    const generateSingleBeat = async (beat: StoryboardBeat, idx: number) => {
-      try {
-        setShotStatuses((prev) => {
-          const next = [...prev];
-          next[idx] = { state: "prompting" };
-          return next;
-        });
-
-        const prevBeat = idx > 0 ? beats[idx - 1] : null;
-        let beatPrompt: string;
-
+      const charRefUrl = selectedChar?.hero_image_url || selectedChar?.reference_photo_url;
+      if (charRefUrl) {
         try {
-          const geminiParts: any[] = [];
+          const charBase64 = await imageUrlToBase64(charRefUrl);
+          geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: charBase64 } });
+          geminiParts.push({ text: "CHARACTER REFERENCE — recreate this EXACT person in all frames." });
+        } catch (e) { console.warn("Failed char image b64", e); }
+      }
 
-          // For frame 0: send product image + character ref
-          // For frames 1+: send first completed frame as visual reference
-          const firstFrameUrl = idx > 0 ? completedFrameUrls[0] : null;
-          let referenceBase64 = "";
-          if (idx > 0 && firstFrameUrl) {
-            try {
-              referenceBase64 = await imageUrlToBase64(firstFrameUrl);
-            } catch { /* fallback to product image */ }
-          }
+      try {
+        const productBase64 = await imageUrlToBase64(productUrl!);
+        geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: productBase64 } });
+        geminiParts.push({ text: "PRODUCT REFERENCE — match this exact product." });
+      } catch (e) { console.warn("Failed product image b64", e); }
 
-          if (charImageBase64) {
-            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: charImageBase64 } });
-            geminiParts.push({ text: "CHARACTER REFERENCE — recreate this EXACT person." });
-          }
-          if (referenceBase64) {
-            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: referenceBase64 } });
-            geminiParts.push({ text: "FRAME 1 REFERENCE — match this exact person, outfit, room, lighting." });
-          }
-          if (productImageBase64) {
-            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: productImageBase64 } });
-            geminiParts.push({ text: "PRODUCT REFERENCE — match this exact product." });
-          }
+      const envOption = findOption(envOptions, background);
+      const bgRich = background === "Custom" ? customBg : (envOption?.description || background || "not specified");
 
-          const isFirstFrame = idx === 0;
-          const frameContext = isFirstFrame
-            ? "This is Frame 1 — the ESTABLISHING frame. Set up the character, environment, and mood."
-            : `Frame ${idx + 1}/5. Previous beat: '${prevBeat?.label}' — ${prevBeat?.description}. Natural next moment.`;
+      const beatsDesc = beats.map((b, i) =>
+        `Frame ${i + 1}: [${b.storyRole}] "${b.label}" — ${b.description}${b.constraints?.noProductUsage ? " (⚠️ NO product usage shown yet)" : ""}`
+      ).join("\n");
 
-          geminiParts.push({ text: `You are a UGC storyboard prompt expert. Create a SINGLE image prompt for this narrative beat.
+      geminiParts.push({ text: `You are a UGC storyboard prompt expert. Generate ${beats.length} image prompts for a TikTok UGC storyboard.
 
-${frameContext}
-
-Template: '${templateObj?.label || storyboardTemplate}'
+Template: "${templateObj?.label || storyboardTemplate}"
 Character: ${selectedChar!.name} — ${characterIdentity}
-Beat: ${beat.label} (${beat.beat}) | Role: ${beat.storyRole}
-Direction: ${beat.description}
-${beat.constraints?.noProductUsage ? "\n⚠️ CONSTRAINT: Product must NOT be shown being used yet.\n" : ""}
-
 Product: ${dna.category}/${dna.sub_category} — ${dna.product_description}
 ${consistencyBlock}
+Environment: ${bgRich}
+
+NARRATIVE BEATS:
+${beatsDesc}
 
 RULES:
-- ${isFirstFrame ? "Create character and environment from references" : "Match EXACT same person, outfit, room, lighting from Frame 1"}
-- Realistic skin, natural pores, slight oil sheen
-- UGC smartphone style, casual angle, natural HDR, warm daylight
-- No cartoon, no CGI, no 3D render, no plastic skin, no watermark
+- Each prompt is a COMPLETE image generation prompt — character appearance, product, scene, lighting, camera
+- Frame 1 is the ESTABLISHING shot — describe character and environment in full detail
+- Frames 2-${beats.length} MUST reference "same person, same outfit, same room" for consistency
+- Realistic skin, natural pores, phone camera quality, UGC style
+- No cartoon, no CGI, no 3D render, no watermark
+- Prompts should be 80-150 words each
+- Add "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no watermark, no text overlay." at the end of each prompt
 
-Output ONLY the final prompt text.` });
+Return a JSON array of ${beats.length} prompt strings. Example:
+["prompt for frame 1", "prompt for frame 2", ...]
 
-          const promptResult = await geminiFetch(promptModel, geminiKey!, {
-            contents: [{ parts: geminiParts }],
-          });
-          beatPrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-        } catch {
-          beatPrompt = `Photorealistic UGC photo. ${beat.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
-        }
+Output ONLY the JSON array. No explanation.` });
 
-        if (storyboardAbortRef.current) throw new Error("Cancelled");
+      const genConfig: Record<string, any> = {};
+      if (promptModel !== "gemini-3.1-pro-preview") {
+        genConfig.responseMimeType = "application/json";
+      }
 
-        // Switch to "generating" state now that prompt is ready
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{ parts: geminiParts }],
+        generationConfig: genConfig,
+      });
+
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+
+      if (!Array.isArray(parsed) || parsed.length < beats.length) {
+        throw new Error("Invalid response — expected array of prompts");
+      }
+
+      const prompts = parsed.slice(0, beats.length).map((p: any) => String(p));
+      setGeneratedPrompts(prompts);
+      setShotStatuses(prompts.map((p: string) => ({ state: "prompt_ready" as const, prompt: p })));
+      toast({ title: "Prompts siap!", description: `${prompts.length} prompt berhasil di-generate. Review & edit, lalu Generate.` });
+    } catch (err: any) {
+      console.error("Generate prompts error:", err);
+      toast({ title: "Gagal generate prompts", description: err.message, variant: "destructive" });
+      setShotStatuses([]);
+    } finally {
+      setPromptsLoading(false);
+    }
+  };
+
+  /* ── Step 2: Generate single frame from prompt ─── */
+  const generateSingleFrame = async (idx: number) => {
+    if (!kieApiKey || keys.kie_ai.status !== "valid") {
+      toast({ title: "Kie AI API key belum di-setup", variant: "destructive" });
+      return;
+    }
+    const currentPrompt = generatedPrompts[idx];
+    if (!currentPrompt) return;
+
+    storyboardAbortRef.current = false;
+    setShotStatuses((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], state: "generating", prompt: currentPrompt };
+      return next;
+    });
+
+    try {
+      const imageInputs: string[] = [];
+      if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
+      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
+      if (productUrl) imageInputs.push(productUrl);
+
+      if (idx > 0) {
+        const frame0Url = shotStatuses[0]?.imageUrl;
+        if (frame0Url) imageInputs.unshift(frame0Url);
+      }
+
+      const imageUrl = await generateKieImage(
+        kieApiKey,
+        currentPrompt,
+        imageInputs,
+        () => storyboardAbortRef.current,
+      );
+
+      setShotStatuses((prev) => {
+        const next = [...prev];
+        next[idx] = { state: "completed", imageUrl, prompt: currentPrompt };
+        return next;
+      });
+
+      await supabase.from("generations").insert({
+        user_id: user!.id,
+        type: "ugc_storyboard",
+        prompt: currentPrompt,
+        image_url: imageUrl,
+        character_id: selectedChar?.id?.startsWith("p") ? null : selectedChar?.id || null,
+        provider: "kie_ai",
+        model: "nano-banana-pro",
+        status: "completed",
+        metadata: { productDNA: productDNA || null, template: storyboardTemplate, frameIndex: idx } as any,
+      });
+    } catch (err: any) {
+      if (!storyboardAbortRef.current) {
         setShotStatuses((prev) => {
           const next = [...prev];
-          next[idx] = { state: "generating" };
-          return next;
-        });
-
-        // Build image inputs for Kie AI
-        // Frame 0: character refs + product image
-        // Frames 1+: frame 0 result + product + previous frame for chaining
-        const frameImages: string[] = [];
-        const firstCompletedUrl = completedFrameUrls[0];
-        if (idx > 0 && firstCompletedUrl) frameImages.push(firstCompletedUrl);
-        const prevFrameUrl = idx > 0 ? completedFrameUrls[idx - 1] : null;
-        if (prevFrameUrl && !frameImages.includes(prevFrameUrl)) frameImages.push(prevFrameUrl);
-        if (selectedChar?.hero_image_url && frameImages.length < 3) frameImages.push(selectedChar.hero_image_url);
-        if (selectedChar?.reference_photo_url && selectedChar.reference_photo_url !== selectedChar?.hero_image_url && frameImages.length < 3) frameImages.push(selectedChar.reference_photo_url);
-        if (productUrl && frameImages.length < 3) frameImages.push(productUrl);
-
-        const imageUrl = await generateKieImage(
-          kieApiKey!,
-          beatPrompt,
-          frameImages.slice(0, 3),
-          () => storyboardAbortRef.current,
-        );
-
-        const path = `${user!.id}/storyboard/${Date.now()}_${idx}.jpg`;
-        await supabase.storage.from("product-images").upload(path, await (await fetch(imageUrl)).blob(), { contentType: "image/jpeg" });
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-
-        // Store completed URL for chaining
-        completedFrameUrls[idx] = urlData.publicUrl;
-
-        await supabase.from("generations").insert({
-          user_id: user!.id,
-          type: "ugc_image",
-          prompt: beatPrompt || `Storyboard: ${beat.label}`,
-          image_url: urlData.publicUrl,
-          character_id: selectedChar!.id.startsWith("p") ? null : selectedChar!.id,
-          provider: "kie_ai",
-          model: "nano-banana-pro",
-          status: "completed",
-          metadata: {
-            beat: beat.label,
-            storyRole: beat.storyRole,
-            template: storyboardTemplate,
-            frameIndex: idx + 1,
-            source: "storyboard",
-            productDNA: dna.category !== "other" ? dna : undefined,
-          } as any,
-        });
-
-        setShotStatuses((prev) => {
-          const next = [...prev];
-          next[idx] = { state: "completed", imageUrl: urlData.publicUrl, prompt: beatPrompt };
-          return next;
-        });
-      } catch (err: any) {
-        if (storyboardAbortRef.current) return;
-        setShotStatuses((prev) => {
-          const next = [...prev];
-          next[idx] = { state: "failed", error: err?.message || "Failed" };
+          next[idx] = { state: "failed", error: err.message, prompt: currentPrompt };
           return next;
         });
       }
-    };
+    }
+  };
 
-    // Sequential generation with 2s delay between frames (avoid rate limits)
-    for (let i = 0; i < beats.length; i++) {
+  /* ── Generate All Frames sequentially ─── */
+  const generateAllFrames = async () => {
+    if (!kieApiKey || generatedPrompts.length === 0) return;
+
+    storyboardAbortRef.current = false;
+    setStoryboardActive(true);
+    setStoryboardElapsed(0);
+    storyboardTimerRef.current = setInterval(() => setStoryboardElapsed((p) => p + 1), 1000);
+
+    for (let i = 0; i < generatedPrompts.length; i++) {
       if (storyboardAbortRef.current) break;
-      await generateSingleBeat(beats[i], i);
-      // 2 second delay between frames to avoid Kie AI rate limiting
-      if (i < beats.length - 1 && !storyboardAbortRef.current) {
+      if (shotStatuses[i]?.state === "completed") continue;
+      await generateSingleFrame(i);
+      if (i < generatedPrompts.length - 1 && !storyboardAbortRef.current) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
 
     if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
+    storyboardTimerRef.current = null;
     setStoryboardActive(false);
   };
 
   const cancelStoryboard = () => {
     storyboardAbortRef.current = true;
     if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
+    storyboardTimerRef.current = null;
     setStoryboardActive(false);
   };
 
   const resetStoryboard = () => {
     setStoryboardActive(false);
     setShotStatuses([]);
+    setGeneratedPrompts([]);
     setStoryboardElapsed(0);
-    setStoryboardTemplate(null);
   };
 
-  // Computed storyboard progress
+  const updatePromptText = (idx: number, text: string) => {
+    setGeneratedPrompts((prev) => {
+      const next = [...prev];
+      next[idx] = text;
+      return next;
+    });
+    setShotStatuses((prev) => {
+      const next = [...prev];
+      if (next[idx]) next[idx] = { ...next[idx], prompt: text };
+      return next;
+    });
+  };
+
+  // Computed
+  const hasPrompts = generatedPrompts.length > 0;
   const completedShots = shotStatuses.filter((s) => s.state === "completed").length;
   const failedShots = shotStatuses.filter((s) => s.state === "failed").length;
   const totalShots = shotStatuses.length;
-  const storyboardDone = totalShots > 0 && !storyboardActive && (completedShots + failedShots === totalShots);
-
-  // Current beats for selected template
+  const storyboardDone = totalShots > 0 && !storyboardActive && !promptsLoading && completedShots > 0 && (completedShots + failedShots === totalShots);
   const currentBeats = storyboardTemplate ? getStoryboardBeats(storyboardTemplate) : [];
 
   /* ── Render ───────────────────────────────────────────────── */
@@ -1244,35 +1245,36 @@ Output ONLY the final prompt text.` });
           </div>
         </div>
 
-        {/* Generate Storyboard */}
+        {/* Generate Prompts */}
         <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
-          <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4">
-            <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Estimasi biaya: ~Rp 2.400 untuk 5 frame storyboard</p>
-              <p className="text-[11px] text-muted-foreground/60">5 API calls sequential • Output tanpa watermark</p>
+          {!hasPrompts && (
+            <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4">
+              <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground">Step 1: Generate prompts, review & edit. Step 2: Generate gambar per frame.</p>
+              </div>
             </div>
-          </div>
+          )}
           <button
-            onClick={generateStoryboard}
-            disabled={!productUrl || !selectedChar || !storyboardTemplate || storyboardActive}
+            onClick={generatePrompts}
+            disabled={!productUrl || !selectedChar || !storyboardTemplate || promptsLoading || storyboardActive}
             className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40 animate-cta-glow disabled:animate-none"
           >
-            {storyboardActive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
-            {storyboardActive ? "Generating Storyboard..." : "Generate Storyboard"}
+            {promptsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {promptsLoading ? "Generating Prompts..." : hasPrompts ? "Regenerate Prompts" : "Generate Prompts"}
           </button>
         </div>
       </div>
 
-      {/* RIGHT PANEL — Storyboard Direct View */}
+      {/* RIGHT PANEL */}
       <div className="w-full lg:w-[45%] bg-[hsl(0_0%_5%)] border-t lg:border-t-0 lg:border-l border-border flex flex-col items-start justify-start p-6 lg:p-8 min-h-[400px] lg:min-h-0 overflow-y-auto">
-        {/* Empty state — before generation */}
-        {!storyboardActive && shotStatuses.length === 0 && genState === "idle" && (
+
+        {/* State A: Empty — no prompts yet */}
+        {!hasPrompts && !promptsLoading && (
           <div className="flex flex-col items-center text-center w-full animate-fade-in mt-8">
             <Film className="h-16 w-16 text-foreground/10 mb-4" />
             <p className="text-sm text-muted-foreground">Storyboard akan muncul di sini</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Upload produk, pilih karakter & template, lalu Generate Storyboard</p>
-            {/* Beat preview in right panel */}
+            <p className="text-xs text-muted-foreground/60 mt-1">Upload produk, pilih karakter & template, lalu Generate Prompts</p>
             {storyboardTemplate && (
               <div className="mt-6 w-full">
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-2 text-left">Preview Beats — {CONTENT_TEMPLATES.find(t => t.key === storyboardTemplate)?.label}</p>
@@ -1292,124 +1294,131 @@ Output ONLY the final prompt text.` });
           </div>
         )}
 
-        {/* Loading — single image gen (legacy, kept for backward compat) */}
-        {genState === "loading" && (
-          <GenerationLoading
-            model="image"
-            elapsed={elapsed}
-            aspectRatio="3:4"
-            prompt={prompt}
-            modelLabel="nano-banana-pro"
-            badgeColor="bg-primary/20 text-primary"
-            onCancel={cancelGeneration}
-          />
-        )}
-
-        {genState === "failed" && (
-          <div className="flex flex-col items-center gap-4 w-full max-w-xs animate-fade-in mx-auto mt-8">
-            <div className="w-full border border-destructive/30 bg-destructive/5 rounded-xl p-6 flex flex-col items-center gap-3 text-center">
-              <AlertTriangle className="h-8 w-8 text-destructive" />
-              <p className="text-sm text-destructive">{errorMsg || "Terjadi kesalahan"}</p>
-            </div>
-            <button
-              onClick={generateStoryboard}
-              className="bg-primary text-primary-foreground font-bold text-xs px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Coba Lagi
-            </button>
+        {/* Loading prompts */}
+        {promptsLoading && (
+          <div className="flex flex-col items-center text-center w-full animate-fade-in mt-16">
+            <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+            <p className="text-sm text-muted-foreground">Generating prompts...</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Gemini sedang membuat {currentBeats.length} prompt untuk storyboard</p>
           </div>
         )}
 
-        {/* Storyboard Active or Completed */}
-        {shotStatuses.length > 0 && (
+        {/* State B: Prompts ready — editable cards with per-frame Generate */}
+        {hasPrompts && !promptsLoading && (
           <div className="w-full space-y-4 animate-fade-in">
-            {/* Header status */}
-            {storyboardActive && (
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Generating storyboard... <span className="text-primary font-bold">({completedShots}/{totalShots} selesai)</span>
-                </p>
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
-                  </span>
-                  <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-            {storyboardDone && (
-              <p className="text-xs text-muted-foreground text-center">
-                <CheckCircle2 className="inline h-3.5 w-3.5 text-green-400 mr-1" /> {completedShots} selesai{failedShots > 0 ? <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" /> {failedShots} gagal</> : ""} — {storyboardElapsed}s
+            {/* Top bar */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-foreground">
+                {storyboardDone ? (
+                  <><CheckCircle2 className="inline h-3.5 w-3.5 text-green-500 mr-1" />{completedShots} selesai{failedShots > 0 && <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" />{failedShots} gagal</>}</>
+                ) : storyboardActive ? (
+                  <>Generating... <span className="text-primary">({completedShots}/{totalShots})</span></>
+                ) : (
+                  <>Review & Edit Prompts ({generatedPrompts.length} beats)</>
+                )}
               </p>
-            )}
+              <div className="flex items-center gap-2">
+                {storyboardActive && (
+                  <>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
+                    </span>
+                    <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">Cancel</button>
+                  </>
+                )}
+                {!storyboardActive && !storyboardDone && (
+                  <button
+                    onClick={generateAllFrames}
+                    disabled={!kieApiKey || storyboardActive}
+                    className="bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1.5 rounded-md hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center gap-1.5"
+                  >
+                    <Film className="h-3 w-3" /> Generate All
+                  </button>
+                )}
+              </div>
+            </div>
 
-            {/* Storyboard Grid — 5 frames */}
-            <div className="grid grid-cols-5 gap-2">
-              {shotStatuses.map((shot, i) => {
+            {/* Prompt cards — vertical list */}
+            <div className="space-y-3">
+              {generatedPrompts.map((promptText, i) => {
                 const beat = currentBeats[i];
+                const shot = shotStatuses[i];
+                const isGenerating = shot?.state === "generating";
+                const isCompleted = shot?.state === "completed";
+                const isFailed = shot?.state === "failed";
+
                 return (
-                  <div key={i} className="relative group">
-                    {shot.state === "completed" && shot.imageUrl ? (
-                      <>
-                        <img
-                          src={shot.imageUrl}
-                          alt={beat?.label || `Frame ${i + 1}`}
-                          className="w-full aspect-[3/4] object-cover rounded-lg border border-border"
-                        />
-                        <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 p-1.5">
-                          <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                            <Download className="h-3 w-3" />
+                  <div key={i} className={`border rounded-lg p-3 transition-all ${
+                    isCompleted ? "border-green-500/30 bg-green-500/5" :
+                    isFailed ? "border-destructive/30 bg-destructive/5" :
+                    isGenerating ? "border-primary/30 bg-primary/5" :
+                    "border-border bg-card"
+                  }`}>
+                    {/* Header: badge + status */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground">#{i + 1}</span>
+                        {beat && (
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
+                            {beat.storyRole}
+                          </span>
+                        )}
+                        <span className="text-[10px] text-foreground font-medium">{beat?.label || `Frame ${i + 1}`}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
+                        {isFailed && <XCircle className="h-3.5 w-3.5 text-destructive" />}
+                        {isGenerating && <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />}
+                      </div>
+                    </div>
+
+                    {/* Completed image thumbnail */}
+                    {isCompleted && shot.imageUrl && (
+                      <div className="mb-2 flex items-start gap-2">
+                        <img src={shot.imageUrl} alt={beat?.label} className="h-20 w-15 rounded-md object-cover border border-border" />
+                        <div className="flex flex-col gap-1">
+                          <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="text-[9px] text-primary hover:underline flex items-center gap-1">
+                            <Download className="h-3 w-3" /> Download
                           </a>
-                          {shot.prompt && (
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(shot.prompt!);
-                                toast({ title: "Prompt disalin!" });
-                              }}
-                              className="text-[7px] text-white/60 hover:text-white/90 transition-colors"
-                              title={shot.prompt}
-                            >
-                              📋 Copy Prompt
-                            </button>
-                          )}
                         </div>
-                        <div className="absolute top-1 right-1"><CheckCircle2 className="h-3.5 w-3.5 text-green-400" /></div>
-                      </>
-                    ) : shot.state === "failed" ? (
-                      <div className="w-full aspect-[3/4] rounded-lg border border-destructive/30 bg-destructive/5 flex items-center justify-center">
-                        <XCircle className="h-4 w-4 text-destructive/60" />
-                      </div>
-                    ) : shot.state === "generating" ? (
-                      <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center gap-1.5">
-                        <Loader2 className="h-4 w-4 text-primary animate-spin" />
-                        <span className="text-[7px] text-primary/70 font-medium">Generating...</span>
-                      </div>
-                    ) : shot.state === "prompting" ? (
-                      <div className="w-full aspect-[3/4] rounded-lg border border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-1.5">
-                        <Sparkles className="h-4 w-4 text-primary/60 animate-pulse" />
-                        <span className="text-[7px] text-primary/70 font-medium">Prompt...</span>
-                      </div>
-                    ) : (
-                      <div className="w-full aspect-[3/4] rounded-lg border border-dashed border-border bg-muted/10 flex items-center justify-center">
-                        <div className="h-2 w-2 rounded-full bg-muted-foreground/20" />
                       </div>
                     )}
-                    <div className="mt-1 text-center">
-                      {beat && (
-                        <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
-                          {beat.storyRole}
-                        </span>
-                      )}
-                      <p className="text-[8px] text-foreground font-medium mt-0.5 truncate">{beat?.label || `Frame ${i + 1}`}</p>
-                    </div>
+
+                    {/* Editable prompt textarea */}
+                    <Textarea
+                      value={promptText}
+                      onChange={(e) => updatePromptText(i, e.target.value)}
+                      disabled={isGenerating || storyboardActive}
+                      className="text-[11px] min-h-[60px] bg-background/50 border-border/50 resize-y"
+                      rows={3}
+                    />
+
+                    {/* Per-frame generate button */}
+                    {!isGenerating && !storyboardActive && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <button
+                          onClick={() => generateSingleFrame(i)}
+                          disabled={!kieApiKey || isGenerating}
+                          className={`text-[10px] font-bold px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors disabled:opacity-40 ${
+                            isCompleted
+                              ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                              : "bg-primary text-primary-foreground hover:bg-primary/90"
+                          }`}
+                        >
+                          {isCompleted ? <RefreshCw className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
+                          {isCompleted ? "Regenerate" : "Generate Frame"}
+                        </button>
+                        {isFailed && shot.error && (
+                          <span className="text-[9px] text-destructive">{shot.error}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
 
-            {/* Actions after completion */}
+            {/* Actions after all frames done */}
             {storyboardDone && (
               <div className="space-y-2 pt-2">
                 <button
@@ -1440,24 +1449,10 @@ Output ONLY the final prompt text.` });
                   onClick={resetStoryboard}
                   className="w-full border border-border text-muted-foreground text-xs py-2 rounded-lg hover:text-foreground transition-colors flex items-center justify-center gap-2"
                 >
-                  <RefreshCw className="h-3 w-3" /> Generate lagi
+                  <RefreshCw className="h-3 w-3" /> Mulai Ulang
                 </button>
               </div>
             )}
-          </div>
-        )}
-        {genState === "failed" && (
-          <div className="flex flex-col items-center gap-4 w-full max-w-xs animate-fade-in">
-            <div className="w-full border border-destructive/30 bg-destructive/5 rounded-xl p-6 flex flex-col items-center gap-3 text-center">
-              <AlertTriangle className="h-8 w-8 text-destructive" />
-              <p className="text-sm text-destructive">{errorMsg || "Terjadi kesalahan"}</p>
-            </div>
-            <button
-              onClick={generate}
-              className="bg-primary text-primary-foreground font-bold text-xs px-6 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Coba Lagi
-            </button>
           </div>
         )}
       </div>
