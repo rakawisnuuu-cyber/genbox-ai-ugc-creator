@@ -96,7 +96,6 @@ export async function detectProductDNA(
   if (!rawText) return { ...EMPTY_DNA };
 
   try {
-    // Handle possible markdown code blocks
     const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     const parsed = JSON.parse(cleaned);
     return {
@@ -149,7 +148,7 @@ Key features: ${dna.key_features}`;
 export interface AngleDefinition {
   label: string;
   description: string;
-  storyRole: string; // narrative purpose
+  storyRole: string;
 }
 
 function getSubCategoryAngles(sub: string): AngleDefinition[] | null {
@@ -240,7 +239,6 @@ export function getAnglesByCategory(
   category: ProductCategory,
   sub_category?: string,
 ): AngleDefinition[] {
-  // Check sub-category specialization first
   if (sub_category) {
     const special = getSubCategoryAngles(sub_category);
     if (special) return special;
@@ -257,10 +255,94 @@ Color: ${dna.dominant_color}
 Material: ${dna.material}
 Packaging: ${dna.packaging_type}
 
-All 6 panels must show visually IDENTICAL product:
+All panels must show visually IDENTICAL product:
 - Same shape, same color, same material, same size
 - Same brand markings, same packaging, same accessories
 - Do NOT substitute with different product type
-- Do NOT change category (if product is a ${dna.sub_category || dna.category}, show a ${dna.sub_category || dna.category})
-- Before finalizing, verify all 6 panels contain the identical product`;
+- Do NOT change category (if product is a ${dna.sub_category || dna.category}, show a ${dna.sub_category || dna.category})`;
+}
+
+/* ─── Product Context Generator ──────────────────────────────── */
+
+/** Usage context suggestions per category */
+const USAGE_CONTEXTS: Record<ProductCategory, string[]> = {
+  skincare: ["bathroom vanity", "morning skincare routine", "bedroom mirror", "nighttime routine"],
+  fashion: ["getting dressed", "outfit of the day", "mirror selfie moment", "going out preparation"],
+  food: ["kitchen counter", "breakfast table", "snack time", "cooking preparation"],
+  electronics: ["desk setup", "unboxing moment", "daily use", "productivity flow"],
+  health: ["morning routine", "post-workout", "daily supplement ritual", "wellness moment"],
+  home: ["room styling", "home organization", "cozy setup", "decor placement"],
+  other: ["daily life", "product showcase", "lifestyle moment"],
+};
+
+/** Emotional angles per category */
+const EMOTIONAL_ANGLES: Record<ProductCategory, string[]> = {
+  skincare: ["self-care ritual", "pampering moment", "confidence boost", "skin transformation joy"],
+  fashion: ["self-expression", "confidence in style", "outfit satisfaction", "personal identity"],
+  food: ["comfort and indulgence", "healthy choice satisfaction", "sharing joy", "taste discovery"],
+  electronics: ["tech excitement", "productivity empowerment", "problem solved", "future-ready feeling"],
+  health: ["wellness commitment", "energy boost", "self-improvement", "body care ritual"],
+  home: ["nesting comfort", "space transformation pride", "cozy satisfaction", "aesthetic achievement"],
+  other: ["discovery excitement", "daily improvement", "lifestyle enhancement"],
+};
+
+/**
+ * Generate rich product context for prompt enrichment.
+ * Combines DNA fields with category intelligence to produce
+ * a deep context block that makes prompts feel native and specific.
+ */
+export function getProductContext(dna: ProductDNA): {
+  usageContext: string;
+  emotionalAngle: string;
+  interactionGuide: string;
+  targetUser: string;
+  contextBlock: string;
+} {
+  const contexts = USAGE_CONTEXTS[dna.category] || USAGE_CONTEXTS.other;
+  const emotions = EMOTIONAL_ANGLES[dna.category] || EMOTIONAL_ANGLES.other;
+  const usageContext = contexts[Math.floor(Math.random() * contexts.length)];
+  const emotionalAngle = emotions[Math.floor(Math.random() * emotions.length)];
+
+  // Generate interaction guide based on packaging type + usage type
+  const interactionGuides: Record<string, string> = {
+    "bottle+cosmetic": "Hold dropper above palm, dispense 2-3 drops, pat gently into skin",
+    "tube+cosmetic": "Squeeze small amount onto fingertips, dot onto face, blend outward",
+    "jar+cosmetic": "Scoop with fingertip, warm between palms, press into skin",
+    "garment+wearable": "Hold up to body, try on and adjust, check fit in mirror",
+    "device+device": "Unbox carefully, power on, navigate features on screen",
+    "box+handheld": "Open packaging, lift product out, examine from multiple angles",
+    "pouch+consumable": "Tear open corner, pour into cup/bowl, mix or prepare",
+    "can+consumable": "Pop open tab, pour or drink directly, reaction to taste",
+    "bottle+consumable": "Twist cap, pour into glass, first sip reaction",
+  };
+
+  const guideKey = `${dna.packaging_type}+${dna.usage_type}`;
+  const interactionGuide = interactionGuides[guideKey]
+    || `Interact naturally with the ${dna.sub_category || dna.category} — pick up, examine, use as intended`;
+
+  // Target user inference
+  const targetUsers: Record<ProductCategory, string> = {
+    skincare: "Indonesian women 18-35 who care about skincare routine and natural beauty",
+    fashion: "Style-conscious Indonesian youth 18-30 who follow trends on TikTok",
+    food: "Indonesian foodies and snack lovers who enjoy discovering new products",
+    electronics: "Tech-savvy Indonesian consumers 20-35 who research before buying",
+    health: "Health-conscious Indonesians 20-40 focused on wellness and fitness",
+    home: "Indonesian homeowners/renters 22-35 who enjoy decorating and organizing",
+    other: "Indonesian consumers 18-35 who discover products through social media",
+  };
+  const targetUser = targetUsers[dna.category] || targetUsers.other;
+
+  const contextBlock = `This product is a ${dna.sub_category || dna.category} (${dna.product_description}).
+Target user: ${targetUser}.
+Usage context: ${usageContext}.
+Emotional angle: ${emotionalAngle}.
+Brand: ${dna.brand_name !== "unknown" ? dna.brand_name : "visible on packaging"}.
+
+For interaction with this product, the creator should:
+- ${interactionGuide}
+- Show the ${dna.dominant_color} ${dna.packaging_type} clearly with label facing camera
+- The ${dna.material} texture should be visible and natural
+- Key features to highlight: ${dna.key_features || "overall quality and design"}`;
+
+  return { usageContext, emotionalAngle, interactionGuide, targetUser, contextBlock };
 }
