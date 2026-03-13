@@ -1243,7 +1243,14 @@ Output ONLY the JSON array. No explanation.` });
               return (
                 <button
                   key={t.key}
-                  onClick={() => setStoryboardTemplate(t.key)}
+                  onClick={() => {
+                    if (hasPrompts && t.key !== storyboardTemplate) {
+                      pendingTemplateRef.current = t.key;
+                      setTemplateChangeOpen(true);
+                    } else {
+                      setStoryboardTemplate(t.key);
+                    }
+                  }}
                   className={`relative text-left rounded-xl overflow-visible transition-all flex ${
                     isSelected
                       ? "bg-primary/[0.04] border border-primary/30"
