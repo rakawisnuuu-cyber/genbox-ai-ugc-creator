@@ -1473,7 +1473,7 @@ Output ONLY the JSON array. No explanation.` });
                     <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">Cancel</button>
                   </>
                 )}
-                {!storyboardActive && !storyboardDone && (
+                {!storyboardActive && !completedShots && (
                   <button
                     onClick={generateAllFrames}
                     disabled={!kieApiKey || storyboardActive}
