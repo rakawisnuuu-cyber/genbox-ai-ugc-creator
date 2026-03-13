@@ -234,7 +234,7 @@ const GeneratePage = () => {
   const abortRef = useRef(false);
 
   // Storyboard state
-  const [storyboardTemplate, setStoryboardTemplate] = useState<ContentTemplateKey | null>(null);
+  const [storyboardTemplate, setStoryboardTemplate] = useState<ContentTemplateKey>("problem_solution");
   const [storyboardActive, setStoryboardActive] = useState(false);
   const [shotStatuses, setShotStatuses] = useState<ShotStatus[]>([]);
   const [storyboardElapsed, setStoryboardElapsed] = useState(0);
@@ -691,7 +691,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
   /* ── Storyboard: 5 Narrative Shots ──────────────────────────── */
   const generateStoryboard = async () => {
-    if (!kieApiKey || !geminiKey || !resultUrl || !selectedChar || !storyboardTemplate) return;
+    if (!kieApiKey || !geminiKey || !productUrl || !selectedChar || !storyboardTemplate) return;
     const dna = productDNA || EMPTY_DNA;
     const beats = getStoryboardBeats(storyboardTemplate);
     const templateObj = CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate);
@@ -708,22 +708,28 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
     // Image inputs are now built per-frame inside generateSingleBeat
     // (base image + previous frame + product — no character hero/reference URLs needed)
 
-    const consistencyLock = baseSceneFields
-      ? `VISUAL CONSISTENCY LOCK — Every detail must match the base image (Frame 0):
-- Environment: ${baseSceneFields.background}
-- Outfit & appearance: ${baseSceneFields.scene_description}
-- Lighting: ${baseSceneFields.lighting}
-- Product: ${baseSceneFields.product_placement}
-Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything else — room, clothing, accessories, hair, lighting direction, color palette — must remain identical to the base image.`
-      : "";
+    // Template-first flow: no base image yet. Frame 0 establishes the visual.
+    // Frames 1-4 will chain from frame 0's result for consistency.
+    const consistencyLock = "";
 
-    // Convert base image to base64 once for Gemini vision
-    let baseImageBase64 = "";
+    // Convert product image to base64 for Gemini vision
+    let productImageBase64 = "";
     try {
-      baseImageBase64 = await imageUrlToBase64(resultUrl);
-      console.log("[storyboard] Base image converted to base64 for Gemini vision");
+      productImageBase64 = await imageUrlToBase64(productUrl!);
+      console.log("[storyboard] Product image converted to base64 for Gemini vision");
     } catch (e) {
-      console.warn("[storyboard] Failed to convert base image to base64, falling back to text-only", e);
+      console.warn("[storyboard] Failed to convert product image to base64", e);
+    }
+
+    // Convert character ref to base64 for Gemini vision
+    let charImageBase64 = "";
+    const charRefUrl = selectedChar?.hero_image_url || selectedChar?.reference_photo_url;
+    if (charRefUrl) {
+      try {
+        charImageBase64 = await imageUrlToBase64(charRefUrl);
+      } catch (e) {
+        console.warn("[storyboard] Failed to convert character image to base64", e);
+      }
     }
 
     // Track completed frame URLs for chaining into subsequent Kie AI calls
@@ -741,60 +747,63 @@ Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything 
         let beatPrompt: string;
 
         try {
-          // Build Gemini parts: base image (vision) + text prompt
           const geminiParts: any[] = [];
 
-          // Include base image as inlineData so Gemini can SEE it
-          if (baseImageBase64) {
-            geminiParts.push({
-              inlineData: {
-                mimeType: "image/jpeg",
-                data: baseImageBase64,
-              },
-            });
+          // For frame 0: send product image + character ref
+          // For frames 1+: send first completed frame as visual reference
+          const firstFrameUrl = idx > 0 ? completedFrameUrls[0] : null;
+          let referenceBase64 = "";
+          if (idx > 0 && firstFrameUrl) {
+            try {
+              referenceBase64 = await imageUrlToBase64(firstFrameUrl);
+            } catch { /* fallback to product image */ }
           }
+
+          if (charImageBase64) {
+            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: charImageBase64 } });
+            geminiParts.push({ text: "CHARACTER REFERENCE — recreate this EXACT person." });
+          }
+          if (referenceBase64) {
+            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: referenceBase64 } });
+            geminiParts.push({ text: "FRAME 1 REFERENCE — match this exact person, outfit, room, lighting." });
+          }
+          if (productImageBase64) {
+            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: productImageBase64 } });
+            geminiParts.push({ text: "PRODUCT REFERENCE — match this exact product." });
+          }
+
+          const isFirstFrame = idx === 0;
+          const frameContext = isFirstFrame
+            ? "This is Frame 1 — the ESTABLISHING frame. Set up the character, environment, and mood."
+            : `Frame ${idx + 1}/5. Previous beat: '${prevBeat?.label}' — ${prevBeat?.description}. Natural next moment.`;
 
           geminiParts.push({ text: `You are a UGC storyboard prompt expert. Create a SINGLE image prompt for this narrative beat.
 
-THIS IS THE BASE IMAGE (attached above). Your prompt MUST match this EXACT person, outfit, room, and product. Study every detail: face shape, skin tone, hair style/color, clothing colors and patterns, accessories, room layout, furniture, wall color, lighting direction, product shape and packaging.
+${frameContext}
 
-${consistencyLock}
-
-This is storyboard frame ${idx + 1}/5 for a '${templateObj?.label || storyboardTemplate}' video.
-${prevBeat ? `Previous beat was: '${prevBeat.label}' — ${prevBeat.description}` : "This is the first storyboard frame after the base image."}
-This frame should feel like the natural next moment in the sequence.
-
+Template: '${templateObj?.label || storyboardTemplate}'
 Character: ${selectedChar!.name} — ${characterIdentity}
-Beat: ${beat.label} (${beat.beat})
-Story Role: ${beat.storyRole}
+Beat: ${beat.label} (${beat.beat}) | Role: ${beat.storyRole}
 Direction: ${beat.description}
+${beat.constraints?.noProductUsage ? "\n⚠️ CONSTRAINT: Product must NOT be shown being used yet.\n" : ""}
 
-Product DNA:
-Category: ${dna.category} / ${dna.sub_category}
-Product: ${dna.product_description}
+Product: ${dna.category}/${dna.sub_category} — ${dna.product_description}
 ${consistencyBlock}
 
-ADAPT the beat action to this specific product type. For example, 'Demo' with skincare means applying serum on cheek, with fashion means trying on the item, with electronics means pressing buttons and showing screen. The narrative beat stays the same, the specific product interaction changes.
-
 RULES:
-- Describe the EXACT same person you see in the attached base image — same face, skin, hair, body type
-- Describe the EXACT same outfit, accessories, and jewelry
-- Describe the EXACT same room/environment and lighting
-- Show the EXACT same product
-- Only the POSE, EXPRESSION, and PRODUCT INTERACTION change
-- Include realistic skin texture with natural pores and slight oil sheen
-- UGC smartphone style — shot on iPhone/Samsung, casual angle, natural HDR
-- High resolution, natural shallow depth of field, warm daylight tint
-- No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no watermark
+- ${isFirstFrame ? "Create character and environment from references" : "Match EXACT same person, outfit, room, lighting from Frame 1"}
+- Realistic skin, natural pores, slight oil sheen
+- UGC smartphone style, casual angle, natural HDR, warm daylight
+- No cartoon, no CGI, no 3D render, no plastic skin, no watermark
 
-Output ONLY the final prompt text, no JSON, no explanation.` });
+Output ONLY the final prompt text.` });
 
           const promptResult = await geminiFetch(promptModel, geminiKey!, {
             contents: [{ parts: geminiParts }],
           });
           beatPrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
         } catch {
-          beatPrompt = `${consistencyLock}\n\nPhotorealistic UGC photo. ${beat.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
+          beatPrompt = `Photorealistic UGC photo. ${beat.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
         }
 
         if (storyboardAbortRef.current) throw new Error("Cancelled");
@@ -806,12 +815,16 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
           return next;
         });
 
-        // Build image inputs: base image + previous frame (if exists) + product image
-        // Max 3 images, no character hero/reference — base image already has the character
-        const frameImages: string[] = [resultUrl];
-        // Chain previous completed frame for visual continuity
+        // Build image inputs for Kie AI
+        // Frame 0: character refs + product image
+        // Frames 1+: frame 0 result + product + previous frame for chaining
+        const frameImages: string[] = [];
+        const firstCompletedUrl = completedFrameUrls[0];
+        if (idx > 0 && firstCompletedUrl) frameImages.push(firstCompletedUrl);
         const prevFrameUrl = idx > 0 ? completedFrameUrls[idx - 1] : null;
-        if (prevFrameUrl) frameImages.push(prevFrameUrl);
+        if (prevFrameUrl && !frameImages.includes(prevFrameUrl)) frameImages.push(prevFrameUrl);
+        if (selectedChar?.hero_image_url && frameImages.length < 3) frameImages.push(selectedChar.hero_image_url);
+        if (selectedChar?.reference_photo_url && selectedChar.reference_photo_url !== selectedChar?.hero_image_url && frameImages.length < 3) frameImages.push(selectedChar.reference_photo_url);
         if (productUrl && frameImages.length < 3) frameImages.push(productUrl);
 
         const imageUrl = await generateKieImage(
@@ -1129,6 +1142,44 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
           </button>
         </div>
 
+        {/* Pilih Gaya Konten (Template) */}
+        <div className="animate-fade-up" style={{ animationDelay: "175ms" }}>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Pilih Gaya Konten</label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {CONTENT_TEMPLATES.map((t) => {
+              const isSelected = storyboardTemplate === t.key;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setStoryboardTemplate(t.key)}
+                  className={`text-left rounded-lg px-3 py-2.5 transition-all ${
+                    isSelected
+                      ? "bg-primary/10 border border-primary/30 ring-1 ring-primary/10"
+                      : "bg-card border border-border hover:border-muted-foreground/30"
+                  }`}
+                >
+                  <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{t.label}</p>
+                  <p className="text-[10px] text-muted-foreground line-clamp-1">{t.desc}</p>
+                </button>
+              );
+            })}
+          </div>
+          {/* Beat preview */}
+          {storyboardTemplate && (
+            <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
+              {currentBeats.map((beat, i) => (
+                <div key={i} className="shrink-0 w-[90px] border border-border rounded-lg p-1.5 bg-muted/10">
+                  <span className={`text-[7px] px-1 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
+                    {beat.storyRole}
+                  </span>
+                  <p className="text-[9px] font-semibold text-foreground mt-0.5 truncate">{beat.label}</p>
+                  <p className="text-[7px] text-muted-foreground line-clamp-2 mt-0.5">{beat.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Pengaturan Scene */}
         <div className="animate-fade-up space-y-6" style={{ animationDelay: "200ms" }}>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block">Pengaturan Scene</label>
@@ -1193,43 +1244,22 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
           </div>
         </div>
 
-        {/* Prompt */}
-        <div className="animate-fade-up" style={{ animationDelay: "250ms" }}>
-          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Prompt</label>
-          <button
-            onClick={generatePrompt}
-            disabled={generatingPrompt || !selectedChar}
-            className="mb-3 inline-flex items-center gap-2 border border-primary text-primary text-xs font-bold px-4 py-2 rounded-lg hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
-          >
-            {generatingPrompt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            GENERATE PROMPT
-          </button>
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            rows={5}
-            placeholder="Prompt akan di-generate otomatis atau tulis manual..."
-            className="bg-[hsl(0_0%_10%)] border-border text-sm"
-          />
-          <p className="text-[11px] text-muted-foreground/60 mt-1.5">Edit prompt untuk hasil yang lebih baik</p>
-        </div>
-
-        {/* Generate */}
+        {/* Generate Storyboard */}
         <div className="animate-fade-up" style={{ animationDelay: "300ms" }}>
           <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4">
             <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <div>
-              <p className="text-xs text-muted-foreground">Estimasi biaya: ~Rp 150-500 dari API key kamu</p>
-              <p className="text-[11px] text-muted-foreground/60">Output tanpa watermark</p>
+              <p className="text-xs text-muted-foreground">Estimasi biaya: ~Rp 2.400 untuk 5 frame storyboard</p>
+              <p className="text-[11px] text-muted-foreground/60">5 API calls sequential • Output tanpa watermark</p>
             </div>
           </div>
           <button
-            onClick={generate}
-            disabled={!canGenerate}
+            onClick={generateStoryboard}
+            disabled={!productUrl || !selectedChar || !storyboardTemplate || storyboardActive}
             className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40 animate-cta-glow disabled:animate-none"
           >
-            <Paintbrush className="h-4 w-4" />
-            Generate Gambar
+            {storyboardActive ? <Loader2 className="h-4 w-4 animate-spin" /> : <Film className="h-4 w-4" />}
+            {storyboardActive ? "Generating Storyboard..." : "Generate Storyboard"}
           </button>
         </div>
       </div>
