@@ -252,6 +252,14 @@ const GeneratePage = () => {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [dnaExpanded, setDnaExpanded] = useState(false);
 
+  // Auto-regenerate after template change confirmation
+  useEffect(() => {
+    if (regenAfterTemplateChange > 0) {
+      generatePrompts();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [regenAfterTemplateChange]);
+
   // Navigation blocker: warn on browser close/refresh
   const isGenerating = genState === "loading" || storyboardActive;
 
