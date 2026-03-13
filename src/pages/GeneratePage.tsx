@@ -693,226 +693,223 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
   const canGenerate = !!productUrl && !!selectedChar && !!prompt.trim() && genState !== "loading";
 
-  /* ── Storyboard: 5 Narrative Shots ──────────────────────────── */
-  const generateStoryboard = async () => {
-    if (!kieApiKey || !geminiKey || !productUrl || !selectedChar || !storyboardTemplate) return;
+  /* ── Step 1: Generate Prompts via Gemini (single call → 5 prompts) ─── */
+  const generatePrompts = async () => {
+    if (!geminiKey || keys.gemini.status !== "valid") {
+      toast({ title: "Gemini API key belum di-setup", variant: "destructive" });
+      return;
+    }
+    if (!productUrl || !selectedChar || !storyboardTemplate) return;
+
     const dna = productDNA || EMPTY_DNA;
     const beats = getStoryboardBeats(storyboardTemplate);
     const templateObj = CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate);
-
-    storyboardAbortRef.current = false;
-    setStoryboardActive(true);
-    setShotStatuses(beats.map(() => ({ state: "pending" as const })));
-    setStoryboardElapsed(0);
-    storyboardTimerRef.current = setInterval(() => setStoryboardElapsed((p) => p + 1), 1000);
-
     const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
     const consistencyBlock = buildProductConsistencyBlock(dna);
 
-    // Image inputs are now built per-frame inside generateSingleBeat
-    // (base image + previous frame + product — no character hero/reference URLs needed)
+    setPromptsLoading(true);
+    setGeneratedPrompts([]);
+    setShotStatuses(beats.map(() => ({ state: "pending" as const })));
 
-    // Template-first flow: no base image yet. Frame 0 establishes the visual.
-    // Frames 1-4 will chain from frame 0's result for consistency.
-    const consistencyLock = "";
-
-    // Convert product image to base64 for Gemini vision
-    let productImageBase64 = "";
     try {
-      productImageBase64 = await imageUrlToBase64(productUrl!);
-      console.log("[storyboard] Product image converted to base64 for Gemini vision");
-    } catch (e) {
-      console.warn("[storyboard] Failed to convert product image to base64", e);
-    }
+      const geminiParts: any[] = [];
 
-    // Convert character ref to base64 for Gemini vision
-    let charImageBase64 = "";
-    const charRefUrl = selectedChar?.hero_image_url || selectedChar?.reference_photo_url;
-    if (charRefUrl) {
-      try {
-        charImageBase64 = await imageUrlToBase64(charRefUrl);
-      } catch (e) {
-        console.warn("[storyboard] Failed to convert character image to base64", e);
-      }
-    }
-
-    // Track completed frame URLs for chaining into subsequent Kie AI calls
-    const completedFrameUrls: (string | null)[] = beats.map(() => null);
-
-    const generateSingleBeat = async (beat: StoryboardBeat, idx: number) => {
-      try {
-        setShotStatuses((prev) => {
-          const next = [...prev];
-          next[idx] = { state: "prompting" };
-          return next;
-        });
-
-        const prevBeat = idx > 0 ? beats[idx - 1] : null;
-        let beatPrompt: string;
-
+      const charRefUrl = selectedChar?.hero_image_url || selectedChar?.reference_photo_url;
+      if (charRefUrl) {
         try {
-          const geminiParts: any[] = [];
+          const charBase64 = await imageUrlToBase64(charRefUrl);
+          geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: charBase64 } });
+          geminiParts.push({ text: "CHARACTER REFERENCE — recreate this EXACT person in all frames." });
+        } catch (e) { console.warn("Failed char image b64", e); }
+      }
 
-          // For frame 0: send product image + character ref
-          // For frames 1+: send first completed frame as visual reference
-          const firstFrameUrl = idx > 0 ? completedFrameUrls[0] : null;
-          let referenceBase64 = "";
-          if (idx > 0 && firstFrameUrl) {
-            try {
-              referenceBase64 = await imageUrlToBase64(firstFrameUrl);
-            } catch { /* fallback to product image */ }
-          }
+      try {
+        const productBase64 = await imageUrlToBase64(productUrl!);
+        geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: productBase64 } });
+        geminiParts.push({ text: "PRODUCT REFERENCE — match this exact product." });
+      } catch (e) { console.warn("Failed product image b64", e); }
 
-          if (charImageBase64) {
-            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: charImageBase64 } });
-            geminiParts.push({ text: "CHARACTER REFERENCE — recreate this EXACT person." });
-          }
-          if (referenceBase64) {
-            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: referenceBase64 } });
-            geminiParts.push({ text: "FRAME 1 REFERENCE — match this exact person, outfit, room, lighting." });
-          }
-          if (productImageBase64) {
-            geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: productImageBase64 } });
-            geminiParts.push({ text: "PRODUCT REFERENCE — match this exact product." });
-          }
+      const envOption = findOption(envOptions, background);
+      const bgRich = background === "Custom" ? customBg : (envOption?.description || background || "not specified");
 
-          const isFirstFrame = idx === 0;
-          const frameContext = isFirstFrame
-            ? "This is Frame 1 — the ESTABLISHING frame. Set up the character, environment, and mood."
-            : `Frame ${idx + 1}/5. Previous beat: '${prevBeat?.label}' — ${prevBeat?.description}. Natural next moment.`;
+      const beatsDesc = beats.map((b, i) =>
+        `Frame ${i + 1}: [${b.storyRole}] "${b.label}" — ${b.description}${b.constraints?.noProductUsage ? " (⚠️ NO product usage shown yet)" : ""}`
+      ).join("\n");
 
-          geminiParts.push({ text: `You are a UGC storyboard prompt expert. Create a SINGLE image prompt for this narrative beat.
+      geminiParts.push({ text: `You are a UGC storyboard prompt expert. Generate ${beats.length} image prompts for a TikTok UGC storyboard.
 
-${frameContext}
-
-Template: '${templateObj?.label || storyboardTemplate}'
+Template: "${templateObj?.label || storyboardTemplate}"
 Character: ${selectedChar!.name} — ${characterIdentity}
-Beat: ${beat.label} (${beat.beat}) | Role: ${beat.storyRole}
-Direction: ${beat.description}
-${beat.constraints?.noProductUsage ? "\n⚠️ CONSTRAINT: Product must NOT be shown being used yet.\n" : ""}
-
 Product: ${dna.category}/${dna.sub_category} — ${dna.product_description}
 ${consistencyBlock}
+Environment: ${bgRich}
+
+NARRATIVE BEATS:
+${beatsDesc}
 
 RULES:
-- ${isFirstFrame ? "Create character and environment from references" : "Match EXACT same person, outfit, room, lighting from Frame 1"}
-- Realistic skin, natural pores, slight oil sheen
-- UGC smartphone style, casual angle, natural HDR, warm daylight
-- No cartoon, no CGI, no 3D render, no plastic skin, no watermark
+- Each prompt is a COMPLETE image generation prompt — character appearance, product, scene, lighting, camera
+- Frame 1 is the ESTABLISHING shot — describe character and environment in full detail
+- Frames 2-${beats.length} MUST reference "same person, same outfit, same room" for consistency
+- Realistic skin, natural pores, phone camera quality, UGC style
+- No cartoon, no CGI, no 3D render, no watermark
+- Prompts should be 80-150 words each
+- Add "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no watermark, no text overlay." at the end of each prompt
 
-Output ONLY the final prompt text.` });
+Return a JSON array of ${beats.length} prompt strings. Example:
+["prompt for frame 1", "prompt for frame 2", ...]
 
-          const promptResult = await geminiFetch(promptModel, geminiKey!, {
-            contents: [{ parts: geminiParts }],
-          });
-          beatPrompt = promptResult.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-        } catch {
-          beatPrompt = `Photorealistic UGC photo. ${beat.description}. Character: ${characterIdentity}. ${consistencyBlock} ${QUALITY_BLOCK} ${NEGATIVE_BLOCK}`;
-        }
+Output ONLY the JSON array. No explanation.` });
 
-        if (storyboardAbortRef.current) throw new Error("Cancelled");
+      const genConfig: Record<string, any> = {};
+      if (promptModel !== "gemini-3.1-pro-preview") {
+        genConfig.responseMimeType = "application/json";
+      }
 
-        // Switch to "generating" state now that prompt is ready
+      const json = await geminiFetch(promptModel, geminiKey!, {
+        contents: [{ parts: geminiParts }],
+        generationConfig: genConfig,
+      });
+
+      const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+
+      if (!Array.isArray(parsed) || parsed.length < beats.length) {
+        throw new Error("Invalid response — expected array of prompts");
+      }
+
+      const prompts = parsed.slice(0, beats.length).map((p: any) => String(p));
+      setGeneratedPrompts(prompts);
+      setShotStatuses(prompts.map((p: string) => ({ state: "prompt_ready" as const, prompt: p })));
+      toast({ title: "Prompts siap!", description: `${prompts.length} prompt berhasil di-generate. Review & edit, lalu Generate.` });
+    } catch (err: any) {
+      console.error("Generate prompts error:", err);
+      toast({ title: "Gagal generate prompts", description: err.message, variant: "destructive" });
+      setShotStatuses([]);
+    } finally {
+      setPromptsLoading(false);
+    }
+  };
+
+  /* ── Step 2: Generate single frame from prompt ─── */
+  const generateSingleFrame = async (idx: number) => {
+    if (!kieApiKey || keys.kie_ai.status !== "valid") {
+      toast({ title: "Kie AI API key belum di-setup", variant: "destructive" });
+      return;
+    }
+    const currentPrompt = generatedPrompts[idx];
+    if (!currentPrompt) return;
+
+    storyboardAbortRef.current = false;
+    setShotStatuses((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], state: "generating", prompt: currentPrompt };
+      return next;
+    });
+
+    try {
+      const imageInputs: string[] = [];
+      if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
+      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
+      if (productUrl) imageInputs.push(productUrl);
+
+      if (idx > 0) {
+        const frame0Url = shotStatuses[0]?.imageUrl;
+        if (frame0Url) imageInputs.unshift(frame0Url);
+      }
+
+      const imageUrl = await generateKieImage(
+        kieApiKey,
+        currentPrompt,
+        imageInputs,
+        () => storyboardAbortRef.current,
+      );
+
+      setShotStatuses((prev) => {
+        const next = [...prev];
+        next[idx] = { state: "completed", imageUrl, prompt: currentPrompt };
+        return next;
+      });
+
+      await supabase.from("generations").insert({
+        user_id: user!.id,
+        type: "ugc_storyboard",
+        prompt: currentPrompt,
+        image_url: imageUrl,
+        character_id: selectedChar?.id?.startsWith("p") ? null : selectedChar?.id || null,
+        provider: "kie_ai",
+        model: "nano-banana-pro",
+        status: "completed",
+        metadata: { productDNA: productDNA || null, template: storyboardTemplate, frameIndex: idx } as any,
+      });
+    } catch (err: any) {
+      if (!storyboardAbortRef.current) {
         setShotStatuses((prev) => {
           const next = [...prev];
-          next[idx] = { state: "generating" };
-          return next;
-        });
-
-        // Build image inputs for Kie AI
-        // Frame 0: character refs + product image
-        // Frames 1+: frame 0 result + product + previous frame for chaining
-        const frameImages: string[] = [];
-        const firstCompletedUrl = completedFrameUrls[0];
-        if (idx > 0 && firstCompletedUrl) frameImages.push(firstCompletedUrl);
-        const prevFrameUrl = idx > 0 ? completedFrameUrls[idx - 1] : null;
-        if (prevFrameUrl && !frameImages.includes(prevFrameUrl)) frameImages.push(prevFrameUrl);
-        if (selectedChar?.hero_image_url && frameImages.length < 3) frameImages.push(selectedChar.hero_image_url);
-        if (selectedChar?.reference_photo_url && selectedChar.reference_photo_url !== selectedChar?.hero_image_url && frameImages.length < 3) frameImages.push(selectedChar.reference_photo_url);
-        if (productUrl && frameImages.length < 3) frameImages.push(productUrl);
-
-        const imageUrl = await generateKieImage(
-          kieApiKey!,
-          beatPrompt,
-          frameImages.slice(0, 3),
-          () => storyboardAbortRef.current,
-        );
-
-        const path = `${user!.id}/storyboard/${Date.now()}_${idx}.jpg`;
-        await supabase.storage.from("product-images").upload(path, await (await fetch(imageUrl)).blob(), { contentType: "image/jpeg" });
-        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-
-        // Store completed URL for chaining
-        completedFrameUrls[idx] = urlData.publicUrl;
-
-        await supabase.from("generations").insert({
-          user_id: user!.id,
-          type: "ugc_image",
-          prompt: beatPrompt || `Storyboard: ${beat.label}`,
-          image_url: urlData.publicUrl,
-          character_id: selectedChar!.id.startsWith("p") ? null : selectedChar!.id,
-          provider: "kie_ai",
-          model: "nano-banana-pro",
-          status: "completed",
-          metadata: {
-            beat: beat.label,
-            storyRole: beat.storyRole,
-            template: storyboardTemplate,
-            frameIndex: idx + 1,
-            source: "storyboard",
-            productDNA: dna.category !== "other" ? dna : undefined,
-          } as any,
-        });
-
-        setShotStatuses((prev) => {
-          const next = [...prev];
-          next[idx] = { state: "completed", imageUrl: urlData.publicUrl, prompt: beatPrompt };
-          return next;
-        });
-      } catch (err: any) {
-        if (storyboardAbortRef.current) return;
-        setShotStatuses((prev) => {
-          const next = [...prev];
-          next[idx] = { state: "failed", error: err?.message || "Failed" };
+          next[idx] = { state: "failed", error: err.message, prompt: currentPrompt };
           return next;
         });
       }
-    };
+    }
+  };
 
-    // Sequential generation with 2s delay between frames (avoid rate limits)
-    for (let i = 0; i < beats.length; i++) {
+  /* ── Generate All Frames sequentially ─── */
+  const generateAllFrames = async () => {
+    if (!kieApiKey || generatedPrompts.length === 0) return;
+
+    storyboardAbortRef.current = false;
+    setStoryboardActive(true);
+    setStoryboardElapsed(0);
+    storyboardTimerRef.current = setInterval(() => setStoryboardElapsed((p) => p + 1), 1000);
+
+    for (let i = 0; i < generatedPrompts.length; i++) {
       if (storyboardAbortRef.current) break;
-      await generateSingleBeat(beats[i], i);
-      // 2 second delay between frames to avoid Kie AI rate limiting
-      if (i < beats.length - 1 && !storyboardAbortRef.current) {
+      if (shotStatuses[i]?.state === "completed") continue;
+      await generateSingleFrame(i);
+      if (i < generatedPrompts.length - 1 && !storyboardAbortRef.current) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
 
     if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
+    storyboardTimerRef.current = null;
     setStoryboardActive(false);
   };
 
   const cancelStoryboard = () => {
     storyboardAbortRef.current = true;
     if (storyboardTimerRef.current) clearInterval(storyboardTimerRef.current);
+    storyboardTimerRef.current = null;
     setStoryboardActive(false);
   };
 
   const resetStoryboard = () => {
     setStoryboardActive(false);
     setShotStatuses([]);
+    setGeneratedPrompts([]);
     setStoryboardElapsed(0);
-    setStoryboardTemplate(null);
   };
 
-  // Computed storyboard progress
+  const updatePromptText = (idx: number, text: string) => {
+    setGeneratedPrompts((prev) => {
+      const next = [...prev];
+      next[idx] = text;
+      return next;
+    });
+    setShotStatuses((prev) => {
+      const next = [...prev];
+      if (next[idx]) next[idx] = { ...next[idx], prompt: text };
+      return next;
+    });
+  };
+
+  // Computed
+  const hasPrompts = generatedPrompts.length > 0;
   const completedShots = shotStatuses.filter((s) => s.state === "completed").length;
   const failedShots = shotStatuses.filter((s) => s.state === "failed").length;
   const totalShots = shotStatuses.length;
-  const storyboardDone = totalShots > 0 && !storyboardActive && (completedShots + failedShots === totalShots);
-
-  // Current beats for selected template
+  const storyboardDone = totalShots > 0 && !storyboardActive && !promptsLoading && completedShots > 0 && (completedShots + failedShots === totalShots);
   const currentBeats = storyboardTemplate ? getStoryboardBeats(storyboardTemplate) : [];
 
   /* ── Render ───────────────────────────────────────────────── */
