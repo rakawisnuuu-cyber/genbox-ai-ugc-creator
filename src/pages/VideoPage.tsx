@@ -68,6 +68,8 @@ interface FrameState {
   mergedInto: number | null;
   endFrameUrl: string | null;
   showGalleryPicker?: boolean;
+  showStartGallery?: boolean;
+  showEndGallery?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
 }
