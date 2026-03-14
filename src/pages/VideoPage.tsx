@@ -584,12 +584,15 @@ Rules:
             const planned = parsed.frames[i];
             if (!planned) return frame;
             const hasDialog = !!planned.dialog?.trim();
+            const rec = getSmartModelRecommendation(hasDialog, beats[i]?.storyRole || "Hook", (parsed.product?.category || productCategory).toLowerCase(), false);
+            const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
             return {
               ...frame,
               action: planned.action || frame.action,
               dialogue: planned.dialog || frame.dialogue,
               prompt: planned.prompt || frame.prompt,
-              model: hasDialog ? "veo_fast" as VideoModel : "grok" as VideoModel,
+              model: rec.model,
+              duration: dur,
               actionChips: getActionChips(
                 beats[i]?.storyRole || "Hook",
                 (parsed.product?.category || productCategory).toLowerCase()
