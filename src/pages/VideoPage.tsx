@@ -46,7 +46,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-type VideoModel = "grok" | "veo_fast" | "veo_quality";
+type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 type FrameStatus = "idle" | "generating" | "completed" | "failed";
 
 interface FrameState {
