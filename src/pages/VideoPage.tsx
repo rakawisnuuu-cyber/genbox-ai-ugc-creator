@@ -154,14 +154,14 @@ function getModelRecommendation(template: ContentTemplateKey): { text: string; v
 /** Smart dialog suggestions — maps flexible storyRoles to casual Indonesian dialog */
 const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
   // Opening / Hook roles
-  "Problem": () => "Ini nih yang bikin aku kesel banget. Udah coba banyak tapi ga ada yang works. Sampe akhirnya nemu ini...",
-  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Oke jadi ini tuh ternyata sebagus ini. Awalnya aku ragu sih tapi setelah coba sendiri... yaudah liat aja deh."; },
-  "Skeptical": () => "Hmm, beneran nih ini bagus? Aku agak ragu sih awalnya. Tapi yaudah lah coba dulu aja biar tau sendiri.",
-  "Morning": () => "Pagi-pagi gini langsung skincare-an dulu dong. Ini udah jadi rutinitas wajib aku tiap bangun tidur. Ga bisa skip.",
-  "First Look": () => "Baru pertama kali nih liat produk ini. Penasaran banget sih udah lama pengen coba. Kita liat ya gimana.",
-  "Excitement": () => "GUYS! Akhirnya dateng juga nih yang aku tunggu-tunggu! Udah ga sabar pengen buka. Kita unboxing bareng ya!",
-  "Anticipation": () => "Aku udah penasaran banget sama ini. Banyak yang bilang bagus tapi aku mau buktiin sendiri. Kita liat ya.",
-  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya ya. Simpel banget sebenernya. Ikutin aja step-step nya.",
+  "Problem": () => "Ini nih yang bikin aku kesel. Udah coba banyak tapi ga works.",
+  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Ini tuh ternyata sebagus ini. Awalnya ragu tapi setelah coba sendiri..."; },
+  "Skeptical": () => "Beneran nih ini bagus? Aku ragu awalnya. Tapi yaudah coba dulu aja.",
+  "Morning": () => "Pagi-pagi langsung skincare-an dulu dong. Ini udah jadi rutinitas wajib aku.",
+  "First Look": () => "Baru pertama kali liat produk ini. Penasaran banget, kita liat ya.",
+  "Excitement": () => "GUYS! Akhirnya dateng yang aku tunggu-tunggu! Kita unboxing bareng ya!",
+  "Anticipation": () => "Penasaran banget sama ini. Banyak yang bilang bagus, aku mau buktiin sendiri.",
+  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya. Simpel banget sebenernya.",
   "POV Reach": () => "",
   "Texture": () => "",
 
