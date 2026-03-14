@@ -1273,6 +1273,22 @@ Content template: ${template?.label}`,
                         </div>
                       </div>
                     )}
+                    {isCombined && storyboardImages.length > 0 && (
+                      <div className="flex gap-1.5 mt-1.5">
+                        {[idx, ...frame.mergedFrames].map((fi) => {
+                          const sbImg = storyboardImages[fi];
+                          if (!sbImg) return null;
+                          const isActive = frame.sourceImageUrl === sbImg;
+                          return (
+                            <button key={fi} onClick={() => updateFrame(idx, { sourceImageUrl: sbImg })}
+                              className={`relative h-14 w-10 rounded-md overflow-hidden border-2 transition-all ${isActive ? "border-primary" : "border-border/40 opacity-60 hover:opacity-100"}`}>
+                              <img src={sbImg} className="w-full h-full object-cover" alt={`Frame ${fi + 1}`} />
+                              <span className="absolute bottom-0 inset-x-0 bg-black/60 text-[7px] text-white text-center">F{fi + 1}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
                   {/* Action / Gerakan */}
