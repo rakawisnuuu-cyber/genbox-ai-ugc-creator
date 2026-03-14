@@ -878,8 +878,9 @@ Content template: ${template?.label}`,
       if (isVeo && isCombined) {
         // Combined frames: use start + end frame images
         const startImg = frame.sourceImageUrl || storyboardImages[idx] || imgUrl;
-        const endImg = frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]] || startImg;
-        videoImageUrls = startImg !== endImg ? [startImg, endImg] : [startImg];
+        const endFrameRemoved = frame.endFrameUrl === "__none__";
+        const endImg = endFrameRemoved ? null : (frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]);
+        videoImageUrls = (endImg && startImg !== endImg) ? [startImg, endImg] : [startImg];
       } else {
         // Single frame or Grok: one image only
         videoImageUrls = [imgUrl];
