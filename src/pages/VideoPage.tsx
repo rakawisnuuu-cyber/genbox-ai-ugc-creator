@@ -1607,26 +1607,73 @@ Content template: ${template?.label}`,
                   {/* Model selector — inline radio pills */}
                   <div>
                     <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1.5">Model</label>
-                    <div className="flex gap-2">
-                      {(["grok", "veo_fast", "veo_quality"] as VideoModel[]).map((m) => {
-                        const mi = MODEL_LABELS[m];
-                        const selected = frame.model === m;
+                    <div className="flex flex-wrap gap-1.5">
+                      {(Object.keys(MODEL_LABELS) as VideoModel[]).map((m) => {
+                        const info = MODEL_LABELS[m];
+                        const isSelected = frame.model === m;
                         return (
                           <button
                             key={m}
-                            onClick={() => updateFrame(idx, { model: m })}
-                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] transition-all text-center ${
-                              selected
-                                ? "border border-primary/20 bg-primary/[0.04] text-primary font-semibold"
-                                : "border border-white/[0.06] bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              const dur = MODEL_DURATIONS[m]?.[Math.min(1, MODEL_DURATIONS[m].length - 1)] || 8;
+                              updateFrame(idx, { model: m, duration: dur });
+                            }}
+                            className={`flex-1 min-w-[100px] text-[10px] py-2 rounded-lg border text-center transition-colors ${
+                              isSelected
+                                ? "border-primary bg-primary/10 text-primary font-medium"
+                                : "border-border/30 text-muted-foreground/50 hover:border-border"
                             }`}
                           >
-                            <span className="font-medium">{mi.label}</span>
-                            <span className="text-[9px] opacity-60 ml-1">{mi.cost}</span>
+                            <span className="font-medium">{info.label}</span>
+                            <span className="text-muted-foreground/30 ml-1">{info.cost}</span>
+                            {info.audio && <span className="ml-1 text-[8px]">🔊</span>}
                           </button>
                         );
                       })}
                     </div>
+                    {/* Duration selector */}
+                    {MODEL_DURATIONS[frame.model].length > 1 && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="text-[9px] text-muted-foreground/40">Duration:</span>
+                        {MODEL_DURATIONS[frame.model].map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => updateFrame(idx, { duration: d })}
+                            className={`text-[10px] px-2.5 py-1 rounded-md border transition-colors ${
+                              frame.duration === d
+                                ? "border-primary bg-primary/10 text-primary font-medium"
+                                : "border-border/30 text-muted-foreground/50 hover:border-border"
+                            }`}
+                          >
+                            {d}s
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {/* Smart model recommendation */}
+                    {(() => {
+                      const isCombinedFrame = frame.mergedFrames.length > 0;
+                      const rec = getSmartModelRecommendation(
+                        !!frame.dialogue?.trim(),
+                        beat.storyRole,
+                        productCategory,
+                        isCombinedFrame,
+                      );
+                      if (rec.model !== frame.model) {
+                        return (
+                          <button
+                            onClick={() => {
+                              const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
+                              updateFrame(idx, { model: rec.model, duration: dur });
+                            }}
+                            className="w-full mt-1.5 text-[10px] text-primary/50 hover:text-primary flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/10 hover:border-primary/20 transition-colors"
+                          >
+                            <Sparkles className="h-3 w-3" /> Suggestion: {MODEL_LABELS[rec.model].label} — {rec.reason}
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   {/* Generate / Result */}
