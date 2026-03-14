@@ -863,12 +863,21 @@ Content template: ${template?.label}`,
       const beat = beats[idx];
       const duration = frame.model === "grok" ? 10 : 8;
 
-      // Build image URLs — use dual input for Veo when distinct frame image exists
+      // Build image URLs — use dual input for combined Veo frames (start + end frame)
       const isVeo = frame.model === "veo_fast" || frame.model === "veo_quality";
-      const hasDistinctFrameImage = frame.sourceImageUrl && frame.sourceImageUrl !== sourceUrl;
-      const videoImageUrls = (isVeo && hasDistinctFrameImage && sourceUrl)
-        ? [sourceUrl, frame.sourceImageUrl!]
-        : [imgUrl];
+      const isCombined = frame.mergedFrames.length > 0;
+
+      let videoImageUrls: string[];
+      if (isVeo && isCombined && storyboardImages.length > 0) {
+        // Combined frames: use first and last beat's storyboard images as start + end frame
+        const startImg = frame.sourceImageUrl || storyboardImages[idx] || imgUrl;
+        const lastMergedIdx = frame.mergedFrames[frame.mergedFrames.length - 1];
+        const endImg = storyboardImages[lastMergedIdx] || startImg;
+        videoImageUrls = startImg !== endImg ? [startImg, endImg] : [startImg];
+      } else {
+        // Single frame or Grok: one image only
+        videoImageUrls = [imgUrl];
+      }
 
       const result = await generateVideoAndWait(
         {
