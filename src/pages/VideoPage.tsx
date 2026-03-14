@@ -82,15 +82,49 @@ interface GalleryImage {
 
 const MODEL_COSTS: Record<VideoModel, number> = {
   grok: 1600,
+  kling_std: 2300,
+  kling_pro: 4600,
   veo_fast: 6400,
   veo_quality: 32000,
 };
 
 const MODEL_LABELS: Record<VideoModel, { label: string; badge: string; badgeColor: string; audio: boolean; cost: string }> = {
   grok: { label: "Grok", badge: "HEMAT", badgeColor: "bg-green-500/20 text-green-400", audio: false, cost: "~Rp 1.600" },
+  kling_std: { label: "Kling", badge: "VALUE", badgeColor: "bg-cyan-500/20 text-cyan-400", audio: true, cost: "~Rp 2.300" },
+  kling_pro: { label: "Kling Pro", badge: "PRO", badgeColor: "bg-teal-500/20 text-teal-400", audio: true, cost: "~Rp 4.600" },
   veo_fast: { label: "Veo Fast", badge: "STANDARD", badgeColor: "bg-blue-500/20 text-blue-400", audio: true, cost: "~Rp 6.400" },
   veo_quality: { label: "Veo Quality", badge: "PREMIUM", badgeColor: "bg-primary/20 text-primary", audio: true, cost: "~Rp 32.000" },
 };
+
+const MODEL_DURATIONS: Record<VideoModel, number[]> = {
+  grok: [6, 10],
+  kling_std: [5, 8, 10],
+  kling_pro: [5, 8, 10, 15],
+  veo_fast: [8],
+  veo_quality: [8],
+};
+
+function getSmartModelRecommendation(
+  hasDialog: boolean,
+  storyRole: string,
+  productCategory?: string,
+  isCombined?: boolean,
+): { model: VideoModel; reason: string } {
+  const isFood = productCategory?.toLowerCase() === "food";
+  const isASMR = ["Texture", "Sensory", "Slow Reveal", "Serene"].includes(storyRole);
+  const isPOV = storyRole.startsWith("POV");
+
+  if (isCombined) {
+    return { model: "kling_pro", reason: "Multi-beat frame — Kling Pro supports longer duration" };
+  }
+  if (isFood && hasDialog) {
+    return { model: "kling_std", reason: "Food + dialog — less face glitch than Veo" };
+  }
+  if (isASMR || isPOV || !hasDialog) {
+    return { model: "grok", reason: "Visual only — no audio needed" };
+  }
+  return { model: "veo_fast", reason: "Dialog frame — best lip sync" };
+}
 
 /** Position-based role colors — works with any flexible storyRole string */
 const POSITION_ROLE_COLORS = [
