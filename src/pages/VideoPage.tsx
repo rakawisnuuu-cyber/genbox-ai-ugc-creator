@@ -66,6 +66,7 @@ interface FrameState {
   mergedFrames: number[];
   /** If this frame is absorbed into another, store the parent index */
   mergedInto: number | null;
+  endFrameUrl: string | null;
   showGalleryPicker?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
