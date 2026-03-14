@@ -32,8 +32,7 @@ const Index = () => {
       <SectionDivider />
       {/* HargaSection & FinalCTASection hidden during early access */}
       <ApiCostSection />
-      <SectionDivider />
-      <FAQSection />
+      {/* FAQSection hidden for now */}
     </div>
   );
 };
