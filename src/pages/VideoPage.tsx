@@ -68,6 +68,8 @@ interface FrameState {
   mergedInto: number | null;
   endFrameUrl: string | null;
   showGalleryPicker?: boolean;
+  showStartGallery?: boolean;
+  showEndGallery?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
 }
@@ -1293,6 +1295,7 @@ Content template: ${template?.label}`,
                     )}
                     {/* Start + End frame picker for combined Veo frames */}
                     {isCombined && (frame.model === "veo_fast" || frame.model === "veo_quality") && (
+                      <>
                       <div className="mt-2 flex items-center gap-3">
                         {/* Start frame — clickable to upload */}
                         <div className="text-center">
@@ -1331,6 +1334,14 @@ Content template: ${template?.label}`,
                             </div>
                           </button>
                           <p className="text-[8px] text-muted-foreground mt-0.5">F{idx + 1}</p>
+                          {galleryImages.length > 0 && (
+                            <button
+                              onClick={() => updateFrame(idx, { showStartGallery: !frame.showStartGallery, showEndGallery: false })}
+                              className="text-[10px] text-primary hover:underline mt-0.5"
+                            >
+                              From gallery
+                            </button>
+                          )}
                         </div>
 
                         <span className="text-muted-foreground/30 text-lg">→</span>
@@ -1372,8 +1383,51 @@ Content template: ${template?.label}`,
                             </div>
                           </button>
                           <p className="text-[8px] text-muted-foreground mt-0.5">F{frame.mergedFrames[frame.mergedFrames.length - 1] + 1}</p>
+                          {galleryImages.length > 0 && (
+                            <button
+                              onClick={() => updateFrame(idx, { showEndGallery: !frame.showEndGallery, showStartGallery: false })}
+                              className="text-[10px] text-primary hover:underline mt-0.5"
+                            >
+                              From gallery
+                            </button>
+                          )}
                         </div>
                       </div>
+                      {/* Inline gallery picker for Start */}
+                      {frame.showStartGallery && galleryImages.length > 0 && (
+                        <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                          <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih start frame dari gallery:</p>
+                          <div className="flex gap-1.5 overflow-x-auto pb-1">
+                            {galleryImages.slice(0, 12).map((img) => (
+                              <button
+                                key={img.id}
+                                onClick={() => updateFrame(idx, { sourceImageUrl: img.image_url, showStartGallery: false })}
+                                className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
+                              >
+                                <img src={img.image_url} alt="" className="h-full w-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* Inline gallery picker for End */}
+                      {frame.showEndGallery && galleryImages.length > 0 && (
+                        <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                          <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih end frame dari gallery:</p>
+                          <div className="flex gap-1.5 overflow-x-auto pb-1">
+                            {galleryImages.slice(0, 12).map((img) => (
+                              <button
+                                key={img.id}
+                                onClick={() => updateFrame(idx, { endFrameUrl: img.image_url, showEndGallery: false })}
+                                className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
+                              >
+                                <img src={img.image_url} alt="" className="h-full w-full object-cover" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      </>
                     )}
                   </div>
 
