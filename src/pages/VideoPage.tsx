@@ -1295,6 +1295,7 @@ Content template: ${template?.label}`,
                     )}
                     {/* Start + End frame picker for combined Veo frames */}
                     {isCombined && (frame.model === "veo_fast" || frame.model === "veo_quality") && (
+                      <>
                       <div className="mt-2 flex items-center gap-3">
                         {/* Start frame — clickable to upload */}
                         <div className="text-center">
@@ -1426,6 +1427,7 @@ Content template: ${template?.label}`,
                           </div>
                         </div>
                       )}
+                      </>
                     )}
                   </div>
 
