@@ -408,6 +408,7 @@ const VideoPage = () => {
         expanded: i === 0,
         mergedFrames: [],
         mergedInto: null,
+        endFrameUrl: null,
       };
     });
     setFrames(newFrames);
