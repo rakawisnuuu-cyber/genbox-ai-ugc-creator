@@ -948,7 +948,7 @@ Content template: ${template?.label}`,
         type: "video",
         image_url: result.videoUrl,
         prompt: usedPrompt,
-        model: frame.model === "grok" ? "grok-imagine" : frame.model === "veo_fast" ? "veo3_fast" : "veo3",
+        model: frame.model === "grok" ? "grok-imagine" : frame.model === "kling_std" ? "kling-3.0-std" : frame.model === "kling_pro" ? "kling-3.0-pro" : frame.model === "veo_fast" ? "veo3_fast" : "veo3",
         provider: "kie_ai",
         status: "completed",
         metadata: {
