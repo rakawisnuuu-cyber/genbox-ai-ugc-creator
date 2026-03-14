@@ -1333,7 +1333,14 @@ Content template: ${template?.label}`,
                             </div>
                           </button>
                           <p className="text-[8px] text-muted-foreground mt-0.5">F{idx + 1}</p>
-                        </div>
+                          {galleryImages.length > 0 && (
+                            <button
+                              onClick={() => updateFrame(idx, { showStartGallery: !frame.showStartGallery, showEndGallery: false })}
+                              className="text-[10px] text-primary hover:underline mt-0.5"
+                            >
+                              From gallery
+                            </button>
+                          )}
 
                         <span className="text-muted-foreground/30 text-lg">→</span>
 
