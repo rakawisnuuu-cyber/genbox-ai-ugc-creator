@@ -46,7 +46,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-type VideoModel = "grok" | "veo_fast" | "veo_quality";
+type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 type FrameStatus = "idle" | "generating" | "completed" | "failed";
 
 interface FrameState {
@@ -56,6 +56,7 @@ interface FrameState {
   actionChips: string[];
   prompt: string;
   model: VideoModel;
+  duration: number;
   skipped: boolean;
   status: FrameStatus;
   videoUrl: string | null;
@@ -81,15 +82,49 @@ interface GalleryImage {
 
 const MODEL_COSTS: Record<VideoModel, number> = {
   grok: 1600,
+  kling_std: 2300,
+  kling_pro: 4600,
   veo_fast: 6400,
   veo_quality: 32000,
 };
 
 const MODEL_LABELS: Record<VideoModel, { label: string; badge: string; badgeColor: string; audio: boolean; cost: string }> = {
   grok: { label: "Grok", badge: "HEMAT", badgeColor: "bg-green-500/20 text-green-400", audio: false, cost: "~Rp 1.600" },
+  kling_std: { label: "Kling", badge: "VALUE", badgeColor: "bg-cyan-500/20 text-cyan-400", audio: true, cost: "~Rp 2.300" },
+  kling_pro: { label: "Kling Pro", badge: "PRO", badgeColor: "bg-teal-500/20 text-teal-400", audio: true, cost: "~Rp 4.600" },
   veo_fast: { label: "Veo Fast", badge: "STANDARD", badgeColor: "bg-blue-500/20 text-blue-400", audio: true, cost: "~Rp 6.400" },
   veo_quality: { label: "Veo Quality", badge: "PREMIUM", badgeColor: "bg-primary/20 text-primary", audio: true, cost: "~Rp 32.000" },
 };
+
+const MODEL_DURATIONS: Record<VideoModel, number[]> = {
+  grok: [6, 10],
+  kling_std: [5, 8, 10],
+  kling_pro: [5, 8, 10, 15],
+  veo_fast: [8],
+  veo_quality: [8],
+};
+
+function getSmartModelRecommendation(
+  hasDialog: boolean,
+  storyRole: string,
+  productCategory?: string,
+  isCombined?: boolean,
+): { model: VideoModel; reason: string } {
+  const isFood = productCategory?.toLowerCase() === "food";
+  const isASMR = ["Texture", "Sensory", "Slow Reveal", "Serene"].includes(storyRole);
+  const isPOV = storyRole.startsWith("POV");
+
+  if (isCombined) {
+    return { model: "kling_pro", reason: "Multi-beat frame — Kling Pro supports longer duration" };
+  }
+  if (isFood && hasDialog) {
+    return { model: "kling_std", reason: "Food + dialog — less face glitch than Veo" };
+  }
+  if (isASMR || isPOV || !hasDialog) {
+    return { model: "grok", reason: "Visual only — no audio needed" };
+  }
+  return { model: "veo_fast", reason: "Dialog frame — best lip sync" };
+}
 
 /** Position-based role colors — works with any flexible storyRole string */
 const POSITION_ROLE_COLORS = [
@@ -388,7 +423,9 @@ const VideoPage = () => {
       // Smart dialog suggestion based on story role + product category
       const defaultDialogue = getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory);
       const hasDialogue = !!defaultDialogue.trim();
-      const defaultModel: VideoModel = hasDialogue ? "veo_fast" : "grok";
+      const rec = getSmartModelRecommendation(hasDialogue, beat.storyRole, productCategory, false);
+      const defaultModel = rec.model;
+      const defaultDuration = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
 
       // Source image: storyboard image if available, else source image
       const frameSource = fromStoryboard && storyboardImages[i]
@@ -402,6 +439,7 @@ const VideoPage = () => {
         actionChips: getActionChips(beat.storyRole, productCategory),
         prompt: "",
         model: defaultModel,
+        duration: defaultDuration,
         skipped: false,
         status: "idle" as FrameStatus,
         videoUrl: null,
@@ -546,12 +584,15 @@ Rules:
             const planned = parsed.frames[i];
             if (!planned) return frame;
             const hasDialog = !!planned.dialog?.trim();
+            const rec = getSmartModelRecommendation(hasDialog, beats[i]?.storyRole || "Hook", (parsed.product?.category || productCategory).toLowerCase(), false);
+            const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
             return {
               ...frame,
               action: planned.action || frame.action,
               dialogue: planned.dialog || frame.dialogue,
               prompt: planned.prompt || frame.prompt,
-              model: hasDialog ? "veo_fast" as VideoModel : "grok" as VideoModel,
+              model: rec.model,
+              duration: dur,
               actionChips: getActionChips(
                 beats[i]?.storyRole || "Hook",
                 (parsed.product?.category || productCategory).toLowerCase()
@@ -718,7 +759,7 @@ Previous frame's dialog was: '${prevDialog}'.
 Casual Indonesian. Output ONLY the script text.`;
         contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
       } else {
-        const duration = frames[idx]?.model === "grok" ? 10 : 8;
+        const duration = frames[idx]?.duration || 8;
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
 Write a short spoken dialog for the '${beat.label}' part. Maximum 20-25 words (about ${duration} seconds of natural speech). 2 sentences max. Do NOT write more.
@@ -754,7 +795,7 @@ Output ONLY the script text.`;
     const sysText = buildVideoDirectorInstruction({
       shotIndex: idx,
       totalShots: 5,
-      duration: frame.model === "grok" ? 10 : 8,
+      duration: frame.duration || 8,
       moduleType: beat.storyRole.toLowerCase(),
       previousPrompt: prevPrompt,
       withDialogue: !!frame.dialogue.trim(),
@@ -868,7 +909,7 @@ Content template: ${template?.label}`,
       }
 
       const beat = beats[idx];
-      const duration = frame.model === "grok" ? 10 : 8;
+      const duration = frame.duration || 8;
 
       // Build image URLs — use dual input for combined Veo frames (start + end frame)
       const isVeo = frame.model === "veo_fast" || frame.model === "veo_quality";
@@ -907,7 +948,7 @@ Content template: ${template?.label}`,
         type: "video",
         image_url: result.videoUrl,
         prompt: usedPrompt,
-        model: frame.model === "grok" ? "grok-imagine" : frame.model === "veo_fast" ? "veo3_fast" : "veo3",
+        model: frame.model === "grok" ? "grok-imagine" : frame.model === "kling_std" ? "kling-3.0-std" : frame.model === "kling_pro" ? "kling-3.0-pro" : frame.model === "veo_fast" ? "veo3_fast" : "veo3",
         provider: "kie_ai",
         status: "completed",
         metadata: {
@@ -960,7 +1001,7 @@ Content template: ${template?.label}`,
   const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.mergedInto !== null || f.status === "completed");
   const totalDuration = activeFrames.reduce((s, f) => {
     if (f.status !== "completed") return s;
-    return s + (f.model === "grok" ? 10 : 8);
+    return s + (f.duration || 8);
   }, 0);
   const actualCost = completedFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
 
@@ -1525,9 +1566,11 @@ Content template: ${template?.label}`,
                       onChange={(e) => {
                         updateFrame(idx, { dialogue: e.target.value });
                         if (e.target.value.trim() && frame.model === "grok") {
-                          updateFrame(idx, { model: "veo_fast" });
-                        } else if (!e.target.value.trim() && frame.model === "veo_fast") {
-                          updateFrame(idx, { model: "grok" });
+                          const dur = MODEL_DURATIONS["veo_fast"]?.[0] || 8;
+                          updateFrame(idx, { model: "veo_fast", duration: dur });
+                        } else if (!e.target.value.trim() && (frame.model === "veo_fast" || frame.model === "kling_std")) {
+                          const dur = MODEL_DURATIONS["grok"]?.[1] || 10;
+                          updateFrame(idx, { model: "grok", duration: dur });
                         }
                       }}
                       rows={2}
@@ -1564,26 +1607,73 @@ Content template: ${template?.label}`,
                   {/* Model selector — inline radio pills */}
                   <div>
                     <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1.5">Model</label>
-                    <div className="flex gap-2">
-                      {(["grok", "veo_fast", "veo_quality"] as VideoModel[]).map((m) => {
-                        const mi = MODEL_LABELS[m];
-                        const selected = frame.model === m;
+                    <div className="flex flex-wrap gap-1.5">
+                      {(Object.keys(MODEL_LABELS) as VideoModel[]).map((m) => {
+                        const info = MODEL_LABELS[m];
+                        const isSelected = frame.model === m;
                         return (
                           <button
                             key={m}
-                            onClick={() => updateFrame(idx, { model: m })}
-                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] transition-all text-center ${
-                              selected
-                                ? "border border-primary/20 bg-primary/[0.04] text-primary font-semibold"
-                                : "border border-white/[0.06] bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                              const dur = MODEL_DURATIONS[m]?.[Math.min(1, MODEL_DURATIONS[m].length - 1)] || 8;
+                              updateFrame(idx, { model: m, duration: dur });
+                            }}
+                            className={`flex-1 min-w-[100px] text-[10px] py-2 rounded-lg border text-center transition-colors ${
+                              isSelected
+                                ? "border-primary bg-primary/10 text-primary font-medium"
+                                : "border-border/30 text-muted-foreground/50 hover:border-border"
                             }`}
                           >
-                            <span className="font-medium">{mi.label}</span>
-                            <span className="text-[9px] opacity-60 ml-1">{mi.cost}</span>
+                            <span className="font-medium">{info.label}</span>
+                            <span className="text-muted-foreground/30 ml-1">{info.cost}</span>
+                            {info.audio && <span className="ml-1 text-[8px]">🔊</span>}
                           </button>
                         );
                       })}
                     </div>
+                    {/* Duration selector */}
+                    {MODEL_DURATIONS[frame.model].length > 1 && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <span className="text-[9px] text-muted-foreground/40">Duration:</span>
+                        {MODEL_DURATIONS[frame.model].map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => updateFrame(idx, { duration: d })}
+                            className={`text-[10px] px-2.5 py-1 rounded-md border transition-colors ${
+                              frame.duration === d
+                                ? "border-primary bg-primary/10 text-primary font-medium"
+                                : "border-border/30 text-muted-foreground/50 hover:border-border"
+                            }`}
+                          >
+                            {d}s
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {/* Smart model recommendation */}
+                    {(() => {
+                      const isCombinedFrame = frame.mergedFrames.length > 0;
+                      const rec = getSmartModelRecommendation(
+                        !!frame.dialogue?.trim(),
+                        beat.storyRole,
+                        productCategory,
+                        isCombinedFrame,
+                      );
+                      if (rec.model !== frame.model) {
+                        return (
+                          <button
+                            onClick={() => {
+                              const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
+                              updateFrame(idx, { model: rec.model, duration: dur });
+                            }}
+                            className="w-full mt-1.5 text-[10px] text-primary/50 hover:text-primary flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/10 hover:border-primary/20 transition-colors"
+                          >
+                            <Sparkles className="h-3 w-3" /> Suggestion: {MODEL_LABELS[rec.model].label} — {rec.reason}
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   {/* Generate / Result */}
@@ -1623,9 +1713,16 @@ Content template: ${template?.label}`,
                     </div>
                   ) : frame.status === "failed" ? (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
-                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                        <p className="text-[10px] text-red-400">{frame.errorMsg || "Gagal"}</p>
+                      <div className="flex items-start gap-2 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
+                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                        {frame.errorMsg?.includes("SAFETY_BLOCKED") ? (
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-red-400 font-medium">Blocked by Google safety filter</p>
+                            <p className="text-[10px] text-muted-foreground/40">Try editing the prompt to be less specific about body/face, or switch to Kling (no safety filter).</p>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-red-400">{frame.errorMsg || "Gagal"}</p>
+                        )}
                       </div>
                       {anyGenerating ? (
                         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2">
