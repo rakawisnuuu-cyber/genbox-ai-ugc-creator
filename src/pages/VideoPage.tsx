@@ -1713,9 +1713,16 @@ Content template: ${template?.label}`,
                     </div>
                   ) : frame.status === "failed" ? (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
-                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                        <p className="text-[10px] text-red-400">{frame.errorMsg || "Gagal"}</p>
+                      <div className="flex items-start gap-2 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
+                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+                        {frame.errorMsg?.includes("SAFETY_BLOCKED") ? (
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-red-400 font-medium">Blocked by Google safety filter</p>
+                            <p className="text-[10px] text-muted-foreground/40">Try editing the prompt to be less specific about body/face, or switch to Kling (no safety filter).</p>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-red-400">{frame.errorMsg || "Gagal"}</p>
+                        )}
                       </div>
                       {anyGenerating ? (
                         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2">
