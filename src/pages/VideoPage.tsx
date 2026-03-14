@@ -56,6 +56,7 @@ interface FrameState {
   actionChips: string[];
   prompt: string;
   model: VideoModel;
+  duration: number;
   skipped: boolean;
   status: FrameStatus;
   videoUrl: string | null;
