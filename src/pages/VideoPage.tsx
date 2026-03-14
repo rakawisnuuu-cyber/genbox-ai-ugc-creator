@@ -1291,18 +1291,86 @@ Content template: ${template?.label}`,
                         </div>
                       </div>
                     )}
-                    {/* Start + End frame preview for combined Veo frames */}
-                    {isCombined && (frame.model === "veo_fast" || frame.model === "veo_quality") && storyboardImages.length > 0 && (
+                    {/* Start + End frame picker for combined Veo frames */}
+                    {isCombined && (frame.model === "veo_fast" || frame.model === "veo_quality") && (
                       <div className="mt-2 flex items-center gap-3">
+                        {/* Start frame — clickable to upload */}
                         <div className="text-center">
                           <p className="text-[9px] text-muted-foreground mb-1">Start</p>
-                          <img src={frame.sourceImageUrl || storyboardImages[idx]} alt="Start frame" className="h-16 w-12 rounded-md object-cover border-2 border-primary/40" />
+                          <button
+                            className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
+                            onClick={() => {
+                              const inp = document.createElement("input");
+                              inp.type = "file";
+                              inp.accept = "image/jpeg,image/png,image/webp";
+                              inp.onchange = async (e) => {
+                                const f = (e.target as HTMLInputElement).files?.[0];
+                                if (!f) return;
+                                const preview = URL.createObjectURL(f);
+                                updateFrame(idx, { sourceImageUrl: preview });
+                                const ext = f.name.split(".").pop();
+                                const path = `${user!.id}/video-sources/${Date.now()}-start.${ext}`;
+                                const { error } = await supabase.storage.from("product-images").upload(path, f);
+                                if (!error) {
+                                  const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                                  updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
+                                }
+                              };
+                              inp.click();
+                            }}
+                          >
+                            {(frame.sourceImageUrl || storyboardImages[idx]) ? (
+                              <img src={frame.sourceImageUrl || storyboardImages[idx]} alt="Start frame" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
+                                <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Upload className="h-4 w-4 text-white" />
+                            </div>
+                          </button>
                           <p className="text-[8px] text-muted-foreground mt-0.5">F{idx + 1}</p>
                         </div>
-                        <span className="text-muted-foreground/30">→</span>
+
+                        <span className="text-muted-foreground/30 text-lg">→</span>
+
+                        {/* End frame — clickable to upload */}
                         <div className="text-center">
                           <p className="text-[9px] text-muted-foreground mb-1">End</p>
-                          <img src={storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]] || frame.sourceImageUrl} alt="End frame" className="h-16 w-12 rounded-md object-cover border-2 border-primary/40" />
+                          <button
+                            className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
+                            onClick={() => {
+                              const inp = document.createElement("input");
+                              inp.type = "file";
+                              inp.accept = "image/jpeg,image/png,image/webp";
+                              inp.onchange = async (e) => {
+                                const f = (e.target as HTMLInputElement).files?.[0];
+                                if (!f) return;
+                                const preview = URL.createObjectURL(f);
+                                updateFrame(idx, { endFrameUrl: preview });
+                                const ext = f.name.split(".").pop();
+                                const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
+                                const { error } = await supabase.storage.from("product-images").upload(path, f);
+                                if (!error) {
+                                  const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                                  updateFrame(idx, { endFrameUrl: urlData.publicUrl });
+                                }
+                              };
+                              inp.click();
+                            }}
+                          >
+                            {(frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) ? (
+                              <img src={frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]} alt="End frame" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
+                                <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Upload className="h-4 w-4 text-white" />
+                            </div>
+                          </button>
                           <p className="text-[8px] text-muted-foreground mt-0.5">F{frame.mergedFrames[frame.mergedFrames.length - 1] + 1}</p>
                         </div>
                       </div>
