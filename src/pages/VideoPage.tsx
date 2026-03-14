@@ -217,17 +217,17 @@ const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
   "Serene": () => "",
 
   // CTA / Close roles
-  "CTA": () => "Pokoknya ini sih harus punya. Aku udah recommend ke temen-temen aku juga. Coba deh kalian pasti suka.",
-  "Soft CTA": () => "Menurutku sih ini worth it banget ya. Apalagi harganya segitu, dapet kualitas kayak gini. Coba deh.",
-  "Confidence": () => "Pede banget jadinya setelah pake ini. Serius deh game changer banget. Kalian harus coba.",
-  "Ready": () => "Siap jalan! Makasih produk ini sih udah ngebantu banget. Ga bisa balik ke yang lain lagi.",
-  "Converted": () => "Oke aku tarik kata-kata aku, ini bagus banget. Awalnya ragu tapi sekarang jadi langganan. Worth it!",
-  "Summary": () => "Jadi kesimpulannya, ini worth it banget. Aku bakal repurchase sih pasti. Kalian juga harus coba.",
-  "Verdict": () => "Honest opinion aku sih, ini recommended banget. Ga bakal nyesel deh. Coba aja dulu.",
-  "Evening": () => "Malam-malam gini masih kerasa efeknya dari tadi pagi. Awet banget sih ini. Aku impressed.",
-  "Wrap Up": () => "Gampang kan ternyata? Simpel banget tapi hasilnya kerasa. Kalian coba deh pasti suka juga.",
-  "Show Off": () => "Ini sih harus punya, serius deh. Aku ga lebay ya ini beneran bagus. Must have banget.",
-  "Face Reveal": () => "Tadaaa! Hasilnya kayak gini nih. Gimana menurut kalian? Bagus kan? Aku suka banget sih.",
+  "CTA": () => "Pokoknya ini harus punya. Udah recommend ke temen-temen juga. Coba deh!",
+  "Soft CTA": () => "Menurutku worth it banget. Harganya segitu dapet kualitas gini. Coba deh.",
+  "Confidence": () => "Pede banget jadinya setelah pake ini. Game changer. Kalian harus coba.",
+  "Ready": () => "Siap jalan! Produk ini ngebantu banget. Ga bisa balik ke yang lain.",
+  "Converted": () => "Oke tarik kata-kata aku, ini bagus banget. Sekarang jadi langganan. Worth it!",
+  "Summary": () => "Kesimpulannya, worth it banget. Bakal repurchase pasti. Kalian harus coba.",
+  "Verdict": () => "Honest opinion, ini recommended banget. Ga bakal nyesel. Coba aja.",
+  "Evening": () => "Malam-malam gini masih kerasa efeknya. Awet banget. Aku impressed.",
+  "Wrap Up": () => "Gampang kan ternyata? Simpel tapi hasilnya kerasa. Coba deh!",
+  "Show Off": () => "Ini harus punya, serius. Beneran bagus. Must have banget.",
+  "Face Reveal": () => "Tadaaa! Hasilnya kayak gini. Gimana menurut kalian? Bagus kan?",
 };
 
 function getSmartDialogSuggestion(
