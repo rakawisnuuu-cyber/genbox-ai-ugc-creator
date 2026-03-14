@@ -423,7 +423,9 @@ const VideoPage = () => {
       // Smart dialog suggestion based on story role + product category
       const defaultDialogue = getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory);
       const hasDialogue = !!defaultDialogue.trim();
-      const defaultModel: VideoModel = hasDialogue ? "veo_fast" : "grok";
+      const rec = getSmartModelRecommendation(hasDialogue, beat.storyRole, productCategory, false);
+      const defaultModel = rec.model;
+      const defaultDuration = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
 
       // Source image: storyboard image if available, else source image
       const frameSource = fromStoryboard && storyboardImages[i]
@@ -437,6 +439,7 @@ const VideoPage = () => {
         actionChips: getActionChips(beat.storyRole, productCategory),
         prompt: "",
         model: defaultModel,
+        duration: defaultDuration,
         skipped: false,
         status: "idle" as FrameStatus,
         videoUrl: null,
