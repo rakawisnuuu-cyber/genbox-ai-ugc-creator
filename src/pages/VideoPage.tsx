@@ -795,7 +795,7 @@ Output ONLY the script text.`;
     const sysText = buildVideoDirectorInstruction({
       shotIndex: idx,
       totalShots: 5,
-      duration: frame.model === "grok" ? 10 : 8,
+      duration: frame.duration || 8,
       moduleType: beat.storyRole.toLowerCase(),
       previousPrompt: prevPrompt,
       withDialogue: !!frame.dialogue.trim(),
