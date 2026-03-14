@@ -151,80 +151,80 @@ function getModelRecommendation(template: ContentTemplateKey): { text: string; v
 /** Smart dialog suggestions — maps flexible storyRoles to casual Indonesian dialog */
 const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
   // Opening / Hook roles
-  "Problem": () => "Guys, kalian pernah ngalamin ini nggak sih...",
-  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Eh guys, ini sih harus cobain..."; },
-  "Skeptical": () => "Hmm, beneran nih ini bagus? Aku agak ragu sih...",
-  "Morning": () => "Pagi-pagi gini langsung skincare-an dulu dong...",
-  "First Look": () => "Baru pertama kali nih liat produk ini...",
-  "Excitement": () => "GUYS! Akhirnya dateng juga nih!",
-  "Anticipation": () => "Aku udah penasaran banget sama ini...",
-  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya ya...",
+  "Problem": () => "Ini nih yang bikin aku kesel banget. Udah coba banyak tapi ga ada yang works. Sampe akhirnya nemu ini...",
+  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Oke jadi ini tuh ternyata sebagus ini. Awalnya aku ragu sih tapi setelah coba sendiri... yaudah liat aja deh."; },
+  "Skeptical": () => "Hmm, beneran nih ini bagus? Aku agak ragu sih awalnya. Tapi yaudah lah coba dulu aja biar tau sendiri.",
+  "Morning": () => "Pagi-pagi gini langsung skincare-an dulu dong. Ini udah jadi rutinitas wajib aku tiap bangun tidur. Ga bisa skip.",
+  "First Look": () => "Baru pertama kali nih liat produk ini. Penasaran banget sih udah lama pengen coba. Kita liat ya gimana.",
+  "Excitement": () => "GUYS! Akhirnya dateng juga nih yang aku tunggu-tunggu! Udah ga sabar pengen buka. Kita unboxing bareng ya!",
+  "Anticipation": () => "Aku udah penasaran banget sama ini. Banyak yang bilang bagus tapi aku mau buktiin sendiri. Kita liat ya.",
+  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya ya. Simpel banget sebenernya. Ikutin aja step-step nya.",
   "POV Reach": () => "",
   "Texture": () => "",
 
   // Mid roles
-  "Pain Amplification": () => "Udah capek banget sih ngerasain kayak gini terus...",
-  "Personal": () => "Jadi aku udah pake ini sekitar seminggu...",
-  "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine...",
-  "Expectation": () => "Di packaging-nya sih bilang bisa gini gitu ya...",
-  "Alasan 1": () => "Alasan pertama, ini tuh...",
-  "Midday": () => "Siang-siang gini tetep fresh karena...",
-  "First Open": () => "Wah, packaging-nya ternyata...",
-  "Reveal": () => "Ini nih isinya, cakep banget...",
-  "Step 1": () => "Pertama, kalian ambil secukupnya...",
+  "Pain Amplification": () => "Udah capek banget sih ngerasain kayak gini terus. Setiap hari tuh struggle banget. Makanya aku cari solusinya.",
+  "Personal": () => "Jadi aku udah pake ini sekitar seminggu. Dan honestly aku mulai kerasa bedanya. Ini pengalaman jujur aku ya.",
+  "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine. Tiap hari ga pernah skip. Segampang itu pakenya.",
+  "Expectation": () => "Di packaging-nya sih bilang bisa gini gitu ya. Aku penasaran apa beneran sesuai claim-nya. Kita buktiin.",
+  "Alasan 1": () => "Alasan pertama kenapa aku suka banget. Ini tuh beda dari yang lain karena hasilnya kerasa cepet banget.",
+  "Midday": () => "Siang-siang gini tetep fresh karena tadi pagi udah pake. Ga perlu touch up sama sekali. Awet banget.",
+  "First Open": () => "Wah, packaging-nya ternyata bagus juga ya. Keliatan premium sih buat harga segini. Aku suka.",
+  "Reveal": () => "Ini nih isinya, cakep banget sih. Desainnya minimalis tapi keliatan mahal. Langsung pengen coba.",
+  "Step 1": () => "Pertama, kalian ambil secukupnya dulu ya. Ga perlu banyak-banyak, dikit aja udah cukup. Terus ratain.",
 
   // Demo / Usage roles  
   "Demo": (cat) => {
     const demos: Record<string, string> = {
-      skincare: "Aku coba pake langsung ya di kulit aku...",
-      fashion: "Aku coba pakai nih, liat deh hasilnya...",
-      food: "Kita cobain rasanya langsung ya...",
-      electronics: "Aku nyalain dulu nih, kita liat fiturnya...",
-      health: "Aku minum langsung ya, biasa tiap pagi...",
-      home: "Aku coba pasang langsung ya...",
+      skincare: "Cobain langsung ya di kulit aku. Nah liat nih teksturnya ringan banget, cepet nyerep. Ga lengket sama sekali sih ini.",
+      fashion: "Aku pake langsung ya. Nah liat nih jatuhnya bagus banget, bahannya adem. Fit-nya juga pas sih di badan.",
+      food: "Langsung cobain ya. Hmm ini enak banget sih, rasanya tuh pas gitu. Ga terlalu manis ga terlalu bland.",
+      electronics: "Nyalain dulu nih. Oke responsif banget sih, smooth. Fitur yang ini nih yang bikin worth it menurut aku.",
+      health: "Langsung minum ya kayak biasa. Rasanya ga aneh sih, gampang banget. Aku tiap pagi minum ini udah jadi routine.",
+      home: "Pasang langsung ya biar keliatan. Nah tuh bagus kan jadinya. Kualitasnya oke banget sih untuk harga segini.",
     };
-    return demos[(cat || "").toLowerCase()] || "Aku coba langsung ya biar kalian liat...";
+    return demos[(cat || "").toLowerCase()] || "Langsung cobain ya nih. Cara pakainya gampang banget sih. Hasilnya juga langsung keliatan.";
   },
-  "Usage": (cat) => ROLE_DIALOG_MAP["Demo"]?.(cat) || "Aku pake langsung nih...",
-  "Product Step": () => "Nah ini step paling penting nih...",
-  "Application": () => "Apply-nya gampang banget, tinggal...",
-  "Try": () => "Oke aku cobain langsung ya...",
-  "First Try": () => "Pertama kali pake nih, deg-degan...",
-  "Product Moment": () => "Nah di siang hari gini aku selalu pake ini...",
-  "Alasan 2": () => "Alasan kedua yang bikin aku suka...",
-  "Step 2": () => "Terus step kedua, kalian tinggal...",
-  "Speed Demo": () => "Cepet banget nih cara makenya...",
+  "Usage": (cat) => ROLE_DIALOG_MAP["Demo"]?.(cat) || "Aku pake langsung nih, gampang banget. Tinggal gini doang terus kelar. Simpel kan?",
+  "Product Step": () => "Nah ini step paling penting nih. Jangan di-skip ya karena ini yang bikin hasilnya maksimal. Perhatiin baik-baik.",
+  "Application": () => "Apply-nya gampang banget, tinggal ratain aja. Ga perlu teknik khusus sih. Siapa aja bisa.",
+  "Try": () => "Oke aku cobain langsung ya. Biar kalian liat sendiri gimana cara pakenya. Simpel banget ternyata.",
+  "First Try": () => "Pertama kali pake nih, deg-degan juga sih. Tapi ternyata gampang banget. Hasilnya juga langsung keliatan.",
+  "Product Moment": () => "Nah di siang hari gini aku selalu pake ini. Udah jadi kebiasaan sih. Ga bisa skip sehari aja.",
+  "Alasan 2": () => "Alasan kedua yang bikin aku suka, ini tuh tahan lama banget. Dari pagi sampe malem masih oke. Ga perlu reapply.",
+  "Step 2": () => "Terus step kedua, kalian tinggal ratain pelan-pelan. Ga usah buru-buru ya biar hasilnya merata. Gampang kan?",
+  "Speed Demo": () => "Cepet banget nih cara makenya. Literally cuma butuh beberapa detik doang. Praktis banget sih ini.",
   "Sensory": () => "",
   "Slow Reveal": () => "",
   "POV Inspect": () => "",
   "POV Use": () => "",
-  "Discovery": () => "Wah, ini ternyata...",
+  "Discovery": () => "Wah, ini ternyata bagus banget ya. Aku ga expect sama sekali. Beneran surprised sih aku.",
 
   // Result / Proof roles
-  "Result": () => "Hasilnya ternyata beneran kerasa bedanya...",
-  "After Reveal": () => "Wah beneran kerasa bedanya sih ini...",
-  "Reality": () => "Wait, ini beneran bagus dong?!",
-  "Alasan 3": () => "Dan alasan ketiga yang paling bikin yakin...",
-  "Almost Ready": () => "Tinggal finishing touch aja...",
-  "Benefit": () => "Kerasa banget sih benefitnya...",
-  "Assessment": () => "Hmm, overall menurutku sih...",
-  "Impressed": () => "Oke aku kaget sih, hasilnya sebagus ini...",
-  "Initial Result": () => "Baru pertama pake udah kerasa bedanya...",
+  "Result": () => "Tuh kan beneran kerasa bedanya. Aku ga expect bakal secepet ini hasilnya. Sumpah worth it sih.",
+  "After Reveal": () => "Wah beneran kerasa bedanya sih ini. Liat sendiri kan before after-nya. Gila sih hasilnya.",
+  "Reality": () => "Wait, ini beneran bagus dong?! Aku kira bakal biasa aja ternyata engga. Plot twist banget sih.",
+  "Alasan 3": () => "Dan alasan ketiga yang paling bikin yakin. Harganya tuh worth it banget sama kualitasnya. Ga nyesel deh.",
+  "Almost Ready": () => "Tinggal finishing touch aja nih. Bentar lagi kelar. Udah ga sabar pengen liat hasil akhirnya.",
+  "Benefit": () => "Kerasa banget sih benefitnya setelah rutin pake. Aku ga nyangka bakal sebagus ini. Beneran recommended.",
+  "Assessment": () => "Hmm, overall menurutku sih ini worth it ya. Ada plus minusnya tapi lebih banyak plusnya. Aku suka.",
+  "Impressed": () => "Oke aku kaget sih, hasilnya sebagus ini. Beneran ga expect sama sekali. Ini sih harus coba.",
+  "Initial Result": () => "Baru pertama pake udah kerasa bedanya. Cepet banget ya hasilnya keliatan. Aku suka sih ini.",
   "POV Result": () => "",
   "Serene": () => "",
 
   // CTA / Close roles
-  "CTA": () => ["Worth it sih, kalian coba deh!", "Link di bio ya! Cobain deh.", "Aku recommend banget sih ini."][Math.floor(Math.random() * 3)],
-  "Soft CTA": () => ["Kalian harus coba ini sih.", "Recommended banget deh!", "Cek link di bio ya!"][Math.floor(Math.random() * 3)],
-  "Confidence": () => "Pede banget jadinya, coba deh!",
-  "Ready": () => "Siap jalan! Makasih produk ini sih...",
-  "Converted": () => "Oke aku tarik kata-kata aku, ini bagus banget!",
-  "Summary": () => "Jadi kesimpulannya, ini worth it banget!",
-  "Verdict": () => "Honest opinion aku sih, ini recommended!",
-  "Evening": () => "Malam-malam gini masih kerasa efeknya...",
-  "Wrap Up": () => "Gampang kan? Kalian coba deh!",
-  "Show Off": () => "Ini sih harus punya, serius!",
-  "Face Reveal": () => "Tadaaa! Hasilnya kayak gini...",
+  "CTA": () => "Pokoknya ini sih harus punya. Aku udah recommend ke temen-temen aku juga. Coba deh kalian pasti suka.",
+  "Soft CTA": () => "Menurutku sih ini worth it banget ya. Apalagi harganya segitu, dapet kualitas kayak gini. Coba deh.",
+  "Confidence": () => "Pede banget jadinya setelah pake ini. Serius deh game changer banget. Kalian harus coba.",
+  "Ready": () => "Siap jalan! Makasih produk ini sih udah ngebantu banget. Ga bisa balik ke yang lain lagi.",
+  "Converted": () => "Oke aku tarik kata-kata aku, ini bagus banget. Awalnya ragu tapi sekarang jadi langganan. Worth it!",
+  "Summary": () => "Jadi kesimpulannya, ini worth it banget. Aku bakal repurchase sih pasti. Kalian juga harus coba.",
+  "Verdict": () => "Honest opinion aku sih, ini recommended banget. Ga bakal nyesel deh. Coba aja dulu.",
+  "Evening": () => "Malam-malam gini masih kerasa efeknya dari tadi pagi. Awet banget sih ini. Aku impressed.",
+  "Wrap Up": () => "Gampang kan ternyata? Simpel banget tapi hasilnya kerasa. Kalian coba deh pasti suka juga.",
+  "Show Off": () => "Ini sih harus punya, serius deh. Aku ga lebay ya ini beneran bagus. Must have banget.",
+  "Face Reveal": () => "Tadaaa! Hasilnya kayak gini nih. Gimana menurut kalian? Bagus kan? Aku suka banget sih.",
 };
 
 function getSmartDialogSuggestion(
@@ -702,21 +702,23 @@ Rules:
 
       if (isCombined) {
         const allBeats = [beat, ...mergedBeats];
+        const combinedDuration = allBeats.length * 8;
         const beatDescList = allBeats.map((b) => `'${b.label}' — ${b.description}`).join(", then naturally flowing into ");
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
-Write a 2-3 sentence TikTok dialog covering ${allBeats.length} story beats in sequence: first ${beatDescList}.
-The dialog should transition smoothly between all beats in one natural spoken flow.
-Keep it under 30 words total, casual Indonesian.
+Write 3-4 sentences covering all ${allBeats.length} beats: first ${beatDescList}.
+Transition naturally between beats mid-speech. Fill the full ${combinedDuration}-second video.
+The person talks the entire time, no dead air. Casual Indonesian.
 Output ONLY the script text.`;
         contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
       } else {
+        const duration = frames[idx]?.model === "grok" ? 10 : 8;
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
-Write a 1-2 sentence TikTok dialog in casual Indonesian for the '${beat.label}' part of a '${template?.label}' video.
+Write 2-3 sentences of natural spoken dialog for the '${beat.label}' part of a '${template?.label}' video.
+This fills a full ${duration}-second video — the person talks the entire time, no dead air.
 Previous frame's dialog was: '${prevDialog}'.
-This should flow naturally as the next thing the person would say.
-Keep it under 20 words, punchy and natural.
+This should flow naturally as the next thing the person would say. Casual Indonesian.
 Output ONLY the script text.`;
         contentText = `Beat: ${beat.storyRole} — ${beat.description}`;
       }
