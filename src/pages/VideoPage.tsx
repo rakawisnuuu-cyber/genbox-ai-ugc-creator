@@ -874,11 +874,10 @@ Content template: ${template?.label}`,
       const isCombined = frame.mergedFrames.length > 0;
 
       let videoImageUrls: string[];
-      if (isVeo && isCombined && storyboardImages.length > 0) {
-        // Combined frames: use first and last beat's storyboard images as start + end frame
+      if (isVeo && isCombined) {
+        // Combined frames: use start + end frame images
         const startImg = frame.sourceImageUrl || storyboardImages[idx] || imgUrl;
-        const lastMergedIdx = frame.mergedFrames[frame.mergedFrames.length - 1];
-        const endImg = storyboardImages[lastMergedIdx] || startImg;
+        const endImg = frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]] || startImg;
         videoImageUrls = startImg !== endImg ? [startImg, endImg] : [startImg];
       } else {
         // Single frame or Grok: one image only
