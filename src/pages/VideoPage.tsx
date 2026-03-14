@@ -1566,9 +1566,11 @@ Content template: ${template?.label}`,
                       onChange={(e) => {
                         updateFrame(idx, { dialogue: e.target.value });
                         if (e.target.value.trim() && frame.model === "grok") {
-                          updateFrame(idx, { model: "veo_fast" });
-                        } else if (!e.target.value.trim() && frame.model === "veo_fast") {
-                          updateFrame(idx, { model: "grok" });
+                          const dur = MODEL_DURATIONS["veo_fast"]?.[0] || 8;
+                          updateFrame(idx, { model: "veo_fast", duration: dur });
+                        } else if (!e.target.value.trim() && (frame.model === "veo_fast" || frame.model === "kling_std")) {
+                          const dur = MODEL_DURATIONS["grok"]?.[1] || 10;
+                          updateFrame(idx, { model: "grok", duration: dur });
                         }
                       }}
                       rows={2}
