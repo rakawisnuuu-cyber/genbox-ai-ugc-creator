@@ -154,49 +154,49 @@ function getModelRecommendation(template: ContentTemplateKey): { text: string; v
 /** Smart dialog suggestions — maps flexible storyRoles to casual Indonesian dialog */
 const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
   // Opening / Hook roles
-  "Problem": () => "Ini nih yang bikin aku kesel banget. Udah coba banyak tapi ga ada yang works. Sampe akhirnya nemu ini...",
-  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Oke jadi ini tuh ternyata sebagus ini. Awalnya aku ragu sih tapi setelah coba sendiri... yaudah liat aja deh."; },
-  "Skeptical": () => "Hmm, beneran nih ini bagus? Aku agak ragu sih awalnya. Tapi yaudah lah coba dulu aja biar tau sendiri.",
-  "Morning": () => "Pagi-pagi gini langsung skincare-an dulu dong. Ini udah jadi rutinitas wajib aku tiap bangun tidur. Ga bisa skip.",
-  "First Look": () => "Baru pertama kali nih liat produk ini. Penasaran banget sih udah lama pengen coba. Kita liat ya gimana.",
-  "Excitement": () => "GUYS! Akhirnya dateng juga nih yang aku tunggu-tunggu! Udah ga sabar pengen buka. Kita unboxing bareng ya!",
-  "Anticipation": () => "Aku udah penasaran banget sama ini. Banyak yang bilang bagus tapi aku mau buktiin sendiri. Kita liat ya.",
-  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya ya. Simpel banget sebenernya. Ikutin aja step-step nya.",
+  "Problem": () => "Ini nih yang bikin aku kesel. Udah coba banyak tapi ga works.",
+  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Ini tuh ternyata sebagus ini. Awalnya ragu tapi setelah coba sendiri..."; },
+  "Skeptical": () => "Beneran nih ini bagus? Aku ragu awalnya. Tapi yaudah coba dulu aja.",
+  "Morning": () => "Pagi-pagi langsung skincare-an dulu dong. Ini udah jadi rutinitas wajib aku.",
+  "First Look": () => "Baru pertama kali liat produk ini. Penasaran banget, kita liat ya.",
+  "Excitement": () => "GUYS! Akhirnya dateng yang aku tunggu-tunggu! Kita unboxing bareng ya!",
+  "Anticipation": () => "Penasaran banget sama ini. Banyak yang bilang bagus, aku mau buktiin sendiri.",
+  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya. Simpel banget sebenernya.",
   "POV Reach": () => "",
   "Texture": () => "",
 
   // Mid roles
-  "Pain Amplification": () => "Udah capek banget sih ngerasain kayak gini terus. Setiap hari tuh struggle banget. Makanya aku cari solusinya.",
-  "Personal": () => "Jadi aku udah pake ini sekitar seminggu. Dan honestly aku mulai kerasa bedanya. Ini pengalaman jujur aku ya.",
-  "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine. Tiap hari ga pernah skip. Segampang itu pakenya.",
-  "Expectation": () => "Di packaging-nya sih bilang bisa gini gitu ya. Aku penasaran apa beneran sesuai claim-nya. Kita buktiin.",
-  "Alasan 1": () => "Alasan pertama kenapa aku suka banget. Ini tuh beda dari yang lain karena hasilnya kerasa cepet banget.",
-  "Midday": () => "Siang-siang gini tetep fresh karena tadi pagi udah pake. Ga perlu touch up sama sekali. Awet banget.",
-  "First Open": () => "Wah, packaging-nya ternyata bagus juga ya. Keliatan premium sih buat harga segini. Aku suka.",
-  "Reveal": () => "Ini nih isinya, cakep banget sih. Desainnya minimalis tapi keliatan mahal. Langsung pengen coba.",
-  "Step 1": () => "Pertama, kalian ambil secukupnya dulu ya. Ga perlu banyak-banyak, dikit aja udah cukup. Terus ratain.",
+  "Pain Amplification": () => "Capek banget ngerasain kayak gini terus. Makanya aku cari solusinya.",
+  "Personal": () => "Aku udah pake ini seminggu. Honestly mulai kerasa bedanya.",
+  "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine. Gampang banget.",
+  "Expectation": () => "Di packaging bilang bisa gini gitu. Penasaran apa beneran, kita buktiin.",
+  "Alasan 1": () => "Alasan pertama kenapa aku suka. Hasilnya kerasa cepet banget.",
+  "Midday": () => "Siang-siang gini tetep fresh. Ga perlu touch up sama sekali.",
+  "First Open": () => "Wah packaging-nya bagus juga ya. Keliatan premium buat harga segini.",
+  "Reveal": () => "Ini nih isinya, cakep banget. Desainnya minimalis tapi keliatan mahal.",
+  "Step 1": () => "Pertama ambil secukupnya dulu. Ga perlu banyak, dikit aja cukup.",
 
   // Demo / Usage roles  
   "Demo": (cat) => {
     const demos: Record<string, string> = {
-      skincare: "Cobain langsung ya di kulit aku. Nah liat nih teksturnya ringan banget, cepet nyerep. Ga lengket sama sekali sih ini.",
-      fashion: "Aku pake langsung ya. Nah liat nih jatuhnya bagus banget, bahannya adem. Fit-nya juga pas sih di badan.",
-      food: "Langsung cobain ya. Hmm ini enak banget sih, rasanya tuh pas gitu. Ga terlalu manis ga terlalu bland.",
-      electronics: "Nyalain dulu nih. Oke responsif banget sih, smooth. Fitur yang ini nih yang bikin worth it menurut aku.",
-      health: "Langsung minum ya kayak biasa. Rasanya ga aneh sih, gampang banget. Aku tiap pagi minum ini udah jadi routine.",
-      home: "Pasang langsung ya biar keliatan. Nah tuh bagus kan jadinya. Kualitasnya oke banget sih untuk harga segini.",
+      skincare: "Cobain langsung di kulit aku. Teksturnya ringan, cepet nyerep. Ga lengket.",
+      fashion: "Aku pake langsung ya. Jatuhnya bagus, bahannya adem. Fit-nya pas.",
+      food: "Langsung cobain ya. Enak banget, rasanya pas. Ga terlalu manis.",
+      electronics: "Nyalain dulu nih. Responsif banget, smooth. Fitur ini yang bikin worth it.",
+      health: "Langsung minum kayak biasa. Rasanya ga aneh, gampang banget.",
+      home: "Pasang langsung ya. Bagus kan jadinya. Kualitasnya oke buat harga segini.",
     };
-    return demos[(cat || "").toLowerCase()] || "Langsung cobain ya nih. Cara pakainya gampang banget sih. Hasilnya juga langsung keliatan.";
+    return demos[(cat || "").toLowerCase()] || "Langsung cobain ya. Cara pakainya gampang. Hasilnya langsung keliatan.";
   },
-  "Usage": (cat) => ROLE_DIALOG_MAP["Demo"]?.(cat) || "Aku pake langsung nih, gampang banget. Tinggal gini doang terus kelar. Simpel kan?",
-  "Product Step": () => "Nah ini step paling penting nih. Jangan di-skip ya karena ini yang bikin hasilnya maksimal. Perhatiin baik-baik.",
-  "Application": () => "Apply-nya gampang banget, tinggal ratain aja. Ga perlu teknik khusus sih. Siapa aja bisa.",
-  "Try": () => "Oke aku cobain langsung ya. Biar kalian liat sendiri gimana cara pakenya. Simpel banget ternyata.",
-  "First Try": () => "Pertama kali pake nih, deg-degan juga sih. Tapi ternyata gampang banget. Hasilnya juga langsung keliatan.",
-  "Product Moment": () => "Nah di siang hari gini aku selalu pake ini. Udah jadi kebiasaan sih. Ga bisa skip sehari aja.",
-  "Alasan 2": () => "Alasan kedua yang bikin aku suka, ini tuh tahan lama banget. Dari pagi sampe malem masih oke. Ga perlu reapply.",
-  "Step 2": () => "Terus step kedua, kalian tinggal ratain pelan-pelan. Ga usah buru-buru ya biar hasilnya merata. Gampang kan?",
-  "Speed Demo": () => "Cepet banget nih cara makenya. Literally cuma butuh beberapa detik doang. Praktis banget sih ini.",
+  "Usage": (cat) => ROLE_DIALOG_MAP["Demo"]?.(cat) || "Aku pake langsung, gampang banget. Simpel dan kelar.",
+  "Product Step": () => "Ini step paling penting. Jangan di-skip, ini yang bikin hasilnya maksimal.",
+  "Application": () => "Apply-nya gampang, tinggal ratain aja. Siapa aja bisa.",
+  "Try": () => "Oke cobain langsung ya. Biar kalian liat sendiri. Simpel banget.",
+  "First Try": () => "Pertama kali pake nih, deg-degan. Tapi ternyata gampang banget.",
+  "Product Moment": () => "Siang hari gini aku selalu pake ini. Udah jadi kebiasaan.",
+  "Alasan 2": () => "Alasan kedua, ini tahan lama banget. Pagi sampe malem masih oke.",
+  "Step 2": () => "Step kedua, ratain pelan-pelan. Ga usah buru-buru. Gampang kan?",
+  "Speed Demo": () => "Cepet banget cara makenya. Cuma butuh beberapa detik. Praktis.",
   "Sensory": () => "",
   "Slow Reveal": () => "",
   "POV Inspect": () => "",
@@ -204,30 +204,30 @@ const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
   "Discovery": () => "Wah, ini ternyata bagus banget ya. Aku ga expect sama sekali. Beneran surprised sih aku.",
 
   // Result / Proof roles
-  "Result": () => "Tuh kan beneran kerasa bedanya. Aku ga expect bakal secepet ini hasilnya. Sumpah worth it sih.",
-  "After Reveal": () => "Wah beneran kerasa bedanya sih ini. Liat sendiri kan before after-nya. Gila sih hasilnya.",
-  "Reality": () => "Wait, ini beneran bagus dong?! Aku kira bakal biasa aja ternyata engga. Plot twist banget sih.",
-  "Alasan 3": () => "Dan alasan ketiga yang paling bikin yakin. Harganya tuh worth it banget sama kualitasnya. Ga nyesel deh.",
-  "Almost Ready": () => "Tinggal finishing touch aja nih. Bentar lagi kelar. Udah ga sabar pengen liat hasil akhirnya.",
-  "Benefit": () => "Kerasa banget sih benefitnya setelah rutin pake. Aku ga nyangka bakal sebagus ini. Beneran recommended.",
-  "Assessment": () => "Hmm, overall menurutku sih ini worth it ya. Ada plus minusnya tapi lebih banyak plusnya. Aku suka.",
-  "Impressed": () => "Oke aku kaget sih, hasilnya sebagus ini. Beneran ga expect sama sekali. Ini sih harus coba.",
-  "Initial Result": () => "Baru pertama pake udah kerasa bedanya. Cepet banget ya hasilnya keliatan. Aku suka sih ini.",
+  "Result": () => "Beneran kerasa bedanya. Ga expect secepet ini hasilnya. Worth it.",
+  "After Reveal": () => "Kerasa bedanya sih. Liat sendiri before after-nya. Gila hasilnya.",
+  "Reality": () => "Wait, ini beneran bagus dong?! Aku kira biasa aja ternyata engga.",
+  "Alasan 3": () => "Alasan ketiga, harganya worth it banget sama kualitasnya. Ga nyesel.",
+  "Almost Ready": () => "Tinggal finishing touch aja. Bentar lagi kelar. Ga sabar liat hasilnya.",
+  "Benefit": () => "Kerasa banget benefitnya setelah rutin pake. Beneran recommended.",
+  "Assessment": () => "Overall menurutku worth it. Plus minusnya lebih banyak plusnya.",
+  "Impressed": () => "Aku kaget, hasilnya sebagus ini. Ga expect sama sekali. Harus coba.",
+  "Initial Result": () => "Baru pertama pake udah kerasa bedanya. Cepet banget keliatan.",
   "POV Result": () => "",
   "Serene": () => "",
 
   // CTA / Close roles
-  "CTA": () => "Pokoknya ini sih harus punya. Aku udah recommend ke temen-temen aku juga. Coba deh kalian pasti suka.",
-  "Soft CTA": () => "Menurutku sih ini worth it banget ya. Apalagi harganya segitu, dapet kualitas kayak gini. Coba deh.",
-  "Confidence": () => "Pede banget jadinya setelah pake ini. Serius deh game changer banget. Kalian harus coba.",
-  "Ready": () => "Siap jalan! Makasih produk ini sih udah ngebantu banget. Ga bisa balik ke yang lain lagi.",
-  "Converted": () => "Oke aku tarik kata-kata aku, ini bagus banget. Awalnya ragu tapi sekarang jadi langganan. Worth it!",
-  "Summary": () => "Jadi kesimpulannya, ini worth it banget. Aku bakal repurchase sih pasti. Kalian juga harus coba.",
-  "Verdict": () => "Honest opinion aku sih, ini recommended banget. Ga bakal nyesel deh. Coba aja dulu.",
-  "Evening": () => "Malam-malam gini masih kerasa efeknya dari tadi pagi. Awet banget sih ini. Aku impressed.",
-  "Wrap Up": () => "Gampang kan ternyata? Simpel banget tapi hasilnya kerasa. Kalian coba deh pasti suka juga.",
-  "Show Off": () => "Ini sih harus punya, serius deh. Aku ga lebay ya ini beneran bagus. Must have banget.",
-  "Face Reveal": () => "Tadaaa! Hasilnya kayak gini nih. Gimana menurut kalian? Bagus kan? Aku suka banget sih.",
+  "CTA": () => "Pokoknya ini harus punya. Udah recommend ke temen-temen juga. Coba deh!",
+  "Soft CTA": () => "Menurutku worth it banget. Harganya segitu dapet kualitas gini. Coba deh.",
+  "Confidence": () => "Pede banget jadinya setelah pake ini. Game changer. Kalian harus coba.",
+  "Ready": () => "Siap jalan! Produk ini ngebantu banget. Ga bisa balik ke yang lain.",
+  "Converted": () => "Oke tarik kata-kata aku, ini bagus banget. Sekarang jadi langganan. Worth it!",
+  "Summary": () => "Kesimpulannya, worth it banget. Bakal repurchase pasti. Kalian harus coba.",
+  "Verdict": () => "Honest opinion, ini recommended banget. Ga bakal nyesel. Coba aja.",
+  "Evening": () => "Malam-malam gini masih kerasa efeknya. Awet banget. Aku impressed.",
+  "Wrap Up": () => "Gampang kan ternyata? Simpel tapi hasilnya kerasa. Coba deh!",
+  "Show Off": () => "Ini harus punya, serius. Beneran bagus. Must have banget.",
+  "Face Reveal": () => "Tadaaa! Hasilnya kayak gini. Gimana menurut kalian? Bagus kan?",
 };
 
 function getSmartDialogSuggestion(
@@ -712,17 +712,16 @@ Rules:
         const beatDescList = allBeats.map((b) => `'${b.label}' — ${b.description}`).join(", then naturally flowing into ");
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
-Write 3-4 sentences covering all ${allBeats.length} beats: first ${beatDescList}.
-Transition naturally between beats mid-speech. Fill the full ${combinedDuration}-second video.
-The person talks the entire time, no dead air. Casual Indonesian.
-Output ONLY the script text.`;
+Write a short spoken dialog covering ${allBeats.length} beats in one natural flow. Maximum 25-30 words total (this is still only ${combinedDuration} seconds of video). 2-3 sentences max. Do NOT write more — the person speaks at normal pace, not rushing.
+Beats: first ${beatDescList}.
+Previous frame's dialog was: '${prevDialog}'.
+Casual Indonesian. Output ONLY the script text.`;
         contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
       } else {
         const duration = frames[idx]?.model === "grok" ? 10 : 8;
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
-Write 2-3 sentences of natural spoken dialog for the '${beat.label}' part of a '${template?.label}' video.
-This fills a full ${duration}-second video — the person talks the entire time, no dead air.
+Write a short spoken dialog for the '${beat.label}' part. Maximum 20-25 words (about ${duration} seconds of natural speech). 2 sentences max. Do NOT write more.
 Previous frame's dialog was: '${prevDialog}'.
 This should flow naturally as the next thing the person would say. Casual Indonesian.
 Output ONLY the script text.`;
@@ -879,8 +878,9 @@ Content template: ${template?.label}`,
       if (isVeo && isCombined) {
         // Combined frames: use start + end frame images
         const startImg = frame.sourceImageUrl || storyboardImages[idx] || imgUrl;
-        const endImg = frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]] || startImg;
-        videoImageUrls = startImg !== endImg ? [startImg, endImg] : [startImg];
+        const endFrameRemoved = frame.endFrameUrl === "__none__";
+        const endImg = endFrameRemoved ? null : (frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]);
+        videoImageUrls = (endImg && startImg !== endImg) ? [startImg, endImg] : [startImg];
       } else {
         // Single frame or Grok: one image only
         videoImageUrls = [imgUrl];
@@ -1346,42 +1346,83 @@ Content template: ${template?.label}`,
 
                         <span className="text-muted-foreground/30 text-lg">→</span>
 
-                        {/* End frame — clickable to upload */}
+                        {/* End frame — clickable to upload, with remove button */}
                         <div className="text-center">
                           <p className="text-[9px] text-muted-foreground mb-1">End</p>
-                          <button
-                            className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
-                            onClick={() => {
-                              const inp = document.createElement("input");
-                              inp.type = "file";
-                              inp.accept = "image/jpeg,image/png,image/webp";
-                              inp.onchange = async (e) => {
-                                const f = (e.target as HTMLInputElement).files?.[0];
-                                if (!f) return;
-                                const preview = URL.createObjectURL(f);
-                                updateFrame(idx, { endFrameUrl: preview });
-                                const ext = f.name.split(".").pop();
-                                const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
-                                const { error } = await supabase.storage.from("product-images").upload(path, f);
-                                if (!error) {
-                                  const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                                  updateFrame(idx, { endFrameUrl: urlData.publicUrl });
-                                }
-                              };
-                              inp.click();
-                            }}
-                          >
-                            {(frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) ? (
-                              <img src={frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]} alt="End frame" className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
-                                <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
-                              </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <Upload className="h-4 w-4 text-white" />
+                          {frame.endFrameUrl === "__none__" ? (
+                            /* Removed state — show empty dashed card */
+                            <button
+                              className="relative group h-20 w-14 rounded-lg border-2 border-dashed border-white/[0.12] hover:border-primary/40 transition-colors flex flex-col items-center justify-center gap-1"
+                              onClick={() => {
+                                const inp = document.createElement("input");
+                                inp.type = "file";
+                                inp.accept = "image/jpeg,image/png,image/webp";
+                                inp.onchange = async (e) => {
+                                  const f = (e.target as HTMLInputElement).files?.[0];
+                                  if (!f) return;
+                                  const preview = URL.createObjectURL(f);
+                                  updateFrame(idx, { endFrameUrl: preview });
+                                  const ext = f.name.split(".").pop();
+                                  const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
+                                  const { error } = await supabase.storage.from("product-images").upload(path, f);
+                                  if (!error) {
+                                    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                                    updateFrame(idx, { endFrameUrl: urlData.publicUrl });
+                                  }
+                                };
+                                inp.click();
+                              }}
+                            >
+                              <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
+                              <span className="text-[7px] text-muted-foreground/40 leading-tight">Add end<br/>frame</span>
+                            </button>
+                          ) : (
+                            /* Normal state — show image with remove X */
+                            <div className="relative">
+                              <button
+                                className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
+                                onClick={() => {
+                                  const inp = document.createElement("input");
+                                  inp.type = "file";
+                                  inp.accept = "image/jpeg,image/png,image/webp";
+                                  inp.onchange = async (e) => {
+                                    const f = (e.target as HTMLInputElement).files?.[0];
+                                    if (!f) return;
+                                    const preview = URL.createObjectURL(f);
+                                    updateFrame(idx, { endFrameUrl: preview });
+                                    const ext = f.name.split(".").pop();
+                                    const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
+                                    const { error } = await supabase.storage.from("product-images").upload(path, f);
+                                    if (!error) {
+                                      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                                      updateFrame(idx, { endFrameUrl: urlData.publicUrl });
+                                    }
+                                  };
+                                  inp.click();
+                                }}
+                              >
+                                {(frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) ? (
+                                  <img src={frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]} alt="End frame" className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
+                                    <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Upload className="h-4 w-4 text-white" />
+                                </div>
+                              </button>
+                              {/* Remove end frame button */}
+                              {(frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); updateFrame(idx, { endFrameUrl: "__none__" }); }}
+                                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] z-10"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
                             </div>
-                          </button>
+                          )}
                           <p className="text-[8px] text-muted-foreground mt-0.5">F{frame.mergedFrames[frame.mergedFrames.length - 1] + 1}</p>
                           {galleryImages.length > 0 && (
                             <button
