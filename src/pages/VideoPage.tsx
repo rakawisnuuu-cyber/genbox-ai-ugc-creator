@@ -601,6 +601,8 @@ Rules:
       next[idx] = {
         ...parentFrame,
         mergedFrames: [...parentFrame.mergedFrames, targetIdx],
+        sourceImageUrl: storyboardImages[idx] || parentFrame.sourceImageUrl,
+        endFrameUrl: storyboardImages[targetIdx] || null,
         dialogue: [parentFrame.dialogue, next[targetIdx].dialogue].filter(Boolean).join(" "),
         prompt: "", // clear prompt so it regenerates with combined context
         status: "idle",
