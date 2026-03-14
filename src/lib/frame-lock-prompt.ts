@@ -3,10 +3,12 @@
  * Used by VideoPage (storyboard-driven frame-by-frame generation).
  */
 
-export type VideoModelType = "grok" | "veo_fast" | "veo_quality";
+export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 
 const MODEL_LENGTH_GUIDANCE: Record<VideoModelType, string> = {
   grok: "Write 60-100 words. Focus on ONE key action sequence. Be direct.",
+  kling_std: "Write 80-120 words. Include key action sequences and product interaction details.",
+  kling_pro: "Write 120-180 words. Include per-beat motion detail, camera movement, and product interaction.",
   veo_fast: "Write 120-180 words. Include per-beat motion detail, camera movement, and facial expressions.",
   veo_quality: "Write 180-250 words. Full cinematic detail — second-by-second actions, specific hand movements with the product, camera pans/zooms, lighting shifts, micro-expressions, and emotional arc.",
 };
