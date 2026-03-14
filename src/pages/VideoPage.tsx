@@ -863,12 +863,21 @@ Content template: ${template?.label}`,
       const beat = beats[idx];
       const duration = frame.model === "grok" ? 10 : 8;
 
-      // Build image URLs — use dual input for Veo when distinct frame image exists
+      // Build image URLs — use dual input for combined Veo frames (start + end frame)
       const isVeo = frame.model === "veo_fast" || frame.model === "veo_quality";
-      const hasDistinctFrameImage = frame.sourceImageUrl && frame.sourceImageUrl !== sourceUrl;
-      const videoImageUrls = (isVeo && hasDistinctFrameImage && sourceUrl)
-        ? [sourceUrl, frame.sourceImageUrl!]
-        : [imgUrl];
+      const isCombined = frame.mergedFrames.length > 0;
+
+      let videoImageUrls: string[];
+      if (isVeo && isCombined && storyboardImages.length > 0) {
+        // Combined frames: use first and last beat's storyboard images as start + end frame
+        const startImg = frame.sourceImageUrl || storyboardImages[idx] || imgUrl;
+        const lastMergedIdx = frame.mergedFrames[frame.mergedFrames.length - 1];
+        const endImg = storyboardImages[lastMergedIdx] || startImg;
+        videoImageUrls = startImg !== endImg ? [startImg, endImg] : [startImg];
+      } else {
+        // Single frame or Grok: one image only
+        videoImageUrls = [imgUrl];
+      }
 
       const result = await generateVideoAndWait(
         {
@@ -1277,9 +1286,24 @@ Content template: ${template?.label}`,
                         </div>
                       </div>
                     )}
+                    {/* Start + End frame preview for combined Veo frames */}
+                    {isCombined && (frame.model === "veo_fast" || frame.model === "veo_quality") && storyboardImages.length > 0 && (
+                      <div className="mt-2 flex items-center gap-3">
+                        <div className="text-center">
+                          <p className="text-[9px] text-muted-foreground mb-1">Start</p>
+                          <img src={frame.sourceImageUrl || storyboardImages[idx]} alt="Start frame" className="h-16 w-12 rounded-md object-cover border-2 border-primary/40" />
+                          <p className="text-[8px] text-muted-foreground mt-0.5">F{idx + 1}</p>
+                        </div>
+                        <span className="text-muted-foreground/30">→</span>
+                        <div className="text-center">
+                          <p className="text-[9px] text-muted-foreground mb-1">End</p>
+                          <img src={storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]] || frame.sourceImageUrl} alt="End frame" className="h-16 w-12 rounded-md object-cover border-2 border-primary/40" />
+                          <p className="text-[8px] text-muted-foreground mt-0.5">F{frame.mergedFrames[frame.mergedFrames.length - 1] + 1}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Action / Gerakan */}
                   <div>
                     <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1">Gerakan:</label>
                     <Textarea
