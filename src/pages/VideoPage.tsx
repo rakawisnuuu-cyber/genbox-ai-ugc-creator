@@ -759,7 +759,7 @@ Previous frame's dialog was: '${prevDialog}'.
 Casual Indonesian. Output ONLY the script text.`;
         contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
       } else {
-        const duration = frames[idx]?.model === "grok" ? 10 : 8;
+        const duration = frames[idx]?.duration || 8;
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
 Write a short spoken dialog for the '${beat.label}' part. Maximum 20-25 words (about ${duration} seconds of natural speech). 2 sentences max. Do NOT write more.
