@@ -702,21 +702,23 @@ Rules:
 
       if (isCombined) {
         const allBeats = [beat, ...mergedBeats];
+        const combinedDuration = allBeats.length * 8;
         const beatDescList = allBeats.map((b) => `'${b.label}' — ${b.description}`).join(", then naturally flowing into ");
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
-Write a 2-3 sentence TikTok dialog covering ${allBeats.length} story beats in sequence: first ${beatDescList}.
-The dialog should transition smoothly between all beats in one natural spoken flow.
-Keep it under 30 words total, casual Indonesian.
+Write 3-4 sentences covering all ${allBeats.length} beats: first ${beatDescList}.
+Transition naturally between beats mid-speech. Fill the full ${combinedDuration}-second video.
+The person talks the entire time, no dead air. Casual Indonesian.
 Output ONLY the script text.`;
         contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
       } else {
+        const duration = frames[idx]?.model === "grok" ? 10 : 8;
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
-Write a 1-2 sentence TikTok dialog in casual Indonesian for the '${beat.label}' part of a '${template?.label}' video.
+Write 2-3 sentences of natural spoken dialog for the '${beat.label}' part of a '${template?.label}' video.
+This fills a full ${duration}-second video — the person talks the entire time, no dead air.
 Previous frame's dialog was: '${prevDialog}'.
-This should flow naturally as the next thing the person would say.
-Keep it under 20 words, punchy and natural.
+This should flow naturally as the next thing the person would say. Casual Indonesian.
 Output ONLY the script text.`;
         contentText = `Beat: ${beat.storyRole} — ${beat.description}`;
       }
