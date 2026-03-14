@@ -1286,9 +1286,24 @@ Content template: ${template?.label}`,
                         </div>
                       </div>
                     )}
+                    {/* Start + End frame preview for combined Veo frames */}
+                    {isCombined && (frame.model === "veo_fast" || frame.model === "veo_quality") && storyboardImages.length > 0 && (
+                      <div className="mt-2 flex items-center gap-3">
+                        <div className="text-center">
+                          <p className="text-[9px] text-muted-foreground mb-1">Start</p>
+                          <img src={frame.sourceImageUrl || storyboardImages[idx]} alt="Start frame" className="h-16 w-12 rounded-md object-cover border-2 border-primary/40" />
+                          <p className="text-[8px] text-muted-foreground mt-0.5">F{idx + 1}</p>
+                        </div>
+                        <span className="text-muted-foreground/30">→</span>
+                        <div className="text-center">
+                          <p className="text-[9px] text-muted-foreground mb-1">End</p>
+                          <img src={storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]] || frame.sourceImageUrl} alt="End frame" className="h-16 w-12 rounded-md object-cover border-2 border-primary/40" />
+                          <p className="text-[8px] text-muted-foreground mt-0.5">F{frame.mergedFrames[frame.mergedFrames.length - 1] + 1}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Action / Gerakan */}
                   <div>
                     <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1">Gerakan:</label>
                     <Textarea
