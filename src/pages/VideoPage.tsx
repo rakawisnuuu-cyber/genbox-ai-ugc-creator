@@ -166,15 +166,15 @@ const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
   "Texture": () => "",
 
   // Mid roles
-  "Pain Amplification": () => "Udah capek banget sih ngerasain kayak gini terus. Setiap hari tuh struggle banget. Makanya aku cari solusinya.",
-  "Personal": () => "Jadi aku udah pake ini sekitar seminggu. Dan honestly aku mulai kerasa bedanya. Ini pengalaman jujur aku ya.",
-  "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine. Tiap hari ga pernah skip. Segampang itu pakenya.",
-  "Expectation": () => "Di packaging-nya sih bilang bisa gini gitu ya. Aku penasaran apa beneran sesuai claim-nya. Kita buktiin.",
-  "Alasan 1": () => "Alasan pertama kenapa aku suka banget. Ini tuh beda dari yang lain karena hasilnya kerasa cepet banget.",
-  "Midday": () => "Siang-siang gini tetep fresh karena tadi pagi udah pake. Ga perlu touch up sama sekali. Awet banget.",
-  "First Open": () => "Wah, packaging-nya ternyata bagus juga ya. Keliatan premium sih buat harga segini. Aku suka.",
-  "Reveal": () => "Ini nih isinya, cakep banget sih. Desainnya minimalis tapi keliatan mahal. Langsung pengen coba.",
-  "Step 1": () => "Pertama, kalian ambil secukupnya dulu ya. Ga perlu banyak-banyak, dikit aja udah cukup. Terus ratain.",
+  "Pain Amplification": () => "Capek banget ngerasain kayak gini terus. Makanya aku cari solusinya.",
+  "Personal": () => "Aku udah pake ini seminggu. Honestly mulai kerasa bedanya.",
+  "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine. Gampang banget.",
+  "Expectation": () => "Di packaging bilang bisa gini gitu. Penasaran apa beneran, kita buktiin.",
+  "Alasan 1": () => "Alasan pertama kenapa aku suka. Hasilnya kerasa cepet banget.",
+  "Midday": () => "Siang-siang gini tetep fresh. Ga perlu touch up sama sekali.",
+  "First Open": () => "Wah packaging-nya bagus juga ya. Keliatan premium buat harga segini.",
+  "Reveal": () => "Ini nih isinya, cakep banget. Desainnya minimalis tapi keliatan mahal.",
+  "Step 1": () => "Pertama ambil secukupnya dulu. Ga perlu banyak, dikit aja cukup.",
 
   // Demo / Usage roles  
   "Demo": (cat) => {
