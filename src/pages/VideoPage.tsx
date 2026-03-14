@@ -909,7 +909,7 @@ Content template: ${template?.label}`,
       }
 
       const beat = beats[idx];
-      const duration = frame.model === "grok" ? 10 : 8;
+      const duration = frame.duration || 8;
 
       // Build image URLs — use dual input for combined Veo frames (start + end frame)
       const isVeo = frame.model === "veo_fast" || frame.model === "veo_quality";
