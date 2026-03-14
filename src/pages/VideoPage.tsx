@@ -1001,7 +1001,7 @@ Content template: ${template?.label}`,
   const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.mergedInto !== null || f.status === "completed");
   const totalDuration = activeFrames.reduce((s, f) => {
     if (f.status !== "completed") return s;
-    return s + (f.model === "grok" ? 10 : 8);
+    return s + (f.duration || 8);
   }, 0);
   const actualCost = completedFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
 
