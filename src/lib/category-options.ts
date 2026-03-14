@@ -14,54 +14,83 @@ export interface RichOption {
 /* ─── ENVIRONMENTS (Indonesian Micro-Environments) ────────── */
 
 const ENV_SKINCARE: RichOption[] = [
-  { label: "Bathroom Vanity", description: "Compact Indonesian bathroom with ceramic tile walls, mirror cabinet above sink, warm indoor lighting, skincare products near sink." },
-  { label: "Morning Routine Sink", description: "Simple home bathroom sink with toothbrush holder and skincare bottles, bright daylight from small window." },
-  { label: "Bedroom Vanity", description: "Cozy Indonesian bedroom with small vanity table near window, soft natural daylight through sheer curtains." },
-  { label: "Spa Style Bathroom", description: "Minimal bathroom with stone sink, folded towels, warm lighting, skincare on small wooden tray." },
+  { label: "White Vanity Setup", description: "White vanity table with round LED mirror, skincare bottles organized in acrylic organizer, warm soft lighting, clean neutral wall behind." },
+  { label: "Bathroom Mirror", description: "Clean bathroom, large mirror, white or light tile, single shelf with neatly placed products, bright even overhead light." },
+  { label: "Bedroom Side Table", description: "Sitting on bed edge, products on white side table, morning light through blinds casting soft stripes, minimal background." },
+  { label: "Ring Light Close-Up", description: "Ring light visible in eye reflection, perfectly lit face, neutral wall behind, creator setup feel, professional UGC lighting." },
+  { label: "Night Routine Mood", description: "Dim bedroom, warm bedside lamp, candle on tray with products, soft golden ambient light, cozy intimate feel." },
+  { label: "Korean Vanity Desk", description: "Small wooden desk with standing mirror, organized product tray, warm desk lamp, pastel wall or shelf with small plants." },
+  { label: "Hotel Bathroom Luxury", description: "Marble countertop, large frameless mirror, bright white professional lighting, clean towels, upscale feel." },
+  { label: "Towel Wrap Fresh", description: "Just-showered look, towel on head, bathroom mirror behind, dewy face, bright clean lighting, authentic morning moment." },
+  { label: "Balcony Golden Glow", description: "Soft sunset backlight on balcony, skincare in hand, warm golden rim light on face, greenery bokeh behind." },
 ];
 
 const ENV_FASHION: RichOption[] = [
-  { label: "Bedroom Mirror Selfie", description: "Minimal bedroom with standing mirror, tile flooring, neutral walls, clothes rack visible in background." },
-  { label: "Closet Area", description: "Open wardrobe with hanging clothes, wooden wardrobe cabinet typical of Indonesian homes." },
-  { label: "Apartment Hallway", description: "Modern apartment hallway with neutral wall paint and warm ceiling lighting." },
-  { label: "Balcony Outfit Shot", description: "Apartment balcony with railing, potted plants, and tropical daylight." },
+  { label: "Full Mirror Bedroom", description: "Full-length standing mirror, white or cream wall, wooden floor or light tile, natural daylight from side window, clean minimal room." },
+  { label: "Closet / Wardrobe", description: "Open wardrobe visible, hanging clothes as backdrop, standing in front showing outfit, warm bedroom lighting." },
+  { label: "Ring Light OOTD", description: "Ring light on tripod, neutral wall, full body visible in phone camera setup, bright even studio-like lighting at home." },
+  { label: "Fitting Room", description: "Mall fitting room mirror, warm overhead spotlights, curtain edge visible, close and intimate framing." },
+  { label: "Kost Room Mirror", description: "Small tidy kost room, mounted mirror on door or wall, clothes rack visible, warm natural light from single window." },
+  { label: "Clean White Wall", description: "Plain white wall backdrop, soft even lighting, all focus on outfit, minimal distraction, studio look at home." },
+  { label: "Apartment Hallway", description: "Modern apartment corridor, warm recessed ceiling lights, neutral walls, clean background for walking shots." },
+  { label: "Cafe Entrance", description: "Standing outside minimalist cafe, concrete or brick wall, tropical plants, warm afternoon outdoor light." },
+  { label: "Street Style Walk", description: "Clean urban sidewalk, neutral building wall, afternoon light with soft shadows, city context." },
 ];
 
 const ENV_FOOD: RichOption[] = [
-  { label: "Kitchen Counter", description: "Indonesian kitchen with tiled backsplash, gas stove and rice cooker visible, ingredients on counter." },
-  { label: "Breakfast Table", description: "Wood dining table with coffee mug and breakfast plate, natural morning daylight." },
-  { label: "Kitchen Island", description: "Modern kitchen counter setup with food preparation items and warm pendant lighting." },
-  { label: "Snack Table", description: "Coffee table with snacks and drinks placed casually, living room background." },
+  { label: "Aesthetic Cafe Table", description: "Marble or terrazzo table, warm pendant light above, latte or glass nearby, blurred cafe interior behind." },
+  { label: "Kitchen Counter Morning", description: "Clean white kitchen counter, morning light from window, coffee maker visible, fresh and bright." },
+  { label: "Dining Table Warm", description: "Wooden dining table, warm overhead pendant, minimal table setting, cozy evening indoor mood." },
+  { label: "Bed Snacking", description: "Sitting cross-legged on bed with snack or drink, laptop nearby, blanket, casual content creator vibe, warm lamp." },
+  { label: "Desk Mukbang", description: "Product on desk, camera facing front, monitor or laptop edge visible, overhead snack review setup." },
+  { label: "Car Eating", description: "Inside car, food in hand or on lap, dashboard visible, natural daylight through windshield, casual honest review feel." },
+  { label: "Outdoor Brunch", description: "Cafe terrace table, tropical greenery, bright natural daylight, plate styled for overhead shot." },
+  { label: "Street Food Stall", description: "Standing at colorful food stall, warm tungsten night market lighting, authentic street food context." },
 ];
 
 const ENV_ELECTRONICS: RichOption[] = [
-  { label: "Creator Desk Setup", description: "Simple wooden desk with laptop open, phone tripod nearby, charging cables visible, natural daylight from window." },
-  { label: "Bedroom Work Desk", description: "Compact workspace in bedroom with laptop and minimal tech accessories." },
-  { label: "Gaming Setup", description: "Desk with gaming chair, monitor, keyboard, subtle RGB lighting." },
-  { label: "Coffee Table Review", description: "Living room coffee table with gadget placed on top, creator sitting nearby on sofa." },
+  { label: "Clean Desk Setup", description: "Minimal desk, monitor or laptop, mechanical keyboard, warm desk lamp, small plant, clean cable management." },
+  { label: "Sofa Unboxing", description: "Sitting on sofa, package on coffee table, scissors and packaging material, warm living room light." },
+  { label: "Bed Scrolling", description: "Lying or sitting on bed, device in hand, white bedding, warm side lamp, relaxed evening scroll." },
+  { label: "Ring Light Review", description: "Ring light setup, holding device to camera, neutral wall, bright even lighting, professional review look." },
+  { label: "WFH Desk", description: "Home office corner, laptop open, coffee cup, natural daylight from window, productive casual setup." },
+  { label: "Kitchen Counter Tech", description: "Standing at kitchen counter, device on counter, overhead lighting, quick casual review between activities." },
+  { label: "Car Dashboard", description: "Inside car, device on dashboard mount or in hand, steering wheel visible, natural daylight, on-the-go review." },
+  { label: "Cafe Table", description: "Laptop and device on cafe table, coffee nearby, blurred cafe background, ambient warm lighting." },
 ];
 
 const ENV_HEALTH: RichOption[] = [
-  { label: "Living Room Workout", description: "Living room with tile flooring, yoga mat near sofa, daylight from window." },
-  { label: "Home Yoga Corner", description: "Small workout space with yoga mat and dumbbells, minimal decor." },
-  { label: "Balcony Workout", description: "Apartment balcony with plants and city view, bright tropical sunlight." },
-  { label: "Home Gym Corner", description: "Compact workout corner with basic equipment, rubber mat flooring." },
+  { label: "Morning Kitchen Ritual", description: "Bright kitchen counter, glass of water and supplement, fresh morning sunlight, clean energetic start." },
+  { label: "Bathroom Mirror Morning", description: "Standing at bathroom mirror, supplement in hand, just-woke-up fresh face, bright overhead light." },
+  { label: "Bedroom Nightstand", description: "Supplement bottle on nightstand next to water, sitting on bed edge, morning light through blinds." },
+  { label: "Gym Mirror", description: "Gym mirror selfie, workout clothes, slight sweat, holding shaker or supplement, bright gym fluorescent lighting." },
+  { label: "Yoga Mat Corner", description: "Rolled yoga mat, water bottle, small plant, soft natural light from window, calm wellness corner at home." },
+  { label: "Kitchen Smoothie", description: "Kitchen counter with blender, cut fruits, supplement powder, bright overhead lighting, active morning prep." },
+  { label: "WFH Desk Supplement", description: "Office desk, supplement bottle next to laptop and water, midday work break moment." },
+  { label: "Outdoor Morning Run", description: "Jogging path with trees, golden morning light, holding supplement or water, fresh air athletic context." },
+  { label: "Balcony Sunrise", description: "Apartment balcony, early morning sky, holding supplement, city view behind, aspirational morning routine." },
 ];
 
 const ENV_HOME: RichOption[] = [
-  { label: "Couch Talk Setup", description: "Living room sofa with throw pillows and coffee table, relaxed casual environment." },
-  { label: "Bed Talk Scene", description: "Creator sitting on bed with pillows and blanket, daylight from window." },
-  { label: "Desk Chat Setup", description: "Creator sitting at desk holding product while talking to camera." },
-  { label: "Balcony Vlog Scene", description: "Creator leaning on balcony railing with plants and city view behind." },
-  { label: "Kamar Kost", description: "Small tidy Indonesian kost room with white walls, single bed, small desk, warm string lights." },
+  { label: "Minimalist Living Room", description: "Clean sofa with throw pillows, coffee table, warm afternoon light, curated but cozy." },
+  { label: "Aesthetic Bedroom", description: "White bedding, dried flowers on nightstand, warm fairy string lights, soft inviting mood." },
+  { label: "Tidy Kost Room", description: "Small room with wall shelves, organized decor, warm string lights, personal cozy space." },
+  { label: "Bathroom Shelf", description: "Organized bathroom shelf, matching containers, small plant, bright white lighting, clean transformation." },
+  { label: "Kitchen Shelf Styling", description: "Open kitchen shelving, organized containers and jars, hanging plants, warm pendant lighting." },
+  { label: "WFH Corner", description: "Home office nook, monitor and supplies, warm desk lamp, organized productive aesthetic." },
+  { label: "Teras Rumah", description: "Indonesian terrace, rattan chair, potted plants, afternoon tropical light, relaxed outdoor-indoor living." },
+  { label: "Ruang Tamu Setup", description: "Sitting on floor or sofa, product on coffee table, ring light or phone on tripod, talking-to-camera angle." },
 ];
 
 const ENV_OTHER: RichOption[] = [
-  { label: "Bathroom Vanity", description: "Compact Indonesian bathroom with ceramic tile walls, mirror cabinet above sink, warm indoor lighting." },
-  { label: "Bedroom Vanity", description: "Cozy bedroom with small vanity table near window, soft natural daylight through sheer curtains." },
-  { label: "Creator Desk Setup", description: "Simple wooden desk with laptop, phone tripod, charging cables, natural daylight." },
-  { label: "Coffee Table Review", description: "Living room coffee table with product, creator sitting nearby on sofa." },
-  { label: "Balcony Scene", description: "Apartment balcony with railing, potted plants, tropical daylight and city view." },
+  { label: "Ring Light Setup", description: "Ring light on tripod, neutral wall behind, bright even lighting, professional creator setup feel." },
+  { label: "Clean White Wall", description: "Plain white wall backdrop, soft even lighting, minimal distraction, studio look at home." },
+  { label: "Sofa Review", description: "Sitting on sofa, product on coffee table, warm living room light, relaxed casual review." },
+  { label: "Bed Casual", description: "Sitting or lying on bed, product in hand, white bedding, warm side lamp, relaxed feel." },
+  { label: "Desk Setup", description: "Minimal desk, laptop or monitor, warm desk lamp, small plant, clean organized workspace." },
+  { label: "Kitchen Counter", description: "Clean kitchen counter, overhead lighting, bright and practical, quick product review setting." },
+  { label: "Car Interior", description: "Inside car, product in hand, dashboard visible, natural daylight through windshield, on-the-go review." },
+  { label: "Cafe Table", description: "Cafe table with coffee nearby, blurred cafe background, ambient warm lighting, lifestyle feel." },
 ];
 
 const ENV_MAP: Record<ProductCategory, RichOption[]> = {
