@@ -607,8 +607,8 @@ Rules:
             const planned = parsed.frames[i];
             if (!planned) return frame;
             const hasDialog = !!planned.dialog?.trim();
-            const rec = getSmartModelRecommendation(hasDialog, beats[i]?.storyRole || "Hook", (parsed.product?.category || productCategory).toLowerCase(), false);
-            const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
+            const defaultModel: VideoModel = hasDialog ? "kling_std" : "grok";
+            const dur = MODEL_DURATIONS[defaultModel]?.[Math.min(1, MODEL_DURATIONS[defaultModel].length - 1)] || 8;
             return {
               ...frame,
               action: planned.action || frame.action,
