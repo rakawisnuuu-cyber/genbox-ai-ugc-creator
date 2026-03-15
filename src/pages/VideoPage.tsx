@@ -106,26 +106,48 @@ const MODEL_DURATIONS: Record<VideoModel, number[]> = {
   veo_quality: [8],
 };
 
-function getSmartModelRecommendation(
-  hasDialog: boolean,
-  storyRole: string,
-  productCategory?: string,
-  isCombined?: boolean,
-): { model: VideoModel; reason: string } {
-  const isFood = productCategory?.toLowerCase() === "food";
-  const isASMR = ["Texture", "Sensory", "Slow Reveal", "Serene"].includes(storyRole);
-  const isPOV = storyRole.startsWith("POV");
-
-  if (isCombined) {
-    return { model: "kling_pro", reason: "Multi-beat frame — Kling Pro supports longer duration" };
+function analyzePromptForModel(prompt: string, hasDialog: boolean): { model: VideoModel; reason: string } {
+  const lower = prompt.toLowerCase();
+  
+  // Detect complex motion indicators in the generated prompt
+  const complexMotion = /eat|chew|bite|swallow|cooking|stir|pour|running|dancing|jumping|spinning|tears? open|rips? open/i.test(lower);
+  const cameraMove = /dolly|orbit|truck|tracking|pan_left|pan_right|tilt_up|tilt_down|zoom_in|pull back|camera moves|camera shifts/i.test(lower);
+  const keyframeCount = (lower.match(/at \d+(\.\d+)?s:/g) || []).length;
+  const manyActions = keyframeCount >= 6;
+  
+  // Detect simple/static scenes
+  const isStatic = /asmr|texture close|extreme close-up|slow reveal|serene|no dialog|ambient only|no speaking/i.test(lower);
+  const noDialog = !hasDialog;
+  
+  // Detect dialog length
+  const dialogMatches = lower.match(/"[^"]+"/g) || [];
+  const totalDialogWords = dialogMatches.join(" ").split(/\s+/).length;
+  const longDialog = totalDialogWords > 15;
+  
+  // Decision: based on what the prompt actually needs
+  
+  // Complex motion or many keyframe actions → Kling Pro
+  if (complexMotion || manyActions) {
+    return { model: "kling_pro", reason: "Complex motion detected — Kling handles this with less glitching" };
   }
-  if (isFood && hasDialog) {
-    return { model: "kling_std", reason: "Food + dialog — less face glitch than Veo" };
+  
+  // Advanced camera moves → Kling Std
+  if (cameraMove) {
+    return { model: "kling_std", reason: "Camera movement detected — Kling supports dolly, orbit, tilt natively" };
   }
-  if (isASMR || isPOV || !hasDialog) {
-    return { model: "grok", reason: "Visual only — no audio needed" };
+  
+  // Static/ASMR/no dialog → Grok
+  if (isStatic || noDialog) {
+    return { model: "grok", reason: "Visual-only frame — no audio needed, Grok is cheapest" };
   }
-  return { model: "veo_fast", reason: "Dialog frame — best lip sync" };
+  
+  // Long dialog → Veo Fast (best lip sync)
+  if (longDialog) {
+    return { model: "veo_fast", reason: "Long dialog — Veo has best Indonesian lip sync" };
+  }
+  
+  // Standard scene with short dialog → Kling Std (decent lip sync, cheaper)
+  return { model: "kling_std", reason: "Standard scene — good lip sync at lower cost than Veo" };
 }
 
 /** Position-based role colors — works with any flexible storyRole string */
