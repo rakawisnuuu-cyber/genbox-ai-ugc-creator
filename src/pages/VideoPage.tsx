@@ -447,9 +447,8 @@ const VideoPage = () => {
       // Smart dialog suggestion based on story role + product category
       const defaultDialogue = getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory);
       const hasDialogue = !!defaultDialogue.trim();
-      const rec = getSmartModelRecommendation(hasDialogue, beat.storyRole, productCategory, false);
-      const defaultModel = rec.model;
-      const defaultDuration = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
+      const defaultModel: VideoModel = hasDialogue ? "kling_std" : "grok";
+      const defaultDuration = MODEL_DURATIONS[defaultModel]?.[Math.min(1, MODEL_DURATIONS[defaultModel].length - 1)] || 8;
 
       // Source image: storyboard image if available, else source image
       const frameSource = fromStoryboard && storyboardImages[i]
