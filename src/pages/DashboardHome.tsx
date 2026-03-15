@@ -51,6 +51,7 @@ const DashboardHome = () => {
   const [dailyData, setDailyData] = useState<DailyPoint[]>([]);
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
   const [showApiSetup, setShowApiSetup] = useState(false);
+  const [trialExpiresAt, setTrialExpiresAt] = useState<Date | null>(null);
 
   // Show API key setup modal if keys are missing
   useEffect(() => {
