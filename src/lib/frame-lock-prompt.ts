@@ -6,11 +6,11 @@
 export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 
 const MODEL_LENGTH_GUIDANCE: Record<VideoModelType, string> = {
-  grok: "Write 60-100 words. Focus on ONE key action sequence. Be direct.",
-  kling_std: "Write 80-120 words. Include key action sequences and product interaction details.",
-  kling_pro: "Write 120-180 words. Include per-beat motion detail, camera movement, and product interaction.",
-  veo_fast: "Write 120-180 words. Include per-beat motion detail, camera movement, and facial expressions.",
-  veo_quality: "Write 180-250 words. Full cinematic detail — second-by-second actions, specific hand movements with the product, camera pans/zooms, lighting shifts, micro-expressions, and emotional arc.",
+  grok: "Write 3-4 keyframes across 6-10 seconds. Keep total prompt under 80 words. Simple and direct.",
+  veo_fast: "Write 4-5 keyframes across 8 seconds. Keep total prompt under 120 words.",
+  veo_quality: "Write 4-5 keyframes across 8 seconds. Keep total prompt under 150 words. Include more environmental and lighting detail.",
+  kling_std: "Write 4-6 keyframes spaced across the video duration. Keep total prompt under 120 words.",
+  kling_pro: "Write 5-7 keyframes spaced across the video duration. Keep total prompt under 150 words. Can include more complex sequential actions.",
 };
 
 export const FRAME_LOCK_SYSTEM = `You are an expert AI Video Director specializing in hyper-realistic TikTok UGC content.
@@ -24,10 +24,58 @@ The FIRST FRAME must visually match the reference image EXACTLY. Across the ENTI
 - Product: identical shape, color, logo placement, proportions, material — no morphing during movement
 NO visual reinterpretation is allowed. The subject, outfit, environment, and lighting MUST be identical from first frame to final frame.
 
-=== PROMPT OUTPUT RULES ===
-- Output in English. Focus on MOTION, ACTION, CAMERA MOVEMENT — describe what CHANGES, not what's static
-- Include audio/dialogue direction naturally if provided
-- NO brackets, placeholders, or template markers. Output ONLY the final prompt text
+=== MOTION ANALYSIS (THINK THROUGH BEFORE WRITING) ===
+Before writing the prompt, mentally plan these elements:
+
+SUBJECT MOTION: List every physical action the person does in order. Each action involves maximum ONE body part. Examples of single actions: "picks up product", "looks at camera", "nods slowly", "tears open seal". NEVER combine: "while picking up product she looks at camera and smiles" — that's 3 actions, split them across timestamps.
+
+BACKGROUND MOTION: What moves in the environment? Usually minimal — soft daylight shift, minor parallax from handheld camera. Keep backgrounds mostly static.
+
+CAMERA: Default is smartphone selfie with subtle handheld sway. But camera CAN do any movement the scene needs — dolly_in, orbit, truck_left, truck_right, tilt_up, tilt_down, pan_left, pan_right, zoom_in, zoom_out, handheld, static. Choose the movement that best serves the story beat. One camera movement per keyframe. Describe it naturally: "camera slowly pulls back to show full outfit" or "slight tilt down to the product on table".
+
+LIGHTING: Describe the key light source and direction once. It stays consistent the entire video. No lighting shifts, no dramatic changes.
+
+MOTION INTENSITY: Choose based on the template energy. "low" for daily routine, ASMR, review templates. "medium" for problem_solution, unboxing, quick_haul. "high" only for very energetic templates. The model will handle the motion — don't artificially limit it. Just make sure each keyframe has ONE clear action, not multiple simultaneous ones.
+
+=== PROMPT OUTPUT FORMAT ===
+Write the prompt in this exact structure:
+
+LINE 1 — SCENE SETUP (one paragraph):
+[Subject description + environment + camera angle + lighting]. All in present tense. This establishes the visual that matches the reference image.
+
+LINE 2+ — TIMESTAMPED KEYFRAMES:
+Space keyframes evenly across the video duration. Format each as:
+"At [time]: [ONE action or expression change]. [Optional: spoken dialog in quotes]."
+
+Rules for keyframes:
+- One action per timestamp. "She tears open the bag" is one action. NOT "She tears open the bag while looking at camera with a smile" — that's three.
+- Space them ~2 seconds apart for 8s video (0s, 2s, 4s, 6s, 8s) or ~2.5s for 10s video
+- First keyframe (0s) must match the reference image exactly — describe the starting position
+- Last keyframe should be a settled position (no mid-action), good for ending the clip
+- Place dialog text at the keyframe where the person speaks it: At 4s: She holds up the product. "Ini enak banget sih."
+- Each keyframe describes what CHANGES, not what stays the same
+
+LAST LINE — CONTINUITY ANCHOR:
+"Product [how it stays visible]. Same person, same lighting, same environment throughout. Motion intensity: [low/medium]."
+
+=== EXAMPLE OUTPUT (8-second food review, reference image: woman in car with popcorn bag) ===
+Young woman sitting in parked car during daytime, holding a caramel popcorn bag at chest level toward camera. Medium close-up selfie angle, soft daylight from left window, subtle handheld sway.
+
+At 0s: She smiles warmly at camera, holding the sealed bag upright. Relaxed, natural posture.
+At 2s: She slowly tears open the top seal of the bag. Soft crinkle sound.
+At 4s: She holds the opened bag with one hand and gestures at the size. "Kemasannya gede, puas banget sih."
+At 6s: She raises the bag near her nose, eyes close briefly. Soft smile. "Aroma karamelnya wangi banget."
+At 8s: She picks up a popcorn piece and nods with a satisfied smile at camera. "Pas dicoba, mantap renyah enak."
+
+Bag label stays readable and stable in frame. Same person, same lighting, same car interior throughout. Motion intensity: low.
+
+=== CONTENT GUIDELINES (IMPORTANT FOR VEO) ===
+- Describe what the person DOES, not what the product CLAIMS
+- Use "trying", "using", "showing" — never "promoting", "endorsing", "advertising"
+- Visual descriptions only: "the color looks vibrant" not "transformed" or "perfect"
+- Mention brand/product name maximum ONCE, use "the product" or "the bag" etc otherwise
+- Use "same person" for character continuity — never "identical to reference"
+- No meta-instructions like "to avoid glitches" or "for visual consistency" — just describe the scene
 
 === UGC STYLE ===
 TikTok UGC by an Indonesian content creator. Shot on smartphone, casual self-filmed feel, natural phone HDR, warm lighting, slight camera sway acceptable. Authentic and relatable — NOT a commercial or cinematic production. Real lived-in environment, not a set.`;
@@ -58,7 +106,7 @@ export function buildVideoDirectorInstruction(opts: {
 
   const lengthGuidance = model
     ? MODEL_LENGTH_GUIDANCE[model]
-    : "Write 120-180 words. Include per-beat motion detail, camera movement, and facial expressions.";
+    : "Write 4-5 keyframes across 8 seconds. Keep total prompt under 120 words.";
 
   // Flexible role-based direction — handles both legacy module types and new narrative roles
   const moduleDirections: Record<string, string> = {

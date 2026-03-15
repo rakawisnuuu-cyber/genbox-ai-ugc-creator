@@ -73,6 +73,8 @@ interface FrameState {
   showEndGallery?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
+  suggestedModel?: VideoModel;
+  suggestedReason?: string;
 }
 
 interface GalleryImage {
@@ -104,26 +106,48 @@ const MODEL_DURATIONS: Record<VideoModel, number[]> = {
   veo_quality: [8],
 };
 
-function getSmartModelRecommendation(
-  hasDialog: boolean,
-  storyRole: string,
-  productCategory?: string,
-  isCombined?: boolean,
-): { model: VideoModel; reason: string } {
-  const isFood = productCategory?.toLowerCase() === "food";
-  const isASMR = ["Texture", "Sensory", "Slow Reveal", "Serene"].includes(storyRole);
-  const isPOV = storyRole.startsWith("POV");
-
-  if (isCombined) {
-    return { model: "kling_pro", reason: "Multi-beat frame — Kling Pro supports longer duration" };
+function analyzePromptForModel(prompt: string, hasDialog: boolean): { model: VideoModel; reason: string } {
+  const lower = prompt.toLowerCase();
+  
+  // Detect complex motion indicators in the generated prompt
+  const complexMotion = /eat|chew|bite|swallow|cooking|stir|pour|running|dancing|jumping|spinning|tears? open|rips? open/i.test(lower);
+  const cameraMove = /dolly|orbit|truck|tracking|pan_left|pan_right|tilt_up|tilt_down|zoom_in|pull back|camera moves|camera shifts/i.test(lower);
+  const keyframeCount = (lower.match(/at \d+(\.\d+)?s:/g) || []).length;
+  const manyActions = keyframeCount >= 6;
+  
+  // Detect simple/static scenes
+  const isStatic = /asmr|texture close|extreme close-up|slow reveal|serene|no dialog|ambient only|no speaking/i.test(lower);
+  const noDialog = !hasDialog;
+  
+  // Detect dialog length
+  const dialogMatches = lower.match(/"[^"]+"/g) || [];
+  const totalDialogWords = dialogMatches.join(" ").split(/\s+/).length;
+  const longDialog = totalDialogWords > 15;
+  
+  // Decision: based on what the prompt actually needs
+  
+  // Complex motion or many keyframe actions → Kling Pro
+  if (complexMotion || manyActions) {
+    return { model: "kling_pro", reason: "Complex motion detected — Kling handles this with less glitching" };
   }
-  if (isFood && hasDialog) {
-    return { model: "kling_std", reason: "Food + dialog — less face glitch than Veo" };
+  
+  // Advanced camera moves → Kling Std
+  if (cameraMove) {
+    return { model: "kling_std", reason: "Camera movement detected — Kling supports dolly, orbit, tilt natively" };
   }
-  if (isASMR || isPOV || !hasDialog) {
-    return { model: "grok", reason: "Visual only — no audio needed" };
+  
+  // Static/ASMR/no dialog → Grok
+  if (isStatic || noDialog) {
+    return { model: "grok", reason: "Visual-only frame — no audio needed, Grok is cheapest" };
   }
-  return { model: "veo_fast", reason: "Dialog frame — best lip sync" };
+  
+  // Long dialog → Veo Fast (best lip sync)
+  if (longDialog) {
+    return { model: "veo_fast", reason: "Long dialog — Veo has best Indonesian lip sync" };
+  }
+  
+  // Standard scene with short dialog → Kling Std (decent lip sync, cheaper)
+  return { model: "kling_std", reason: "Standard scene — good lip sync at lower cost than Veo" };
 }
 
 /** Position-based role colors — works with any flexible storyRole string */
@@ -423,9 +447,8 @@ const VideoPage = () => {
       // Smart dialog suggestion based on story role + product category
       const defaultDialogue = getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory);
       const hasDialogue = !!defaultDialogue.trim();
-      const rec = getSmartModelRecommendation(hasDialogue, beat.storyRole, productCategory, false);
-      const defaultModel = rec.model;
-      const defaultDuration = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
+      const defaultModel: VideoModel = hasDialogue ? "kling_std" : "grok";
+      const defaultDuration = MODEL_DURATIONS[defaultModel]?.[Math.min(1, MODEL_DURATIONS[defaultModel].length - 1)] || 8;
 
       // Source image: storyboard image if available, else source image
       const frameSource = fromStoryboard && storyboardImages[i]
@@ -584,14 +607,14 @@ Rules:
             const planned = parsed.frames[i];
             if (!planned) return frame;
             const hasDialog = !!planned.dialog?.trim();
-            const rec = getSmartModelRecommendation(hasDialog, beats[i]?.storyRole || "Hook", (parsed.product?.category || productCategory).toLowerCase(), false);
-            const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
+            const defaultModel: VideoModel = hasDialog ? "kling_std" : "grok";
+            const dur = MODEL_DURATIONS[defaultModel]?.[Math.min(1, MODEL_DURATIONS[defaultModel].length - 1)] || 8;
             return {
               ...frame,
               action: planned.action || frame.action,
               dialogue: planned.dialog || frame.dialogue,
               prompt: planned.prompt || frame.prompt,
-              model: rec.model,
+              model: defaultModel,
               duration: dur,
               actionChips: getActionChips(
                 beats[i]?.storyRole || "Hook",
@@ -865,6 +888,13 @@ Content template: ${template?.label}`,
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       if (text) {
         updateFrame(idx, { prompt: text, promptGenerating: false });
+        // Run prompt-based model recommendation
+        const rec = analyzePromptForModel(text, !!frame.dialogue?.trim());
+        if (rec.model !== frame.model) {
+          updateFrame(idx, { suggestedModel: rec.model, suggestedReason: rec.reason });
+        } else {
+          updateFrame(idx, { suggestedModel: undefined, suggestedReason: undefined });
+        }
         return text;
       }
     } catch (e: any) {
@@ -1615,8 +1645,17 @@ Content template: ${template?.label}`,
                           <button
                             key={m}
                             onClick={() => {
+                              if (m === frame.model) return;
                               const dur = MODEL_DURATIONS[m]?.[Math.min(1, MODEL_DURATIONS[m].length - 1)] || 8;
-                              updateFrame(idx, { model: m, duration: dur });
+                              updateFrame(idx, {
+                                model: m,
+                                duration: dur,
+                                prompt: "",
+                                status: "idle",
+                                videoUrl: null,
+                                suggestedModel: undefined,
+                                suggestedReason: undefined,
+                              });
                             }}
                             className={`flex-1 min-w-[100px] text-[10px] py-2 rounded-lg border text-center transition-colors ${
                               isSelected
@@ -1650,30 +1689,27 @@ Content template: ${template?.label}`,
                         ))}
                       </div>
                     )}
-                    {/* Smart model recommendation */}
-                    {(() => {
-                      const isCombinedFrame = frame.mergedFrames.length > 0;
-                      const rec = getSmartModelRecommendation(
-                        !!frame.dialogue?.trim(),
-                        beat.storyRole,
-                        productCategory,
-                        isCombinedFrame,
-                      );
-                      if (rec.model !== frame.model) {
-                        return (
-                          <button
-                            onClick={() => {
-                              const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
-                              updateFrame(idx, { model: rec.model, duration: dur });
-                            }}
-                            className="w-full mt-1.5 text-[10px] text-primary/50 hover:text-primary flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/10 hover:border-primary/20 transition-colors"
-                          >
-                            <Sparkles className="h-3 w-3" /> Suggestion: {MODEL_LABELS[rec.model].label} — {rec.reason}
-                          </button>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {/* Prompt-based model suggestion */}
+                    {frame.suggestedModel && frame.suggestedModel !== frame.model && (
+                      <button
+                        onClick={() => {
+                          const newModel = frame.suggestedModel!;
+                          const dur = MODEL_DURATIONS[newModel]?.[Math.min(1, MODEL_DURATIONS[newModel].length - 1)] || 8;
+                          updateFrame(idx, {
+                            model: newModel,
+                            duration: dur,
+                            prompt: "",
+                            status: "idle",
+                            videoUrl: null,
+                            suggestedModel: undefined,
+                            suggestedReason: undefined,
+                          });
+                        }}
+                        className="w-full mt-1.5 text-[10px] text-primary/50 hover:text-primary flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/10 hover:border-primary/20 transition-colors"
+                      >
+                        <Sparkles className="h-3 w-3" /> Switch to {MODEL_LABELS[frame.suggestedModel!].label}? {frame.suggestedReason}
+                      </button>
+                    )}
                   </div>
 
                   {/* Generate / Result */}
