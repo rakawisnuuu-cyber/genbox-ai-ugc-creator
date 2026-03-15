@@ -888,6 +888,13 @@ Content template: ${template?.label}`,
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       if (text) {
         updateFrame(idx, { prompt: text, promptGenerating: false });
+        // Run prompt-based model recommendation
+        const rec = analyzePromptForModel(text, !!frame.dialogue?.trim());
+        if (rec.model !== frame.model) {
+          updateFrame(idx, { suggestedModel: rec.model, suggestedReason: rec.reason });
+        } else {
+          updateFrame(idx, { suggestedModel: undefined, suggestedReason: undefined });
+        }
         return text;
       }
     } catch (e: any) {
