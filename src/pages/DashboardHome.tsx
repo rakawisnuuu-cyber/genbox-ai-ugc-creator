@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight, LayoutGrid, BarChart3, Clock } from "lucide-react";
+import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight, LayoutGrid, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -51,7 +51,6 @@ const DashboardHome = () => {
   const [dailyData, setDailyData] = useState<DailyPoint[]>([]);
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
   const [showApiSetup, setShowApiSetup] = useState(false);
-  const [trialExpiresAt, setTrialExpiresAt] = useState<Date | null>(null);
 
   // Show API key setup modal if keys are missing
   useEffect(() => {
@@ -65,21 +64,6 @@ const DashboardHome = () => {
 
   const firstName = user?.email?.split("@")[0] || "User";
   const now = new Date();
-
-  // Fetch trial expiry
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("profiles")
-      .select("trial_expires_at")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.trial_expires_at) {
-          setTrialExpiresAt(new Date(data.trial_expires_at));
-        }
-      });
-  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -151,27 +135,6 @@ const DashboardHome = () => {
     <div className="space-y-6">
       {/* API Key Setup Modal */}
       <ApiKeySetupModal open={showApiSetup} onClose={() => setShowApiSetup(false)} />
-
-      {/* Trial banner */}
-      {trialExpiresAt && (() => {
-        const daysLeft = Math.max(0, Math.ceil((trialExpiresAt.getTime() - Date.now()) / 86400000));
-        const isUrgent = daysLeft <= 2;
-        return (
-          <div className={`rounded-xl px-4 py-2.5 border text-[12px] flex items-center gap-2 animate-fade-up ${
-            isUrgent
-              ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"
-              : "bg-primary/5 border-primary/20 text-primary"
-          }`}>
-            <Clock className="h-3.5 w-3.5 shrink-0" />
-            <span className="font-medium">Early Access</span>
-            <span className="text-muted-foreground/60">—</span>
-            <span>{daysLeft > 0 ? `${daysLeft} hari tersisa` : "Berakhir hari ini"}</span>
-            <span className="text-muted-foreground/40 ml-auto text-[10px]">
-              Expires {trialExpiresAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-            </span>
-          </div>
-        );
-      })()}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
         <div>
           <h1 className="font-satoshi text-2xl font-bold text-foreground">
