@@ -222,6 +222,12 @@ Vary camera distance: some tight (30 cm), some medium (80 cm), some wide (1.2 m)
 TikTok UGC by an Indonesian content creator. Shot on smartphone, casual self-filmed feel, natural phone HDR, warm lighting, slight handheld sway.
 Authentic and relatable — NOT a commercial or cinematic production. Real lived-in environment, not a set.
 
+=== NO TEXT IN VIDEO ===
+The generated video must NOT contain any text, watermarks, subtitles, captions, labels, or on-screen graphics.
+Do NOT render product label text, brand names, step numbers, or any written words in the video.
+If the product has a label, show it as a visual element but do NOT attempt to render readable text on it.
+Add this to every prompt: "No text overlay, no captions, no watermarks, no on-screen text, no subtitles."
+
 === GLOBAL CONSISTENCY (APPLIED ACROSS ALL FRAMES) ===
 Always end every prompt with:
 "Single continuous shot. Same person. Same environment. Product remains stable and unchanged."`;
