@@ -1638,8 +1638,17 @@ Content template: ${template?.label}`,
                           <button
                             key={m}
                             onClick={() => {
+                              if (m === frame.model) return;
                               const dur = MODEL_DURATIONS[m]?.[Math.min(1, MODEL_DURATIONS[m].length - 1)] || 8;
-                              updateFrame(idx, { model: m, duration: dur });
+                              updateFrame(idx, {
+                                model: m,
+                                duration: dur,
+                                prompt: "",
+                                status: "idle",
+                                videoUrl: null,
+                                suggestedModel: undefined,
+                                suggestedReason: undefined,
+                              });
                             }}
                             className={`flex-1 min-w-[100px] text-[10px] py-2 rounded-lg border text-center transition-colors ${
                               isSelected
