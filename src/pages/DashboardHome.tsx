@@ -151,6 +151,27 @@ const DashboardHome = () => {
     <div className="space-y-6">
       {/* API Key Setup Modal */}
       <ApiKeySetupModal open={showApiSetup} onClose={() => setShowApiSetup(false)} />
+
+      {/* Trial banner */}
+      {trialExpiresAt && (() => {
+        const daysLeft = Math.max(0, Math.ceil((trialExpiresAt.getTime() - Date.now()) / 86400000));
+        const isUrgent = daysLeft <= 2;
+        return (
+          <div className={`rounded-xl px-4 py-2.5 border text-[12px] flex items-center gap-2 animate-fade-up ${
+            isUrgent
+              ? "bg-yellow-500/10 border-yellow-500/20 text-yellow-400"
+              : "bg-primary/5 border-primary/20 text-primary"
+          }`}>
+            <Clock className="h-3.5 w-3.5 shrink-0" />
+            <span className="font-medium">Early Access</span>
+            <span className="text-muted-foreground/60">—</span>
+            <span>{daysLeft > 0 ? `${daysLeft} hari tersisa` : "Berakhir hari ini"}</span>
+            <span className="text-muted-foreground/40 ml-auto text-[10px]">
+              Expires {trialExpiresAt.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+            </span>
+          </div>
+        );
+      })()}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
         <div>
           <h1 className="font-satoshi text-2xl font-bold text-foreground">
