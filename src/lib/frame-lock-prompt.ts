@@ -5,15 +5,6 @@
 
 export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 
-const MODEL_LENGTH_GUIDANCE: Record<VideoModelType, string> = {
-  grok: "Write 60-100 words. Focus on ONE key action sequence. Be direct.",
-  kling_std: "Write 80-120 words. Include key action sequences and product interaction details.",
-  kling_pro: "Write 120-180 words. Include per-beat motion detail, camera movement, and product interaction.",
-  veo_fast: "Write 120-180 words. Include per-beat motion detail, camera movement, and facial expressions.",
-  veo_quality:
-    "Write 180-250 words. Full cinematic detail — second-by-second actions, specific hand movements with the product, camera pans/zooms, lighting shifts, micro-expressions, and emotional arc.",
-};
-
 export const FRAME_LOCK_SYSTEM = `You are an expert AI Video Director specializing in hyper-realistic TikTok UGC content.
 
 === VISUAL CONSISTENCY (MANDATORY — ZERO TOLERANCE) ===
@@ -81,10 +72,6 @@ export function buildVideoDirectorInstruction(opts: {
     model,
     environmentDescription,
   } = opts;
-
-  const lengthGuidance = model
-    ? MODEL_LENGTH_GUIDANCE[model]
-    : "Write 120-180 words. Include per-beat motion detail, camera movement, and facial expressions.";
 
   // Flexible role-based direction — handles both legacy module types and new narrative roles
   const moduleDirections: Record<string, string> = {
@@ -254,8 +241,8 @@ DO NOT reinterpret or "refresh" any visual element.`
 
   return `${FRAME_LOCK_SYSTEM}
 
-=== PROMPT LENGTH ===
-${lengthGuidance}
+=== PROMPT QUALITY ===
+Write the best possible cinematic video prompt. Space keyframes evenly across the video duration (~2s apart). Focus on vivid, specific visual details — subject action, camera movement, lighting, mood, environment. Be detailed but avoid filler words.
 
 === SHOT CONTEXT ===
 Shot #${shotIndex + 1} of ${totalShots}. Duration: ${duration}s.
