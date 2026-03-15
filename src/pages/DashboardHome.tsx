@@ -66,6 +66,21 @@ const DashboardHome = () => {
   const firstName = user?.email?.split("@")[0] || "User";
   const now = new Date();
 
+  // Fetch trial expiry
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("trial_expires_at")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.trial_expires_at) {
+          setTrialExpiresAt(new Date(data.trial_expires_at));
+        }
+      });
+  }, [user]);
+
   useEffect(() => {
     if (!user) return;
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
