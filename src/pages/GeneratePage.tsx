@@ -11,13 +11,7 @@ import {
   type ProductDNA,
   type ProductCategory,
 } from "@/lib/product-dna";
-import {
-  getEnvironments,
-  getPoses,
-  getMoods,
-  findOption,
-  type RichOption,
-} from "@/lib/category-options";
+import { getEnvironments, getPoses, getMoods, findOption, type RichOption } from "@/lib/category-options";
 import { CONTENT_TEMPLATES, isRecommendedForCategory, type ContentTemplateKey } from "@/lib/content-templates";
 import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
 import {
@@ -74,13 +68,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { CharacterData } from "@/components/CharacterCard";
 
-
 /* ── GENBOX Realism Blocks ──────────────────────────────────── */
-const SKIN_BLOCK = "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
-const QUALITY_BLOCK = "High resolution photo, shot on smartphone camera, photographic realism, natural shallow depth of field, natural color grading with warm daylight tint, realistic contrast, slight natural grain. Looks like a real content creator's photo, not a studio shot.";
-const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter, no perfectly symmetrical rooms, no impossibly clean environments, no plastic-looking surfaces, no floating objects without shadows, no uniform flat lighting across entire scene, no AI-typical repeated patterns on walls or floors, no sterile empty rooms, no professional studio lighting setup, no editorial fashion photography, no stock photo composition.";
-const ENV_REALISM_BLOCK = "Environment must look like a REAL lived-in space photographed with a phone or mirrorless camera. Include subtle signs of real life: a phone charger on a nightstand, a half-drunk glass of water, slightly wrinkled bedsheet corner, a book left open, shoes by the door, a bag on a chair. Background should have natural depth of field — slightly soft/blurred behind the subject, not everything in razor-sharp focus. Walls should have subtle natural texture variation, not perfectly flat rendered surfaces. Lighting should have natural falloff — brighter near windows, gradually darker in corners. No unnaturally symmetrical rooms, no impossibly clean surfaces, no repeated tile patterns, no plastic-looking materials, no floating furniture, no missing shadows.";
-const UGC_STYLE_BLOCK = "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
+const SKIN_BLOCK =
+  "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
+const QUALITY_BLOCK =
+  "High resolution photo, shot on smartphone camera, photographic realism, natural shallow depth of field, natural color grading with warm daylight tint, realistic contrast, slight natural grain. Looks like a real content creator's photo, not a studio shot.";
+const NEGATIVE_BLOCK =
+  "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter, no perfectly symmetrical rooms, no impossibly clean environments, no plastic-looking surfaces, no floating objects without shadows, no uniform flat lighting across entire scene, no AI-typical repeated patterns on walls or floors, no sterile empty rooms, no professional studio lighting setup, no editorial fashion photography, no stock photo composition.";
+const ENV_REALISM_BLOCK =
+  "Environment must look like a REAL lived-in space photographed with a phone or mirrorless camera. Include subtle signs of real life: a phone charger on a nightstand, a half-drunk glass of water, slightly wrinkled bedsheet corner, a book left open, shoes by the door, a bag on a chair. Background should have natural depth of field — slightly soft/blurred behind the subject, not everything in razor-sharp focus. Walls should have subtle natural texture variation, not perfectly flat rendered surfaces. Lighting should have natural falloff — brighter near windows, gradually darker in corners. No unnaturally symmetrical rooms, no impossibly clean surfaces, no repeated tile patterns, no plastic-looking materials, no floating furniture, no missing shadows.";
+const UGC_STYLE_BLOCK =
+  "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
 
 import { imageUrlToBase64, fileToBase64 } from "@/lib/image-utils";
 
@@ -299,7 +297,7 @@ const GeneratePage = () => {
               reference_images: d.reference_images ?? undefined,
               identity_prompt: d.identity_prompt ?? undefined,
               reference_photo_url: d.reference_photo_url ?? undefined,
-            }))
+            })),
           );
         }
       });
@@ -380,23 +378,30 @@ const GeneratePage = () => {
       if (!geminiKey || keys.gemini.status !== "valid") throw new Error("No Gemini key");
       const base64 = await fileToBase64(file);
       const json = await geminiFetch(promptModel, geminiKey!, {
-        contents: [{
-          parts: [
-            { inlineData: { mimeType: file.type || "image/jpeg", data: base64 } },
-            { text: `Analyze this person's photo for a UGC character profile. Return JSON only:
+        contents: [
+          {
+            parts: [
+              { inlineData: { mimeType: file.type || "image/jpeg", data: base64 } },
+              {
+                text: `Analyze this person's photo for a UGC character profile. Return JSON only:
 {
   "name": "Short descriptive name based on their look, e.g. 'Hijab Modern', 'Cowok Casual', 'Ibu Muda' (2-3 words max, Indonesian)",
   "gender": "Pria or Wanita",
   "age_range": "estimated age range like 20-25",
   "style": "one word style descriptor like Modern, Casual, Sporty, Elegant",
   "identity_prompt": "Detailed description of this EXACT person: ethnicity, skin tone, face shape, eye shape, nose, lips, hair style/color/length, any distinctive features. Be very specific so AI can recreate this exact person."
-}` },
-          ],
-        }],
+}`,
+              },
+            ],
+          },
+        ],
         generationConfig: { responseMimeType: "application/json" },
       });
       const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const cleaned = rawText
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "")
+        .trim();
       const parsed = JSON.parse(cleaned);
       charData = {
         id: "__own_photo__",
@@ -440,7 +445,10 @@ const GeneratePage = () => {
       const base64 = await fileToBase64(file);
       const dna = await detectProductDNA(base64, promptModel, geminiKey!);
       setProductDNA(dna);
-      toast({ title: `Produk terdeteksi: ${dna.category}/${dna.sub_category}`, description: dna.product_description.slice(0, 80) });
+      toast({
+        title: `Produk terdeteksi: ${dna.category}/${dna.sub_category}`,
+        description: dna.product_description.slice(0, 80),
+      });
     } catch (err: any) {
       console.error("DNA detection failed:", err);
     } finally {
@@ -491,7 +499,11 @@ const GeneratePage = () => {
   /* ── Prompt Generation via Gemini (Category-Aware) ───────── */
   const generatePrompt = async () => {
     if (!geminiKey || keys.gemini.status !== "valid") {
-      toast({ title: "Gemini API key belum di-setup", description: "Buka Settings untuk setup API key.", variant: "destructive" });
+      toast({
+        title: "Gemini API key belum di-setup",
+        description: "Buka Settings untuk setup API key.",
+        variant: "destructive",
+      });
       return;
     }
     if (!selectedChar) {
@@ -501,7 +513,7 @@ const GeneratePage = () => {
     setGeneratingPrompt(true);
     try {
       const envOption = findOption(envOptions, background);
-      const bgRich = background === "Custom" ? customBg : (envOption?.description || background);
+      const bgRich = background === "Custom" ? customBg : envOption?.description || background;
       const poseOption = findOption(poseOptions, pose);
       const poseRich = poseOption?.description || pose;
       const moodOption = findOption(moodOptions, mood);
@@ -520,7 +532,9 @@ const GeneratePage = () => {
         try {
           const charBase64 = await imageUrlToBase64(selectedChar.hero_image_url);
           parts.push({ inlineData: { mimeType: "image/jpeg", data: charBase64 } });
-          parts.push({ text: "This is the CHARACTER reference image. Describe this EXACT person's appearance in your prompt — their face, skin tone, hair, body type, ethnicity, and any distinctive features. The final prompt MUST recreate this exact person." });
+          parts.push({
+            text: "This is the CHARACTER reference image. Describe this EXACT person's appearance in your prompt — their face, skin tone, hair, body type, ethnicity, and any distinctive features. The final prompt MUST recreate this exact person.",
+          });
         } catch (e) {
           console.warn("Failed to convert character hero image to base64:", e);
         }
@@ -529,7 +543,9 @@ const GeneratePage = () => {
         try {
           const refBase64 = await imageUrlToBase64(selectedChar.reference_photo_url);
           parts.push({ inlineData: { mimeType: "image/jpeg", data: refBase64 } });
-          parts.push({ text: "This is an additional CHARACTER reference photo. Use it together with the previous image to accurately describe this person." });
+          parts.push({
+            text: "This is an additional CHARACTER reference photo. Use it together with the previous image to accurately describe this person.",
+          });
         } catch (e) {
           console.warn("Failed to convert character reference photo to base64:", e);
         }
@@ -608,7 +624,10 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
         throw new Error(`Empty response from Gemini${finishReason ? ` (${finishReason})` : ""}`);
       }
       try {
-        const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+        const cleaned = rawText
+          .replace(/```json\s*/g, "")
+          .replace(/```\s*/g, "")
+          .trim();
         const parsed = JSON.parse(cleaned);
         const enhancedPrompt = `${parsed.final_prompt}\n\n${NEGATIVE_BLOCK}`;
         setPrompt(enhancedPrompt);
@@ -622,8 +641,12 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
           product_placement: parsed.product_placement || "",
         });
 
-        if (productDNA && parsed.product_description && parsed.product_description.length > (productDNA.product_description?.length || 0)) {
-          setProductDNA((prev) => prev ? { ...prev, product_description: parsed.product_description } : prev);
+        if (
+          productDNA &&
+          parsed.product_description &&
+          parsed.product_description.length > (productDNA.product_description?.length || 0)
+        ) {
+          setProductDNA((prev) => (prev ? { ...prev, product_description: parsed.product_description } : prev));
         }
       } catch {
         setPrompt(rawText.trim());
@@ -649,11 +672,19 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
   const generate = async () => {
     if (!kieApiKey || keys.kie_ai.status !== "valid") {
-      toast({ title: "Kie AI API key belum di-setup", description: "Buka Settings untuk setup API key.", variant: "destructive" });
+      toast({
+        title: "Kie AI API key belum di-setup",
+        description: "Buka Settings untuk setup API key.",
+        variant: "destructive",
+      });
       return;
     }
     if (!geminiKey || keys.gemini.status !== "valid") {
-      toast({ title: "Gemini API key belum di-setup", description: "Buka Settings untuk setup API key.", variant: "destructive" });
+      toast({
+        title: "Gemini API key belum di-setup",
+        description: "Buka Settings untuk setup API key.",
+        variant: "destructive",
+      });
       return;
     }
     if (!productUrl || !selectedChar || !prompt.trim()) return;
@@ -670,12 +701,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
       if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
       if (productUrl) imageInputs.push(productUrl);
 
-      const imageUrl = await generateKieImage(
-        kieApiKey,
-        prompt,
-        imageInputs,
-        () => abortRef.current,
-      );
+      const imageUrl = await generateKieImage(kieApiKey, prompt, imageInputs, () => abortRef.current);
       stopTimer();
       setResultUrl(imageUrl);
       setGenState("completed");
@@ -735,23 +761,31 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
           const charBase64 = await imageUrlToBase64(charRefUrl);
           geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: charBase64 } });
           geminiParts.push({ text: "CHARACTER REFERENCE — recreate this EXACT person in all frames." });
-        } catch (e) { console.warn("Failed char image b64", e); }
+        } catch (e) {
+          console.warn("Failed char image b64", e);
+        }
       }
 
       try {
         const productBase64 = await imageUrlToBase64(productUrl!);
         geminiParts.push({ inlineData: { mimeType: "image/jpeg", data: productBase64 } });
         geminiParts.push({ text: "PRODUCT REFERENCE — match this exact product." });
-      } catch (e) { console.warn("Failed product image b64", e); }
+      } catch (e) {
+        console.warn("Failed product image b64", e);
+      }
 
       const envOption = findOption(envOptions, background);
-      const bgRich = background === "Custom" ? customBg : (envOption?.description || background || "not specified");
+      const bgRich = background === "Custom" ? customBg : envOption?.description || background || "not specified";
 
-      const beatsDesc = beats.map((b, i) =>
-        `Frame ${i + 1}: [${b.storyRole}] "${b.label}" — ${b.description}${b.constraints?.noProductUsage ? " (⚠️ NO product usage shown yet)" : ""}`
-      ).join("\n");
+      const beatsDesc = beats
+        .map(
+          (b, i) =>
+            `Frame ${i + 1}: [${b.storyRole}] "${b.label}" — ${b.description}${b.constraints?.noProductUsage ? " (⚠️ NO product usage shown yet)" : ""}`,
+        )
+        .join("\n");
 
-      geminiParts.push({ text: `You are a UGC storyboard prompt expert. Generate ${beats.length} image prompts for a TikTok UGC storyboard.
+      geminiParts.push({
+        text: `You are a UGC storyboard prompt expert. Generate ${beats.length} image prompts for a TikTok UGC storyboard.
 
 Template: "${templateObj?.label || storyboardTemplate}"
 Character: ${selectedChar!.name} — ${characterIdentity}
@@ -770,11 +804,27 @@ RULES:
 - No cartoon, no CGI, no 3D render, no watermark
 - Prompts should be 80-150 words each
 - Add "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no watermark, no text overlay." at the end of each prompt
+CAMERA DIVERSITY — each frame MUST use a different camera setup:
+- Frame 1: Selfie close-up (30-40 cm from face). Product at edge of frame or on table.
+- Frame 2: Medium tabletop shot (80 cm away) OR product close-up. Product centered, hands introducing it.
+- Frame 3: POV or over-shoulder angle. Hands actively interacting with product. Face secondary.
+- Frame 4: Reaction close-up or side profile. Product in hand near face. Expression is the focus.
+- Frame 5: Medium hero shot. Product held toward camera. Confident presenting energy.
+
+PRODUCT JOURNEY across frames:
+Frame 1 → product barely visible or on table
+Frame 2 → product picked up, in hand
+Frame 3 → product being used/opened/applied
+Frame 4 → product near face, post-use reaction
+Frame 5 → product held toward camera, label visible
+
+NEVER generate 5 frames with the same selfie angle. Each frame must look like a DIFFERENT moment from a real TikTok video.
 
 Return a JSON array of ${beats.length} prompt strings. Example:
 ["prompt for frame 1", "prompt for frame 2", ...]
 
-Output ONLY the JSON array. No explanation.` });
+Output ONLY the JSON array. No explanation.`,
+      });
 
       const genConfig: Record<string, any> = {};
       if (promptModel !== "gemini-3.1-pro-preview") {
@@ -787,7 +837,10 @@ Output ONLY the JSON array. No explanation.` });
       });
 
       const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const cleaned = rawText
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "")
+        .trim();
       const parsed = JSON.parse(cleaned);
 
       if (!Array.isArray(parsed) || parsed.length < beats.length) {
@@ -797,7 +850,10 @@ Output ONLY the JSON array. No explanation.` });
       const prompts = parsed.slice(0, beats.length).map((p: any) => String(p));
       setGeneratedPrompts(prompts);
       setShotStatuses(prompts.map((p: string) => ({ state: "prompt_ready" as const, prompt: p })));
-      toast({ title: "Prompts siap!", description: `${prompts.length} prompt berhasil di-generate. Review & edit, lalu Generate.` });
+      toast({
+        title: "Prompts siap!",
+        description: `${prompts.length} prompt berhasil di-generate. Review & edit, lalu Generate.`,
+      });
       prevTemplateRef.current = storyboardTemplate;
     } catch (err: any) {
       console.error("Generate prompts error:", err);
@@ -835,12 +891,7 @@ Output ONLY the JSON array. No explanation.` });
         if (frame0Url) imageInputs.unshift(frame0Url);
       }
 
-      const imageUrl = await generateKieImage(
-        kieApiKey,
-        currentPrompt,
-        imageInputs,
-        () => storyboardAbortRef.current,
-      );
+      const imageUrl = await generateKieImage(kieApiKey, currentPrompt, imageInputs, () => storyboardAbortRef.current);
 
       setShotStatuses((prev) => {
         const next = [...prev];
@@ -925,7 +976,12 @@ Output ONLY the JSON array. No explanation.` });
   const completedShots = shotStatuses.filter((s) => s.state === "completed").length;
   const failedShots = shotStatuses.filter((s) => s.state === "failed").length;
   const totalShots = shotStatuses.length;
-  const storyboardDone = totalShots > 0 && !storyboardActive && !promptsLoading && completedShots > 0 && (completedShots + failedShots === totalShots);
+  const storyboardDone =
+    totalShots > 0 &&
+    !storyboardActive &&
+    !promptsLoading &&
+    completedShots > 0 &&
+    completedShots + failedShots === totalShots;
   const currentBeats = storyboardTemplate ? getStoryboardBeats(storyboardTemplate) : [];
 
   /* ── helpers for step indicators ──────────────────────────── */
@@ -937,12 +993,14 @@ Output ONLY the JSON array. No explanation.` });
     return false;
   };
 
-  
-
   const StepLabel = ({ num, label }: { num: number; label: string }) => (
     <div className="flex items-center gap-3 mb-3">
-      <div className={`flex items-center gap-2 border-l-[3px] pl-3 py-0.5 ${stepDone(num) ? "border-primary" : "border-white/[0.06]"}`}>
-        <span className={`text-[10px] font-mono font-bold ${stepDone(num) ? "text-primary" : "text-muted-foreground/25"}`}>
+      <div
+        className={`flex items-center gap-2 border-l-[3px] pl-3 py-0.5 ${stepDone(num) ? "border-primary" : "border-white/[0.06]"}`}
+      >
+        <span
+          className={`text-[10px] font-mono font-bold ${stepDone(num) ? "text-primary" : "text-muted-foreground/25"}`}
+        >
           {String(num).padStart(2, "0")}
         </span>
         <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30">{label}</span>
@@ -953,7 +1011,6 @@ Output ONLY the JSON array. No explanation.` });
   /* ── Render ───────────────────────────────────────────────── */
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100dvh-48px)] lg:min-h-[calc(100dvh-0px)] -mx-4 -my-4 lg:-mx-6 lg:-my-8">
-
       {/* LEFT PANEL */}
       <div className="w-full lg:w-[55%] overflow-y-auto px-4 lg:px-6 py-6 lg:py-8 space-y-6">
         {/* Header */}
@@ -969,7 +1026,11 @@ Output ONLY the JSON array. No explanation.` });
             <div className="border border-white/[0.06] rounded-2xl bg-white/[0.02] p-4 space-y-3">
               <div className="flex items-start gap-4">
                 <div className="relative shrink-0">
-                  <img src={productPreview} alt="Product" className="h-24 w-24 rounded-xl object-cover border border-white/[0.06]" />
+                  <img
+                    src={productPreview}
+                    alt="Product"
+                    className="h-24 w-24 rounded-xl object-cover border border-white/[0.06]"
+                  />
                   <button
                     onClick={removeProduct}
                     className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
@@ -997,7 +1058,7 @@ Output ONLY the JSON array. No explanation.` });
                         <Select
                           value={productDNA.category}
                           onValueChange={(val) =>
-                            setProductDNA((prev) => prev ? { ...prev, category: val as ProductCategory } : prev)
+                            setProductDNA((prev) => (prev ? { ...prev, category: val as ProductCategory } : prev))
                           }
                         >
                           <SelectTrigger className="h-7 w-auto min-w-[120px] text-xs bg-primary/10 border-primary/20 text-primary font-semibold px-2.5">
@@ -1025,11 +1086,15 @@ Output ONLY the JSON array. No explanation.` });
                           onClick={() => setDnaExpanded(!dnaExpanded)}
                           className="ml-auto text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors"
                         >
-                          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${dnaExpanded ? "rotate-180" : ""}`} />
+                          <ChevronDown
+                            className={`h-3.5 w-3.5 transition-transform ${dnaExpanded ? "rotate-180" : ""}`}
+                          />
                         </button>
                       </div>
                       {productDNA.product_description && (
-                        <p className="text-[13px] text-foreground line-clamp-1 mt-1.5">{productDNA.product_description}</p>
+                        <p className="text-[13px] text-foreground line-clamp-1 mt-1.5">
+                          {productDNA.product_description}
+                        </p>
                       )}
 
                       {/* Expanded detail grid */}
@@ -1038,7 +1103,9 @@ Output ONLY the JSON array. No explanation.` });
                           <div className="grid grid-cols-2 gap-3">
                             {productDNA.material && (
                               <div>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">Material</p>
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">
+                                  Material
+                                </p>
                                 <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.material}</p>
                               </div>
                             )}
@@ -1050,13 +1117,17 @@ Output ONLY the JSON array. No explanation.` });
                             )}
                             {productDNA.key_features && (
                               <div>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">Key Features</p>
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">
+                                  Key Features
+                                </p>
                                 <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.key_features}</p>
                               </div>
                             )}
                             {productDNA.usage_type && (
                               <div>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">Usage Type</p>
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">
+                                  Usage Type
+                                </p>
                                 <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.usage_type}</p>
                               </div>
                             )}
@@ -1074,9 +1145,17 @@ Output ONLY the JSON array. No explanation.` });
             </div>
           ) : (
             <div
-              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add("!border-primary/30"); }}
-              onDragLeave={(e) => { e.currentTarget.classList.remove("!border-primary/30"); }}
-              onDrop={(e) => { e.currentTarget.classList.remove("!border-primary/30"); onDrop(e); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.add("!border-primary/30");
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.classList.remove("!border-primary/30");
+              }}
+              onDrop={(e) => {
+                e.currentTarget.classList.remove("!border-primary/30");
+                onDrop(e);
+              }}
               onClick={() => {
                 const inp = document.createElement("input");
                 inp.type = "file";
@@ -1164,7 +1243,11 @@ Output ONLY the JSON array. No explanation.` });
           {selectedChar && (
             <div className="flex items-center gap-3 border border-white/[0.06] rounded-xl bg-white/[0.02] p-3 mb-2">
               {selectedChar.hero_image_url ? (
-                <img src={selectedChar.hero_image_url} alt={selectedChar.name} className="h-9 w-9 rounded-full object-cover shrink-0" />
+                <img
+                  src={selectedChar.hero_image_url}
+                  alt={selectedChar.name}
+                  className="h-9 w-9 rounded-full object-cover shrink-0"
+                />
               ) : (
                 <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
                   <UserCircle className="h-4 w-4 text-muted-foreground" />
@@ -1197,7 +1280,11 @@ Output ONLY the JSON array. No explanation.` });
                     <SelectItem key={c.id} value={c.id}>
                       <span className="flex items-center gap-2">
                         {c.hero_image_url ? (
-                          <img src={c.hero_image_url} alt={c.name} className="h-5 w-5 rounded-full object-cover shrink-0" />
+                          <img
+                            src={c.hero_image_url}
+                            alt={c.name}
+                            className="h-5 w-5 rounded-full object-cover shrink-0"
+                          />
                         ) : (
                           <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                         )}
@@ -1213,7 +1300,11 @@ Output ONLY the JSON array. No explanation.` });
                       <SelectItem key={c.id} value={c.id}>
                         <span className="flex items-center gap-2">
                           {c.hero_image_url ? (
-                            <img src={c.hero_image_url} alt={c.name} className="h-6 w-6 rounded-full object-cover shrink-0" />
+                            <img
+                              src={c.hero_image_url}
+                              alt={c.name}
+                              className="h-6 w-6 rounded-full object-cover shrink-0"
+                            />
                           ) : (
                             <UserCircle className="h-4 w-4 text-primary shrink-0" />
                           )}
@@ -1246,42 +1337,51 @@ Output ONLY the JSON array. No explanation.` });
                 return aRec - bRec;
               })
               .map((t, ti) => {
-              const isSelected = storyboardTemplate === t.key;
-              const isRecommended = productDNA?.category ? isRecommendedForCategory(t, productDNA.category) : false;
-              const accentColors = ["bg-blue-500", "bg-amber-500", "bg-emerald-500", "bg-rose-500", "bg-violet-500", "bg-cyan-500"];
-              const accent = accentColors[ti % accentColors.length];
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => {
-                    if (hasPrompts && t.key !== storyboardTemplate) {
-                      pendingTemplateRef.current = t.key;
-                      setTemplateChangeOpen(true);
-                    } else {
-                      setStoryboardTemplate(t.key);
-                    }
-                  }}
-                  className={`relative text-left rounded-xl overflow-visible transition-all flex ${
-                    isSelected
-                      ? "bg-primary/[0.04] border border-primary/30"
-                      : isRecommended
-                        ? "bg-primary/[0.03] border border-primary/20 hover:border-primary/30"
-                        : "bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12]"
-                  }`}
-                >
-                  {isRecommended && !isSelected && (
-                    <span className="absolute -top-2 -right-2 text-[8px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold z-10">
-                      Recommended
-                    </span>
-                  )}
-                  <div className={`w-[2px] shrink-0 ${isSelected ? "bg-primary" : accent + "/30"}`} />
-                  <div className="px-3 py-2.5">
-                    <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{t.label}</p>
-                    <p className="text-[10px] text-muted-foreground/40 line-clamp-1">{t.desc}</p>
-                  </div>
-                </button>
-              );
-            })}
+                const isSelected = storyboardTemplate === t.key;
+                const isRecommended = productDNA?.category ? isRecommendedForCategory(t, productDNA.category) : false;
+                const accentColors = [
+                  "bg-blue-500",
+                  "bg-amber-500",
+                  "bg-emerald-500",
+                  "bg-rose-500",
+                  "bg-violet-500",
+                  "bg-cyan-500",
+                ];
+                const accent = accentColors[ti % accentColors.length];
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => {
+                      if (hasPrompts && t.key !== storyboardTemplate) {
+                        pendingTemplateRef.current = t.key;
+                        setTemplateChangeOpen(true);
+                      } else {
+                        setStoryboardTemplate(t.key);
+                      }
+                    }}
+                    className={`relative text-left rounded-xl overflow-visible transition-all flex ${
+                      isSelected
+                        ? "bg-primary/[0.04] border border-primary/30"
+                        : isRecommended
+                          ? "bg-primary/[0.03] border border-primary/20 hover:border-primary/30"
+                          : "bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12]"
+                    }`}
+                  >
+                    {isRecommended && !isSelected && (
+                      <span className="absolute -top-2 -right-2 text-[8px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold z-10">
+                        Recommended
+                      </span>
+                    )}
+                    <div className={`w-[2px] shrink-0 ${isSelected ? "bg-primary" : accent + "/30"}`} />
+                    <div className="px-3 py-2.5">
+                      <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>
+                        {t.label}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground/40 line-clamp-1">{t.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
           </div>
         </div>
 
@@ -1291,15 +1391,23 @@ Output ONLY the JSON array. No explanation.` });
           <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-4">
             {/* Environment — top level */}
             <div>
-              <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">Background / Environment</label>
+              <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">
+                Background / Environment
+              </label>
               <Select value={background} onValueChange={setBackground}>
-                <SelectTrigger className="bg-white/[0.03] border-white/[0.06]"><SelectValue placeholder="Pilih environment..." /></SelectTrigger>
+                <SelectTrigger className="bg-white/[0.03] border-white/[0.06]">
+                  <SelectValue placeholder="Pilih environment..." />
+                </SelectTrigger>
                 <SelectContent>
                   {envOptions.map((opt) => (
                     <SelectItem key={opt.label} value={opt.label}>
                       <div className="flex flex-col">
                         <span>{opt.label}</span>
-                        {opt.description && <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>}
+                        {opt.description && (
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">
+                            {opt.description.slice(0, 55)}…
+                          </span>
+                        )}
                       </div>
                     </SelectItem>
                   ))}
@@ -1326,17 +1434,25 @@ Output ONLY the JSON array. No explanation.` });
               </button>
               {advancedOpen && (
                 <div className="mt-3 bg-white/[0.02] rounded-xl p-4 border border-white/[0.04] space-y-4">
-                  <p className="text-[10px] text-muted-foreground/25">Optional — storyboard beats handle pose per frame</p>
+                  <p className="text-[10px] text-muted-foreground/25">
+                    Optional — storyboard beats handle pose per frame
+                  </p>
                   <div>
-                    <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">Pose</label>
+                    <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">
+                      Pose
+                    </label>
                     <Select value={pose} onValueChange={setPose}>
-                      <SelectTrigger className="bg-white/[0.03] border-white/[0.06]"><SelectValue placeholder="Pilih pose..." /></SelectTrigger>
+                      <SelectTrigger className="bg-white/[0.03] border-white/[0.06]">
+                        <SelectValue placeholder="Pilih pose..." />
+                      </SelectTrigger>
                       <SelectContent>
                         {poseOptions.map((opt) => (
                           <SelectItem key={opt.label} value={opt.label}>
                             <div className="flex flex-col">
                               <span>{opt.label}</span>
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">
+                                {opt.description.slice(0, 55)}…
+                              </span>
                             </div>
                           </SelectItem>
                         ))}
@@ -1344,15 +1460,21 @@ Output ONLY the JSON array. No explanation.` });
                     </Select>
                   </div>
                   <div>
-                    <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">Mood</label>
+                    <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">
+                      Mood
+                    </label>
                     <Select value={mood} onValueChange={setMood}>
-                      <SelectTrigger className="bg-white/[0.03] border-white/[0.06]"><SelectValue placeholder="Pilih mood..." /></SelectTrigger>
+                      <SelectTrigger className="bg-white/[0.03] border-white/[0.06]">
+                        <SelectValue placeholder="Pilih mood..." />
+                      </SelectTrigger>
                       <SelectContent>
                         {moodOptions.map((opt) => (
                           <SelectItem key={opt.label} value={opt.label}>
                             <div className="flex flex-col">
                               <span>{opt.label}</span>
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">{opt.description.slice(0, 55)}…</span>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">
+                                {opt.description.slice(0, 55)}…
+                              </span>
                             </div>
                           </SelectItem>
                         ))}
@@ -1371,7 +1493,9 @@ Output ONLY the JSON array. No explanation.` });
             <div className="flex items-start gap-2 bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 mb-4">
               <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <p className="text-xs text-muted-foreground/40">Step 1: Generate prompts, review & edit. Step 2: Generate gambar per frame.</p>
+                <p className="text-xs text-muted-foreground/40">
+                  Step 1: Generate prompts, review & edit. Step 2: Generate gambar per frame.
+                </p>
               </div>
             </div>
           )}
@@ -1388,7 +1512,6 @@ Output ONLY the JSON array. No explanation.` });
 
       {/* RIGHT PANEL */}
       <div className="w-full lg:w-[45%] bg-white/[0.015] border-t lg:border-t-0 lg:border-l border-white/[0.04] flex flex-col items-start justify-start p-6 lg:p-8 min-h-[400px] lg:min-h-0 overflow-y-auto">
-
         {/* State A: Empty — no prompts yet */}
         {!hasPrompts && !promptsLoading && (
           <div className="flex flex-col items-center text-center w-full animate-fade-in mt-12">
@@ -1402,7 +1525,9 @@ Output ONLY the JSON array. No explanation.` });
             <p className="text-[11px] text-muted-foreground/20 mt-1">Upload product & select character to begin</p>
             {storyboardTemplate && (
               <div className="mt-6 w-full">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/20 font-medium mb-3 text-left">Preview Beats — {CONTENT_TEMPLATES.find(t => t.key === storyboardTemplate)?.label}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/20 font-medium mb-3 text-left">
+                  Preview Beats — {CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate)?.label}
+                </p>
                 <div className="space-y-0">
                   {currentBeats.map((beat, i) => {
                     const roleColor = getStoryRoleColor(beat.storyRole, i);
@@ -1412,17 +1537,19 @@ Output ONLY the JSON array. No explanation.` });
                       <div key={i} className="flex gap-3 items-start">
                         {/* Left: number circle + connector */}
                         <div className="flex flex-col items-center shrink-0">
-                          <div className={`w-7 h-7 rounded-lg ${bgClass} border border-current/10 flex items-center justify-center`}>
+                          <div
+                            className={`w-7 h-7 rounded-lg ${bgClass} border border-current/10 flex items-center justify-center`}
+                          >
                             <span className={`text-[11px] font-bold ${textClass}`}>{i + 1}</span>
                           </div>
-                          {i < currentBeats.length - 1 && (
-                            <div className="w-px h-6 bg-border/40 mx-auto" />
-                          )}
+                          {i < currentBeats.length - 1 && <div className="w-px h-6 bg-border/40 mx-auto" />}
                         </div>
                         {/* Right: role pill + label + description */}
                         <div className="pb-4 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${bgClass} ${textClass}`}>
+                            <span
+                              className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${bgClass} ${textClass}`}
+                            >
                               {beat.storyRole}
                             </span>
                             <span className="text-[13px] font-medium text-foreground">{beat.label}</span>
@@ -1443,7 +1570,9 @@ Output ONLY the JSON array. No explanation.` });
           <div className="flex flex-col items-center text-center w-full animate-fade-in mt-16">
             <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
             <p className="text-sm text-muted-foreground/40">Generating prompts...</p>
-            <p className="text-xs text-muted-foreground/20 mt-1">Gemini sedang membuat {currentBeats.length} prompt untuk storyboard</p>
+            <p className="text-xs text-muted-foreground/20 mt-1">
+              Gemini sedang membuat {currentBeats.length} prompt untuk storyboard
+            </p>
           </div>
         )}
 
@@ -1455,11 +1584,22 @@ Output ONLY the JSON array. No explanation.` });
               <p className="text-xs font-semibold text-foreground">
                 {storyboardDone ? (
                   <span className="flex items-center gap-1.5">
-                    <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px]">{completedShots} selesai</span>
-                    {failedShots > 0 && <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px]">{failedShots} gagal</span>}
+                    <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px]">
+                      {completedShots} selesai
+                    </span>
+                    {failedShots > 0 && (
+                      <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px]">
+                        {failedShots} gagal
+                      </span>
+                    )}
                   </span>
                 ) : storyboardActive ? (
-                  <>Generating... <span className="text-primary">({completedShots}/{totalShots})</span></>
+                  <>
+                    Generating...{" "}
+                    <span className="text-primary">
+                      ({completedShots}/{totalShots})
+                    </span>
+                  </>
                 ) : (
                   <>Review & Edit Prompts ({generatedPrompts.length} beats)</>
                 )}
@@ -1470,7 +1610,9 @@ Output ONLY the JSON array. No explanation.` });
                     <span className="text-[10px] text-muted-foreground font-mono">
                       {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
                     </span>
-                    <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">Cancel</button>
+                    <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">
+                      Cancel
+                    </button>
                   </>
                 )}
                 {!storyboardActive && !completedShots && (
@@ -1498,27 +1640,30 @@ Output ONLY the JSON array. No explanation.` });
                 const leftBarColor = isFailed
                   ? "bg-red-500"
                   : isCompleted
-                  ? "bg-emerald-500"
-                  : isGeneratingFrame
-                  ? "bg-primary"
-                  : (() => {
-                      const roleColors: Record<string, string> = {
-                        hook: "bg-amber-500",
-                        problem: "bg-rose-500",
-                        demo: "bg-blue-500",
-                        "social-proof": "bg-violet-500",
-                        result: "bg-emerald-500",
-                        cta: "bg-cyan-500",
-                        before: "bg-orange-500",
-                        after: "bg-green-500",
-                        benefit: "bg-sky-500",
-                        lifestyle: "bg-pink-500",
-                      };
-                      return roleColors[beat?.storyRole || ""] || "bg-muted-foreground/20";
-                    })();
+                    ? "bg-emerald-500"
+                    : isGeneratingFrame
+                      ? "bg-primary"
+                      : (() => {
+                          const roleColors: Record<string, string> = {
+                            hook: "bg-amber-500",
+                            problem: "bg-rose-500",
+                            demo: "bg-blue-500",
+                            "social-proof": "bg-violet-500",
+                            result: "bg-emerald-500",
+                            cta: "bg-cyan-500",
+                            before: "bg-orange-500",
+                            after: "bg-green-500",
+                            benefit: "bg-sky-500",
+                            lifestyle: "bg-pink-500",
+                          };
+                          return roleColors[beat?.storyRole || ""] || "bg-muted-foreground/20";
+                        })();
 
                 return (
-                  <div key={i} className="flex overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02] transition-all">
+                  <div
+                    key={i}
+                    className="flex overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02] transition-all"
+                  >
                     {/* Colored left bar */}
                     <div className={`w-[3px] shrink-0 rounded-l-xl ${leftBarColor}`} />
 
@@ -1528,16 +1673,33 @@ Output ONLY the JSON array. No explanation.` });
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-bold text-muted-foreground/30">#{i + 1}</span>
                           {beat && (
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}
+                            >
                               {beat.storyRole}
                             </span>
                           )}
-                          <span className="text-[10px] text-foreground font-medium">{beat?.label || `Frame ${i + 1}`}</span>
+                          <span className="text-[10px] text-foreground font-medium">
+                            {beat?.label || `Frame ${i + 1}`}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          {isCompleted && <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Done</span>}
-                          {isFailed && <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Failed</span>}
-                          {isGeneratingFrame && <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-medium flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Generating</span>}
+                          {isCompleted && (
+                            <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px] font-medium">
+                              Done
+                            </span>
+                          )}
+                          {isFailed && (
+                            <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px] font-medium">
+                              Failed
+                            </span>
+                          )}
+                          {isGeneratingFrame && (
+                            <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-medium flex items-center gap-1">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Generating
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1546,8 +1708,18 @@ Output ONLY the JSON array. No explanation.` });
                         {/* Completed image thumbnail on left */}
                         {isCompleted && shot.imageUrl && (
                           <div className="shrink-0">
-                            <img src={shot.imageUrl} alt={beat?.label} className="h-16 w-12 rounded-lg object-cover border border-white/[0.06]" />
-                            <a href={shot.imageUrl} download target="_blank" rel="noopener noreferrer" className="text-[8px] text-primary hover:underline flex items-center gap-0.5 mt-1 justify-center">
+                            <img
+                              src={shot.imageUrl}
+                              alt={beat?.label}
+                              className="h-16 w-12 rounded-lg object-cover border border-white/[0.06]"
+                            />
+                            <a
+                              href={shot.imageUrl}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[8px] text-primary hover:underline flex items-center gap-0.5 mt-1 justify-center"
+                            >
                               <Download className="h-2.5 w-2.5" /> Save
                             </a>
                           </div>
@@ -1580,9 +1752,7 @@ Output ONLY the JSON array. No explanation.` });
                             {isCompleted ? <RefreshCw className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
                             {isCompleted ? "Regenerate" : "Generate frame"}
                           </button>
-                          {isFailed && shot.error && (
-                            <span className="text-[9px] text-red-400">{shot.error}</span>
-                          )}
+                          {isFailed && shot.error && <span className="text-[9px] text-red-400">{shot.error}</span>}
                         </div>
                       )}
                     </div>
@@ -1616,11 +1786,13 @@ Output ONLY the JSON array. No explanation.` });
                   className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5"
                 >
                   <Play className="h-3.5 w-3.5" />
-                  {`Continue to Video · ${completedShots} frame${completedShots > 1 ? 's' : ''}`} <ArrowRight className="h-3.5 w-3.5" />
+                  {`Continue to Video · ${completedShots} frame${completedShots > 1 ? "s" : ""}`}{" "}
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </button>
                 {totalShots - completedShots > 0 && (
                   <p className="text-[11px] text-muted-foreground/30 text-center">
-                    {totalShots - completedShots} frame{totalShots - completedShots > 1 ? 's' : ''} skipped — you can generate them later
+                    {totalShots - completedShots} frame{totalShots - completedShots > 1 ? "s" : ""} skipped — you can
+                    generate them later
                   </p>
                 )}
                 <button
@@ -1651,18 +1823,22 @@ Output ONLY the JSON array. No explanation.` });
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              pendingTemplateRef.current = null;
-            }}>
+            <AlertDialogCancel
+              onClick={() => {
+                pendingTemplateRef.current = null;
+              }}
+            >
               Keep current
             </AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              if (pendingTemplateRef.current) {
-                setStoryboardTemplate(pendingTemplateRef.current);
-                pendingTemplateRef.current = null;
-              }
-              setRegenAfterTemplateChange((c) => c + 1);
-            }}>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingTemplateRef.current) {
+                  setStoryboardTemplate(pendingTemplateRef.current);
+                  pendingTemplateRef.current = null;
+                }
+                setRegenAfterTemplateChange((c) => c + 1);
+              }}
+            >
               Regenerate
             </AlertDialogAction>
           </AlertDialogFooter>
