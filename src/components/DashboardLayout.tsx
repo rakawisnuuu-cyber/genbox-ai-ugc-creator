@@ -45,12 +45,12 @@ const navGroups: NavGroup[] = [
     label: "VIDEO",
     items: [{ title: "Buat Video", icon: Film, path: "/video" }],
   },
-  {
-    label: "TOOLS",
-    items: [
-      // { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
-    ],
-  },
+  // {
+  //   label: "TOOLS",
+  //   items: [
+  //     // { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
+  //   ],
+  // },
   {
     label: "ADMIN",
     items: [{ title: "Admin", icon: Shield, path: "/admin" }],
