@@ -73,6 +73,8 @@ interface FrameState {
   showEndGallery?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
+  suggestedModel?: VideoModel;
+  suggestedReason?: string;
 }
 
 interface GalleryImage {
