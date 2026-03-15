@@ -614,7 +614,7 @@ Rules:
               action: planned.action || frame.action,
               dialogue: planned.dialog || frame.dialogue,
               prompt: planned.prompt || frame.prompt,
-              model: rec.model,
+              model: defaultModel,
               duration: dur,
               actionChips: getActionChips(
                 beats[i]?.storyRole || "Hook",
