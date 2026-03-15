@@ -1673,30 +1673,27 @@ Content template: ${template?.label}`,
                         ))}
                       </div>
                     )}
-                    {/* Smart model recommendation */}
-                    {(() => {
-                      const isCombinedFrame = frame.mergedFrames.length > 0;
-                      const rec = getSmartModelRecommendation(
-                        !!frame.dialogue?.trim(),
-                        beat.storyRole,
-                        productCategory,
-                        isCombinedFrame,
-                      );
-                      if (rec.model !== frame.model) {
-                        return (
-                          <button
-                            onClick={() => {
-                              const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
-                              updateFrame(idx, { model: rec.model, duration: dur });
-                            }}
-                            className="w-full mt-1.5 text-[10px] text-primary/50 hover:text-primary flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/10 hover:border-primary/20 transition-colors"
-                          >
-                            <Sparkles className="h-3 w-3" /> Suggestion: {MODEL_LABELS[rec.model].label} — {rec.reason}
-                          </button>
-                        );
-                      }
-                      return null;
-                    })()}
+                    {/* Prompt-based model suggestion */}
+                    {frame.suggestedModel && frame.suggestedModel !== frame.model && (
+                      <button
+                        onClick={() => {
+                          const newModel = frame.suggestedModel!;
+                          const dur = MODEL_DURATIONS[newModel]?.[Math.min(1, MODEL_DURATIONS[newModel].length - 1)] || 8;
+                          updateFrame(idx, {
+                            model: newModel,
+                            duration: dur,
+                            prompt: "",
+                            status: "idle",
+                            videoUrl: null,
+                            suggestedModel: undefined,
+                            suggestedReason: undefined,
+                          });
+                        }}
+                        className="w-full mt-1.5 text-[10px] text-primary/50 hover:text-primary flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/10 hover:border-primary/20 transition-colors"
+                      >
+                        <Sparkles className="h-3 w-3" /> Switch to {MODEL_LABELS[frame.suggestedModel!].label}? {frame.suggestedReason}
+                      </button>
+                    )}
                   </div>
 
                   {/* Generate / Result */}
