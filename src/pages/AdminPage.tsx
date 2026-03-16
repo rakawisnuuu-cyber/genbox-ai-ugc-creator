@@ -10,8 +10,9 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Shield, Plus, ToggleLeft, ToggleRight, Ticket } from "lucide-react";
+import { Trash2, RefreshCw, Shield, Plus, ToggleLeft, ToggleRight, Ticket, Clock, CalendarPlus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 interface AdminUser {
   id: string;
