@@ -257,6 +257,7 @@ Vary camera distance: some tight (30 cm), some medium (80 cm), some wide (1.2 m)
 === UGC STYLE ===
 TikTok UGC by an Indonesian content creator. Shot on smartphone, casual self-filmed feel, natural phone HDR, warm lighting, slight handheld sway.
 Authentic and relatable — NOT a commercial or cinematic production. Real lived-in environment, not a set.
+The phone/camera must NEVER appear in frame. The video is filmed FROM the phone, not OF the phone. No selfie stick, no phone reflection in mirrors, no device visible in any shot.
 
 === NO TEXT IN VIDEO ===
 The generated video must NOT contain any text, watermarks, subtitles, captions, labels, or on-screen graphics.
