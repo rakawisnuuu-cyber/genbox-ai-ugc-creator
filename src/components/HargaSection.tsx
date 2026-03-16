@@ -3,22 +3,22 @@ import { Link } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 const features = [
-  "Generate gambar unlimited",
-  "Generate video unlimited",
-  "10+ karakter + kustomisasi",
-  "Output tanpa watermark",
-  "AI Prompt Generator",
-  "n8n automation blueprint",
-  "Setup guide lengkap",
-  "Update fitur selamanya",
-  "WhatsApp support group",
-];
+"Generate gambar unlimited",
+"Generate video unlimited",
+"10+ karakter + kustomisasi",
+"Output tanpa watermark",
+"AI Prompt Generator",
+"n8n automation blueprint",
+"Setup guide lengkap",
+"Update fitur selamanya",
+"WhatsApp support group"];
+
 
 const trustItems = [
-  { icon: Lock, label: "Pembayaran Aman" },
-  { icon: Zap, label: "Akses Instant" },
-  { icon: Infinity, label: "Lifetime Updates" },
-];
+{ icon: Lock, label: "Pembayaran Aman" },
+{ icon: Zap, label: "Akses Instant" },
+{ icon: Infinity, label: "Lifetime Updates" }];
+
 
 const HargaSection = () => {
   const { ref, isVisible } = useScrollReveal();
@@ -29,8 +29,8 @@ const HargaSection = () => {
         {/* Badge */}
         <div
           className={`flex justify-center mb-6 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.1s" }}
-        >
+          style={{ animationDelay: "0.1s" }}>
+          
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
             Harga
           </span>
@@ -39,22 +39,22 @@ const HargaSection = () => {
         {/* Heading */}
         <h2
           className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.2s" }}
-        >
+          style={{ animationDelay: "0.2s" }}>
+          
           Satu Kali Bayar. Selamanya Milikmu.
         </h2>
         <p
           className={`mt-4 text-center text-base text-muted-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.3s" }}
-        >
+          style={{ animationDelay: "0.3s" }}>
+          
           Tanpa langganan bulanan. Tanpa biaya tersembunyi.
         </p>
 
         {/* Pricing Card */}
         <div
           className={`mx-auto mt-14 max-w-md ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.4s" }}
-        >
+          style={{ animationDelay: "0.4s" }}>
+          
           {/* Shimmer badge */}
           <div className="mb-4 flex justify-center">
             <span className="animate-shimmer rounded-full bg-clip-text px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-transparent">
@@ -63,15 +63,15 @@ const HargaSection = () => {
           </div>
 
           <div className="rounded-3xl border-2 border-primary/50 bg-card/80 p-8 shadow-[0_0_48px_-12px_hsl(var(--primary)/0.15)] transition-shadow duration-300 hover:shadow-[0_0_60px_-8px_hsl(var(--primary)/0.25)]">
-            <p className="font-satoshi text-lg font-bold tracking-tight text-foreground">
-              BYOK Lifetime
+            <p className="font-satoshi text-lg font-bold tracking-tight text-foreground">GENBOX Lifetime
+
             </p>
 
             <p className="mt-4 text-lg text-muted-foreground/60 line-through font-satoshi font-medium">
               Rp 249.000
             </p>
-            <p className="font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">
-              Rp 149.000
+            <p className="font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">Rp 129.000
+
             </p>
             <p className="mt-2 text-sm font-bold text-primary">
               sekali bayar · akses selamanya
@@ -79,14 +79,14 @@ const HargaSection = () => {
 
             {/* Features */}
             <ul className="mt-8 space-y-3">
-              {features.map((f) => (
-                <li key={f} className="flex items-center gap-3 text-sm text-muted-foreground">
+              {features.map((f) =>
+              <li key={f} className="flex items-center gap-3 text-sm text-muted-foreground">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10">
                     <Check className="h-3 w-3 text-primary" />
                   </span>
                   {f}
                 </li>
-              ))}
+              )}
             </ul>
 
             {/* Bonus */}
@@ -104,8 +104,8 @@ const HargaSection = () => {
               <ArrowRight className="h-4 w-4" />
             </Link>
 
-            <p className="mt-4 text-center text-[11px] text-muted-foreground">
-              QRIS · GoPay · ShopeePay · Virtual Account · Kartu Kredit
+            <p className="mt-4 text-center text-[11px] text-muted-foreground">QRIS · GoPay · Virtual Account
+
             </p>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
@@ -118,18 +118,18 @@ const HargaSection = () => {
         {/* Trust row */}
         <div
           className={`mt-12 flex flex-wrap items-center justify-center gap-8 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.5s" }}
-        >
-          {trustItems.map((t) => (
-            <div key={t.label} className="flex items-center gap-2 text-sm text-muted-foreground">
+          style={{ animationDelay: "0.5s" }}>
+          
+          {trustItems.map((t) =>
+          <div key={t.label} className="flex items-center gap-2 text-sm text-muted-foreground">
               <t.icon className="h-4 w-4 text-primary" />
               {t.label}
             </div>
-          ))}
+          )}
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 };
 
 export default HargaSection;
