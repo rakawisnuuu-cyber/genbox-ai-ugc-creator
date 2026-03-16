@@ -40,6 +40,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
+            <Route path="/trial-expired" element={<TrialExpiredPage />} />
             <Route
               element={
                 <ProtectedRoute>
