@@ -9,6 +9,7 @@ import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import GalleryContent from "@/components/GalleryContent";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import ApiKeySetupModal from "@/components/ApiKeySetupModal";
+import TrialBanner from "@/components/TrialBanner";
 
 const MODEL_COST: Record<string, number> = {
   "nano-banana-pro": 1440, nano: 960, seedream: 440, grok: 1600, veo3_fast: 6400, veo3: 32000,
