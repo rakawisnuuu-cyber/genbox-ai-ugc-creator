@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { Users, Sparkles, Film, ImageIcon, Monitor, Play } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import { Monitor, Play, ImageIcon } from "lucide-react";
 
-/* ── Feature 01: Character Showcase Stack ─────────── */
+/* ── Character Showcase Stack (kept from original) ─── */
 
 const characters = [
   {
@@ -49,22 +49,20 @@ const characters = [
   },
 ];
 
-function CharacterShowcaseStack() {
+function CharacterStack() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const total = characters.length;
 
   useEffect(() => {
     if (isPaused) return;
-    const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % total);
-    }, 3000);
+    const timer = setInterval(() => setActiveIndex((prev) => (prev + 1) % total), 3000);
     return () => clearInterval(timer);
   }, [isPaused, total]);
 
   return (
     <div
-      className="relative mx-auto h-[380px] w-full max-w-[320px] cursor-pointer"
+      className="relative mx-auto h-[340px] w-full max-w-[260px] cursor-pointer"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onClick={() => setActiveIndex((prev) => (prev + 1) % total)}
@@ -73,14 +71,13 @@ function CharacterShowcaseStack() {
         let pos = i - activeIndex;
         if (pos < 0) pos += total;
         if (pos > 3) return null;
-
         return (
           <motion.div
             key={char.name}
-            className="absolute inset-x-0 mx-auto w-[280px] select-none"
+            className="absolute inset-x-0 mx-auto w-[240px] select-none"
             initial={false}
             animate={{
-              y: pos * 16,
+              y: pos * 14,
               scale: 1 - pos * 0.06,
               zIndex: total - pos,
               opacity: pos > 2 ? 0 : 1 - pos * 0.2,
@@ -89,7 +86,7 @@ function CharacterShowcaseStack() {
             transition={{ type: "spring", stiffness: 350, damping: 28, mass: 0.8 }}
           >
             <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-              <div className="relative h-[340px] overflow-hidden">
+              <div className="relative h-[300px] overflow-hidden">
                 <img
                   src={char.image}
                   alt={char.name}
@@ -97,21 +94,20 @@ function CharacterShowcaseStack() {
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                <div className="absolute right-3 top-3">
-                  <span className="rounded-md bg-black/30 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/50 backdrop-blur-sm">
+                <div className="absolute right-2 top-2">
+                  <span className="rounded bg-black/30 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/50 backdrop-blur-sm">
                     Preset
                   </span>
                 </div>
-                <div className="absolute bottom-3 left-3 right-3">
-                  <p className="font-satoshi text-sm font-bold text-white drop-shadow-md">{char.name}</p>
+                <div className="absolute bottom-2.5 left-2.5">
+                  <p className="font-satoshi text-xs font-bold text-white drop-shadow-md">{char.name}</p>
                 </div>
               </div>
             </div>
           </motion.div>
         );
       })}
-
-      <div className="absolute -bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
+      <div className="absolute -bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1">
         {characters.map((_, i) => (
           <button
             key={i}
@@ -119,7 +115,7 @@ function CharacterShowcaseStack() {
               e.stopPropagation();
               setActiveIndex(i);
             }}
-            className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? "w-5 bg-primary" : "w-1.5 bg-foreground/15"}`}
+            className={`h-1 rounded-full transition-all duration-300 ${i === activeIndex ? "w-4 bg-primary" : "w-1 bg-foreground/15"}`}
           />
         ))}
       </div>
@@ -127,65 +123,106 @@ function CharacterShowcaseStack() {
   );
 }
 
-/* ── Feature 02: Dashboard Recording Placeholder ──── */
-/* GANTI: src video dengan recording dashboard kamu nanti */
-/* Untuk sekarang pakai placeholder visual */
+/* ── Feature Module Data ──────────────────────────── */
 
-function DashboardShowcase() {
+const features = [
+  {
+    num: "FITUR 01",
+    icon: Users,
+    title: "Karakter AI Siap Pakai",
+    desc: "10+ preset karakter Indonesia — hijab, casual, profesional, Gen-Z. Atau buat custom karakter sendiri.",
+    visualType: "character-stack" as const,
+  },
+  {
+    num: "FITUR 02",
+    icon: Sparkles,
+    title: "Generate Gambar UGC",
+    desc: "Upload foto produk, pilih karakter dan pose. AI generate gambar UGC yang kelihatan kayak difoto beneran — bukan gambar AI yang obvious.",
+    visualType: "screenshot" as const,
+    /* GANTI nanti: */
+    /* screenshotSrc: "/screenshots/generate-page.png", */
+    /* atau videoSrc: "/recordings/generate-flow.mp4", */
+  },
+  {
+    num: "FITUR 03",
+    icon: Film,
+    title: "Video Siap Posting",
+    desc: "Jadikan gambar UGC jadi video 5-15 detik dengan audio sinkron. Langsung upload ke TikTok dan Instagram Reels.",
+    visualType: "video" as const,
+  },
+];
+
+/* ── Screenshot Placeholder ──────────────────────── */
+/* Replace this with real <img> or <video> nanti */
+
+function ScreenshotPlaceholder() {
   return (
-    <div className="mx-auto w-full max-w-[320px] overflow-hidden rounded-2xl border border-border/60 bg-card/80">
-      {/* Browser chrome mockup */}
-      <div className="flex items-center gap-1.5 border-b border-border/40 bg-secondary/50 px-3 py-2">
-        <div className="h-2 w-2 rounded-full bg-red-500/40" />
-        <div className="h-2 w-2 rounded-full bg-yellow-500/40" />
-        <div className="h-2 w-2 rounded-full bg-green-500/40" />
-        <div className="ml-2 flex-1 rounded bg-background/50 px-2 py-0.5 text-[8px] text-muted-foreground/40">
+    <div className="relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-card via-secondary/20 to-card">
+      {/* Browser chrome */}
+      <div className="flex items-center gap-1.5 border-b border-border/30 bg-secondary/40 px-3 py-2">
+        <div className="h-2 w-2 rounded-full bg-red-500/30" />
+        <div className="h-2 w-2 rounded-full bg-yellow-500/30" />
+        <div className="h-2 w-2 rounded-full bg-green-500/30" />
+        <div className="ml-2 flex-1 rounded bg-background/40 px-2 py-0.5 text-[8px] text-muted-foreground/30 font-mono">
           genbox.app/generate
         </div>
       </div>
-
-      {/* Placeholder — replace this div with <video> or <img> of real dashboard */}
-      <div className="relative aspect-[4/3] w-full bg-gradient-to-br from-card via-secondary/30 to-card flex flex-col items-center justify-center gap-3">
-        {/* Fake dashboard grid */}
-        <div className="w-[85%] space-y-2">
-          {/* Top bar mockup */}
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-16 rounded bg-primary/20" />
-            <div className="flex-1" />
-            <div className="h-6 w-20 rounded-md bg-primary/15 flex items-center justify-center">
-              <span className="text-[7px] font-bold text-primary">Generate</span>
-            </div>
+      {/* Fake dashboard UI */}
+      <div className="p-4 space-y-3">
+        {/* Toolbar */}
+        <div className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-primary/15 flex items-center justify-center">
+            <Sparkles size={12} className="text-primary/50" />
           </div>
-          {/* Image grid mockup */}
-          <div className="grid grid-cols-3 gap-1.5">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className={`aspect-[3/4] rounded-lg ${
-                  i < 3 ? "bg-primary/10 border border-primary/20" : "bg-muted/30 border border-border/20"
-                } flex items-center justify-center`}
-              >
-                {i < 3 && <ImageIcon size={10} className="text-primary/30" />}
+          <div className="space-y-1 flex-1">
+            <div className="h-2 w-32 rounded bg-foreground/10" />
+            <div className="h-1.5 w-20 rounded bg-muted-foreground/10" />
+          </div>
+          <div className="h-7 w-20 rounded-md bg-primary/20 flex items-center justify-center">
+            <span className="text-[8px] font-bold text-primary">Generate</span>
+          </div>
+        </div>
+        {/* Two column: settings + preview */}
+        <div className="flex gap-3">
+          {/* Left: form fields */}
+          <div className="flex-1 space-y-2">
+            {["Produk", "Karakter", "Pose", "Model"].map((label) => (
+              <div key={label} className="space-y-0.5">
+                <div className="text-[7px] text-muted-foreground/30 font-medium">{label}</div>
+                <div className="h-5 w-full rounded bg-secondary/60 border border-border/20" />
               </div>
             ))}
           </div>
-          {/* Progress bar */}
-          <div className="h-1.5 w-full rounded-full bg-muted/30 overflow-hidden">
-            <div className="h-full w-[65%] rounded-full bg-primary/40 animate-pulse" />
+          {/* Right: image preview grid */}
+          <div className="w-[45%] grid grid-cols-2 gap-1.5">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className={`aspect-[3/4] rounded-lg border flex items-center justify-center ${
+                  i === 0 ? "bg-primary/10 border-primary/30" : "bg-muted/20 border-border/20"
+                }`}
+              >
+                {i === 0 && <ImageIcon size={14} className="text-primary/30" />}
+              </div>
+            ))}
           </div>
         </div>
-
-        {/* Overlay label */}
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-1.5 rounded-lg bg-background/80 backdrop-blur-sm py-2 border border-border/40">
-          <Monitor size={12} className="text-primary" />
-          <span className="text-[10px] font-semibold text-muted-foreground">Dashboard Preview</span>
+        {/* Progress */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[7px] text-muted-foreground/30">Generating frame 3/5...</span>
+            <span className="text-[7px] text-primary/50 font-mono">60%</span>
+          </div>
+          <div className="h-1 w-full rounded-full bg-muted/20 overflow-hidden">
+            <div className="h-full w-[60%] rounded-full bg-primary/40" />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Feature 03: Real Video Preview ───────────────── */
+/* ── Video Preview (kept from original) ──────────── */
 
 function VideoPreview() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -199,8 +236,8 @@ function VideoPreview() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[320px] overflow-hidden rounded-2xl border border-border/60 bg-card/80">
-      <div className="relative aspect-[9/16] w-full">
+    <div className="relative w-full overflow-hidden rounded-xl border border-border/40 bg-card/80">
+      <div className="relative aspect-[9/16] max-h-[400px] w-full">
         <video
           ref={videoRef}
           src="https://uxrxrsdasgvygoeavozp.supabase.co/storage/v1/object/public/showcase-videos/fitur-video.mov"
@@ -216,7 +253,6 @@ function VideoPreview() {
         <button
           onClick={toggleMute}
           className="absolute bottom-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-sm border border-border/40 transition-colors hover:bg-background/90"
-          aria-label={muted ? "Unmute" : "Mute"}
         >
           {muted ? (
             <svg
@@ -257,74 +293,62 @@ function VideoPreview() {
   );
 }
 
-/* ── Feature Data ───────────────────────────────────── */
+/* ── Module Card Component ───────────────────────── */
 
-const features = [
-  {
-    num: "01",
-    title: "10+ Karakter AI Siap Pakai",
-    desc: "Pilih karakter sesuai target market kamu — hijab, casual, profesional, Gen-Z. Atau buat custom karakter sendiri.",
-    visual: <CharacterShowcaseStack />,
-    reversed: false,
-  },
-  {
-    num: "02",
-    title: "Generate Gambar UGC Realistis",
-    desc: "Upload foto produk, pilih karakter, AI generate gambar UGC yang kelihatan kayak difoto beneran pakai HP. Bukan gambar AI yang obvious.",
-    visual: <DashboardShowcase />,
-    reversed: true,
-  },
-  {
-    num: "03",
-    title: "Video Siap Posting ke TikTok",
-    desc: "Ubah gambar UGC jadi video 5-15 detik dengan audio. Langsung upload ke TikTok dan Instagram Reels.",
-    visual: <VideoPreview />,
-    reversed: false,
-  },
-];
-
-/* ── Feature Row Component ───────────────────────────── */
-
-const FeatureRow = ({
+const ModuleCard = ({
   num,
+  icon: Icon,
   title,
   desc,
-  visual,
-  reversed,
+  visualType,
   isVisible,
   delay,
 }: {
   num: string;
+  icon: typeof Users;
   title: string;
   desc: string;
-  visual: React.ReactNode;
-  reversed: boolean;
+  visualType: "character-stack" | "screenshot" | "video";
   isVisible: boolean;
   delay: number;
 }) => (
   <div
-    className={`relative py-10 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+    className={`rounded-3xl border border-border/60 bg-card/50 p-6 sm:p-8 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_48px_-12px_hsl(var(--primary)/0.1)] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
     style={{ animationDelay: `${delay}s` }}
   >
-    {/* Timeline dot */}
-    <div className="absolute left-[20px] top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 lg:left-1/2">
-      <div className="h-3.5 w-3.5 rounded-full border-2 border-primary bg-background ring-[6px] ring-primary/10" />
+    {/* Header */}
+    <div className="flex items-center gap-3 mb-2">
+      <span className="inline-flex items-center rounded-md bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
+        {num}
+      </span>
+      <Icon size={18} className="text-muted-foreground/40" />
     </div>
 
-    {/* Content */}
-    <div
-      className={`flex flex-col gap-8 pl-12 lg:flex-row lg:items-center lg:gap-12 lg:pl-0 ${reversed ? "lg:flex-row-reverse" : ""}`}
-    >
-      {/* Text side */}
-      <div className={`flex-1 ${reversed ? "lg:text-left lg:pl-12" : "lg:pr-12 lg:text-right"}`}>
-        <span className="font-mono text-[32px] font-bold leading-none text-primary/40">{num}</span>
-        <h3 className="mt-2 font-satoshi text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h3>
-        <p className="mt-2 font-body text-base text-muted-foreground">{desc}</p>
-      </div>
-      {/* Visual side */}
-      <div className={`flex-1 ${reversed ? "lg:pr-12 lg:flex lg:justify-end" : "lg:pl-12"}`}>
-        <div className="w-full max-w-sm">{visual}</div>
-      </div>
+    <h3 className="font-satoshi text-xl sm:text-2xl font-bold tracking-tight text-foreground">{title}</h3>
+    <p className="mt-2 font-body text-sm text-muted-foreground max-w-lg">{desc}</p>
+
+    {/* Visual */}
+    <div className="mt-6">
+      {visualType === "character-stack" && (
+        <div className="flex justify-center py-4">
+          <CharacterStack />
+        </div>
+      )}
+      {visualType === "screenshot" && (
+        <ScreenshotPlaceholder />
+        /* NANTI GANTI DENGAN:
+        <img src="/screenshots/generate-page.png" alt="GENBOX Dashboard" className="w-full rounded-xl border border-border/40" />
+        ATAU:
+        <video src="/recordings/generate-flow.mp4" autoPlay loop muted playsInline className="w-full rounded-xl border border-border/40" />
+        */
+      )}
+      {visualType === "video" && (
+        <div className="flex justify-center">
+          <div className="w-full max-w-[280px]">
+            <VideoPreview />
+          </div>
+        </div>
+      )}
     </div>
   </div>
 );
@@ -332,11 +356,11 @@ const FeatureRow = ({
 /* ── Section ────────────────────────────────────────── */
 
 const FiturSection = () => {
-  const { ref, isVisible } = useScrollReveal(0.15);
+  const { ref, isVisible } = useScrollReveal(0.1);
 
   return (
     <section id="fitur" ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-4xl">
         <div className="flex justify-center">
           <div
             className={`flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary ${isVisible ? "animate-fade-up" : "opacity-0"}`}
@@ -359,13 +383,10 @@ const FiturSection = () => {
           Semua yang Kamu Butuhkan untuk Konten UGC
         </h2>
 
-        {/* Timeline container */}
-        <div className="relative mt-14">
-          {/* Vertical line */}
-          <div className="absolute bottom-0 left-[20px] top-0 w-px bg-gradient-to-b from-transparent via-border/60 to-transparent lg:left-1/2 lg:-translate-x-1/2" />
-
+        {/* Module cards — stacked vertically */}
+        <div className="mt-12 space-y-6">
           {features.map((f, i) => (
-            <FeatureRow key={f.num} {...f} isVisible={isVisible} delay={0.3 + i * 0.15} />
+            <ModuleCard key={f.num} {...f} isVisible={isVisible} delay={0.3 + i * 0.15} />
           ))}
         </div>
       </div>
