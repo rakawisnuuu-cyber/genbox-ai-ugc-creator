@@ -55,16 +55,6 @@ const HeroSection = () => {
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center px-4 text-center">
         {/* Badge */}
-        <div
-          className="animate-fade-up flex items-center gap-2 rounded-full border border-primary/20 bg-primary/[0.06] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary"
-          style={{ animationDelay: "0.1s" }}
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-          </span>
-          Akses Terbatas · Undangan Saja
-        </div>
 
         {/* Headline */}
         <h1
