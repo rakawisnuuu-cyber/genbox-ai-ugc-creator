@@ -23,6 +23,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import CheckoutSuccessPage from "./pages/CheckoutSuccessPage";
 import AdminPage from "./pages/AdminPage";
 import AdminRoute from "./components/AdminRoute";
+import TrialExpiredPage from "./pages/TrialExpiredPage";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
+            <Route path="/trial-expired" element={<TrialExpiredPage />} />
             <Route
               element={
                 <ProtectedRoute>
