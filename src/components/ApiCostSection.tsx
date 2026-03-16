@@ -226,7 +226,7 @@ const simCards = [
     total: 18240,
     vs: "Lebih murah dari 1 kopi Starbucks ☕",
   },
-];
+];];
 
 const ApiCostSection = () => {
   const { ref, isVisible } = useScrollReveal();
@@ -371,7 +371,7 @@ const ApiCostSection = () => {
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
               <Lightbulb size={16} className="text-primary" />
             </span>
-            Simulasi Biaya Bulanan
+            Simulasi Biaya Harian
           </h3>
 
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
@@ -383,7 +383,7 @@ const ApiCostSection = () => {
                 <p className="mt-2 font-mono text-[11px] text-muted-foreground">{c.calc}</p>
                 <p className="mt-3 text-lg font-bold text-primary">
                   = Rp <AnimatedNumber target={c.total} visible={simVisible} />
-                  <span className="text-sm font-normal text-muted-foreground">/bulan</span>
+                  <span className="text-sm font-normal text-muted-foreground">/hari</span>
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground line-through">{c.vs}</p>
               </div>
