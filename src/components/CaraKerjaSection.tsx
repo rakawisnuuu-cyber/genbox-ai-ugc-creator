@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Upload, Users, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Upload, Users, Sparkles, Film, Download } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
 import caraKerjaUgc from "@/assets/cara-kerja-ugc-new.jpeg";
 
+/* ── Preset character thumbnails ── */
 const characterImages = [
   "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg",
   "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg",
@@ -13,8 +14,11 @@ const characterImages = [
   "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Bapak%20UMKM.jpeg",
 ];
 
+const SHOWCASE_VIDEO = "/showcase/cara-kerja-video.mp4";
+
+/* ── Step 1: Upload Visual ── */
 const StepUpload = () => (
-  <div className="relative h-[220px] rounded-2xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 overflow-hidden group">
+  <div className="relative h-full min-h-[200px] rounded-2xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 overflow-hidden group">
     <img
       src={caraKerjaProduct}
       alt="Produk"
@@ -31,10 +35,11 @@ const StepUpload = () => (
   </div>
 );
 
+/* ── Step 2: Character Visual ── */
 const StepCharacter = () => {
   const [selected, setSelected] = useState(1);
   return (
-    <div className="h-[220px] rounded-2xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 p-4 flex flex-col items-center justify-center">
+    <div className="h-full min-h-[200px] rounded-2xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 p-4 flex flex-col items-center justify-center">
       <div className="grid grid-cols-3 gap-2">
         {characterImages.map((img, i) => (
           <button
@@ -54,8 +59,57 @@ const StepCharacter = () => {
   );
 };
 
+/* ── Step 3: Storyboard Visual ── */
+const StepStoryboard = () => {
+  const beats = ["Hook", "Build", "Demo", "Proof", "CTA"];
+  const colors = [
+    "bg-red-500/20 text-red-400 border-red-500/30",
+    "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    "bg-green-500/20 text-green-400 border-green-500/30",
+    "bg-purple-500/20 text-purple-400 border-purple-500/30",
+    "bg-amber-500/20 text-amber-400 border-amber-500/30",
+  ];
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setActive((p) => (p + 1) % 5), 1200);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <div className="h-full min-h-[200px] rounded-2xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 p-4 flex flex-col items-center justify-center gap-3">
+      <div className="flex items-center gap-1">
+        {beats.map((beat, i) => (
+          <div
+            key={i}
+            className={`px-2 py-1 rounded-md text-[8px] font-bold border transition-all duration-300 ${
+              i === active ? `${colors[i]} scale-110` : "bg-muted/30 text-muted-foreground/50 border-border/30"
+            }`}
+          >
+            {beat}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className={`h-12 w-8 rounded-md border transition-all duration-500 overflow-hidden ${
+              i <= active ? "border-primary/40 bg-primary/10" : "border-border/30 bg-muted/20"
+            }`}
+          >
+            {i <= active && <img src={caraKerjaUgc} alt="" className="w-full h-full object-cover opacity-60" />}
+          </div>
+        ))}
+      </div>
+      <p className="text-[9px] text-muted-foreground">5 frame · auto-generated</p>
+    </div>
+  );
+};
+
+/* ── Step 4: Generate Image Visual ── */
 const StepGenerate = () => (
-  <div className="relative h-[220px] rounded-2xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 overflow-hidden group">
+  <div className="relative h-full min-h-[200px] rounded-2xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 overflow-hidden group">
     <img
       src={caraKerjaUgc}
       alt="Hasil UGC"
@@ -70,36 +124,126 @@ const StepGenerate = () => (
   </div>
 );
 
+/* ── Step 5: Video Visual ── */
+const StepVideo = () => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+    if (playing) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(() => {});
+    }
+    setPlaying(!playing);
+  };
+
+  return (
+    <div className="relative h-full min-h-[200px] rounded-2xl border border-primary/30 bg-gradient-to-b from-primary/5 to-card/50 overflow-hidden group">
+      <video
+        ref={videoRef}
+        src={SHOWCASE_VIDEO}
+        loop
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+      />
+      {!playing && <div className="absolute inset-0 bg-background/40" />}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <button
+          onClick={togglePlay}
+          className={`rounded-full p-3 transition-all duration-300 ${
+            playing
+              ? "bg-background/60 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+              : "bg-primary/90 shadow-xl shadow-primary/30 animate-pulse-subtle"
+          }`}
+        >
+          {playing ? (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-foreground"
+            >
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+          ) : (
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="text-primary-foreground ml-0.5"
+            >
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+          )}
+        </button>
+        {!playing && <span className="text-[10px] font-medium text-foreground/60">Tap untuk play</span>}
+      </div>
+      <div className="absolute bottom-3 left-3 right-3">
+        <div className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-2 text-[10px] font-bold tracking-wider text-primary-foreground">
+          <Download size={12} />
+          Siap Upload ke TikTok
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── Step data — matches actual GENBOX flow ── */
 const steps = [
   {
-    num: "Langkah 01",
+    num: "01",
     icon: Upload,
     title: "Upload Produk",
-    desc: "Drop foto produk. AI deteksi jenis produk otomatis.",
+    desc: "Drop foto produk. AI analisa dan deteksi jenis produk otomatis.",
     visual: <StepUpload />,
   },
   {
-    num: "Langkah 02",
+    num: "02",
     icon: Users,
     title: "Pilih Karakter",
-    desc: "10+ preset karakter Indonesia atau buat sendiri.",
+    desc: "10+ preset karakter Indonesia atau buat custom karakter sendiri.",
     visual: <StepCharacter />,
   },
   {
-    num: "Langkah 03",
+    num: "03",
+    icon: Film,
+    title: "Buat Storyboard",
+    desc: "AI generate 5-frame storyboard otomatis: Hook → Build → Demo → Proof → CTA.",
+    visual: <StepStoryboard />,
+  },
+  {
+    num: "04",
     icon: Sparkles,
-    title: "Generate & Download",
-    desc: "AI generate gambar & video UGC. Siap posting ke TikTok.",
+    title: "Generate Gambar",
+    desc: "AI generate gambar UGC realistis per-frame. Konsisten karakter di semua frame.",
     visual: <StepGenerate />,
+  },
+  {
+    num: "05",
+    icon: Download,
+    title: "Buat Video & Download",
+    desc: "Jadikan video UGC siap posting. Download untuk TikTok dan Instagram Reels.",
+    visual: <StepVideo />,
   },
 ];
 
+/* ── Main Section ── */
 const CaraKerjaSection = () => {
   const { ref, isVisible } = useScrollReveal(0.1);
 
   return (
     <section id="cara-kerja" ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         {/* Badge */}
         <div className="flex justify-center">
           <div
@@ -121,31 +265,54 @@ const CaraKerjaSection = () => {
             backgroundClip: "text",
           }}
         >
-          Dari Foto Produk ke Konten UGC
+          Dari Foto Produk ke Video UGC
         </h2>
         <p
           className={`mt-3 text-center font-body text-base text-muted-foreground sm:text-lg ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.25s" }}
         >
-          3 langkah — semua powered by AI
+          5 langkah — semua powered by AI, tanpa model, tanpa studio
         </p>
 
-        {/* Desktop: 3-column grid */}
-        <div className="mt-12 hidden md:grid md:grid-cols-3 gap-8">
-          {steps.map((step, i) => (
-            <div
-              key={step.num}
-              className={`${isVisible ? "animate-fade-up" : "opacity-0"}`}
-              style={{ animationDelay: `${0.35 + i * 0.12}s` }}
-            >
-              <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-primary/60">
-                {step.num}
-              </span>
-              <div className="mt-3">{step.visual}</div>
-              <h3 className="mt-4 font-satoshi text-base font-bold text-foreground">{step.title}</h3>
-              <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed">{step.desc}</p>
-            </div>
-          ))}
+        {/* Desktop: Row 1 (3 cols) + Row 2 (2 cols centered) */}
+        <div className="mt-12 hidden md:block">
+          {/* Row 1: steps 1-3 */}
+          <div className="grid grid-cols-3 gap-6">
+            {steps.slice(0, 3).map((step, i) => (
+              <div
+                key={step.num}
+                className={`${isVisible ? "animate-fade-up" : "opacity-0"}`}
+                style={{ animationDelay: `${0.35 + i * 0.1}s` }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-mono text-[28px] font-bold leading-none text-primary/30">{step.num}</span>
+                  <step.icon size={16} className="text-primary/60" />
+                </div>
+                {step.visual}
+                <h3 className="mt-3 font-satoshi text-sm font-bold text-foreground">{step.title}</h3>
+                <p className="mt-1 text-[12px] text-muted-foreground leading-relaxed">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Row 2: steps 4-5 centered */}
+          <div className="grid grid-cols-2 gap-6 mt-6 max-w-[66%] mx-auto">
+            {steps.slice(3).map((step, i) => (
+              <div
+                key={step.num}
+                className={`${isVisible ? "animate-fade-up" : "opacity-0"}`}
+                style={{ animationDelay: `${0.65 + i * 0.1}s` }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-mono text-[28px] font-bold leading-none text-primary/30">{step.num}</span>
+                  <step.icon size={16} className="text-primary/60" />
+                </div>
+                {step.visual}
+                <h3 className="mt-3 font-satoshi text-sm font-bold text-foreground">{step.title}</h3>
+                <p className="mt-1 text-[12px] text-muted-foreground leading-relaxed">{step.desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Mobile: Vertical timeline */}
@@ -154,17 +321,17 @@ const CaraKerjaSection = () => {
             <div
               key={step.num}
               className={`flex gap-4 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-              style={{ animationDelay: `${0.3 + i * 0.12}s` }}
+              style={{ animationDelay: `${0.3 + i * 0.1}s` }}
             >
               <div className="flex flex-col items-center shrink-0">
                 <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/15 text-primary border border-primary/30">
                   <step.icon size={18} />
                 </div>
-                {i < 2 && <div className="w-px flex-1 mt-2 bg-primary/20" />}
+                {i < 4 && <div className="w-px flex-1 mt-2 bg-primary/20" />}
               </div>
               <div className="flex-1 pb-2">
                 <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary/50">
-                  {step.num}
+                  Langkah {step.num}
                 </span>
                 <h3 className="mt-1 font-satoshi text-base font-bold text-foreground">{step.title}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">{step.desc}</p>
