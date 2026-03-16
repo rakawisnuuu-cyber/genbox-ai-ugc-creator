@@ -9,6 +9,7 @@ import HargaSection from "@/components/HargaSection";
 import ApiCostSection from "@/components/ApiCostSection";
 import FAQSection from "@/components/FAQSection";
 import FinalCTASection from "@/components/FinalCTASection";
+import FooterSection from "@/components/FooterSection";
 import TransactionPopup from "@/components/TransactionPopup";
 
 const SectionDivider = () => (
