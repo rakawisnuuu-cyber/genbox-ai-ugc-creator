@@ -1,22 +1,52 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
-import beforeProductImg from "@/assets/before-product.jpg";
-import afterUgcImg from "@/assets/after-ugc.jpeg";
+import { Monitor, Play, ImageIcon } from "lucide-react";
 
 /* ── Feature 01: Character Showcase Stack ─────────── */
 
 const characters = [
-  { name: "Hijab Casual", desc: "Wanita · 20-25 · Modern", gradient: "from-emerald-600 to-teal-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg" },
-  { name: "Urban Trendy", desc: "Pria · 22-28 · Streetwear", gradient: "from-violet-600 to-purple-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg" },
-  { name: "Ibu Muda", desc: "Wanita · 25-35 · Friendly", gradient: "from-rose-500 to-pink-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20Muda.jpeg" },
-  { name: "Gen-Z Creator", desc: "Pria/Wanita · 17-22 · Trendy", gradient: "from-cyan-500 to-sky-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Gen-Z%20Creator.jpeg" },
-  { name: "Beauty Enthusiast", desc: "Wanita · 20-30 · Glowing", gradient: "from-fuchsia-500 to-pink-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Beauty%20Enthusiast.jpeg" },
-  { name: "Bapak UMKM", desc: "Pria · 35-50 · Profesional", gradient: "from-slate-500 to-zinc-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Bapak%20UMKM.jpeg" },
-  { name: "Mahasiswa", desc: "Pria/Wanita · 18-22 · Energik", gradient: "from-amber-500 to-orange-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Mahasiswa.jpeg" },
-  { name: "Office Worker", desc: "Pria/Wanita · 25-35 · Smart Casual", gradient: "from-gray-500 to-neutral-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Office%20Worker.jpeg" },
-  { name: "Ibu PKK", desc: "Wanita · 35-50 · Ramah", gradient: "from-green-500 to-lime-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20PKK.jpeg" },
-  { name: "Cowok Gym", desc: "Pria · 22-30 · Athletic", gradient: "from-red-500 to-orange-400", image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Cowok%20Gym.jpeg" },
+  {
+    name: "Hijab Casual",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg",
+  },
+  {
+    name: "Urban Trendy",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg",
+  },
+  {
+    name: "Ibu Muda",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20Muda.jpeg",
+  },
+  {
+    name: "Gen-Z Creator",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Gen-Z%20Creator.jpeg",
+  },
+  {
+    name: "Beauty Enthusiast",
+    image:
+      "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Beauty%20Enthusiast.jpeg",
+  },
+  {
+    name: "Bapak UMKM",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Bapak%20UMKM.jpeg",
+  },
+  {
+    name: "Mahasiswa",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Mahasiswa.jpeg",
+  },
+  {
+    name: "Office Worker",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Office%20Worker.jpeg",
+  },
+  {
+    name: "Ibu PKK",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20PKK.jpeg",
+  },
+  {
+    name: "Cowok Gym",
+    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Cowok%20Gym.jpeg",
+  },
 ];
 
 function CharacterShowcaseStack() {
@@ -43,7 +73,6 @@ function CharacterShowcaseStack() {
         let pos = i - activeIndex;
         if (pos < 0) pos += total;
         if (pos > 3) return null;
-        const isTop = pos === 0;
 
         return (
           <motion.div
@@ -61,14 +90,17 @@ function CharacterShowcaseStack() {
           >
             <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
               <div className="relative h-[340px] overflow-hidden">
-                {char.image ? (
-                  <img src={char.image} alt={char.name} className="absolute inset-0 w-full h-full object-cover object-top" loading="lazy" />
-                ) : (
-                  <div className={`absolute inset-0 bg-gradient-to-br ${char.gradient}`} />
-                )}
+                <img
+                  src={char.image}
+                  alt={char.name}
+                  className="absolute inset-0 w-full h-full object-cover object-top"
+                  loading="lazy"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 <div className="absolute right-3 top-3">
-                  <span className="rounded-md bg-black/30 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/50 backdrop-blur-sm">Preset</span>
+                  <span className="rounded-md bg-black/30 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/50 backdrop-blur-sm">
+                    Preset
+                  </span>
                 </div>
                 <div className="absolute bottom-3 left-3 right-3">
                   <p className="font-satoshi text-sm font-bold text-white drop-shadow-md">{char.name}</p>
@@ -83,7 +115,10 @@ function CharacterShowcaseStack() {
         {characters.map((_, i) => (
           <button
             key={i}
-            onClick={(e) => { e.stopPropagation(); setActiveIndex(i); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveIndex(i);
+            }}
             className={`h-1.5 rounded-full transition-all duration-300 ${i === activeIndex ? "w-5 bg-primary" : "w-1.5 bg-foreground/15"}`}
           />
         ))}
@@ -92,67 +127,59 @@ function CharacterShowcaseStack() {
   );
 }
 
-/* ── Feature 02: Before/After Reveal Slider ───────── */
+/* ── Feature 02: Dashboard Recording Placeholder ──── */
+/* GANTI: src video dengan recording dashboard kamu nanti */
+/* Untuk sekarang pakai placeholder visual */
 
-function BeforeAfterReveal() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const updatePosition = useCallback((clientX: number) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    setPosition(Math.max(5, Math.min(95, (x / rect.width) * 100)));
-  }, []);
-
-  const handleMouseMove = (e: React.MouseEvent) => { if (isDragging) updatePosition(e.clientX); };
-  const handleTouchMove = (e: React.TouchEvent) => { updatePosition(e.touches[0].clientX); };
-  const stopDrag = () => setIsDragging(false);
-
+function DashboardShowcase() {
   return (
-    <div
-      ref={containerRef}
-      className="relative mx-auto aspect-[3/4] w-full max-w-[320px] cursor-ew-resize select-none overflow-hidden rounded-2xl border border-border/60"
-      onMouseMove={handleMouseMove}
-      onMouseUp={stopDrag}
-      onMouseLeave={stopDrag}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={stopDrag}
-    >
-      {/* Before — Product */}
-      <div className="absolute inset-0">
-        <img src={beforeProductImg} alt="Foto Produk" className="h-full w-full object-cover" />
-      </div>
-
-      {/* After — UGC */}
-      <div
-        className="absolute inset-0"
-        style={{ clipPath: `inset(0 0 0 ${position}%)` }}
-      >
-        <img src={afterUgcImg} alt="Hasil UGC" className="h-full w-full object-cover" />
-      </div>
-
-      {/* Divider + handle */}
-      <div className="absolute bottom-0 top-0 z-10" style={{ left: `${position}%`, transform: "translateX(-50%)" }}>
-        <div className="h-full w-[2px] bg-primary/80 shadow-[0_0_8px_hsl(var(--primary)/0.3)]" />
-        <div
-          className="absolute left-1/2 top-1/2 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full border-2 border-primary-foreground/20 bg-primary shadow-lg"
-          onMouseDown={() => setIsDragging(true)}
-          onTouchStart={() => setIsDragging(true)}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-primary-foreground">
-            <path d="M8 3l-5 9 5 9" /><path d="M16 3l5 9-5 9" />
-          </svg>
+    <div className="mx-auto w-full max-w-[320px] overflow-hidden rounded-2xl border border-border/60 bg-card/80">
+      {/* Browser chrome mockup */}
+      <div className="flex items-center gap-1.5 border-b border-border/40 bg-secondary/50 px-3 py-2">
+        <div className="h-2 w-2 rounded-full bg-red-500/40" />
+        <div className="h-2 w-2 rounded-full bg-yellow-500/40" />
+        <div className="h-2 w-2 rounded-full bg-green-500/40" />
+        <div className="ml-2 flex-1 rounded bg-background/50 px-2 py-0.5 text-[8px] text-muted-foreground/40">
+          genbox.app/generate
         </div>
       </div>
 
-      {/* Labels */}
-      <div className="absolute bottom-3 left-3 z-20">
-        <span className="rounded-md bg-background/60 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground backdrop-blur-sm">Produk</span>
-      </div>
-      <div className="absolute bottom-3 right-3 z-20">
-        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary backdrop-blur-sm">UGC</span>
+      {/* Placeholder — replace this div with <video> or <img> of real dashboard */}
+      <div className="relative aspect-[4/3] w-full bg-gradient-to-br from-card via-secondary/30 to-card flex flex-col items-center justify-center gap-3">
+        {/* Fake dashboard grid */}
+        <div className="w-[85%] space-y-2">
+          {/* Top bar mockup */}
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-16 rounded bg-primary/20" />
+            <div className="flex-1" />
+            <div className="h-6 w-20 rounded-md bg-primary/15 flex items-center justify-center">
+              <span className="text-[7px] font-bold text-primary">Generate</span>
+            </div>
+          </div>
+          {/* Image grid mockup */}
+          <div className="grid grid-cols-3 gap-1.5">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className={`aspect-[3/4] rounded-lg ${
+                  i < 3 ? "bg-primary/10 border border-primary/20" : "bg-muted/30 border border-border/20"
+                } flex items-center justify-center`}
+              >
+                {i < 3 && <ImageIcon size={10} className="text-primary/30" />}
+              </div>
+            ))}
+          </div>
+          {/* Progress bar */}
+          <div className="h-1.5 w-full rounded-full bg-muted/30 overflow-hidden">
+            <div className="h-full w-[65%] rounded-full bg-primary/40 animate-pulse" />
+          </div>
+        </div>
+
+        {/* Overlay label */}
+        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center gap-1.5 rounded-lg bg-background/80 backdrop-blur-sm py-2 border border-border/40">
+          <Monitor size={12} className="text-primary" />
+          <span className="text-[10px] font-semibold text-muted-foreground">Dashboard Preview</span>
+        </div>
       </div>
     </div>
   );
@@ -183,20 +210,42 @@ function VideoPreview() {
           muted
           playsInline
         />
-        <span className="absolute right-3 top-3 rounded-lg bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur-sm">Siap Reels</span>
+        <span className="absolute right-3 top-3 rounded-lg bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur-sm">
+          Siap Reels
+        </span>
         <button
           onClick={toggleMute}
           className="absolute bottom-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background/70 backdrop-blur-sm border border-border/40 transition-colors hover:bg-background/90"
           aria-label={muted ? "Unmute" : "Mute"}
         >
           {muted ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-muted-foreground"
+            >
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
               <line x1="23" y1="9" x2="17" y2="15" />
               <line x1="17" y1="9" x2="23" y2="15" />
             </svg>
           ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-primary"
+            >
               <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
               <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
@@ -208,104 +257,53 @@ function VideoPreview() {
   );
 }
 
-/* ── Feature 04: Animated Prompt Chat ─────────────── */
-
-const fullPrompt = "Professional UGC photo of Indonesian woman wearing modern pastel hijab, holding glass serum bottle, natural lighting, shot on iPhone...";
-
-function AnimatedPromptChat() {
-  const [typed, setTyped] = useState(0);
-  const [showResponse, setShowResponse] = useState(false);
-
-  useEffect(() => {
-    const cycle = () => {
-      setTyped(0);
-      setShowResponse(false);
-      setTimeout(() => setShowResponse(true), 1000);
-    };
-    cycle();
-    const interval = setInterval(cycle, 8000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (!showResponse || typed >= fullPrompt.length) return;
-    const timer = setTimeout(() => setTyped((p) => p + 1), 25);
-    return () => clearTimeout(timer);
-  }, [typed, showResponse]);
-
-  return (
-    <div className="mx-auto w-full max-w-[320px] rounded-2xl border border-border/60 bg-card/80 p-5">
-      <div className="mb-3 flex justify-end">
-        <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-secondary px-4 py-2.5">
-          <p className="text-[13px] text-foreground">Serum wajah, botol kaca, di meja kayu</p>
-        </div>
-      </div>
-
-      {showResponse && (
-        <div className="flex justify-start">
-          <div className="max-w-[90%] rounded-2xl rounded-bl-sm border border-border/40 bg-card px-4 py-2.5">
-            <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
-              {fullPrompt.slice(0, typed)}
-              {typed < fullPrompt.length && (
-                <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse rounded-sm bg-primary" />
-              )}
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-4 flex items-center gap-2 rounded-xl border border-border/40 bg-secondary/50 px-3.5 py-2.5">
-        <span className="flex-1 text-[12px] text-muted-foreground/40">Deskripsikan produk...</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-primary">
-          <path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" />
-        </svg>
-      </div>
-    </div>
-  );
-}
-
-/* ── Feature Row Data ───────────────────────────────── */
+/* ── Feature Data ───────────────────────────────────── */
 
 const features = [
   {
     num: "01",
-    title: "Pilih Karakter Sesuai Target Market",
-    desc: "Karakter berbeda untuk setiap niche audience kamu.",
+    title: "10+ Karakter AI Siap Pakai",
+    desc: "Pilih karakter sesuai target market kamu — hijab, casual, profesional, Gen-Z. Atau buat custom karakter sendiri.",
     visual: <CharacterShowcaseStack />,
     reversed: false,
   },
   {
     num: "02",
-    title: "Generate Gambar UGC yang Convert",
-    desc: "Upload foto produk, pilih karakter dan pose. AI langsung generate gambar UGC yang kelihatan kayak difoto beneran pakai iPhone.",
-    visual: <BeforeAfterReveal />,
+    title: "Generate Gambar UGC Realistis",
+    desc: "Upload foto produk, pilih karakter, AI generate gambar UGC yang kelihatan kayak difoto beneran pakai HP. Bukan gambar AI yang obvious.",
+    visual: <DashboardShowcase />,
     reversed: true,
   },
   {
     num: "03",
-    title: "Jadikan Video Siap Posting",
-    desc: "Ubah gambar UGC jadi video 5-15 detik. Langsung bisa upload ke TikTok dan Instagram Reels.",
+    title: "Video Siap Posting ke TikTok",
+    desc: "Ubah gambar UGC jadi video 5-15 detik dengan audio. Langsung upload ke TikTok dan Instagram Reels.",
     visual: <VideoPreview />,
     reversed: false,
   },
-  {
-    num: "04",
-    title: "AI yang Ngerti Produk Kamu",
-    desc: "Cukup deskripsikan produk pakai Bahasa Indonesia, AI otomatis bikin prompt terbaik. Gak perlu ribet belajar prompt engineering.",
-    visual: <AnimatedPromptChat />,
-    reversed: true,
-  },
 ];
 
-/* ── Feature Row Component (Timeline) ───────────────── */
+/* ── Feature Row Component ───────────────────────────── */
 
 const FeatureRow = ({
-  num, title, desc, visual, reversed, isVisible, delay,
+  num,
+  title,
+  desc,
+  visual,
+  reversed,
+  isVisible,
+  delay,
 }: {
-  num: string; title: string; desc: string; visual: React.ReactNode; reversed: boolean; isVisible: boolean; delay: number;
+  num: string;
+  title: string;
+  desc: string;
+  visual: React.ReactNode;
+  reversed: boolean;
+  isVisible: boolean;
+  delay: number;
 }) => (
   <div
-    className={`relative py-12 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+    className={`relative py-10 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
     style={{ animationDelay: `${delay}s` }}
   >
     {/* Timeline dot */}
@@ -313,11 +311,13 @@ const FeatureRow = ({
       <div className="h-3.5 w-3.5 rounded-full border-2 border-primary bg-background ring-[6px] ring-primary/10" />
     </div>
 
-    {/* Content — alternating sides on desktop */}
-    <div className={`flex flex-col gap-8 pl-12 lg:flex-row lg:items-center lg:gap-12 lg:pl-0 ${reversed ? "lg:flex-row-reverse" : ""}`}>
+    {/* Content */}
+    <div
+      className={`flex flex-col gap-8 pl-12 lg:flex-row lg:items-center lg:gap-12 lg:pl-0 ${reversed ? "lg:flex-row-reverse" : ""}`}
+    >
       {/* Text side */}
       <div className={`flex-1 ${reversed ? "lg:text-left lg:pl-12" : "lg:pr-12 lg:text-right"}`}>
-        <span className="font-mono text-[48px] font-bold leading-none text-primary">{num}</span>
+        <span className="font-mono text-[32px] font-bold leading-none text-primary/40">{num}</span>
         <h3 className="mt-2 font-satoshi text-xl font-bold tracking-tight text-foreground sm:text-2xl">{title}</h3>
         <p className="mt-2 font-body text-base text-muted-foreground">{desc}</p>
       </div>
