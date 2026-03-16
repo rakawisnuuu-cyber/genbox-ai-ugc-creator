@@ -234,6 +234,85 @@ const AdminPage = () => {
           )}
         </TabsContent>
 
+        {/* ─── TRIALS TAB ─── */}
+        <TabsContent value="trials">
+          <div className="flex justify-end mb-4">
+            <Button variant="outline" size="sm" onClick={fetchTrialUsers} disabled={trialsLoading}>
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${trialsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+
+          {trialsLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : trialUsers.length === 0 ? (
+            <p className="text-muted-foreground text-center py-20">No users found.</p>
+          ) : (
+            <div className="rounded-lg border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Signup</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[200px]">Extend</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trialUsers.map((u) => {
+                    const expired = u.trial_expires_at ? new Date() > new Date(u.trial_expires_at) : false;
+                    const daysLeft = u.trial_expires_at
+                      ? Math.ceil((new Date(u.trial_expires_at).getTime() - Date.now()) / 86400000)
+                      : null;
+                    return (
+                      <TableRow key={u.user_id} className={expired ? "opacity-60" : ""}>
+                        <TableCell className="font-medium">{u.email}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{fmt(u.created_at)}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{fmt(u.trial_expires_at)}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                            expired ? "text-destructive" : "text-primary"
+                          }`}>
+                            <Clock className="h-3 w-3" />
+                            {expired ? "Expired" : `${daysLeft}d left`}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="7"
+                              value={extendDays[u.user_id] || ""}
+                              onChange={(e) => setExtendDays((prev) => ({ ...prev, [u.user_id]: e.target.value }))}
+                              className="h-7 w-16 text-xs"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                const days = parseInt(extendDays[u.user_id] || "7") || 7;
+                                handleExtendTrial(u.user_id, days);
+                              }}
+                            >
+                              <CalendarPlus className="h-3 w-3 mr-1" />
+                              +days
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
         {/* ─── INVITE CODES TAB ─── */}
         <TabsContent value="codes">
           <div className="flex items-center gap-2 mb-4">
