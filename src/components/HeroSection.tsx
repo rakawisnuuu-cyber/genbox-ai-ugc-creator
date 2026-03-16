@@ -6,7 +6,7 @@ const DepthDeckCarousel = lazy(() => import("@/components/DepthDeckCarousel"));
 
 const trustPills = [
   { icon: Zap, label: "Setup 2 Menit" },
-  { icon: Infinity, label: "Lifetime Access" },
+  { icon: Infinity, label: "Akses Selamanya" },
   { icon: CreditCard, label: "Tanpa Langganan" },
 ];
 
@@ -63,7 +63,7 @@ const HeroSection = () => {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
           </span>
-          Early Access · Invite Only
+          Akses Terbatas · Undangan Saja
         </div>
 
         {/* Headline */}
@@ -77,7 +77,7 @@ const HeroSection = () => {
             backgroundClip: "text",
           }}
         >
-          UGC Content yang Converts
+          Konten UGC yang Converts
           <br />
           <span
             style={{
@@ -131,7 +131,7 @@ const HeroSection = () => {
         style={{ animationDelay: "0.6s" }}
       >
         <p className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/40">
-          Generated with GENBOX
+          Hasil generate dari GENBOX
         </p>
         <Suspense
           fallback={
