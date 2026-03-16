@@ -42,6 +42,11 @@ const AdminPage = () => {
   const [newCode, setNewCode] = useState("");
   const [newUses, setNewUses] = useState("");
 
+  // Trials state
+  const [trialUsers, setTrialUsers] = useState<TrialUser[]>([]);
+  const [trialsLoading, setTrialsLoading] = useState(true);
+  const [extendDays, setExtendDays] = useState<Record<string, string>>({});
+
   const fetchUsers = async () => {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("admin-users", { method: "GET" });
