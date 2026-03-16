@@ -179,6 +179,7 @@ const AdminPage = () => {
       <Tabs defaultValue="users">
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="trials">Trials</TabsTrigger>
           <TabsTrigger value="codes">Invite Codes</TabsTrigger>
         </TabsList>
 
