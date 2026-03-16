@@ -28,6 +28,13 @@ interface InviteCode {
   created_at: string;
 }
 
+interface TrialUser {
+  user_id: string;
+  email: string;
+  created_at: string;
+  trial_expires_at: string | null;
+}
+
 const AdminPage = () => {
   // Users state
   const [users, setUsers] = useState<AdminUser[]>([]);
