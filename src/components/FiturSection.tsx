@@ -216,7 +216,7 @@ function VideoPreview() {
       <div className="relative aspect-[9/16] w-full">
         <video
           ref={videoRef}
-          src="https://uxrxrsdasgvygoeavozp.supabase.co/storage/v1/object/public/showcase-videos/fitur-video.mov"
+          src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-video.mov"
           className="h-full w-full object-cover"
           autoPlay
           loop
