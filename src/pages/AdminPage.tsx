@@ -69,7 +69,50 @@ const AdminPage = () => {
     setCodesLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); fetchCodes(); }, []);
+  const fetchTrialUsers = async () => {
+    setTrialsLoading(true);
+    // Get users from edge function and profiles from DB
+    const [usersRes, profilesRes] = await Promise.all([
+      supabase.functions.invoke("admin-users", { method: "GET" }),
+      supabase.from("profiles").select("user_id, trial_expires_at, created_at"),
+    ]);
+    if (usersRes.data?.users && profilesRes.data) {
+      const profileMap = new Map(profilesRes.data.map((p: any) => [p.user_id, p]));
+      const merged: TrialUser[] = usersRes.data.users.map((u: AdminUser) => {
+        const profile = profileMap.get(u.id) as any;
+        return {
+          user_id: u.id,
+          email: u.email,
+          created_at: u.created_at,
+          trial_expires_at: profile?.trial_expires_at || null,
+        };
+      });
+      setTrialUsers(merged);
+    }
+    setTrialsLoading(false);
+  };
+
+  const handleExtendTrial = async (userId: string, days: number) => {
+    const user = trialUsers.find((u) => u.user_id === userId);
+    const base = user?.trial_expires_at ? new Date(user.trial_expires_at) : new Date();
+    const newExpiry = new Date(Math.max(base.getTime(), Date.now()) + days * 86400000);
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ trial_expires_at: newExpiry.toISOString() })
+      .eq("user_id", userId);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `Extended by ${days} days` });
+      setTrialUsers((prev) =>
+        prev.map((u) => u.user_id === userId ? { ...u, trial_expires_at: newExpiry.toISOString() } : u)
+      );
+    }
+  };
+
+  useEffect(() => { fetchUsers(); fetchCodes(); fetchTrialUsers(); }, []);
 
   const handleDelete = async (userId: string) => {
     setDeleting(userId);
