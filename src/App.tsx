@@ -24,11 +24,13 @@ import CheckoutSuccessPage from "./pages/CheckoutSuccessPage";
 import AdminPage from "./pages/AdminPage";
 import AdminRoute from "./components/AdminRoute";
 import TrialExpiredPage from "./pages/TrialExpiredPage";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <ErrorBoundary>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -73,6 +75,7 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 
