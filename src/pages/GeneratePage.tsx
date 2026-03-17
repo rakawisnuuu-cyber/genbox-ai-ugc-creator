@@ -384,13 +384,15 @@ const GeneratePage = () => {
             parts: [
               { inlineData: { mimeType: file.type || "image/jpeg", data: base64 } },
               {
-                text: `Analyze this person's photo for a UGC character profile. Return JSON only:
+                text: `You are a casting director writing notes to find a photo double for this exact person. The identity_prompt must be detailed enough that a DIFFERENT AI system can generate images of this SAME person and they would be recognizable.
+
+Return JSON only:
 {
-  "name": "Short descriptive name based on their look, e.g. 'Hijab Modern', 'Cowok Casual', 'Ibu Muda' (2-3 words max, Indonesian)",
+  "name": "2-3 word Indonesian descriptor based on their vibe (e.g. 'Hijab Casual', 'Cowok Gym', 'Ibu Muda')",
   "gender": "Pria or Wanita",
-  "age_range": "estimated age range like 20-25",
-  "style": "one word style descriptor like Modern, Casual, Sporty, Elegant",
-  "identity_prompt": "Detailed description of this EXACT person: ethnicity, skin tone, face shape, eye shape, nose, lips, hair style/color/length, any distinctive features. Be very specific so AI can recreate this exact person."
+  "age_range": "estimated range like 25-30",
+  "style": "one word: Modern, Casual, Sporty, Elegant, Professional, Edgy",
+  "identity_prompt": "Casting notes for this EXACT person — not an idealized version: Ethnicity/heritage appearance. Skin undertone (warm olive / cool beige / medium brown / deep brown / fair pink). Face shape (oval/round/square/heart) and distinctive features (high cheekbones, wide-set eyes, dimples, mole placement). Eyes (shape, single/double eyelid). Hair (exact color, approximate length, texture straight/wavy/curly, current style). Body build (petite/slim/average/athletic/curvy). Current outfit visible in photo. Do NOT beautify — describe exactly what you see."
 }`,
               },
             ],
