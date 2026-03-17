@@ -397,39 +397,11 @@ const ModuleCard = ({
     {/* Interactive animation — centered below */}
     <div className="mt-6 flex justify-center">
       {animation === "character-stack" && <CharacterStack />}
-      {animation === "before-after" && (
-        <div className="grid grid-cols-3 gap-4 w-full items-center">
-          <div className="space-y-2">
-            <div className="overflow-hidden rounded-xl border border-border/40">
-              <img src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/before-1.jpg" alt="Before" className="w-full aspect-[3/4] object-cover" loading="lazy" />
-            </div>
-            <div className="overflow-hidden rounded-xl border border-primary/30">
-              <img src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/after-1.jpg" alt="After" className="w-full aspect-[3/4] object-cover" loading="lazy" />
-            </div>
-            <div className="flex justify-center gap-2 text-[9px]">
-              <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">Produk</span>
-              <span className="text-muted-foreground/30">→</span>
-              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary">UGC</span>
-            </div>
-          </div>
-          <BeforeAfterReveal />
-          <div className="space-y-2">
-            <div className="overflow-hidden rounded-xl border border-border/40">
-              <img src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/before-2.jpg" alt="Before" className="w-full aspect-[3/4] object-cover" loading="lazy" />
-            </div>
-            <div className="overflow-hidden rounded-xl border border-primary/30">
-              <img src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/after-2.jpg" alt="After" className="w-full aspect-[3/4] object-cover" loading="lazy" />
-            </div>
-            <div className="flex justify-center gap-2 text-[9px]">
-              <span className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground">Produk</span>
-              <span className="text-muted-foreground/30">→</span>
-              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary">UGC</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {animation === "before-after" && <BeforeAfterReveal />}
       {animation === "video" && <VideoPreview />}
     </div>
+  </div>
+);
 
 /* ── Section ──────────────────────────────────────── */
 
