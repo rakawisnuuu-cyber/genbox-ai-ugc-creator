@@ -361,14 +361,39 @@ const ModuleCard = ({
 
     {/* Two-column: screenshot + animation */}
     <div className="mt-6 grid gap-4 md:grid-cols-2 items-start">
-      {/* Left: Screenshot/Video placeholder */}
+      {/* Left: Screenshot/Video */}
       <div>
-        <ScreenshotPlaceholder label={screenshotLabel} />
-        {/* NANTI GANTI DENGAN:
-        <img src="/screenshots/xxx.png" alt="..." className="w-full rounded-xl border border-border/40" />
-        ATAU:
-        <video src="/recordings/xxx.mp4" autoPlay loop muted playsInline className="w-full rounded-xl border border-border/40" />
-        */}
+        {animation === "video" ? (
+          <video
+            src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-03-video.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full rounded-xl border border-border/40"
+          />
+        ) : (
+          <div className="relative w-full overflow-hidden rounded-xl border border-border/40">
+            <div className="flex items-center gap-1.5 border-b border-border/30 bg-secondary/40 px-3 py-2">
+              <div className="h-2 w-2 rounded-full bg-red-500/30" />
+              <div className="h-2 w-2 rounded-full bg-yellow-500/30" />
+              <div className="h-2 w-2 rounded-full bg-green-500/30" />
+              <div className="ml-2 flex-1 rounded bg-background/40 px-2 py-0.5 text-[8px] text-muted-foreground/30 font-mono">
+                genbox.app
+              </div>
+            </div>
+            <img
+              src={
+                animation === "character-stack"
+                  ? "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-01-karakter.png"
+                  : "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-02-generate.png"
+              }
+              alt={screenshotLabel}
+              className="w-full"
+              loading="lazy"
+            />
+          </div>
+        )}
       </div>
 
       {/* Right: Interactive animation */}
