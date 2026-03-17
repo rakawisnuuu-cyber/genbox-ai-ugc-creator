@@ -359,49 +359,46 @@ const ModuleCard = ({
     <h3 className="font-satoshi text-xl sm:text-2xl font-bold tracking-tight text-foreground">{title}</h3>
     <p className="mt-2 font-body text-sm text-muted-foreground max-w-lg">{desc}</p>
 
-    {/* Two-column: screenshot + animation */}
-    <div className="mt-6 grid gap-4 md:grid-cols-2 items-start">
-      {/* Left: Screenshot/Video */}
-      <div>
-        {animation === "video" ? (
-          <video
-            src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-03-video.mp4"
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full rounded-xl border border-border/40"
-          />
-        ) : (
-          <div className="relative w-full overflow-hidden rounded-xl border border-border/40">
-            <div className="flex items-center gap-1.5 border-b border-border/30 bg-secondary/40 px-3 py-2">
-              <div className="h-2 w-2 rounded-full bg-red-500/30" />
-              <div className="h-2 w-2 rounded-full bg-yellow-500/30" />
-              <div className="h-2 w-2 rounded-full bg-green-500/30" />
-              <div className="ml-2 flex-1 rounded bg-background/40 px-2 py-0.5 text-[8px] text-muted-foreground/30 font-mono">
-                genbox.app
-              </div>
+    {/* Full-width Screenshot/Video */}
+    <div className="mt-6">
+      {animation === "video" ? (
+        <video
+          src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-03-video.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full rounded-xl border border-border/40 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4)]"
+        />
+      ) : (
+        <div className="relative w-full overflow-hidden rounded-xl border border-border/40 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4)]">
+          <div className="flex items-center gap-1.5 border-b border-border/30 bg-secondary/40 px-3 py-2">
+            <div className="h-2 w-2 rounded-full bg-red-500/30" />
+            <div className="h-2 w-2 rounded-full bg-yellow-500/30" />
+            <div className="h-2 w-2 rounded-full bg-green-500/30" />
+            <div className="ml-2 flex-1 rounded bg-background/40 px-2 py-0.5 text-[8px] text-muted-foreground/30 font-mono">
+              genbox.app
             </div>
-            <img
-              src={
-                animation === "character-stack"
-                  ? "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-01-karakter.png"
-                  : "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-02-generate.png"
-              }
-              alt={screenshotLabel}
-              className="w-full"
-              loading="lazy"
-            />
           </div>
-        )}
-      </div>
+          <img
+            src={
+              animation === "character-stack"
+                ? "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-01-karakter.png"
+                : "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-02-generate.png"
+            }
+            alt={screenshotLabel}
+            className="w-full"
+            loading="lazy"
+          />
+        </div>
+      )}
+    </div>
 
-      {/* Right: Interactive animation */}
-      <div className="flex justify-center items-center">
-        {animation === "character-stack" && <CharacterStack />}
-        {animation === "before-after" && <BeforeAfterReveal />}
-        {animation === "video" && <VideoPreview />}
-      </div>
+    {/* Interactive animation — centered below */}
+    <div className="mt-6 flex justify-center">
+      {animation === "character-stack" && <CharacterStack />}
+      {animation === "before-after" && <BeforeAfterReveal />}
+      {animation === "video" && <VideoPreview />}
     </div>
   </div>
 );
