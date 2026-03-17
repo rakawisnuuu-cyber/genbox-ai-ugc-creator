@@ -15,8 +15,10 @@ export interface ProductDNA {
   dominant_color: string;
   material: string;
   key_features: string;
+  key_benefits: string;
   brand_name: string;
   packaging_type: string;
+  ugc_hook: string;
 }
 
 export const EMPTY_DNA: ProductDNA = {
@@ -103,8 +105,10 @@ Analyze this product image. Return JSON only:
       dominant_color: parsed.dominant_color || "",
       material: parsed.material || "",
       key_features: parsed.key_features || "",
+      key_benefits: parsed.key_benefits || "",
       brand_name: parsed.brand_name || "unknown",
       packaging_type: parsed.packaging_type || "other",
+      ugc_hook: parsed.ugc_hook || "",
     } as ProductDNA;
   } catch {
     return { ...EMPTY_DNA };
