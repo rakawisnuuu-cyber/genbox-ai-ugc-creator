@@ -1,3 +1,4 @@
+import { sanitizeForPrompt } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
@@ -513,12 +514,12 @@ const GeneratePage = () => {
     setGeneratingPrompt(true);
     try {
       const envOption = findOption(envOptions, background);
-      const bgRich = background === "Custom" ? customBg : envOption?.description || background;
+      const bgRich = background === "Custom" ? sanitizeForPrompt(customBg) : envOption?.description || background;
       const poseOption = findOption(poseOptions, pose);
       const poseRich = poseOption?.description || pose;
       const moodOption = findOption(moodOptions, mood);
       const moodRich = moodOption?.description || mood;
-      const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
+      const characterIdentity = sanitizeForPrompt(selectedChar.identity_prompt || selectedChar.description);
 
       const categoryInstruction = productDNA
         ? getCategoryPromptInstruction(productDNA)
@@ -745,7 +746,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
     const dna = productDNA || EMPTY_DNA;
     const beats = getStoryboardBeats(storyboardTemplate);
     const templateObj = CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate);
-    const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
+    const characterIdentity = sanitizeForPrompt(selectedChar.identity_prompt || selectedChar.description);
     const consistencyBlock = buildProductConsistencyBlock(dna);
 
     setPromptsLoading(true);
