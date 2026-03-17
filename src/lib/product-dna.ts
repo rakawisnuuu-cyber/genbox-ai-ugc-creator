@@ -29,8 +29,10 @@ export const EMPTY_DNA: ProductDNA = {
   dominant_color: "",
   material: "",
   key_features: "",
+  key_benefits: "",
   brand_name: "unknown",
   packaging_type: "other",
+  ugc_hook: "",
 };
 
 const CATEGORY_LABELS: Record<ProductCategory, string> = {
