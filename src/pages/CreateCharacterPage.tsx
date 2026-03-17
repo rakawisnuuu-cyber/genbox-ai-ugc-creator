@@ -28,6 +28,9 @@ import {
   Upload,
   ImageIcon,
   Sparkles,
+  User,
+  ArrowRight,
+  Film,
 } from "lucide-react";
 import UpscaleButton from "@/components/UpscaleButton";
 import {
