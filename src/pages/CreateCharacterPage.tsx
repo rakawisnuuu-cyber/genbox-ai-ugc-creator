@@ -48,19 +48,23 @@ type Gender = "female" | "male";
 
 interface FormData {
   name: string;
-  gender: "female" | "male";
-  ageRange: string;
-  skinTone: string;
-  faceType: string;
-  hairStyle: string;
-  skinCondition: string;
-  makeupLevel: string;
-  hijabStyle: string;
-  vibe: string;
+  gender: Gender;
+  age_range: string;
+  skin_tone: string;
+  face_shape: string;
+  eye_color: string;
+  hair_style: string;
+  hair_color: string;
+  expression: string;
+  outfit_style: string;
+  skin_condition: string;
+  custom_notes: string;
+  // New advanced fields
+  imperfection: string;
+  environment: string;
+  microDetail: string;
   bodyType: string;
-  outfitStyle: string;
-  accessories: string;
-  customNotes: string;
+  ageRangeNew: string;
 }
 
 type ShotKey =
@@ -257,18 +261,21 @@ const REMAINING_KEYS: ShotKey[] = [
 const DEFAULT_FORM: FormData = {
   name: "",
   gender: "female",
-  ageRange: "young_adult",
-  skinTone: "sawo_matang",
-  faceType: "",
-  hairStyle: "",
-  skinCondition: "mulus",
-  makeupLevel: "natural",
-  hijabStyle: "tanpa",
-  vibe: "ramah",
+  age_range: "",
+  skin_tone: "Sawo Terang",
+  face_shape: "",
+  eye_color: "",
+  hair_style: "",
+  hair_color: "",
+  expression: "",
+  outfit_style: "",
+  skin_condition: "",
+  custom_notes: "",
+  imperfection: "natural",
+  environment: "simple",
+  microDetail: "standard",
   bodyType: "average",
-  outfitStyle: "casual",
-  accessories: "tidak_ada",
-  customNotes: "",
+  ageRangeNew: "young_adult",
 };
 
 import { imageUrlToBase64 } from "@/lib/image-utils";
@@ -493,31 +500,8 @@ export default function CreateCharacterPage() {
       }
 
       geminiParts.push({
-        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.
-
-Attributes:
-- Gender: ${form.gender === "female" ? "Female" : "Male"}
-- Age: ${AGE_RANGES.find(a => a.value === form.ageRange)?.prompt || form.ageRange}
-- Skin tone: ${SKIN_TONES.find(s => s.value === form.skinTone)?.prompt || form.skinTone}
-- Face type: ${FACE_TYPES.find(f => f.value === form.faceType)?.prompt || "not specified"}
-- Hair: ${(form.gender === "female" ? HAIR_STYLES_FEMALE : HAIR_STYLES_MALE).find(h => h.value === form.hairStyle)?.prompt || "not specified"}
-- Hijab: ${form.gender === "female" ? (HIJAB_STYLES.find(h => h.value === form.hijabStyle)?.prompt || "none") : "N/A (male)"}
-- Body type: ${BODY_TYPES.find(b => b.value === form.bodyType)?.prompt || "average"}
-- Skin condition: ${SKIN_CONDITIONS.find(s => s.value === form.skinCondition)?.prompt || "natural"}
-- Makeup: ${MAKEUP_LEVELS.find(m => m.value === form.makeupLevel)?.prompt || "natural"}
-- Vibe/expression: ${VIBES.find(v => v.value === form.vibe)?.prompt || "natural"}
-- Outfit: ${OUTFIT_STYLES.find(o => o.value === form.outfitStyle)?.prompt || "casual"}
-- Accessories: ${ACCESSORIES.find(a => a.value === form.accessories)?.prompt || "none"}
-- Additional notes: ${form.customNotes || "none"}
-${refUrls.length > 0 ? `\nIMPORTANT: ${refUrls.length} reference photo(s) were provided. Your identity_block MUST describe the person in the photos as accurately as possible. The physical appearance fields (skin tone, face type, hair, body type) should be OVERRIDDEN by what you see in the photos. Style fields (makeup, outfit, accessories, vibe) are the user's DESIRED styling, not necessarily what's in the photo.` : ""}
-
-Respond ONLY with valid JSON, no markdown:
-{
-  "identity_block": "A single detailed paragraph describing the EXACT physical appearance — face shape, nose type, lip shape, jawline, skin details including any conditions (acne, dark spots, oily areas), exact hair description, makeup level, exact outfit with colors. Include 3-5 distinctive anchor features that should appear in every image.",
-  "hair_description": "Detailed hair description including color, style, length",
-  "outfit_description": "Specific outfit with exact colors and materials",
-  "consistency_anchors": ["anchor1", "anchor2", "anchor3", "anchor4", "anchor5"]
-}`,
+        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.\n\nAttributes:\n- Gender: ${form.gender === "female" ? "Female" : "Male"}\n- Age range: ${form.age_range}\n- Skin tone: ${skinToneEnglish}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression tendency: ${form.expression}\n- Outfit style: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Additional notes: ${form.custom_notes || "none"}\n${advancedContext ? `\nAdvanced styling context:\n${advancedContext}` : ""}\n${refUrls.length > 0 ? `\nIMPORTANT: ${refUrls.length} reference photo(s) were provided. Your identity_block MUST describe the person in the photos as accurately as possible. Use the form attributes as supplementary styling guidance only.` : ""}\n\nRespond ONLY with valid JSON, no markdown:\n{\n  "identity_block": "A single detailed paragraph in English describing the EXACT physical appearance — face shape, specific nose type, lip shape, jawline, skin details, exact hair description with color and style, exact outfit with specific colors and materials. Include 3-5 distinctive anchor features (like a beauty mark, specific nose shape, dimples, etc) that should appear in every image.",\n  "hair_description": "Detailed hair description",\n  "outfit_description": "Specific outfit with exact colors and materials",\n  "consistency_anchors": ["anchor1", "anchor2", "anchor3"]\n}`,
+      });
 
       const genConfig: Record<string, any> = {};
       if (promptModel !== "gemini-3.1-pro-preview") {
