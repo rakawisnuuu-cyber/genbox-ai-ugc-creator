@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   LogOut,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -31,9 +32,7 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-    ],
+    items: [{ title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" }],
   },
   {
     label: "GAMBAR & KARAKTER",
@@ -44,22 +43,17 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "VIDEO",
-    items: [
-      { title: "Buat Video", icon: Film, path: "/video" },
-    ],
+    items: [{ title: "Buat Video", icon: Film, path: "/video" }],
   },
-  {
-    label: "TOOLS",
-    items: [
-      
-      { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
-    ],
-  },
+  // {
+  //   label: "TOOLS",
+  //   items: [
+  //     // { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
+  //   ],
+  // },
   {
     label: "ADMIN",
-    items: [
-      { title: "Admin", icon: Shield, path: "/admin" },
-    ],
+    items: [{ title: "Admin", icon: Shield, path: "/admin" }],
   },
 ];
 
@@ -75,8 +69,17 @@ const DashboardLayout = () => {
   const initial = user?.email?.charAt(0).toUpperCase() || "U";
   const displayName = user?.email?.split("@")[0] || "User";
 
+  const videoUnlockedRef = useRef(false);
+  const [videoUnlocked, setVideoUnlocked] = useState(false);
+
   const isActive = (path: string) => location.pathname === path;
   const pathname = location.pathname;
+
+  // Unlock video when navigating with fromStoryboard state
+  if (pathname === "/video" && (location.state as any)?.fromStoryboard && !videoUnlockedRef.current) {
+    videoUnlockedRef.current = true;
+    if (!videoUnlocked) setVideoUnlocked(true);
+  }
   const isKeepAlivePage = pathname === "/generate" || pathname === "/video";
   const isFullWidthPage = pathname === "/generate" || pathname === "/video";
 
@@ -86,6 +89,7 @@ const DashboardLayout = () => {
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item.path);
+    const isVideoLocked = item.path === "/video" && !videoUnlocked;
     return (
       <li key={item.path}>
         <Link
@@ -95,20 +99,28 @@ const DashboardLayout = () => {
             active
               ? "bg-primary/[0.08] text-foreground"
               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          }`}
+          } ${isVideoLocked && !active ? "opacity-50" : ""}`}
         >
-          <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
-          {item.title}
-          {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+          {isVideoLocked ? (
+            <>
+              <item.icon className="h-4 w-4 shrink-0 text-muted-foreground/25" />
+              <span className="truncate text-muted-foreground/25">{item.title}</span>
+              <Lock className="h-3 w-3 text-muted-foreground/15 ml-auto" />
+            </>
+          ) : (
+            <>
+              <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
+              {item.title}
+              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+            </>
+          )}
         </Link>
       </li>
     );
   };
 
   const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
-    const filteredGroups = navGroups.filter(
-      (group) => group.label !== "ADMIN" || isAdmin
-    );
+    const filteredGroups = navGroups.filter((group) => group.label !== "ADMIN" || isAdmin);
     return (
       <div className="space-y-1">
         {filteredGroups.map((group, gi) => (
@@ -118,9 +130,7 @@ const DashboardLayout = () => {
                 {group.label}
               </p>
             )}
-            <ul className="space-y-0.5">
-              {group.items.map((item) => renderNavItem(item, onNavigate))}
-            </ul>
+            <ul className="space-y-0.5">{group.items.map((item) => renderNavItem(item, onNavigate))}</ul>
           </div>
         ))}
       </div>
@@ -130,7 +140,10 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex" style={{ background: "hsl(220 8% 4.5%)" }}>
+      <aside
+        className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex"
+        style={{ background: "hsl(220 8% 4.5%)" }}
+      >
         {/* Logo */}
         <div className="px-5 pt-7 pb-1">
           <GenboxLogo size={26} />
@@ -144,9 +157,7 @@ const DashboardLayout = () => {
 
         {/* Settings */}
         <div className="px-3 pb-2 border-t border-border/60 pt-2">
-          <ul className="space-y-0.5">
-            {renderNavItem(settingsItem)}
-          </ul>
+          <ul className="space-y-0.5">{renderNavItem(settingsItem)}</ul>
         </div>
 
         {/* User */}

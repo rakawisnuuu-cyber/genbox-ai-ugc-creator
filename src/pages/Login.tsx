@@ -30,16 +30,16 @@ const Login = () => {
 
     setLoading(true);
     const normalizedEmail = email.trim().toLowerCase();
-    console.log("[GENBOX Login]", { origin: window.location.origin, host: new URL(import.meta.env.VITE_SUPABASE_URL).hostname });
     const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     setLoading(false);
 
     if (error) {
       toast({
         title: "Login gagal",
-        description: error.message === "Invalid login credentials"
-          ? "Email atau password salah, atau akun belum ada di environment ini. Cek console untuk info backend."
-          : error.message,
+        description:
+          error.message === "Invalid login credentials"
+            ? "Email atau password salah, atau akun belum ada di environment ini. Cek console untuk info backend."
+            : error.message,
         variant: "destructive",
       });
     }
@@ -71,28 +71,37 @@ const Login = () => {
       if (codeError) {
         setSignupLoading(false);
         // Distinguish network/CORS errors from business errors
-        const isNetworkError = codeError.message?.includes("Failed to send") || 
-                               codeError.message?.includes("fetch") ||
-                               codeError.message?.includes("NetworkError");
-        toast({ 
-          title: isNetworkError ? "Koneksi Gagal" : "Kode tidak valid", 
-          description: isNetworkError 
-            ? "Tidak dapat terhubung ke server. Coba lagi dalam beberapa saat." 
-            : (codeError.message || "Gagal memvalidasi kode."), 
-          variant: "destructive" 
+        const isNetworkError =
+          codeError.message?.includes("Failed to send") ||
+          codeError.message?.includes("fetch") ||
+          codeError.message?.includes("NetworkError");
+        toast({
+          title: isNetworkError ? "Koneksi Gagal" : "Kode tidak valid",
+          description: isNetworkError
+            ? "Tidak dapat terhubung ke server. Coba lagi dalam beberapa saat."
+            : codeError.message || "Gagal memvalidasi kode.",
+          variant: "destructive",
         });
         return;
       }
 
-      if (!codeResult || typeof codeResult.valid === 'undefined' || !codeResult.valid) {
+      if (!codeResult || typeof codeResult.valid === "undefined" || !codeResult.valid) {
         setSignupLoading(false);
-        toast({ title: "Kode tidak valid", description: codeResult?.error || "Kode akses tidak valid.", variant: "destructive" });
+        toast({
+          title: "Kode tidak valid",
+          description: codeResult?.error || "Kode akses tidak valid.",
+          variant: "destructive",
+        });
         return;
       }
     } catch (err: any) {
       console.error("Unexpected error during invite code validation:", err);
       setSignupLoading(false);
-      toast({ title: "Terjadi Kesalahan", description: "Gagal memvalidasi kode. Silakan coba lagi.", variant: "destructive" });
+      toast({
+        title: "Terjadi Kesalahan",
+        description: "Gagal memvalidasi kode. Silakan coba lagi.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -129,9 +138,7 @@ const Login = () => {
         {/* Logo */}
         <div className="flex items-center justify-center gap-2">
           <span className="h-2 w-2 rounded-full bg-primary" />
-          <p className="font-satoshi text-xl font-bold tracking-[0.1em] text-foreground">
-            GENBOX
-          </p>
+          <p className="font-satoshi text-xl font-bold tracking-[0.1em] text-foreground">GENBOX</p>
         </div>
 
         {/* Tab switcher */}
@@ -163,12 +170,8 @@ const Login = () => {
         {/* ─── LOGIN TAB ─── */}
         {activeTab === "login" && (
           <>
-            <h1 className="mt-6 text-center font-satoshi text-2xl font-bold text-foreground">
-              Masuk ke Dashboard
-            </h1>
-            <p className="mt-1.5 text-center text-sm text-muted-foreground">
-              Mulai buat konten UGC dengan AI
-            </p>
+            <h1 className="mt-6 text-center font-satoshi text-2xl font-bold text-foreground">Masuk ke Dashboard</h1>
+            <p className="mt-1.5 text-center text-sm text-muted-foreground">Mulai buat konten UGC dengan AI</p>
 
             <form onSubmit={handleLogin} className="mt-8 space-y-5">
               <div>
@@ -231,12 +234,8 @@ const Login = () => {
               </span>
             </div>
 
-            <h1 className="mt-4 text-center font-satoshi text-2xl font-bold text-foreground">
-              Daftar Early Access
-            </h1>
-            <p className="mt-1.5 text-center text-sm text-muted-foreground">
-              Masukkan kode akses untuk membuat akun
-            </p>
+            <h1 className="mt-4 text-center font-satoshi text-2xl font-bold text-foreground">Daftar Early Access</h1>
+            <p className="mt-1.5 text-center text-sm text-muted-foreground">Masukkan kode akses untuk membuat akun</p>
 
             <form onSubmit={handleSignup} className="mt-8 space-y-5">
               <div>
