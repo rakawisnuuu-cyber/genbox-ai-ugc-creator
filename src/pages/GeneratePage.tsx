@@ -1,4 +1,3 @@
-import { sanitizeForPrompt } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
@@ -71,7 +70,7 @@ import type { CharacterData } from "@/components/CharacterCard";
 
 /* ── GENBOX Realism Blocks ──────────────────────────────────── */
 const SKIN_BLOCK =
-  "Skin is ultra-realistic, photorealistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
+  "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
 const QUALITY_BLOCK =
   "High resolution photo, shot on smartphone camera, photographic realism, natural shallow depth of field, natural color grading with warm daylight tint, realistic contrast, slight natural grain. Looks like a real content creator's photo, not a studio shot.";
 const NEGATIVE_BLOCK =
@@ -80,8 +79,6 @@ const ENV_REALISM_BLOCK =
   "Environment must look like a REAL lived-in space photographed with a phone or mirrorless camera. Include subtle signs of real life: a phone charger on a nightstand, a half-drunk glass of water, slightly wrinkled bedsheet corner, a book left open, shoes by the door, a bag on a chair. Background should have natural depth of field — slightly soft/blurred behind the subject, not everything in razor-sharp focus. Walls should have subtle natural texture variation, not perfectly flat rendered surfaces. Lighting should have natural falloff — brighter near windows, gradually darker in corners. No unnaturally symmetrical rooms, no impossibly clean surfaces, no repeated tile patterns, no plastic-looking materials, no floating furniture, no missing shadows.";
 const UGC_STYLE_BLOCK =
   "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
-const REALISM_BOOST =
-  "Ultra-realistic photography, photorealistic, shot on iPhone 15. Skin is natural with subtle pores and slight oil sheen, light natural makeup. Natural shallow depth of field, warm daylight color grading, slight grain. Environment is a REAL lived-in space with 2-3 everyday objects visible. Background naturally blurred. Casual UGC angle, slightly imperfect framing. No cartoon, no CGI, no 3D render, no plastic skin, no glamour filter, no watermark, no text overlay, no extra fingers, no stock photo composition, no studio lighting, no symmetrical rooms.";
 
 import { imageUrlToBase64, fileToBase64 } from "@/lib/image-utils";
 
@@ -386,15 +383,13 @@ const GeneratePage = () => {
             parts: [
               { inlineData: { mimeType: file.type || "image/jpeg", data: base64 } },
               {
-                text: `You are a casting director writing notes to find a photo double for this exact person. The identity_prompt must be detailed enough that a DIFFERENT AI system can generate images of this SAME person and they would be recognizable.
-
-Return JSON only:
+                text: `Analyze this person's photo for a UGC character profile. Return JSON only:
 {
-  "name": "2-3 word Indonesian descriptor based on their vibe (e.g. 'Hijab Casual', 'Cowok Gym', 'Ibu Muda')",
+  "name": "Short descriptive name based on their look, e.g. 'Hijab Modern', 'Cowok Casual', 'Ibu Muda' (2-3 words max, Indonesian)",
   "gender": "Pria or Wanita",
-  "age_range": "estimated range like 25-30",
-  "style": "one word: Modern, Casual, Sporty, Elegant, Professional, Edgy",
-  "identity_prompt": "Casting notes for this EXACT person — not an idealized version: Ethnicity/heritage appearance. Skin undertone (warm olive / cool beige / medium brown / deep brown / fair pink). Face shape (oval/round/square/heart) and distinctive features (high cheekbones, wide-set eyes, dimples, mole placement). Eyes (shape, single/double eyelid). Hair (exact color, approximate length, texture straight/wavy/curly, current style). Body build (petite/slim/average/athletic/curvy). Current outfit visible in photo. Do NOT beautify — describe exactly what you see."
+  "age_range": "estimated age range like 20-25",
+  "style": "one word style descriptor like Modern, Casual, Sporty, Elegant",
+  "identity_prompt": "Detailed description of this EXACT person: ethnicity, skin tone, face shape, eye shape, nose, lips, hair style/color/length, any distinctive features. Be very specific so AI can recreate this exact person."
 }`,
               },
             ],
@@ -518,12 +513,12 @@ Return JSON only:
     setGeneratingPrompt(true);
     try {
       const envOption = findOption(envOptions, background);
-      const bgRich = background === "Custom" ? sanitizeForPrompt(customBg) : envOption?.description || background;
+      const bgRich = background === "Custom" ? customBg : envOption?.description || background;
       const poseOption = findOption(poseOptions, pose);
       const poseRich = poseOption?.description || pose;
       const moodOption = findOption(moodOptions, mood);
       const moodRich = moodOption?.description || mood;
-      const characterIdentity = sanitizeForPrompt(selectedChar.identity_prompt || selectedChar.description);
+      const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
 
       const categoryInstruction = productDNA
         ? getCategoryPromptInstruction(productDNA)
@@ -750,7 +745,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
     const dna = productDNA || EMPTY_DNA;
     const beats = getStoryboardBeats(storyboardTemplate);
     const templateObj = CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate);
-    const characterIdentity = sanitizeForPrompt(selectedChar.identity_prompt || selectedChar.description);
+    const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
     const consistencyBlock = buildProductConsistencyBlock(dna);
 
     setPromptsLoading(true);
@@ -862,7 +857,7 @@ Output ONLY the JSON array. No explanation.`,
         throw new Error("Invalid response — expected array of prompts");
       }
 
-      const prompts = parsed.slice(0, beats.length).map((p: any) => `${REALISM_BOOST}\n\n${String(p)}`);
+      const prompts = parsed.slice(0, beats.length).map((p: any) => String(p));
       setGeneratedPrompts(prompts);
       setShotStatuses(prompts.map((p: string) => ({ state: "prompt_ready" as const, prompt: p })));
       toast({
