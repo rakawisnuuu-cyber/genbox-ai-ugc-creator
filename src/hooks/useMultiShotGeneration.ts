@@ -31,8 +31,6 @@ interface ShotProgress {
 
 const COST_PER_SHOT: Record<string, number> = {
   grok: 1600,
-  kling_std: 2300,
-  kling_pro: 4600,
   veo_fast: 6400,
   veo_quality: 32000,
 };

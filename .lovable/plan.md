@@ -43,17 +43,10 @@ Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 ### 6. Template-First GeneratePage Flow
 - Moved template picker to left panel Step 3 ("Pilih Gaya Konten")
 - Removed mandatory "Base Image" step — Frame 1 is the establishing shot
+- "Generate Storyboard" replaces old "Generate Prompt" + "Generate Image" flow
 - Right panel now shows storyboard grid directly (removed old single-image view)
 - Beat preview shown in both left panel and right panel empty state
 - Frames 1-4 chain from Frame 0's result for visual consistency
-
-### 6b. Two-Step Prompt-First Flow
-- "Generate Storyboard" → replaced with "Generate Prompts" (single Gemini call → 5 prompts as JSON array)
-- Right panel shows editable prompt cards with per-frame "Generate Frame" button
-- Users can review/edit each prompt before generating images
-- "Generate All" button runs all frames sequentially with 2s delay
-- Individual frame regeneration supported
-- Three right panel states: Empty → Prompt Review → Generating/Completed
 
 ### 7. Dynamic Motion Suggestions
 - Replaced static `action-chips.ts` hardcoded lists with `generateDynamicChips()` using Gemini
