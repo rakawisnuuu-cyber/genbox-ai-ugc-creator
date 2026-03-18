@@ -88,7 +88,7 @@ const HAIR_GROOMING_BLOCK =
 
 // ── Dynamic skin block based on skin condition ──
 function getSkinBlock(skinCondition: string): string {
-  const condition = SKIN_CONDITIONS.find(s => s.value === skinCondition);
+  const condition = SKIN_CONDITIONS.find((s) => s.value === skinCondition);
   if (condition) {
     return `Skin condition: ${condition.prompt}. Skin must look real — no beauty filter smoothing, no glamour retouching. Natural texture visible under good lighting.`;
   }
@@ -219,23 +219,53 @@ function assemblePrompt(
   shotKey: ShotKey,
   identityBlock: string,
   consistencyAnchors: string[],
-  options?: { skinCondition?: string; advancedContext?: string },
+  options?: {
+    skinCondition?: string;
+    advancedContext?: string;
+    hasReferencePhoto?: boolean;
+    faceLock?: string;
+    styleBlock?: string;
+  },
 ) {
   const cfg = SHOT_CONFIGS[shotKey];
   const skinCondition = options?.skinCondition || "mulus";
-  const parts = [
-    QUALITY_BLOCK,
-    cfg.camera,
-    identityBlock,
-    `MANDATORY consistency anchors: ${consistencyAnchors.join(", ")}`,
-    FACIAL_REALISM_BLOCK,
-    HAIR_GROOMING_BLOCK,
-  ];
-  if (options?.advancedContext) parts.push(options.advancedContext);
-  parts.push(cfg.framing);
-  parts.push(getLightingBlock("simple")); // always "simple" internally
-  parts.push(getSkinBlock(skinCondition));
-  parts.push(NEGATIVE_BLOCK);
+  const hasRef = options?.hasReferencePhoto || false;
+
+  const parts: string[] = [];
+
+  // When reference photo exists, use split face_lock + style_block
+  if (hasRef && options?.faceLock) {
+    parts.push(
+      "CRITICAL: A reference photo is attached. The generated face MUST closely match the reference. Facial resemblance is the #1 priority above all other instructions.",
+    );
+    parts.push(QUALITY_BLOCK);
+    parts.push(cfg.camera);
+    parts.push(`[FACE IDENTITY — DO NOT MODIFY] ${options.faceLock}`);
+    parts.push(`MANDATORY consistency anchors: ${consistencyAnchors.join(", ")}`);
+    if (options.styleBlock) {
+      parts.push(`[STYLE — apply on top of the face above, do NOT change facial features] ${options.styleBlock}`);
+    }
+    parts.push(HAIR_GROOMING_BLOCK);
+    if (options?.advancedContext) parts.push(options.advancedContext);
+    parts.push(cfg.framing);
+    parts.push(getLightingBlock("simple"));
+    parts.push(getSkinBlock(skinCondition));
+    parts.push(NEGATIVE_BLOCK);
+  } else {
+    // No reference photo — use combined identity_block as before
+    parts.push(QUALITY_BLOCK);
+    parts.push(cfg.camera);
+    parts.push(identityBlock);
+    parts.push(`MANDATORY consistency anchors: ${consistencyAnchors.join(", ")}`);
+    parts.push(FACIAL_REALISM_BLOCK);
+    parts.push(HAIR_GROOMING_BLOCK);
+    if (options?.advancedContext) parts.push(options.advancedContext);
+    parts.push(cfg.framing);
+    parts.push(getLightingBlock("simple"));
+    parts.push(getSkinBlock(skinCondition));
+    parts.push(NEGATIVE_BLOCK);
+  }
+
   return parts.join("\n\n");
 }
 
@@ -294,6 +324,8 @@ export default function CreateCharacterPage() {
   // Hero-first: store identity data for later variation generation
   const [identityData, setIdentityData] = useState<{
     identityBlock: string;
+    faceLock: string;
+    styleBlock: string;
     consistencyAnchors: string[];
     advancedContext: string;
   } | null>(null);
@@ -407,41 +439,83 @@ export default function CreateCharacterPage() {
           geminiParts.push({
             text:
               refUrls.length > 1
-                ? `REFERENCE PHOTO ANALYSIS: ${refUrls.length} reference photos of the target person are attached above, taken from different angles. Cross-reference ALL photos to identify consistent facial features. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photos take priority for facial features.`
-                : "REFERENCE PHOTO ANALYSIS: A reference photo of the target person is attached above. Analyze it carefully. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photo takes priority for facial features.",
+                ? `REFERENCE PHOTO ANALYSIS: ${refUrls.length} reference photos of the target person are attached above. Cross-reference ALL photos to identify consistent facial features.`
+                : "REFERENCE PHOTO ANALYSIS: A reference photo of the target person is attached above. Analyze it carefully.",
           });
         } catch (e) {
           console.warn("Failed to convert reference photo(s) to base64:", e);
         }
       }
 
-      geminiParts.push({
-        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.
+      // Build Gemini prompt — different structure based on whether ref photo exists
+      const hasRefPhotos = refUrls.length > 0;
 
-Attributes:
+      if (hasRefPhotos) {
+        // WITH reference photo: ask for split face_lock + style_block
+        geminiParts.push({
+          text: `You must output TWO separate descriptions for this person:
+
+1. face_lock: Describe ONLY the physical face and body from the reference photo. Include: face shape, nose bridge width, nostril shape, lip fullness (upper vs lower), eye shape and spacing, brow arch, jawline, chin shape, skin color (describe the actual color you see — do NOT use ethnic labels like "Indonesian" or "Southeast Asian"), skin texture, any moles/dimples/scars, ear shape, forehead size, hair color and texture as seen in photo, body build. This block must NEVER change regardless of styling.
+
+2. style_block: Describe the DESIRED styling that the user wants applied ON TOP of this person's face. This is SEPARATE from their physical identity.
+
+User's desired styling:
 - Gender: ${form.gender === "female" ? "Female" : "Male"}
-- Age: ${AGE_RANGES.find(a => a.value === form.ageRange)?.prompt || form.ageRange}
-- Skin tone: ${SKIN_TONES.find(s => s.value === form.skinTone)?.prompt || form.skinTone}
-- Face type: ${FACE_TYPES.find(f => f.value === form.faceType)?.prompt || "not specified"}
-- Hair: ${(form.gender === "female" ? HAIR_STYLES_FEMALE : HAIR_STYLES_MALE).find(h => h.value === form.hairStyle)?.prompt || "not specified"}
-- Hijab: ${form.gender === "female" ? (HIJAB_STYLES.find(h => h.value === form.hijabStyle)?.prompt || "none") : "N/A (male)"}
-- Body type: ${BODY_TYPES.find(b => b.value === form.bodyType)?.prompt || "average"}
-- Skin condition: ${SKIN_CONDITIONS.find(s => s.value === form.skinCondition)?.prompt || "natural"}
-- Makeup: ${MAKEUP_LEVELS.find(m => m.value === form.makeupLevel)?.prompt || "natural"}
-- Vibe/expression: ${VIBES.find(v => v.value === form.vibe)?.prompt || "natural"}
-- Outfit: ${OUTFIT_STYLES.find(o => o.value === form.outfitStyle)?.prompt || "casual"}
-- Accessories: ${ACCESSORIES.find(a => a.value === form.accessories)?.prompt || "none"}
+- Age: ${AGE_RANGES.find((a) => a.value === form.ageRange)?.prompt || form.ageRange}
+- Hijab: ${form.gender === "female" ? HIJAB_STYLES.find((h) => h.value === form.hijabStyle)?.prompt || "none" : "N/A"}
+- Skin condition: ${SKIN_CONDITIONS.find((s) => s.value === form.skinCondition)?.prompt || "natural"}
+- Makeup: ${MAKEUP_LEVELS.find((m) => m.value === form.makeupLevel)?.prompt || "natural"}
+- Vibe/expression: ${VIBES.find((v) => v.value === form.vibe)?.prompt || "natural"}
+- Outfit: ${OUTFIT_STYLES.find((o) => o.value === form.outfitStyle)?.prompt || "casual"}
+- Accessories: ${ACCESSORIES.find((a) => a.value === form.accessories)?.prompt || "none"}
 - Additional notes: ${form.customNotes || "none"}
-${refUrls.length > 0 ? `\nIMPORTANT: ${refUrls.length} reference photo(s) were provided. Your identity_block MUST describe the person in the photos as accurately as possible. The physical appearance fields (skin tone, face type, hair, body type) should be OVERRIDDEN by what you see in the photos. Style fields (makeup, outfit, accessories, vibe) are the user's DESIRED styling, not necessarily what's in the photo.` : ""}
+
+CRITICAL RULES:
+- face_lock must describe ONLY what you SEE in the photo — physical features that cannot change
+- style_block must describe ONLY changeable styling — outfit, makeup, expression, hijab, accessories
+- Do NOT put outfit, makeup, or hijab info in face_lock
+- Do NOT put face shape, nose type, or skin color in style_block
+- identity_block should be face_lock + style_block combined (for backward compatibility)
 
 Respond ONLY with valid JSON, no markdown:
 {
-  "identity_block": "A single detailed paragraph describing the EXACT physical appearance — face shape, nose type, lip shape, jawline, skin details including any conditions (acne, dark spots, oily areas), exact hair description, makeup level, exact outfit with colors. Include 3-5 distinctive anchor features that should appear in every image.",
+  "face_lock": "Detailed paragraph describing ONLY the immutable physical face and body from the reference photo.",
+  "style_block": "Detailed paragraph describing ONLY the desired styling — outfit, makeup, expression, hijab, accessories.",
+  "identity_block": "Combined face_lock + style_block as one paragraph (for backward compatibility).",
+  "hair_description": "Hair as seen in photo",
+  "outfit_description": "Desired outfit with colors and materials",
+  "consistency_anchors": ["anchor1", "anchor2", "anchor3", "anchor4", "anchor5"]
+}`,
+        });
+      } else {
+        // WITHOUT reference photo: use original single identity_block approach
+        geminiParts.push({
+          text: `Based on these attributes, create an extremely detailed identity description for a realistic person for AI image generation.
+
+Attributes:
+- Gender: ${form.gender === "female" ? "Female" : "Male"}
+- Age: ${AGE_RANGES.find((a) => a.value === form.ageRange)?.prompt || form.ageRange}
+- Skin tone: ${SKIN_TONES.find((s) => s.value === form.skinTone)?.prompt || form.skinTone}
+- Face type: ${FACE_TYPES.find((f) => f.value === form.faceType)?.prompt || "not specified"}
+- Hair: ${(form.gender === "female" ? HAIR_STYLES_FEMALE : HAIR_STYLES_MALE).find((h) => h.value === form.hairStyle)?.prompt || "not specified"}
+- Hijab: ${form.gender === "female" ? HIJAB_STYLES.find((h) => h.value === form.hijabStyle)?.prompt || "none" : "N/A"}
+- Body type: ${BODY_TYPES.find((b) => b.value === form.bodyType)?.prompt || "average"}
+- Skin condition: ${SKIN_CONDITIONS.find((s) => s.value === form.skinCondition)?.prompt || "natural"}
+- Makeup: ${MAKEUP_LEVELS.find((m) => m.value === form.makeupLevel)?.prompt || "natural"}
+- Vibe/expression: ${VIBES.find((v) => v.value === form.vibe)?.prompt || "natural"}
+- Outfit: ${OUTFIT_STYLES.find((o) => o.value === form.outfitStyle)?.prompt || "casual"}
+- Accessories: ${ACCESSORIES.find((a) => a.value === form.accessories)?.prompt || "none"}
+- Additional notes: ${form.customNotes || "none"}
+
+Respond ONLY with valid JSON, no markdown:
+{
+  "identity_block": "A single detailed paragraph describing the EXACT physical appearance — face shape, nose type, lip shape, jawline, skin details, exact hair description, makeup level, exact outfit with colors. Include 3-5 distinctive anchor features that should appear in every image.",
   "hair_description": "Detailed hair description including color, style, length",
   "outfit_description": "Specific outfit with exact colors and materials",
   "consistency_anchors": ["anchor1", "anchor2", "anchor3", "anchor4", "anchor5"]
 }`,
-      });
+        });
+      }
 
       const genConfig: Record<string, any> = {};
       if (promptModel !== "gemini-3.1-pro-preview") {
@@ -463,10 +537,12 @@ Respond ONLY with valid JSON, no markdown:
       if (!rawText) throw new Error("Gagal generate identity prompt dari Gemini");
       const identityJson = JSON.parse(rawText);
       const identityBlock: string = identityJson.identity_block;
+      const faceLock: string = identityJson.face_lock || "";
+      const styleBlock: string = identityJson.style_block || "";
       const consistencyAnchors: string[] = identityJson.consistency_anchors || [];
 
       // Store identity data for later variation generation
-      setIdentityData({ identityBlock, consistencyAnchors, advancedContext });
+      setIdentityData({ identityBlock, faceLock, styleBlock, consistencyAnchors, advancedContext });
 
       // ── STEP 2: Generate hero portrait ONLY ──
       setGenPhase("hero");
@@ -475,6 +551,9 @@ Respond ONLY with valid JSON, no markdown:
       const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors, {
         skinCondition: form.skinCondition,
         advancedContext,
+        hasReferencePhoto: hasRef,
+        faceLock,
+        styleBlock,
       });
       const heroImageInput: string[] = refUrls.length > 0 ? [refUrls[0]] : [];
 
@@ -509,8 +588,8 @@ Respond ONLY with valid JSON, no markdown:
 
       // ── STEP 3: Save character immediately with hero only ──
       setGenPhase("saving");
-      const ageLabel = AGE_RANGES.find(a => a.value === form.ageRange)?.label || form.ageRange;
-      const outfitLabel = OUTFIT_STYLES.find(o => o.value === form.outfitStyle)?.label || form.outfitStyle;
+      const ageLabel = AGE_RANGES.find((a) => a.value === form.ageRange)?.label || form.ageRange;
+      const outfitLabel = OUTFIT_STYLES.find((o) => o.value === form.outfitStyle)?.label || form.outfitStyle;
       const { data, error } = await supabase
         .from("characters")
         .insert({
@@ -589,6 +668,9 @@ Respond ONLY with valid JSON, no markdown:
             const shotPrompt = assemblePrompt(key, identityData.identityBlock, identityData.consistencyAnchors, {
               skinCondition: form.skinCondition,
               advancedContext: identityData.advancedContext,
+              hasReferencePhoto: hasRef,
+              faceLock: identityData.faceLock,
+              styleBlock: identityData.styleBlock,
             });
             try {
               const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
@@ -666,6 +748,9 @@ Respond ONLY with valid JSON, no markdown:
     const shotPrompt = assemblePrompt(key, identityData.identityBlock, identityData.consistencyAnchors, {
       skinCondition: form.skinCondition,
       advancedContext: identityData.advancedContext,
+      hasReferencePhoto: hasRef,
+      faceLock: identityData.faceLock,
+      styleBlock: identityData.styleBlock,
     });
 
     try {
@@ -721,11 +806,13 @@ Respond ONLY with valid JSON, no markdown:
   // ── SUMMARY PILLS ──
   const pills = [
     form.gender === "female" ? "Wanita" : "Pria",
-    AGE_RANGES.find(a => a.value === form.ageRange)?.label,
-    SKIN_TONES.find(s => s.value === form.skinTone)?.label,
-    VIBES.find(v => v.value === form.vibe)?.label,
-    OUTFIT_STYLES.find(o => o.value === form.outfitStyle)?.label,
-    form.gender === "female" && form.hijabStyle !== "tanpa" ? HIJAB_STYLES.find(h => h.value === form.hijabStyle)?.label : null,
+    AGE_RANGES.find((a) => a.value === form.ageRange)?.label,
+    SKIN_TONES.find((s) => s.value === form.skinTone)?.label,
+    VIBES.find((v) => v.value === form.vibe)?.label,
+    OUTFIT_STYLES.find((o) => o.value === form.outfitStyle)?.label,
+    form.gender === "female" && form.hijabStyle !== "tanpa"
+      ? HIJAB_STYLES.find((h) => h.value === form.hijabStyle)?.label
+      : null,
   ].filter(Boolean);
 
   // ── Progress label ──
@@ -750,8 +837,8 @@ Respond ONLY with valid JSON, no markdown:
   const variationsDoneCount = REMAINING_KEYS.filter((k) => shots[k].status === "success").length;
 
   // Templates filtered by gender
-  const filteredTemplates = CHARACTER_TEMPLATES.filter(t => t.gender === form.gender);
-  const selectedTmpl = CHARACTER_TEMPLATES.find(t => t.id === selectedTemplate);
+  const filteredTemplates = CHARACTER_TEMPLATES.filter((t) => t.gender === form.gender);
+  const selectedTmpl = CHARACTER_TEMPLATES.find((t) => t.id === selectedTemplate);
 
   // Hair styles based on gender
   const hairStyles = form.gender === "female" ? HAIR_STYLES_FEMALE : HAIR_STYLES_MALE;
