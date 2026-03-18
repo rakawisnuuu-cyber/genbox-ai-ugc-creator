@@ -34,11 +34,11 @@ export interface VideoResult {
 
 // ── Timeouts & retry config ─────────────────────────────────────────
 const POLL_TIMEOUT: Record<string, number> = {
-  grok: 180_000,        // 3 min
-  veo_fast: 300_000,    // 5 min
+  grok: 180_000, // 3 min
+  veo_fast: 300_000, // 5 min
   veo_quality: 600_000, // 10 min
-  kling_std: 300_000,   // 5 min
-  kling_pro: 600_000,   // 10 min
+  kling_std: 300_000, // 5 min
+  kling_pro: 600_000, // 10 min
 };
 
 const POLL_INTERVAL: Record<string, number> = {
@@ -128,7 +128,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   }
 
   // ── Veo Fast / Quality ──
-  const veoModel = model === "veo_fast" ? "veo3_fast" : "veo3";
+  const veoModel = model === "veo_fast" ? "veo3.1_fast" : "veo3.1";
   console.log(`[kie] Creating Veo task. Model: ${veoModel}`);
 
   const imageCount = imageUrls.filter(Boolean).length;
@@ -162,12 +162,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
 }
 
 // ── Polling ─────────────────────────────────────────────────────────
-async function pollTask(
-  taskId: string,
-  model: string,
-  apiKey: string,
-  isCancelled?: () => boolean,
-): Promise<string> {
+async function pollTask(taskId: string, model: string, apiKey: string, isCancelled?: () => boolean): Promise<string> {
   const pollUrl =
     model === "veo_fast" || model === "veo_quality"
       ? `${KIE_BASE}/veo/record-info?taskId=${taskId}`
@@ -208,16 +203,9 @@ async function pollTask(
       // Grok & Kling use same response format
       const state = j.data?.state;
       if (state === "success") {
-        const resultJson =
-          typeof j.data.resultJson === "string"
-            ? JSON.parse(j.data.resultJson)
-            : j.data.resultJson;
+        const resultJson = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
         const url =
-          resultJson?.resultUrls?.[0] ||
-          resultJson?.videoUrl ||
-          resultJson?.video_url ||
-          resultJson?.url ||
-          "";
+          resultJson?.resultUrls?.[0] || resultJson?.videoUrl || resultJson?.video_url || resultJson?.url || "";
         if (!url) throw new Error("No video URL in result");
         return url;
       }
@@ -267,7 +255,9 @@ async function pollTask(
         const fullResponse = JSON.stringify(j.data).slice(0, 1000);
         const isSafetyBlock = /safety review|safety|blocked|policy|harmful|halted/i.test(msg + fullResponse);
         if (isSafetyBlock) {
-          throw new Error("SAFETY_BLOCKED: Google safety filter blocked this. Try simplifying the prompt or switch to Kling model.");
+          throw new Error(
+            "SAFETY_BLOCKED: Google safety filter blocked this. Try simplifying the prompt or switch to Kling model.",
+          );
         }
         throw new Error(msg);
       }
