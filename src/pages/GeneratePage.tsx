@@ -100,7 +100,7 @@ async function generateKieImage(
         image_input: [...new Set(imageInputs.filter(Boolean))],
         aspect_ratio: "3:4",
         resolution: "2K",
-        output_format: "png",
+        output_format: "jpg",
         google_search: false,
       },
     }),
