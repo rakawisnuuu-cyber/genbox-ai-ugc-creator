@@ -80,8 +80,6 @@ const ENV_REALISM_BLOCK =
   "Environment must look like a REAL lived-in space photographed with a phone or mirrorless camera. Include subtle signs of real life: a phone charger on a nightstand, a half-drunk glass of water, slightly wrinkled bedsheet corner, a book left open, shoes by the door, a bag on a chair. Background should have natural depth of field — slightly soft/blurred behind the subject, not everything in razor-sharp focus. Walls should have subtle natural texture variation, not perfectly flat rendered surfaces. Lighting should have natural falloff — brighter near windows, gradually darker in corners. No unnaturally symmetrical rooms, no impossibly clean surfaces, no repeated tile patterns, no plastic-looking materials, no floating furniture, no missing shadows.";
 const UGC_STYLE_BLOCK =
   "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
-const REALISM_BOOST =
-  "Ultra-realistic photography, photorealistic, shot on iPhone 15. Skin is natural with subtle pores and slight oil sheen, light natural makeup. Natural shallow depth of field, warm daylight color grading, slight grain. Environment is a REAL lived-in space with 2-3 everyday objects visible. Background naturally blurred. Casual UGC angle, slightly imperfect framing. No cartoon, no CGI, no 3D render, no plastic skin, no glamour filter, no watermark, no text overlay, no extra fingers, no stock photo composition, no studio lighting, no symmetrical rooms.";
 
 import { imageUrlToBase64, fileToBase64 } from "@/lib/image-utils";
 
@@ -702,8 +700,21 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
     try {
       const imageInputs: string[] = [];
-      if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
-      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
+      // Collect character reference images — prioritize multi-angle shots
+      const shotMeta = (selectedChar as any)?.shot_metadata;
+      if (shotMeta && typeof shotMeta === "object") {
+        const priorityKeys = ["hero_portrait", "neutral_identity", "profile_45"];
+        for (const key of priorityKeys) {
+          if (shotMeta[key]?.url) imageInputs.push(shotMeta[key].url);
+        }
+      }
+      // Fallback if no shot_metadata
+      if (imageInputs.length === 0) {
+        if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
+        if (selectedChar?.reference_photo_url && selectedChar.reference_photo_url !== selectedChar.hero_image_url) {
+          imageInputs.push(selectedChar.reference_photo_url);
+        }
+      }
       if (productUrl) imageInputs.push(productUrl);
 
       const imageUrl = await generateKieImage(kieApiKey, prompt, imageInputs, () => abortRef.current);
@@ -862,7 +873,7 @@ Output ONLY the JSON array. No explanation.`,
         throw new Error("Invalid response — expected array of prompts");
       }
 
-      const prompts = parsed.slice(0, beats.length).map((p: any) => `${REALISM_BOOST}\n\n${String(p)}`);
+      const prompts = parsed.slice(0, beats.length).map((p: any) => String(p));
       setGeneratedPrompts(prompts);
       setShotStatuses(prompts.map((p: string) => ({ state: "prompt_ready" as const, prompt: p })));
       toast({
