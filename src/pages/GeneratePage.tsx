@@ -1735,28 +1735,19 @@ Output ONLY the JSON array. No explanation.`,
                         {isCompleted && shot.imageUrl && (
                           <div className="shrink-0">
                             <img
-                              src={getUpscaleState(`story_${i}`).resultUrl || shot.imageUrl}
+                              src={shot.imageUrl}
                               alt={beat?.label}
                               className="h-16 w-12 rounded-lg object-cover border border-white/[0.06]"
                             />
-                            <div className="flex items-center gap-1 mt-1 justify-center">
-                              
-                                href={getUpscaleState(`story_${i}`).resultUrl || shot.imageUrl}
-                                download
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[8px] text-primary hover:underline flex items-center gap-0.5"
-                              >
-                                <Download className="h-2.5 w-2.5" /> Save
-                              </a>
-                              <UpscaleButton
-                                imageUrl={getUpscaleState(`story_${i}`).resultUrl || shot.imageUrl}
-                                imageKey={`story_${i}`}
-                                loading={getUpscaleState(`story_${i}`).loading}
-                                currentFactor={getUpscaleState(`story_${i}`).factor}
-                                onUpscale={(k, u, f) => upscale(k, u, f)}
-                              />
-                            </div>
+                            <a
+                              href={shot.imageUrl}
+                              download
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[8px] text-primary hover:underline flex items-center gap-0.5 mt-1 justify-center"
+                            >
+                              <Download className="h-2.5 w-2.5" /> Save
+                            </a>
                           </div>
                         )}
 
