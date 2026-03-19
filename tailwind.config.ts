@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        satoshi: ["General Sans", "DM Sans", "system-ui", "sans-serif"],
-        body: ["DM Sans", "system-ui", "sans-serif"],
+        satoshi: ["Satoshi", "Inter", "sans-serif"],
+        body: ["DM Sans", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
       colors: {

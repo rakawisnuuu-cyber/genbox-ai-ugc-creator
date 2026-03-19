@@ -80,7 +80,7 @@ const TransactionPopup = () => {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 max-w-[300px] animate-slide-up rounded-2xl border border-border/60 bg-card/95 p-3 pr-5 shadow-[0_8px_40px_-12px_hsl(0_0%_0%/0.5)] backdrop-blur-md">
+    <div className="fixed bottom-4 left-4 z-50 max-w-[300px] animate-slide-up rounded-xl border border-border bg-card/95 p-3 pr-5 shadow-lg backdrop-blur-md">
       <button
         onClick={() => setVisible(false)}
         className="absolute right-1 top-1 p-1 text-muted-foreground transition-colors hover:text-foreground"
@@ -88,7 +88,7 @@ const TransactionPopup = () => {
         <X size={12} />
       </button>
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-green-500/20">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-500/20">
           <CheckCircle2 size={16} className="text-green-400" />
         </div>
         <div>

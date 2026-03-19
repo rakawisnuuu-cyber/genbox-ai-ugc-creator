@@ -1,90 +1,74 @@
 
-Goal: Evolve GENBOX into a UGC Ad Creation Engine.
+Goal: fix multi-shot generation failures and make model behavior consistent by reusing one shared generation/polling path across quick + multi-shot.
 
-## Completed Changes
+1) Root cause found (current failing run)
+- The failing multi-shot run is not primarily a polling bug.
+- Network responses show Grok task creation returns:
+  - `{"code":500,"msg":"duration is not within the range of allowed options"}`
+- Multi-shot currently sends module durations like 2/3/4/7s to Grok.
+- Grok image-to-video accepts limited duration values (6 or 10), so creation fails before polling.
+- Error display is misleading because code reads `message` but API returns `msg`, so user sees generic “Failed to create Grok task”.
 
-### Phase 1 (Previous Audit)
-- Cancel buttons fixed, prompt compression, storyboard prompts exposed, Gemini timeout 60s, landing page perf, shared hooks
+2) Implementation plan (what to build)
+- Create a shared video generation client (single source of truth) used by:
+  - `src/pages/VideoPage.tsx` (quick mode)
+  - `src/hooks/useMultiShotGeneration.ts` (multi-shot mode)
+- Move all Kie logic into shared functions:
+  - task creation payload by model (Grok / Veo Fast / Veo Quality)
+  - polling endpoint + status parsing
+  - timeout + retry policy (including 404 retry cap)
+  - consistent URL extraction from result payloads
+  - consistent API error extraction (`msg || message || code`)
+- Remove duplicated inline generation logic from both call sites.
 
-### Phase 2 — Ad Engine Evolution
+3) Grok duration compatibility fix (critical)
+- Add duration normalization for Grok before createTask:
+  - map to allowed values only (6 or 10)
+  - recommended mapping: `<8 => 6`, `>=8 => 10`
+- Apply this in shared generator so both quick and multi-shot stay valid.
+- In Step 2 module editor, add Grok-specific UX guard:
+  - when model is Grok, show helper text “Durasi Grok hanya 6/10 detik”
+  - prevent silently invalid durations (either enforce picker options or show normalized final value per shot).
 
-### 1. Environment Library Overhaul
-- Replaced all Western-centric environments with Indonesian micro-environments per reference doc
-- Shortened descriptions from ~60 words to ~25 words (massive token savings)
-- Categories: Skincare (Bathroom Vanity, Morning Routine Sink, Bedroom Vanity, Spa Style), Fashion (Bedroom Mirror, Closet Area, Apartment Hallway, Balcony), Food (Kitchen Counter, Breakfast Table, Kitchen Island, Snack Table), Electronics (Creator Desk, Bedroom Work Desk, Gaming Setup, Coffee Table Review), Health (Living Room Workout, Home Yoga Corner, Balcony Workout, Home Gym Corner), Home (Couch Talk, Bed Talk, Desk Chat, Balcony Vlog, Kamar Kost)
+4) Polling/404 hardening
+- Keep Veo polling on `/api/v1/veo/record-info?taskId=...` and Grok on `/api/v1/jobs/recordInfo?taskId=...` in shared client.
+- Add explicit debug logs in shared poller:
+  - model, taskId, poll URL, HTTP status, parsed state
+- Stop polling after 5 consecutive 404s with clear actionable error.
+- Keep model-specific timeout windows:
+  - Grok 3m, Veo Fast 5m, Veo Quality 10m.
 
-### 2. Content Templates Expanded (8 → 14)
-- Added: GRWM, 3 Alasan, Expectation vs Reality, Tutorial Singkat, Day in My Life, First Impression
-- Each with full timing (20s) and compressed timing (10s) beats
-- All with `recommendedFor` category mappings
-- Updated `tiktok-hooks.ts` with hook categories and body scripts for all 6 new templates
+5) Multi-shot integration details
+- `generateSingleShot` in `useMultiShotGeneration.ts` becomes a thin wrapper:
+  - build image inputs + continuity image references
+  - call shared `generateVideoAndWait(...)`
+- Keep existing sequential behavior (continue next shot on failure).
+- Preserve shot-level retry/regenerate flow and status updates (no UX regression).
 
-### 3. Storyboard Beats for New Templates
-- Added all 6 new template beats to `storyboard-angles.ts`
-- Added `constraints` field to StoryboardBeat interface
-- Enforced `{ noProductUsage: true }` on Before>After frame 1, GRWM frame 1, Day in My Life frame 1
-- These constraints are available for Gemini prompt generation to enforce narrative logic
+6) Check “other modules” / regressions
+- Verify no breakage in:
+  - Quick video generation (`/video` quick mode)
+  - Multi-shot initial run
+  - Shot regenerate + “Save & Regenerate”
+  - Model switching between Grok / Veo Fast / Veo Quality
+  - Module insert/delete/reorder path still updates and generates correctly
+- Validate error toasts now show real provider messages (e.g., invalid duration).
 
-### 4. API Key Setup Modal
-- Created `ApiKeySetupModal.tsx` — step-by-step wizard (Intro → Kie AI → Gemini → Done)
-- Shows instructions for obtaining each key with external links
-- Password toggle, test key, save & next flow
-- Progress bar across steps
-- Triggered from `DashboardHome.tsx` when API keys are missing
+Technical details (concise)
+- New shared file (example): `src/lib/kie-video-generation.ts`
+- Exposed API (example):
+  - `normalizeDurationForModel(model, duration)`
+  - `createVideoTask(params)`
+  - `pollVideoTask(params)`
+  - `generateVideoAndWait(params)` (used by both quick + multi-shot)
+- Parsing rules:
+  - Grok success: `jobs/recordInfo` + `data.state === "success"` + parse `resultJson`
+  - Veo success: `veo/record-info` + `data.successFlag === 1`
+- Error normalization:
+  - throw `msg || message || "Unknown generation error"` so UI shows true cause.
 
-### Phase 3 — Template-First Flow & Dynamic Narratives
-
-### 5. Flexible Narrative Engine
-- Replaced rigid Hook/Build/Demo/Proof/Convert roles with per-template flexible strings (35+ unique roles)
-- `storyboard-angles.ts`: Each template defines its own narrative stages (e.g., Problem→Pain Amplification→Demo→Result→CTA)
-- Position-based badge coloring system (works with any storyRole string)
-- `frame-lock-prompt.ts`: Updated with 35+ role-to-motion mappings for flexible roles
-
-### 6. Template-First GeneratePage Flow
-- Moved template picker to left panel Step 3 ("Pilih Gaya Konten")
-- Removed mandatory "Base Image" step — Frame 1 is the establishing shot
-- Right panel now shows storyboard grid directly (removed old single-image view)
-- Beat preview shown in both left panel and right panel empty state
-- Frames 1-4 chain from Frame 0's result for visual consistency
-
-### 6b. Two-Step Prompt-First Flow
-- "Generate Storyboard" → replaced with "Generate Prompts" (single Gemini call → 5 prompts as JSON array)
-- Right panel shows editable prompt cards with per-frame "Generate Frame" button
-- Users can review/edit each prompt before generating images
-- "Generate All" button runs all frames sequentially with 2s delay
-- Individual frame regeneration supported
-- Three right panel states: Empty → Prompt Review → Generating/Completed
-
-### 7. Dynamic Motion Suggestions
-- Replaced static `action-chips.ts` hardcoded lists with `generateDynamicChips()` using Gemini
-- Product-aware casual Indonesian motion instructions
-- Cached per template+beat+category combo
-
-### 8. Product DNA Enrichment
-- Added `getProductContext()` to `product-dna.ts`
-- Extracts target user, usage context, emotional angle from DNA fields
-- Injected into prompt generation for more authentic outputs
-
-### 9. VideoPage Flexible Roles
-- Replaced rigid ROLE_COLORS with position-based getRoleColor()
-- Replaced getSmartDialogSuggestion with comprehensive ROLE_DIALOG_MAP (35+ roles)
-- Each role maps to natural casual Indonesian dialog suggestions
-- Role badges now use position-based coloring matching storyboard-angles.ts
-
-## Remaining
-- Character prompt visibility in CreateCharacterPage
-- Gallery saving fix for single images (upload to storage before DB insert)
-- Media analysis panel (MediaInsightsPanel component)
-
-## Files Changed
-- `src/lib/category-options.ts` — full environment rewrite
-- `src/lib/content-templates.ts` — 6 new templates added
-- `src/lib/storyboard-angles.ts` — flexible narrative roles, per-template beats, constraints
-- `src/lib/tiktok-hooks.ts` — hook maps and body scripts for new templates
-- `src/lib/action-chips.ts` — dynamic Gemini-powered suggestions
-- `src/lib/product-dna.ts` — getProductContext() enrichment
-- `src/lib/frame-lock-prompt.ts` — 35+ flexible role mappings
-- `src/components/ApiKeySetupModal.tsx` — new setup wizard
-- `src/pages/DashboardHome.tsx` — triggers API key modal
-- `src/pages/GeneratePage.tsx` — template-first flow, storyboard-direct right panel
-- `src/pages/VideoPage.tsx` — flexible narrative roles, position-based coloring
+Validation matrix after implementation
+- Grok multi-shot (5 shots with mixed durations): creation succeeds, no duration 500.
+- Veo Fast multi-shot: no repeated 404 loop, completes with valid URL.
+- Veo Quality single-shot: completes within timeout window.
+- At least one failed case (intentional invalid key) returns clear message in UI.

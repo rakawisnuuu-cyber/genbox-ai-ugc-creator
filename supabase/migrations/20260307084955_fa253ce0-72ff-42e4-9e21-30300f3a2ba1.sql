@@ -1,1 +1,0 @@
-CREATE POLICY "Users can delete own generations" ON public.generations FOR DELETE TO authenticated USING (auth.uid() = user_id);

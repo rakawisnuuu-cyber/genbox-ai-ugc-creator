@@ -14,7 +14,6 @@ interface UseMultiShotGenerationOptions {
   kieApiKey: string;
   geminiApiKey: string;
   promptModel: string;
-  environmentDescription?: string;
   onModuleUpdate: (idx: number, patch: Partial<VideoModule>) => void;
   onProjectStatusChange: (status: string) => void;
 }
@@ -31,10 +30,8 @@ interface ShotProgress {
 
 const COST_PER_SHOT: Record<string, number> = {
   grok: 1600,
-  kling_std: 2300,
-  kling_pro: 4600,
-  veo_fast: 6400,
-  veo_quality: 32000,
+  veo_fast: 4800,
+  veo_quality: 19200,
 };
 
 export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
@@ -49,7 +46,6 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
     kieApiKey,
     geminiApiKey,
     promptModel,
-    environmentDescription,
     onModuleUpdate,
     onProjectStatusChange,
   } = options;
@@ -111,7 +107,6 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
         withDialogue: mod.withDialogue,
         dialogueText: mod.dialogueText,
         audioDirection: mod.audioDirection,
-        environmentDescription,
       });
 
       const json = await geminiFetch(promptModel, geminiApiKey, {
@@ -243,7 +238,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
       setProgress((p) => ({ ...p, status: "completed" }));
       onProjectStatusChange(finalCompleted ? "completed" : "completed");
     }
-  }, [modules, model, aspectRatio, kieApiKey, geminiApiKey, promptModel, characterHeroUrl, productImageUrl]);
+  }, [modules, model, aspectRatio, kieApiKey, geminiApiKey, promptModel, characterHeroUrl, characterRefUrl, productImageUrl]);
 
   const pause = useCallback(() => {
     pauseRef.current = true;
