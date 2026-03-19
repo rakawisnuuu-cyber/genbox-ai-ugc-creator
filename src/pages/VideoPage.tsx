@@ -104,6 +104,8 @@ const MODEL_COSTS: Record<VideoModel, number> = {
   kling_pro: 4600,
   veo_fast: 6400,
   veo_quality: 32000,
+  sora2: 3200,
+  sora2_pro: 6400,
 };
 
 const MODEL_LABELS: Record<
