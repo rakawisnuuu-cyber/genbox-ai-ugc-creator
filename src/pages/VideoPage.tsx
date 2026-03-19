@@ -133,6 +133,20 @@ const MODEL_LABELS: Record<
     audio: true,
     cost: "~Rp 4.600",
   },
+  sora2: {
+    label: "Sora 2",
+    badge: "NEW",
+    badgeColor: "bg-violet-500/20 text-violet-400",
+    audio: false,
+    cost: "~Rp 3.200",
+  },
+  sora2_pro: {
+    label: "Sora 2 Pro",
+    badge: "NEW PRO",
+    badgeColor: "bg-fuchsia-500/20 text-fuchsia-400",
+    audio: false,
+    cost: "~Rp 6.400",
+  },
   veo_fast: {
     label: "Veo Fast",
     badge: "STANDARD",
