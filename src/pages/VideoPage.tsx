@@ -527,6 +527,8 @@ const VideoPage = () => {
         mergedFrames: [],
         mergedInto: null,
         endFrameUrl: null,
+        taskId: null,
+        hdLoading: null,
       };
     });
     setFrames(newFrames);
