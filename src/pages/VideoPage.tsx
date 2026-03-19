@@ -167,6 +167,8 @@ const MODEL_DURATIONS: Record<VideoModel, number[]> = {
   grok: [6, 10],
   kling_std: [5, 8, 10],
   kling_pro: [5, 8, 10, 15],
+  sora2: [10],
+  sora2_pro: [10],
   veo_fast: [8],
   veo_quality: [8],
 };
