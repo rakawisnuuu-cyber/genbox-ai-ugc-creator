@@ -44,7 +44,21 @@ import {
   MessageSquare,
   Clapperboard,
   ArrowRight,
+  MonitorUp,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import UpscaleButton from "@/components/UpscaleButton";
+import { useUpscale } from "@/hooks/useUpscale";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 type FrameStatus = "idle" | "generating" | "completed" | "failed";
