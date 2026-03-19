@@ -7,7 +7,7 @@
 const KIE_BASE = "https://api.kie.ai/api/v1";
 
 // ── Model type ──────────────────────────────────────────────────────
-export type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
+export type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
 
 // ── Duration normalization ──────────────────────────────────────────
 export function normalizeDurationForModel(model: string, duration: number): number {
@@ -30,15 +30,18 @@ export interface CreateVideoParams {
 
 export interface VideoResult {
   videoUrl: string;
+  taskId: string;
 }
 
 // ── Timeouts & retry config ─────────────────────────────────────────
 const POLL_TIMEOUT: Record<string, number> = {
-  grok: 180_000, // 3 min
-  veo_fast: 300_000, // 5 min
-  veo_quality: 600_000, // 10 min
-  kling_std: 300_000, // 5 min
-  kling_pro: 600_000, // 10 min
+  grok: 180_000,
+  veo_fast: 300_000,
+  veo_quality: 600_000,
+  kling_std: 300_000,
+  kling_pro: 600_000,
+  sora2: 300_000,
+  sora2_pro: 600_000,
 };
 
 const POLL_INTERVAL: Record<string, number> = {
@@ -47,6 +50,8 @@ const POLL_INTERVAL: Record<string, number> = {
   veo_quality: 5_000,
   kling_std: 5_000,
   kling_pro: 5_000,
+  sora2: 5_000,
+  sora2_pro: 5_000,
 };
 
 const MAX_404_RETRIES = 5;
@@ -123,6 +128,36 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
     console.log("[kie] Kling create response:", json);
     if (json.code !== 200 || !json.data?.taskId) {
       throw new Error(extractError(json, "Failed to create Kling task"));
+    }
+    return { taskId: json.data.taskId, model };
+  }
+
+  // ── Sora 2 ──
+  if (model === "sora2" || model === "sora2_pro") {
+    const soraModel = model === "sora2" ? "sora-2-image-to-video" : "sora-2-pro-image-to-video";
+    const soraAspect = aspectRatio === "9:16" ? "portrait" : aspectRatio === "16:9" ? "landscape" : "square";
+    console.log(`[kie] Creating Sora 2 task. Model: ${soraModel}, Aspect: ${soraAspect}`);
+
+    const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        model: soraModel,
+        input: {
+          prompt,
+          image_urls: imageUrls.length > 0 ? imageUrls : undefined,
+          aspect_ratio: soraAspect,
+          n_frames: "10",
+          remove_watermark: true,
+          upload_method: "s3",
+        },
+      }),
+    });
+
+    const json = await res.json();
+    console.log("[kie] Sora 2 create response:", json);
+    if (json.code !== 200 || !json.data?.taskId) {
+      throw new Error(extractError(json, "Failed to create Sora 2 task"));
     }
     return { taskId: json.data.taskId, model };
   }
@@ -277,5 +312,89 @@ export async function generateVideoAndWait(
 ): Promise<VideoResult> {
   const { taskId, model } = await createTask(params);
   const videoUrl = await pollTask(taskId, model, params.apiKey, isCancelled);
-  return { videoUrl };
+  return { videoUrl, taskId };
+}
+
+// ── HD Video Upgrade (Veo only) ─────────────────────────────────
+export async function fetchHDVideo(
+  taskId: string,
+  apiKey: string,
+  resolution: "1080p" | "4k",
+  isCancelled?: () => boolean,
+): Promise<string> {
+  const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
+
+  if (resolution === "1080p") {
+    const url = `${KIE_BASE}/veo/get-1080p-video?taskId=${taskId}&index=0`;
+    const timeout = 180_000; // 3 min
+    const interval = 20_000; // 20s
+    const startTime = Date.now();
+
+    const poll = async (): Promise<string> => {
+      if (isCancelled?.()) throw new Error("Cancelled");
+      if (Date.now() - startTime > timeout) throw new Error("1080p upgrade timed out");
+
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } });
+      const j = await r.json();
+      console.log("[kie] 1080p poll:", j);
+
+      if (j.code === 200 && j.data?.resultUrl) {
+        return j.data.resultUrl;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, interval));
+      return poll();
+    };
+
+    return poll();
+  }
+
+  // 4K — initiate then poll
+  console.log("[kie] Requesting 4K upgrade for taskId:", taskId);
+  const initRes = await fetch(`${KIE_BASE}/veo/get-4k-video`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ taskId, index: 0 }),
+  });
+  const initJson = await initRes.json();
+  console.log("[kie] 4K init response:", initJson);
+
+  if (initJson.code !== 200) {
+    throw new Error(extractError(initJson, "Failed to initiate 4K upgrade"));
+  }
+
+  // Poll using the same taskId via record-info
+  const pollUrl = `${KIE_BASE}/veo/record-info?taskId=${taskId}`;
+  const timeout = 600_000; // 10 min
+  const interval = 30_000; // 30s
+  const startTime = Date.now();
+
+  const poll = async (): Promise<string> => {
+    if (isCancelled?.()) throw new Error("Cancelled");
+    if (Date.now() - startTime > timeout) throw new Error("4K upgrade timed out");
+
+    const r = await fetch(pollUrl, { headers: { Authorization: `Bearer ${apiKey}` } });
+    const j = await r.json();
+    console.log("[kie] 4K poll:", j);
+
+    const flag = j.data?.successFlag;
+    if (flag === 1) {
+      const url = j.data?.videoUrl || j.data?.resultUrl || j.data?.resultUrls?.[0] || "";
+      if (!url && j.data?.resultJson) {
+        const rj = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
+        const parsed = rj?.videoUrl || rj?.resultUrls?.[0] || rj?.url || "";
+        if (parsed) return parsed;
+      }
+      if (url) return url;
+      throw new Error("4K result has no URL");
+    }
+    if (flag === 2 || flag === 3) {
+      throw new Error(extractError(j.data, "4K upgrade failed"));
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+    return poll();
+  };
+
+  return poll();
 }

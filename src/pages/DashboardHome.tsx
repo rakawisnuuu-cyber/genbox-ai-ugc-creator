@@ -13,6 +13,7 @@ import TrialBanner from "@/components/TrialBanner";
 
 const MODEL_COST: Record<string, number> = {
   "nano-banana-pro": 1440, nano: 960, seedream: 440, grok: 1600, veo3_fast: 6400, veo3: 32000,
+  "sora-2": 3200, "sora-2-pro": 6400, sora2: 3200, sora2_pro: 6400,
 };
 
 function estimateCost(model: string): number {

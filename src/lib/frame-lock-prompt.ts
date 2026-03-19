@@ -13,7 +13,7 @@
  * - Cinematography-quality per-role directions
  */
 
-export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
+export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
 
 /* ─── Model-Specific Format Guidance ──────────────────────────── */
 
@@ -125,6 +125,18 @@ Dialogue (spoken in Indonesian):
 
 Constraints:
 Single continuous shot. Same person. Same environment. Same lighting throughout. Product remains stable and unchanged.`,
+
+  sora2: `OUTPUT FORMAT — SORA 2:
+Write ONE flowing natural paragraph (4-5 sentences max). Simple and descriptive.
+Structure: Scene and character → main action with product → reaction or expression.
+No timestamps. No sections. Just a natural, concise paragraph.
+Sora 2 works best with clear, direct language — avoid technical cinematography terms.`,
+
+  sora2_pro: `OUTPUT FORMAT — SORA 2 PRO:
+Write ONE flowing natural paragraph (5-6 sentences max). Rich but concise.
+Structure: Environment and lighting → character with product → primary action → subtle expression shift.
+No timestamps. No sections. Just a vivid, natural paragraph.
+Sora 2 Pro handles more detail than standard but still prefers flowing prose over structured sections.`,
 };
 
 /* ─── Main System Instruction ─────────────────────────────────── */
