@@ -1468,6 +1468,18 @@ Content template: ${template?.label}`,
                             <ImageIcon className="h-3 w-3" /> Dari gallery
                           </button>
                         )}
+                        {(frame.sourceImageUrl || sourceUrl) && frame.status !== "generating" && (
+                          <UpscaleButton
+                            imageUrl={(frame.sourceImageUrl || sourceUrl)!}
+                            imageKey={`frame-${idx}-source`}
+                            loading={getUpscaleState(`frame-${idx}-source`).loading}
+                            currentFactor={getUpscaleState(`frame-${idx}-source`).factor}
+                            onUpscale={async (key, url, factor) => {
+                              const result = await upscale(key, url, factor);
+                              if (result) updateFrame(idx, { sourceImageUrl: result });
+                            }}
+                          />
+                        )}
                       </div>
                     </div>
                     {frame.showGalleryPicker && galleryImages.length > 0 && (
