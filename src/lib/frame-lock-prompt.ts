@@ -13,7 +13,7 @@
  * - Cinematography-quality per-role directions
  */
 
-export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
+export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
 
 /* ─── Model-Specific Format Guidance ──────────────────────────── */
 
