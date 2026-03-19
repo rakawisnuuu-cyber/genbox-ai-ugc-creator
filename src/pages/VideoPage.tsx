@@ -87,6 +87,10 @@ interface FrameState {
   showEndGallery?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
+  /** Task ID from Kie AI — needed for HD upgrades */
+  taskId: string | null;
+  /** Currently loading HD resolution */
+  hdLoading: "1080p" | "4k" | null;
 }
 
 interface GalleryImage {
