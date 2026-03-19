@@ -1903,7 +1903,7 @@ Content template: ${template?.label}`,
                         </a>
                         <button
                           onClick={() => {
-                            updateFrame(idx, { status: "idle", videoUrl: null });
+                            updateFrame(idx, { status: "idle", videoUrl: null, taskId: null, hdLoading: null });
                             generateFrame(idx);
                           }}
                           className="text-xs py-2 px-3 rounded-xl border border-white/[0.06] text-muted-foreground hover:text-foreground flex items-center gap-1"
@@ -1911,6 +1911,68 @@ Content template: ${template?.label}`,
                           <RefreshCw className="h-3 w-3" /> Retry
                         </button>
                       </div>
+                      {/* HD Upgrade buttons — Veo only */}
+                      {(frame.model === "veo_fast" || frame.model === "veo_quality") && frame.taskId && (
+                        <div className="flex gap-2">
+                          <button
+                            disabled={!!frame.hdLoading}
+                            onClick={async () => {
+                              if (!kieApiKey) return;
+                              updateFrame(idx, { hdLoading: "1080p" });
+                              try {
+                                const hdUrl = await fetchHDVideo(frame.taskId!, kieApiKey, "1080p");
+                                updateFrame(idx, { videoUrl: hdUrl, hdLoading: null });
+                                toast({ title: "Video upgraded ke 1080p!" });
+                              } catch (e: any) {
+                                updateFrame(idx, { hdLoading: null });
+                                toast({ title: "1080p gagal", description: e.message, variant: "destructive" });
+                              }
+                            }}
+                            className="flex-1 text-[11px] py-1.5 rounded-lg border border-blue-500/20 text-blue-400 hover:bg-blue-500/10 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
+                          >
+                            {frame.hdLoading === "1080p" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MonitorUp className="h-3 w-3" />}
+                            1080p {frame.hdLoading !== "1080p" && <span className="text-[9px] text-muted-foreground/40">Free</span>}
+                          </button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                disabled={!!frame.hdLoading}
+                                className="flex-1 text-[11px] py-1.5 rounded-lg border border-violet-500/20 text-violet-400 hover:bg-violet-500/10 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
+                              >
+                                {frame.hdLoading === "4k" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MonitorUp className="h-3 w-3" />}
+                                4K {frame.hdLoading !== "4k" && <span className="text-[9px] text-muted-foreground/40">~Rp 12.800</span>}
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Upgrade ke 4K?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  4K upgrade membutuhkan kredit tambahan (~Rp 12.800, setara 2x Veo Fast). Proses memakan waktu 5-10 menit. Lanjutkan?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Batal</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={async () => {
+                                    if (!kieApiKey) return;
+                                    updateFrame(idx, { hdLoading: "4k" });
+                                    try {
+                                      const hdUrl = await fetchHDVideo(frame.taskId!, kieApiKey, "4k");
+                                      updateFrame(idx, { videoUrl: hdUrl, hdLoading: null });
+                                      toast({ title: "Video upgraded ke 4K!" });
+                                    } catch (e: any) {
+                                      updateFrame(idx, { hdLoading: null });
+                                      toast({ title: "4K gagal", description: e.message, variant: "destructive" });
+                                    }
+                                  }}
+                                >
+                                  Ya, upgrade ke 4K
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      )}
                     </div>
                   ) : frame.status === "generating" ? (
                     <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
