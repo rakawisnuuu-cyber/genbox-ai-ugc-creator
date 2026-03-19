@@ -312,5 +312,89 @@ export async function generateVideoAndWait(
 ): Promise<VideoResult> {
   const { taskId, model } = await createTask(params);
   const videoUrl = await pollTask(taskId, model, params.apiKey, isCancelled);
-  return { videoUrl };
+  return { videoUrl, taskId };
+}
+
+// ── HD Video Upgrade (Veo only) ─────────────────────────────────
+export async function fetchHDVideo(
+  taskId: string,
+  apiKey: string,
+  resolution: "1080p" | "4k",
+  isCancelled?: () => boolean,
+): Promise<string> {
+  const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
+
+  if (resolution === "1080p") {
+    const url = `${KIE_BASE}/veo/get-1080p-video?taskId=${taskId}&index=0`;
+    const timeout = 180_000; // 3 min
+    const interval = 20_000; // 20s
+    const startTime = Date.now();
+
+    const poll = async (): Promise<string> => {
+      if (isCancelled?.()) throw new Error("Cancelled");
+      if (Date.now() - startTime > timeout) throw new Error("1080p upgrade timed out");
+
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } });
+      const j = await r.json();
+      console.log("[kie] 1080p poll:", j);
+
+      if (j.code === 200 && j.data?.resultUrl) {
+        return j.data.resultUrl;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, interval));
+      return poll();
+    };
+
+    return poll();
+  }
+
+  // 4K — initiate then poll
+  console.log("[kie] Requesting 4K upgrade for taskId:", taskId);
+  const initRes = await fetch(`${KIE_BASE}/veo/get-4k-video`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ taskId, index: 0 }),
+  });
+  const initJson = await initRes.json();
+  console.log("[kie] 4K init response:", initJson);
+
+  if (initJson.code !== 200) {
+    throw new Error(extractError(initJson, "Failed to initiate 4K upgrade"));
+  }
+
+  // Poll using the same taskId via record-info
+  const pollUrl = `${KIE_BASE}/veo/record-info?taskId=${taskId}`;
+  const timeout = 600_000; // 10 min
+  const interval = 30_000; // 30s
+  const startTime = Date.now();
+
+  const poll = async (): Promise<string> => {
+    if (isCancelled?.()) throw new Error("Cancelled");
+    if (Date.now() - startTime > timeout) throw new Error("4K upgrade timed out");
+
+    const r = await fetch(pollUrl, { headers: { Authorization: `Bearer ${apiKey}` } });
+    const j = await r.json();
+    console.log("[kie] 4K poll:", j);
+
+    const flag = j.data?.successFlag;
+    if (flag === 1) {
+      const url = j.data?.videoUrl || j.data?.resultUrl || j.data?.resultUrls?.[0] || "";
+      if (!url && j.data?.resultJson) {
+        const rj = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
+        const parsed = rj?.videoUrl || rj?.resultUrls?.[0] || rj?.url || "";
+        if (parsed) return parsed;
+      }
+      if (url) return url;
+      throw new Error("4K result has no URL");
+    }
+    if (flag === 2 || flag === 3) {
+      throw new Error(extractError(j.data, "4K upgrade failed"));
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, interval));
+    return poll();
+  };
+
+  return poll();
 }
