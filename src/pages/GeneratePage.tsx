@@ -73,7 +73,7 @@ import type { CharacterData } from "@/components/CharacterCard";
 const SKIN_BLOCK =
   "Skin is ultra-realistic, photorealistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
 const QUALITY_BLOCK =
-  "8K resolution, ultra-high detail, photographic realism, sharp focus, natural color grading, realistic contrast, clean image quality. Shot on smartphone camera, natural shallow depth of field, slight natural grain.";
+  "High resolution photo, shot on smartphone camera, photographic realism, natural shallow depth of field, natural color grading with warm daylight tint, realistic contrast, slight natural grain. Looks like a real content creator's photo, not a studio shot.";
 const NEGATIVE_BLOCK =
   "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter, no perfectly symmetrical rooms, no impossibly clean environments, no plastic-looking surfaces, no floating objects without shadows, no uniform flat lighting across entire scene, no AI-typical repeated patterns on walls or floors, no sterile empty rooms, no professional studio lighting setup, no editorial fashion photography, no stock photo composition.";
 const ENV_REALISM_BLOCK =
@@ -814,12 +814,37 @@ ${beatsDesc}
 
 RULES:
 - Each prompt is a COMPLETE image generation prompt — character appearance, product, scene, lighting, camera
-- Frame 1: describe character and environment in full detail
-- Frames 2-${beats.length}: reference "same person, same outfit, same room"
-- Each frame uses a DIFFERENT camera angle (selfie, medium, POV, close-up, hero shot)
-- Prompts should be 60-90 words each — concise and focused
-- Do NOT add negative prompts — they will be appended separately
-- Photorealistic, UGC style, phone camera quality
+- Frame 1 is the ESTABLISHING shot — describe character and environment in full detail
+- Frames 2-${beats.length} MUST reference "same person, same outfit, same room" for consistency
+- Realistic skin, natural pores, phone camera quality, UGC style
+- No cartoon, no CGI, no 3D render, no watermark
+- Prompts should be 80-150 words each
+- Add "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no watermark, no text overlay." at the end of each prompt
+CAMERA DIVERSITY — each frame MUST use a different camera setup:
+- Frame 1: Selfie close-up (30-40 cm from face). Product at edge of frame or on table.
+- Frame 2: Medium tabletop shot (80 cm away) OR product close-up. Product centered, hands introducing it.
+- Frame 3: POV or over-shoulder angle. Hands actively interacting with product. Face secondary.
+- Frame 4: Reaction close-up or side profile. Product in hand near face. Expression is the focus.
+- Frame 5: Medium hero shot. Product held toward camera. Confident presenting energy.
+FRAME STABILITY (CRITICAL — MATCH THE CHARACTER REFERENCE IMAGE):
+- Every frame must show the EXACT person from the character reference image attached above
+- Do NOT beautify, slim, reshape, or enhance the person's appearance beyond what the reference shows
+- Facial structure: same nose shape, eye shape, jawline, forehead as the reference photo
+- Skin: same texture, same tone, same imperfections as the reference — no smoothing between frames
+- Hair: same volume, length, color, style as the reference — no changes across frames
+- Makeup: same intensity as the reference — if minimal in reference, stay minimal in all frames
+- Body: same proportions as the reference — no slimming or reshaping
+- If the reference shows a normal-looking person, generate a normal-looking person. Do NOT make them look like a model or influencer.
+- The person in ALL 5 frames must be recognizable as the SAME person in the reference photo.
+
+PRODUCT JOURNEY across frames:
+Frame 1 → product barely visible or on table
+Frame 2 → product picked up, in hand
+Frame 3 → product being used/opened/applied
+Frame 4 → product near face, post-use reaction
+Frame 5 → product held toward camera, label visible
+
+NEVER generate 5 frames with the same selfie angle. Each frame must look like a DIFFERENT moment from a real TikTok video.
 
 Return a JSON array of ${beats.length} prompt strings. Example:
 ["prompt for frame 1", "prompt for frame 2", ...]
@@ -883,27 +908,16 @@ Output ONLY the JSON array. No explanation.`,
 
     try {
       const imageInputs: string[] = [];
-      // Use hero image OR reference photo — not both (reduces confusion for model)
-      if (selectedChar?.hero_image_url) {
-        imageInputs.push(selectedChar.hero_image_url);
-      } else if (selectedChar?.reference_photo_url) {
-        imageInputs.push(selectedChar.reference_photo_url);
-      }
+      if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
+      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
       if (productUrl) imageInputs.push(productUrl);
 
-      // For frames after first, use frame 0 result as primary reference
       if (idx > 0) {
         const frame0Url = shotStatuses[0]?.imageUrl;
         if (frame0Url) imageInputs.unshift(frame0Url);
       }
 
-      const enhancedFramePrompt = `${currentPrompt}\n\n${SKIN_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
-      const imageUrl = await generateKieImage(
-        kieApiKey,
-        enhancedFramePrompt,
-        imageInputs,
-        () => storyboardAbortRef.current,
-      );
+      const imageUrl = await generateKieImage(kieApiKey, currentPrompt, imageInputs, () => storyboardAbortRef.current);
 
       setShotStatuses((prev) => {
         const next = [...prev];
