@@ -4,12 +4,19 @@ import HeroSection from "@/components/HeroSection";
 import DibuatUntukSection from "@/components/DibuatUntukSection";
 import FiturSection from "@/components/FiturSection";
 import CaraKerjaSection from "@/components/CaraKerjaSection";
-import HasilNyataSection from "@/components/HasilNyataSection";
+
 import HargaSection from "@/components/HargaSection";
 import ApiCostSection from "@/components/ApiCostSection";
 import FAQSection from "@/components/FAQSection";
 import FinalCTASection from "@/components/FinalCTASection";
+import FooterSection from "@/components/FooterSection";
 import TransactionPopup from "@/components/TransactionPopup";
+
+const SectionDivider = () => (
+  <div className="mx-auto max-w-5xl px-4">
+    <div className="h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
+  </div>
+);
 
 const Index = () => {
   return (
@@ -17,15 +24,19 @@ const Index = () => {
       <AnimatedBackground />
       <Navbar />
       <HeroSection />
+      <SectionDivider />
       <DibuatUntukSection />
+      <SectionDivider />
       <FiturSection />
+      <SectionDivider />
       <CaraKerjaSection />
-      <HasilNyataSection />
+      <SectionDivider />
       <HargaSection />
+      <SectionDivider />
       <ApiCostSection />
+      <SectionDivider />
       <FAQSection />
-      <FinalCTASection />
-      <TransactionPopup />
+      <FooterSection />
     </div>
   );
 };
