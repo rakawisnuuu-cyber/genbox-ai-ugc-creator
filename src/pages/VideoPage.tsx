@@ -1036,7 +1036,7 @@ Content template: ${template?.label}`,
       );
 
       clearInterval(frameTimersRef.current[idx]);
-      updateFrame(idx, { status: "completed", videoUrl: result.videoUrl });
+      updateFrame(idx, { status: "completed", videoUrl: result.videoUrl, taskId: result.taskId });
 
       // Save to gallery
       await supabase.from("generations").insert({
