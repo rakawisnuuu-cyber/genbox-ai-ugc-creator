@@ -361,6 +361,7 @@ const VideoPage = () => {
   const { kieApiKey, geminiKey, keys } = useApiKeys();
   const { model: promptModel } = usePromptModel();
   const { toast } = useToast();
+  const { upscale, getState: getUpscaleState } = useUpscale();
 
   // Navigation state from storyboard
   const navState = location.state as any;
