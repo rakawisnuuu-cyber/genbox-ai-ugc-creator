@@ -30,6 +30,7 @@ export interface CreateVideoParams {
 
 export interface VideoResult {
   videoUrl: string;
+  taskId: string;
 }
 
 // ── Timeouts & retry config ─────────────────────────────────────────
