@@ -37,17 +37,6 @@ import UpscaleButton from "@/components/UpscaleButton";
 import GenerationLoading from "@/components/GenerationLoading";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
