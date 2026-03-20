@@ -20,7 +20,7 @@ import {
   type ProductCategory,
 } from "@/lib/product-dna";
 import { getEnvironments, getPoses, getMoods, findOption } from "@/lib/category-options";
-import { type ContentTemplateKey } from "@/lib/content-templates";
+import { CONTENT_TEMPLATES, type ContentTemplateKey } from "@/lib/content-templates";
 import { getStoryboardBeats } from "@/lib/storyboard-angles";
 import {
   X,
