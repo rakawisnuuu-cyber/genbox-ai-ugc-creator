@@ -23,26 +23,9 @@ import { getEnvironments, getPoses, getMoods, findOption } from "@/lib/category-
 import { type ContentTemplateKey } from "@/lib/content-templates";
 import { getStoryboardBeats } from "@/lib/storyboard-angles";
 import {
-  Upload,
   X,
   Sparkles,
-  Paintbrush,
-  Image as ImageIcon,
-  AlertTriangle,
-  Download,
-  RefreshCw,
-  UserCircle,
   Loader2,
-  Link as LinkIcon,
-  Film,
-  ScanSearch,
-  CheckCircle2,
-  XCircle,
-  Play,
-  ArrowRight,
-  Camera,
-  ChevronDown,
-  Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
