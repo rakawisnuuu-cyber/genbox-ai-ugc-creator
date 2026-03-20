@@ -147,15 +147,7 @@ async function generateKieImage(
 
 import { PRESETS } from "@/lib/character-presets";
 
-type GenState = "idle" | "loading" | "completed" | "failed";
-
-// Per-shot status for multi-angle
-interface ShotStatus {
-  state: "pending" | "prompt_ready" | "prompting" | "generating" | "completed" | "failed";
-  imageUrl?: string;
-  error?: string;
-  prompt?: string;
-}
+/* GenState & ShotStatus imported from @/lib/generate-types */
 
 const GeneratePage = () => {
   const { user } = useAuth();
