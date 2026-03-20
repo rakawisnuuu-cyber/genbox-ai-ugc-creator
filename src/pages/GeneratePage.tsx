@@ -1,4 +1,11 @@
 import { sanitizeForPrompt } from "@/lib/utils";
+import { SKIN_BLOCK, QUALITY_BLOCK, NEGATIVE_BLOCK, ENV_REALISM_BLOCK, UGC_STYLE_BLOCK } from "@/lib/prompt-blocks";
+import type { GenState, ShotStatus } from "@/lib/generate-types";
+import ProductUploadStep from "@/components/generate/ProductUploadStep";
+import CharacterSelectStep from "@/components/generate/CharacterSelectStep";
+import TemplateSelectStep from "@/components/generate/TemplateSelectStep";
+import SceneSettingsStep from "@/components/generate/SceneSettingsStep";
+import StoryboardPanel from "@/components/generate/StoryboardPanel";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
@@ -12,30 +19,13 @@ import {
   type ProductDNA,
   type ProductCategory,
 } from "@/lib/product-dna";
-import { getEnvironments, getPoses, getMoods, findOption, type RichOption } from "@/lib/category-options";
-import { CONTENT_TEMPLATES, isRecommendedForCategory, type ContentTemplateKey } from "@/lib/content-templates";
-import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
+import { getEnvironments, getPoses, getMoods, findOption } from "@/lib/category-options";
+import { CONTENT_TEMPLATES, type ContentTemplateKey } from "@/lib/content-templates";
+import { getStoryboardBeats } from "@/lib/storyboard-angles";
 import {
-  Upload,
   X,
   Sparkles,
-  Paintbrush,
-  Image as ImageIcon,
-  AlertTriangle,
-  Download,
-  RefreshCw,
-  UserCircle,
   Loader2,
-  Link as LinkIcon,
-  Film,
-  ScanSearch,
-  CheckCircle2,
-  XCircle,
-  Play,
-  ArrowRight,
-  Camera,
-  ChevronDown,
-  Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,17 +36,6 @@ import { useToast } from "@/hooks/use-toast";
 import UpscaleButton from "@/components/UpscaleButton";
 import GenerationLoading from "@/components/GenerationLoading";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectGroup,
-  SelectLabel,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,17 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { CharacterData } from "@/components/CharacterCard";
 
-/* ── GENBOX Realism Blocks ──────────────────────────────────── */
-const SKIN_BLOCK =
-  "Skin is ultra-realistic, photorealistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
-const QUALITY_BLOCK =
-  "8K resolution, ultra-high detail, photographic realism, sharp focus, natural color grading, realistic contrast, clean image quality. Shot on smartphone camera, natural shallow depth of field, slight natural grain.";
-const NEGATIVE_BLOCK =
-  "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter, no perfectly symmetrical rooms, no impossibly clean environments, no plastic-looking surfaces, no floating objects without shadows, no uniform flat lighting across entire scene, no AI-typical repeated patterns on walls or floors, no sterile empty rooms, no professional studio lighting setup, no editorial fashion photography, no stock photo composition.";
-const ENV_REALISM_BLOCK =
-  "Environment must look like a REAL lived-in space photographed with a phone or mirrorless camera. Include subtle signs of real life: a phone charger on a nightstand, a half-drunk glass of water, slightly wrinkled bedsheet corner, a book left open, shoes by the door, a bag on a chair. Background should have natural depth of field — slightly soft/blurred behind the subject, not everything in razor-sharp focus. Walls should have subtle natural texture variation, not perfectly flat rendered surfaces. Lighting should have natural falloff — brighter near windows, gradually darker in corners. No unnaturally symmetrical rooms, no impossibly clean surfaces, no repeated tile patterns, no plastic-looking materials, no floating furniture, no missing shadows.";
-const UGC_STYLE_BLOCK =
-  "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
+/* Realism blocks imported from @/lib/prompt-blocks */
 
 import { imageUrlToBase64, fileToBase64 } from "@/lib/image-utils";
 
@@ -150,15 +119,7 @@ async function generateKieImage(
 
 import { PRESETS } from "@/lib/character-presets";
 
-type GenState = "idle" | "loading" | "completed" | "failed";
-
-// Per-shot status for multi-angle
-interface ShotStatus {
-  state: "pending" | "prompt_ready" | "prompting" | "generating" | "completed" | "failed";
-  imageUrl?: string;
-  error?: string;
-  prompt?: string;
-}
+/* GenState & ShotStatus imported from @/lib/generate-types */
 
 const GeneratePage = () => {
   const { user } = useAuth();
@@ -1029,469 +990,72 @@ Output ONLY the JSON array. No explanation.`,
         {/* Step 01 — Upload Produk */}
         <div className="animate-fade-up" style={{ animationDelay: "100ms" }}>
           <StepLabel num={1} label="Upload Produk" />
-          {productPreview ? (
-            <div className="border border-white/[0.06] rounded-2xl bg-white/[0.02] p-4 space-y-3">
-              <div className="flex items-start gap-4">
-                <div className="relative shrink-0">
-                  <img
-                    src={productPreview}
-                    alt="Product"
-                    className="h-24 w-24 rounded-xl object-cover border border-white/[0.06]"
-                  />
-                  <button
-                    onClick={removeProduct}
-                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
-                  >
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                  {uploading && (
-                    <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    </div>
-                  )}
-                </div>
-                {/* Product DNA card */}
-                <div className="flex-1 min-w-0">
-                  {detectingDNA && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <ScanSearch className="h-3.5 w-3.5 animate-pulse" />
-                      <span>Mendeteksi produk...</span>
-                    </div>
-                  )}
-                  {productDNA && !detectingDNA && (
-                    <div className="space-y-0">
-                      {/* Collapsed header row */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Select
-                          value={productDNA.category}
-                          onValueChange={(val) =>
-                            setProductDNA((prev) => (prev ? { ...prev, category: val as ProductCategory } : prev))
-                          }
-                        >
-                          <SelectTrigger className="h-7 w-auto min-w-[120px] text-xs bg-primary/10 border-primary/20 text-primary font-semibold px-2.5">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ALL_CATEGORIES.map((c) => (
-                              <SelectItem key={c.value} value={c.value} className="text-xs">
-                                {c.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {productDNA.sub_category && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-muted-foreground/60">
-                            {productDNA.sub_category}
-                          </span>
-                        )}
-                        {productDNA.dominant_color && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-muted-foreground/60">
-                            {productDNA.dominant_color}
-                          </span>
-                        )}
-                        <button
-                          onClick={() => setDnaExpanded(!dnaExpanded)}
-                          className="ml-auto text-muted-foreground/30 hover:text-muted-foreground/60 transition-colors"
-                        >
-                          <ChevronDown
-                            className={`h-3.5 w-3.5 transition-transform ${dnaExpanded ? "rotate-180" : ""}`}
-                          />
-                        </button>
-                      </div>
-                      {productDNA.product_description && (
-                        <p className="text-[13px] text-foreground line-clamp-1 mt-1.5">
-                          {productDNA.product_description}
-                        </p>
-                      )}
-
-                      {/* Expanded detail grid */}
-                      {dnaExpanded && (
-                        <div className="pt-3 mt-3 border-t border-white/[0.04] space-y-3">
-                          <div className="grid grid-cols-2 gap-3">
-                            {productDNA.material && (
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">
-                                  Material
-                                </p>
-                                <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.material}</p>
-                              </div>
-                            )}
-                            {productDNA.brand_name && productDNA.brand_name !== "unknown" && (
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">Brand</p>
-                                <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.brand_name}</p>
-                              </div>
-                            )}
-                            {productDNA.key_features && (
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">
-                                  Key Features
-                                </p>
-                                <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.key_features}</p>
-                              </div>
-                            )}
-                            {productDNA.usage_type && (
-                              <div>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground/25">
-                                  Usage Type
-                                </p>
-                                <p className="text-[12px] text-muted-foreground/60 mt-0.5">{productDNA.usage_type}</p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground/20">
-                            <Info className="h-3 w-3 shrink-0" />
-                            <span>AI uses this to generate accurate product placement</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.add("!border-primary/30");
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove("!border-primary/30");
-              }}
-              onDrop={(e) => {
-                e.currentTarget.classList.remove("!border-primary/30");
-                onDrop(e);
-              }}
-              onClick={() => {
-                const inp = document.createElement("input");
-                inp.type = "file";
-                inp.accept = "image/jpeg,image/png,image/webp";
-                inp.onchange = (e) => {
-                  const f = (e.target as HTMLInputElement).files?.[0];
-                  if (f) handleFileSelect(f);
-                };
-                inp.click();
-              }}
-              className="border border-white/[0.06] rounded-2xl bg-white/[0.02] p-8 hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
-            >
-              <Upload className="h-6 w-6 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground/40">Drag & drop foto produk</p>
-              <p className="text-xs text-muted-foreground/30">atau klik untuk pilih file</p>
-              <p className="text-[11px] text-muted-foreground/20">JPEG, PNG, WebP — Maks 10MB</p>
-            </div>
-          )}
+          <ProductUploadStep
+            productPreview={productPreview}
+            productUrl={productUrl}
+            productDNA={productDNA}
+            detectingDNA={detectingDNA}
+            uploading={uploading}
+            dnaExpanded={dnaExpanded}
+            setDnaExpanded={setDnaExpanded}
+            setProductDNA={setProductDNA}
+            handleFileSelect={handleFileSelect}
+            removeProduct={removeProduct}
+            onDrop={onDrop}
+          />
         </div>
 
         {/* Step 02 — Pilih Karakter */}
         <div className="animate-fade-up" style={{ animationDelay: "150ms" }}>
           <StepLabel num={2} label="Pilih Karakter" />
 
-          {/* Horizontal avatar strip */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 scrollbar-none">
-            {/* "Pakai Foto Sendiri" as first item */}
-            <button
-              onClick={() => {
-                const inp = document.createElement("input");
-                inp.type = "file";
-                inp.accept = "image/jpeg,image/png,image/webp";
-                inp.onchange = (e) => {
-                  const f = (e.target as HTMLInputElement).files?.[0];
-                  if (f) handleOwnPhotoSelect(f);
-                };
-                inp.click();
-              }}
-              className={`shrink-0 h-11 w-11 rounded-full border-2 border-dashed flex items-center justify-center transition-all ${
-                selectedCharId === "__own_photo__"
-                  ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background"
-                  : "border-white/[0.1] hover:border-primary/30"
-              }`}
-              title="Pakai Foto Sendiri"
-            >
-              {ownPhotoPreview ? (
-                <img src={ownPhotoPreview} alt="Foto saya" className="h-full w-full rounded-full object-cover" />
-              ) : (
-                <Camera className="h-4 w-4 text-muted-foreground/40" />
-              )}
-            </button>
-
-            {/* Preset + custom characters as avatar circles */}
-            {[...PRESETS, ...customChars].map((c) => (
-              <button
-                key={c.id}
-                onClick={() => onCharSelect(c.id)}
-                className={`shrink-0 h-11 w-11 rounded-full overflow-hidden transition-all ${
-                  selectedCharId === c.id
-                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                    : "hover:ring-1 hover:ring-white/20"
-                }`}
-                title={c.name}
-              >
-                {c.hero_image_url ? (
-                  <img src={c.hero_image_url} alt={c.name} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full bg-secondary flex items-center justify-center">
-                    <UserCircle className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Own photo analyzing state */}
-          {ownPhotoPreview && (ownPhotoUploading || ownPhotoAnalyzing) && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-              <span>{ownPhotoUploading ? "Mengupload foto..." : "AI sedang menganalisis..."}</span>
-            </div>
-          )}
-
-          {/* Selected character info card */}
-          {selectedChar && (
-            <div className="flex items-center gap-3 border border-white/[0.06] rounded-xl bg-white/[0.02] p-3 mb-2">
-              {selectedChar.hero_image_url ? (
-                <img
-                  src={selectedChar.hero_image_url}
-                  alt={selectedChar.name}
-                  className="h-9 w-9 rounded-full object-cover shrink-0"
-                />
-              ) : (
-                <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                  <UserCircle className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-foreground">{selectedChar.name}</p>
-                <p className="text-[10px] text-muted-foreground truncate">
-                  {[selectedChar.type, selectedChar.age_range, selectedChar.style].filter(Boolean).join(" • ")}
-                </p>
-              </div>
-              {selectedCharId === "__own_photo__" && (
-                <button onClick={removeOwnPhoto} className="p-1 rounded-md hover:bg-secondary transition-colors">
-                  <X className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Browse all fallback */}
-          <div className="flex items-center gap-3">
-            <Select value={selectedCharId === "__own_photo__" ? "" : selectedCharId} onValueChange={onCharSelect}>
-              <SelectTrigger className="bg-white/[0.03] border-white/[0.06] text-xs h-8">
-                <SelectValue placeholder="Browse all characters..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Preset</SelectLabel>
-                  {PRESETS.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <span className="flex items-center gap-2">
-                        {c.hero_image_url ? (
-                          <img
-                            src={c.hero_image_url}
-                            alt={c.name}
-                            className="h-5 w-5 rounded-full object-cover shrink-0"
-                          />
-                        ) : (
-                          <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
-                        )}
-                        {c.name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-                {customChars.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel>Karakter Saya</SelectLabel>
-                    {customChars.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        <span className="flex items-center gap-2">
-                          {c.hero_image_url ? (
-                            <img
-                              src={c.hero_image_url}
-                              alt={c.name}
-                              className="h-6 w-6 rounded-full object-cover shrink-0"
-                            />
-                          ) : (
-                            <UserCircle className="h-4 w-4 text-primary shrink-0" />
-                          )}
-                          {c.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-              </SelectContent>
-            </Select>
-            <button
-              onClick={() => navigate("/characters/create")}
-              className="text-[10px] text-primary hover:underline inline-flex items-center gap-1 shrink-0"
-            >
-              Buat baru <LinkIcon className="h-3 w-3" />
-            </button>
-          </div>
+          <CharacterSelectStep
+            selectedCharId={selectedCharId}
+            selectedChar={selectedChar}
+            customChars={customChars}
+            ownPhotoPreview={ownPhotoPreview}
+            ownPhotoUploading={ownPhotoUploading}
+            ownPhotoAnalyzing={ownPhotoAnalyzing}
+            onCharSelect={onCharSelect}
+            handleOwnPhotoSelect={handleOwnPhotoSelect}
+            removeOwnPhoto={removeOwnPhoto}
+            navigate={navigate}
+          />
         </div>
 
         {/* Step 03 — Pilih Gaya Konten */}
         <div className="animate-fade-up" style={{ animationDelay: "175ms" }}>
           <StepLabel num={3} label="Content Template" />
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {[...CONTENT_TEMPLATES]
-              .sort((a, b) => {
-                if (!productDNA?.category) return 0;
-                const aRec = isRecommendedForCategory(a, productDNA.category) ? 0 : 1;
-                const bRec = isRecommendedForCategory(b, productDNA.category) ? 0 : 1;
-                return aRec - bRec;
-              })
-              .map((t, ti) => {
-                const isSelected = storyboardTemplate === t.key;
-                const isRecommended = productDNA?.category ? isRecommendedForCategory(t, productDNA.category) : false;
-                const accentColors = [
-                  "bg-blue-500",
-                  "bg-amber-500",
-                  "bg-emerald-500",
-                  "bg-rose-500",
-                  "bg-violet-500",
-                  "bg-cyan-500",
-                ];
-                const accent = accentColors[ti % accentColors.length];
-                return (
-                  <button
-                    key={t.key}
-                    onClick={() => {
-                      if (hasPrompts && t.key !== storyboardTemplate) {
-                        pendingTemplateRef.current = t.key;
-                        setTemplateChangeOpen(true);
-                      } else {
-                        setStoryboardTemplate(t.key);
-                      }
-                    }}
-                    className={`relative text-left rounded-xl overflow-visible transition-all flex ${
-                      isSelected
-                        ? "bg-primary/[0.04] border border-primary/30"
-                        : isRecommended
-                          ? "bg-primary/[0.03] border border-primary/20 hover:border-primary/30"
-                          : "bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12]"
-                    }`}
-                  >
-                    {isRecommended && !isSelected && (
-                      <span className="absolute -top-2 -right-2 text-[8px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold z-10">
-                        Recommended
-                      </span>
-                    )}
-                    <div className={`w-[2px] shrink-0 ${isSelected ? "bg-primary" : accent + "/30"}`} />
-                    <div className="px-3 py-2.5">
-                      <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>
-                        {t.label}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground/40 line-clamp-1">{t.desc}</p>
-                    </div>
-                  </button>
-                );
-              })}
-          </div>
+          <TemplateSelectStep
+            storyboardTemplate={storyboardTemplate}
+            productCategory={productDNA?.category}
+            hasPrompts={hasPrompts}
+            onSelect={(key) => setStoryboardTemplate(key)}
+            onConfirmChange={(key) => {
+              pendingTemplateRef.current = key;
+              setTemplateChangeOpen(true);
+            }}
+          />
         </div>
 
         {/* Step 04 — Scene Settings */}
         <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
           <StepLabel num={4} label="Scene Settings" />
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 space-y-4">
-            {/* Environment — top level */}
-            <div>
-              <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">
-                Background / Environment
-              </label>
-              <Select value={background} onValueChange={setBackground}>
-                <SelectTrigger className="bg-white/[0.03] border-white/[0.06]">
-                  <SelectValue placeholder="Pilih environment..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {envOptions.map((opt) => (
-                    <SelectItem key={opt.label} value={opt.label}>
-                      <div className="flex flex-col">
-                        <span>{opt.label}</span>
-                        {opt.description && (
-                          <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">
-                            {opt.description.slice(0, 55)}…
-                          </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {background === "Custom" && (
-                <Input
-                  value={customBg}
-                  onChange={(e) => setCustomBg(e.target.value)}
-                  placeholder="Deskripsikan environment secara detail..."
-                  className="mt-2 bg-white/[0.03] border-white/[0.06]"
-                />
-              )}
-            </div>
-
-            {/* Advanced — collapsible */}
-            <div>
-              <button
-                onClick={() => setAdvancedOpen(!advancedOpen)}
-                className="flex items-center gap-2 text-[11px] text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors"
-              >
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
-                <span className="font-medium">Advanced options</span>
-              </button>
-              {advancedOpen && (
-                <div className="mt-3 bg-white/[0.02] rounded-xl p-4 border border-white/[0.04] space-y-4">
-                  <p className="text-[10px] text-muted-foreground/25">
-                    Optional — storyboard beats handle pose per frame
-                  </p>
-                  <div>
-                    <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">
-                      Pose
-                    </label>
-                    <Select value={pose} onValueChange={setPose}>
-                      <SelectTrigger className="bg-white/[0.03] border-white/[0.06]">
-                        <SelectValue placeholder="Pilih pose..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {poseOptions.map((opt) => (
-                          <SelectItem key={opt.label} value={opt.label}>
-                            <div className="flex flex-col">
-                              <span>{opt.label}</span>
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">
-                                {opt.description.slice(0, 55)}…
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/30 block mb-2">
-                      Mood
-                    </label>
-                    <Select value={mood} onValueChange={setMood}>
-                      <SelectTrigger className="bg-white/[0.03] border-white/[0.06]">
-                        <SelectValue placeholder="Pilih mood..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {moodOptions.map((opt) => (
-                          <SelectItem key={opt.label} value={opt.label}>
-                            <div className="flex flex-col">
-                              <span>{opt.label}</span>
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[250px]">
-                                {opt.description.slice(0, 55)}…
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <SceneSettingsStep
+            background={background}
+            setBackground={setBackground}
+            customBg={customBg}
+            setCustomBg={setCustomBg}
+            pose={pose}
+            setPose={setPose}
+            mood={mood}
+            setMood={setMood}
+            envOptions={envOptions}
+            poseOptions={poseOptions}
+            moodOptions={moodOptions}
+            advancedOpen={advancedOpen}
+            setAdvancedOpen={setAdvancedOpen}
+          />
         </div>
 
         {/* Generate Prompts CTA */}
@@ -1519,306 +1083,29 @@ Output ONLY the JSON array. No explanation.`,
 
       {/* RIGHT PANEL */}
       <div className="w-full lg:w-[45%] bg-white/[0.015] border-t lg:border-t-0 lg:border-l border-white/[0.04] flex flex-col items-start justify-start p-6 lg:p-8 min-h-[400px] lg:min-h-0 overflow-y-auto">
-        {/* State A: Empty — no prompts yet */}
-        {!hasPrompts && !promptsLoading && (
-          <div className="flex flex-col items-center text-center w-full animate-fade-in mt-12">
-            {/* Minimal stacked rectangles illustration */}
-            <div className="relative mb-6 h-20 w-28">
-              <div className="absolute top-0 left-2 right-2 h-14 rounded-lg border border-white/[0.06]" />
-              <div className="absolute top-2 left-1 right-1 h-14 rounded-lg border border-white/[0.06]" />
-              <div className="absolute top-4 left-0 right-0 h-14 rounded-lg border border-white/[0.08] bg-white/[0.02]" />
-            </div>
-            <p className="text-sm text-muted-foreground/30">Your storyboard will appear here</p>
-            <p className="text-[11px] text-muted-foreground/20 mt-1">Upload product & select character to begin</p>
-            {storyboardTemplate && (
-              <div className="mt-6 w-full">
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/20 font-medium mb-3 text-left">
-                  Preview Beats — {CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate)?.label}
-                </p>
-                <div className="space-y-0">
-                  {currentBeats.map((beat, i) => {
-                    const roleColor = getStoryRoleColor(beat.storyRole, i);
-                    const bgClass = roleColor.split(" ")[0];
-                    const textClass = roleColor.split(" ")[1];
-                    return (
-                      <div key={i} className="flex gap-3 items-start">
-                        {/* Left: number circle + connector */}
-                        <div className="flex flex-col items-center shrink-0">
-                          <div
-                            className={`w-7 h-7 rounded-lg ${bgClass} border border-current/10 flex items-center justify-center`}
-                          >
-                            <span className={`text-[11px] font-bold ${textClass}`}>{i + 1}</span>
-                          </div>
-                          {i < currentBeats.length - 1 && <div className="w-px h-6 bg-border/40 mx-auto" />}
-                        </div>
-                        {/* Right: role pill + label + description */}
-                        <div className="pb-4 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span
-                              className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${bgClass} ${textClass}`}
-                            >
-                              {beat.storyRole}
-                            </span>
-                            <span className="text-[13px] font-medium text-foreground">{beat.label}</span>
-                          </div>
-                          <p className="text-[12px] text-muted-foreground/50 leading-relaxed">{beat.description}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Loading prompts */}
-        {promptsLoading && (
-          <div className="flex flex-col items-center text-center w-full animate-fade-in mt-16">
-            <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
-            <p className="text-sm text-muted-foreground/40">Generating prompts...</p>
-            <p className="text-xs text-muted-foreground/20 mt-1">
-              Gemini sedang membuat {currentBeats.length} prompt untuk storyboard
-            </p>
-          </div>
-        )}
-
-        {/* State B: Prompts ready — editable cards with per-frame Generate */}
-        {hasPrompts && !promptsLoading && (
-          <div className="w-full space-y-4 animate-fade-in">
-            {/* Top bar */}
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-foreground">
-                {storyboardDone ? (
-                  <span className="flex items-center gap-1.5">
-                    <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px]">
-                      {completedShots} selesai
-                    </span>
-                    {failedShots > 0 && (
-                      <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px]">
-                        {failedShots} gagal
-                      </span>
-                    )}
-                  </span>
-                ) : storyboardActive ? (
-                  <>
-                    Generating...{" "}
-                    <span className="text-primary">
-                      ({completedShots}/{totalShots})
-                    </span>
-                  </>
-                ) : (
-                  <>Review & Edit Prompts ({generatedPrompts.length} beats)</>
-                )}
-              </p>
-              <div className="flex items-center gap-2">
-                {storyboardActive && (
-                  <>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      {Math.floor(storyboardElapsed / 60)}:{String(storyboardElapsed % 60).padStart(2, "0")}
-                    </span>
-                    <button onClick={cancelStoryboard} className="text-[10px] text-destructive hover:underline">
-                      Cancel
-                    </button>
-                  </>
-                )}
-                {!storyboardActive && !completedShots && (
-                  <button
-                    onClick={generateAllFrames}
-                    disabled={!kieApiKey || storyboardActive}
-                    className="bg-primary text-primary-foreground font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition-all disabled:opacity-40 hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5 text-[11px]"
-                  >
-                    <Film className="h-3.5 w-3.5" /> Generate all frames
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Prompt cards — vertical list */}
-            <div className="space-y-3">
-              {generatedPrompts.map((promptText, i) => {
-                const beat = currentBeats[i];
-                const shot = shotStatuses[i];
-                const isGeneratingFrame = shot?.state === "generating";
-                const isCompleted = shot?.state === "completed";
-                const isFailed = shot?.state === "failed";
-
-                // Left bar color
-                const leftBarColor = isFailed
-                  ? "bg-red-500"
-                  : isCompleted
-                    ? "bg-emerald-500"
-                    : isGeneratingFrame
-                      ? "bg-primary"
-                      : (() => {
-                          const roleColors: Record<string, string> = {
-                            hook: "bg-amber-500",
-                            problem: "bg-rose-500",
-                            demo: "bg-blue-500",
-                            "social-proof": "bg-violet-500",
-                            result: "bg-emerald-500",
-                            cta: "bg-cyan-500",
-                            before: "bg-orange-500",
-                            after: "bg-green-500",
-                            benefit: "bg-sky-500",
-                            lifestyle: "bg-pink-500",
-                          };
-                          return roleColors[beat?.storyRole || ""] || "bg-muted-foreground/20";
-                        })();
-
-                return (
-                  <div
-                    key={i}
-                    className="flex overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.02] transition-all"
-                  >
-                    {/* Colored left bar */}
-                    <div className={`w-[3px] shrink-0 rounded-l-xl ${leftBarColor}`} />
-
-                    <div className="flex-1 p-3">
-                      {/* Header: badge + status pill */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-muted-foreground/30">#{i + 1}</span>
-                          {beat && (
-                            <span
-                              className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, i)}`}
-                            >
-                              {beat.storyRole}
-                            </span>
-                          )}
-                          <span className="text-[10px] text-foreground font-medium">
-                            {beat?.label || `Frame ${i + 1}`}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          {isCompleted && (
-                            <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px] font-medium">
-                              Done
-                            </span>
-                          )}
-                          {isFailed && (
-                            <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px] font-medium">
-                              Failed
-                            </span>
-                          )}
-                          {isGeneratingFrame && (
-                            <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-medium flex items-center gap-1">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              Generating
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Content row: thumbnail + textarea */}
-                      <div className="flex gap-3">
-                        {/* Completed image thumbnail on left */}
-                        {isCompleted && shot.imageUrl && (
-                          <div className="shrink-0">
-                            <img
-                              src={shot.imageUrl}
-                              alt={beat?.label}
-                              className="h-16 w-12 rounded-lg object-cover border border-white/[0.06]"
-                            />
-                            <a
-                              href={shot.imageUrl}
-                              download
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[8px] text-primary hover:underline flex items-center gap-0.5 mt-1 justify-center"
-                            >
-                              <Download className="h-2.5 w-2.5" /> Save
-                            </a>
-                          </div>
-                        )}
-
-                        {/* Editable prompt textarea */}
-                        <div className="flex-1">
-                          <Textarea
-                            value={promptText}
-                            onChange={(e) => updatePromptText(i, e.target.value)}
-                            disabled={isGeneratingFrame || storyboardActive}
-                            className="text-[11px] min-h-[60px] bg-background/30 border-white/[0.04] resize-y"
-                            rows={3}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Per-frame generate button */}
-                      {!isGeneratingFrame && !storyboardActive && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <button
-                            onClick={() => generateSingleFrame(i)}
-                            disabled={!kieApiKey || isGeneratingFrame}
-                            className={`text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all disabled:opacity-40 ${
-                              isCompleted
-                                ? "bg-white/[0.04] text-muted-foreground hover:bg-white/[0.08]"
-                                : "bg-primary text-primary-foreground hover:bg-primary/90"
-                            }`}
-                          >
-                            {isCompleted ? <RefreshCw className="h-3 w-3" /> : <ImageIcon className="h-3 w-3" />}
-                            {isCompleted ? "Regenerate" : "Generate frame"}
-                          </button>
-                          {isFailed && shot.error && <span className="text-[9px] text-red-400">{shot.error}</span>}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Actions when at least 1 frame is completed */}
-            {completedShots > 0 && !storyboardActive && !promptsLoading && (
-              <div className="space-y-2 pt-2">
-                <button
-                  onClick={() => {
-                    const storyboardImgs = shotStatuses
-                      .filter((s) => s.state === "completed" && s.imageUrl)
-                      .map((s) => s.imageUrl!);
-                    navigate("/video", {
-                      state: {
-                        fromStoryboard: true,
-                        template: storyboardTemplate,
-                        storyboardImages: storyboardImgs,
-                        sourceImage: storyboardImgs[0] || null,
-                        baseImageUrl: storyboardImgs[0] || null,
-                        productDNA: productDNA || null,
-                        productCategory: productDNA?.category || "other",
-                        characterId: selectedChar?.id?.startsWith("p") ? null : selectedChar?.id || null,
-                        characterIdentity: selectedChar?.identity_prompt || selectedChar?.description || null,
-                      },
-                    });
-                  }}
-                  className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5"
-                >
-                  <Play className="h-3.5 w-3.5" />
-                  {`Continue to Video · ${completedShots} frame${completedShots > 1 ? "s" : ""}`}{" "}
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
-                {totalShots - completedShots > 0 && (
-                  <p className="text-[11px] text-muted-foreground/30 text-center">
-                    {totalShots - completedShots} frame{totalShots - completedShots > 1 ? "s" : ""} skipped — you can
-                    generate them later
-                  </p>
-                )}
-                <button
-                  onClick={generateAllFrames}
-                  disabled={!kieApiKey}
-                  className="w-full border border-white/[0.06] text-foreground font-semibold text-xs py-2 rounded-xl hover:bg-accent transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
-                >
-                  <Film className="h-3 w-3" /> Generate All Frames
-                </button>
-                <button
-                  onClick={resetStoryboard}
-                  className="w-full text-muted-foreground text-xs py-2 rounded-xl hover:text-foreground transition-colors flex items-center justify-center gap-2"
-                >
-                  <RefreshCw className="h-3 w-3" /> Reset
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <StoryboardPanel
+          hasPrompts={hasPrompts}
+          promptsLoading={promptsLoading}
+          storyboardActive={storyboardActive}
+          storyboardTemplate={storyboardTemplate}
+          currentBeats={currentBeats}
+          generatedPrompts={generatedPrompts}
+          shotStatuses={shotStatuses}
+          storyboardElapsed={storyboardElapsed}
+          completedShots={completedShots}
+          failedShots={failedShots}
+          totalShots={totalShots}
+          storyboardDone={storyboardDone}
+          selectedChar={selectedChar}
+          productDNA={productDNA}
+          updatePromptText={updatePromptText}
+          generateSingleFrame={generateSingleFrame}
+          generateAllFrames={generateAllFrames}
+          cancelStoryboard={cancelStoryboard}
+          resetStoryboard={resetStoryboard}
+          navigate={navigate}
+          kieApiKey={kieApiKey}
+        />
       </div>
       {/* Template change confirmation dialog */}
       <AlertDialog open={templateChangeOpen} onOpenChange={setTemplateChangeOpen}>
