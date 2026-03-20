@@ -19,9 +19,9 @@ import {
   type ProductDNA,
   type ProductCategory,
 } from "@/lib/product-dna";
-import { getEnvironments, getPoses, getMoods, findOption, type RichOption } from "@/lib/category-options";
-import { CONTENT_TEMPLATES, isRecommendedForCategory, type ContentTemplateKey } from "@/lib/content-templates";
-import { getStoryboardBeats, getStoryRoleColor, type StoryboardBeat } from "@/lib/storyboard-angles";
+import { getEnvironments, getPoses, getMoods, findOption } from "@/lib/category-options";
+import { type ContentTemplateKey } from "@/lib/content-templates";
+import { getStoryboardBeats } from "@/lib/storyboard-angles";
 import {
   Upload,
   X,
