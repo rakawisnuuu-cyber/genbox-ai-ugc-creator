@@ -1029,7 +1029,7 @@ Output ONLY the JSON array. No explanation.`,
             setProductDNA={setProductDNA}
             handleFileSelect={handleFileSelect}
             removeProduct={removeProduct}
-            onDrop={handleDrop}
+            onDrop={onDrop}
           />
         </div>
 
