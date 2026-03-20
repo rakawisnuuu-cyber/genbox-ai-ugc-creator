@@ -1,4 +1,11 @@
 import { sanitizeForPrompt } from "@/lib/utils";
+import { SKIN_BLOCK, QUALITY_BLOCK, NEGATIVE_BLOCK, ENV_REALISM_BLOCK, UGC_STYLE_BLOCK } from "@/lib/prompt-blocks";
+import type { GenState, ShotStatus } from "@/lib/generate-types";
+import ProductUploadStep from "@/components/generate/ProductUploadStep";
+import CharacterSelectStep from "@/components/generate/CharacterSelectStep";
+import TemplateSelectStep from "@/components/generate/TemplateSelectStep";
+import SceneSettingsStep from "@/components/generate/SceneSettingsStep";
+import StoryboardPanel from "@/components/generate/StoryboardPanel";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
