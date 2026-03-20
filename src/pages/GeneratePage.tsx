@@ -700,13 +700,18 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
     try {
       const imageInputs: string[] = [];
-      // Collect character reference images — prioritize multi-angle shots
-      const shotMeta = (selectedChar as any)?.shot_metadata;
-      if (shotMeta && typeof shotMeta === "object") {
-        const priorityKeys = ["hero_portrait", "neutral_identity", "profile_45"];
-        for (const key of priorityKeys) {
-          if (shotMeta[key]?.url) imageInputs.push(shotMeta[key].url);
-        }
+      // Use hero image OR reference photo — not both (reduces confusion for model)
+      if (selectedChar?.hero_image_url) {
+        imageInputs.push(selectedChar.hero_image_url);
+      } else if (selectedChar?.reference_photo_url) {
+        imageInputs.push(selectedChar.reference_photo_url);
+      }
+      if (productUrl) imageInputs.push(productUrl);
+
+      // For frames after first, use frame 0 result as primary reference
+      if (idx > 0) {
+        const frame0Url = shotStatuses[0]?.imageUrl;
+        if (frame0Url) imageInputs.unshift(frame0Url);
       }
       // Fallback if no shot_metadata
       if (imageInputs.length === 0) {
@@ -892,7 +897,13 @@ Output ONLY the JSON array. No explanation.`,
         if (frame0Url) imageInputs.unshift(frame0Url);
       }
 
-      const imageUrl = await generateKieImage(kieApiKey, currentPrompt, imageInputs, () => storyboardAbortRef.current);
+      const enhancedFramePrompt = `${currentPrompt}\n\n${SKIN_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
+      const imageUrl = await generateKieImage(
+        kieApiKey,
+        enhancedFramePrompt,
+        imageInputs,
+        () => storyboardAbortRef.current,
+      );
 
       setShotStatuses((prev) => {
         const next = [...prev];
