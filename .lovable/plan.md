@@ -1,90 +1,84 @@
 
-Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 
-## Completed Changes
+## Plan: Decompose GeneratePage.tsx (Batch 1 + Batch 2)
 
-### Phase 1 (Previous Audit)
-- Cancel buttons fixed, prompt compression, storyboard prompts exposed, Gemini timeout 60s, landing page perf, shared hooks
+Systematic extraction of constants, types, and UI sections into separate files. Pure refactor — zero behavior changes.
 
-### Phase 2 — Ad Engine Evolution
+---
 
-### 1. Environment Library Overhaul
-- Replaced all Western-centric environments with Indonesian micro-environments per reference doc
-- Shortened descriptions from ~60 words to ~25 words (massive token savings)
-- Categories: Skincare (Bathroom Vanity, Morning Routine Sink, Bedroom Vanity, Spa Style), Fashion (Bedroom Mirror, Closet Area, Apartment Hallway, Balcony), Food (Kitchen Counter, Breakfast Table, Kitchen Island, Snack Table), Electronics (Creator Desk, Bedroom Work Desk, Gaming Setup, Coffee Table Review), Health (Living Room Workout, Home Yoga Corner, Balcony Workout, Home Gym Corner), Home (Couch Talk, Bed Talk, Desk Chat, Balcony Vlog, Kamar Kost)
+### Batch 1: Extract Constants & Types (2 new files)
 
-### 2. Content Templates Expanded (8 → 14)
-- Added: GRWM, 3 Alasan, Expectation vs Reality, Tutorial Singkat, Day in My Life, First Impression
-- Each with full timing (20s) and compressed timing (10s) beats
-- All with `recommendedFor` category mappings
-- Updated `tiktok-hooks.ts` with hook categories and body scripts for all 6 new templates
+**File 1: `src/lib/prompt-blocks.ts`**
+- Export 5 constants: `SKIN_BLOCK`, `QUALITY_BLOCK`, `NEGATIVE_BLOCK`, `ENV_REALISM_BLOCK`, `UGC_STYLE_BLOCK`
+- Exact text from lines 73-82
 
-### 3. Storyboard Beats for New Templates
-- Added all 6 new template beats to `storyboard-angles.ts`
-- Added `constraints` field to StoryboardBeat interface
-- Enforced `{ noProductUsage: true }` on Before>After frame 1, GRWM frame 1, Day in My Life frame 1
-- These constraints are available for Gemini prompt generation to enforce narrative logic
+**File 2: `src/lib/generate-types.ts`**
+- Export `GenState` type (line 153)
+- Export `ShotStatus` interface (lines 156-161)
 
-### 4. API Key Setup Modal
-- Created `ApiKeySetupModal.tsx` — step-by-step wizard (Intro → Kie AI → Gemini → Done)
-- Shows instructions for obtaining each key with external links
-- Password toggle, test key, save & next flow
-- Progress bar across steps
-- Triggered from `DashboardHome.tsx` when API keys are missing
+**Changes to `GeneratePage.tsx`:**
+- Remove lines 72-82 (realism blocks) and lines 153-161 (types)
+- Add two imports at top
 
-### Phase 3 — Template-First Flow & Dynamic Narratives
+---
 
-### 5. Flexible Narrative Engine
-- Replaced rigid Hook/Build/Demo/Proof/Convert roles with per-template flexible strings (35+ unique roles)
-- `storyboard-angles.ts`: Each template defines its own narrative stages (e.g., Problem→Pain Amplification→Demo→Result→CTA)
-- Position-based badge coloring system (works with any storyRole string)
-- `frame-lock-prompt.ts`: Updated with 35+ role-to-motion mappings for flexible roles
+### Batch 2: Decompose UI into 5 Components
 
-### 6. Template-First GeneratePage Flow
-- Moved template picker to left panel Step 3 ("Pilih Gaya Konten")
-- Removed mandatory "Base Image" step — Frame 1 is the establishing shot
-- Right panel now shows storyboard grid directly (removed old single-image view)
-- Beat preview shown in both left panel and right panel empty state
-- Frames 1-4 chain from Frame 0's result for visual consistency
+**2.1: `src/components/generate/ProductUploadStep.tsx`**
+- Lines 1029-1183 (Step 01 — Upload Produk)
+- Props: `productPreview`, `productUrl`, `productDNA`, `detectingDNA`, `uploading`, `dnaExpanded`, `setDnaExpanded`, `setProductDNA`, `handleFileSelect`, `removeProduct`, `onDrop`
+- Imports: `Upload`, `X`, `Loader2`, `ScanSearch`, `ChevronDown`, `Info`, Select components, Input, ProductDNA/ProductCategory types
 
-### 6b. Two-Step Prompt-First Flow
-- "Generate Storyboard" → replaced with "Generate Prompts" (single Gemini call → 5 prompts as JSON array)
-- Right panel shows editable prompt cards with per-frame "Generate Frame" button
-- Users can review/edit each prompt before generating images
-- "Generate All" button runs all frames sequentially with 2s delay
-- Individual frame regeneration supported
-- Three right panel states: Empty → Prompt Review → Generating/Completed
+**2.2: `src/components/generate/CharacterSelectStep.tsx`**
+- Lines 1186-1333 (Step 02 — Pilih Karakter)
+- Props: `selectedCharId`, `selectedChar`, `customChars`, `ownPhotoPreview`, `ownPhotoUploading`, `ownPhotoAnalyzing`, `onCharSelect`, `handleOwnPhotoSelect`, `removeOwnPhoto`, `navigate`
+- Imports: `Camera`, `UserCircle`, `Loader2`, `X`, `LinkIcon`, Select components, PRESETS, CharacterData
 
-### 7. Dynamic Motion Suggestions
-- Replaced static `action-chips.ts` hardcoded lists with `generateDynamicChips()` using Gemini
-- Product-aware casual Indonesian motion instructions
-- Cached per template+beat+category combo
+**2.3: `src/components/generate/TemplateSelectStep.tsx`**
+- Lines 1335-1393 (Step 03 — Content Template)
+- Props: `storyboardTemplate`, `productCategory`, `hasPrompts`, `onSelect`, `onConfirmChange`
+- Contains the sorting logic (recommended templates)
+- Template change confirmation stays in GeneratePage
 
-### 8. Product DNA Enrichment
-- Added `getProductContext()` to `product-dna.ts`
-- Extracts target user, usage context, emotional angle from DNA fields
-- Injected into prompt generation for more authentic outputs
+**2.4: `src/components/generate/SceneSettingsStep.tsx`**
+- Lines 1395-1495 (Step 04 — Scene Settings)
+- Props: `background`, `setBackground`, `customBg`, `setCustomBg`, `pose`, `setPose`, `mood`, `setMood`, `envOptions`, `poseOptions`, `moodOptions`, `advancedOpen`, `setAdvancedOpen`
+- Imports: Select components, Input, ChevronDown
 
-### 9. VideoPage Flexible Roles
-- Replaced rigid ROLE_COLORS with position-based getRoleColor()
-- Replaced getSmartDialogSuggestion with comprehensive ROLE_DIALOG_MAP (35+ roles)
-- Each role maps to natural casual Indonesian dialog suggestions
-- Role badges now use position-based coloring matching storyboard-angles.ts
+**2.5: `src/components/generate/StoryboardPanel.tsx`**
+- Lines 1520-1821 (entire right panel)
+- Props: `hasPrompts`, `promptsLoading`, `storyboardActive`, `storyboardTemplate`, `currentBeats`, `generatedPrompts`, `shotStatuses`, `storyboardElapsed`, `completedShots`, `failedShots`, `totalShots`, `storyboardDone`, `selectedChar`, `productDNA`, `updatePromptText`, `generateSingleFrame`, `generateAllFrames`, `cancelStoryboard`, `resetStoryboard`, `navigate`, `kieApiKey`
+- Contains: empty state, loading state, prompt cards, action buttons
+- Imports: Loader2, Film, RefreshCw, Play, ArrowRight, ImageIcon, Download, Textarea, CONTENT_TEMPLATES, getStoryRoleColor
 
-## Remaining
-- Character prompt visibility in CreateCharacterPage
-- Gallery saving fix for single images (upload to storage before DB insert)
-- Media analysis panel (MediaInsightsPanel component)
+**2.6: Wire together in GeneratePage.tsx**
+- Import all 5 components
+- Replace JSX blocks with component calls, passing correct props
+- `StepLabel` helper stays in GeneratePage (used by all steps via wrapper)
+- All `useState` hooks, `useEffect` hooks, handler functions remain in GeneratePage
+- AlertDialog for template change stays in GeneratePage
+- Generate Prompts CTA button (lines 1497-1517) stays in GeneratePage (between steps and panel)
 
-## Files Changed
-- `src/lib/category-options.ts` — full environment rewrite
-- `src/lib/content-templates.ts` — 6 new templates added
-- `src/lib/storyboard-angles.ts` — flexible narrative roles, per-template beats, constraints
-- `src/lib/tiktok-hooks.ts` — hook maps and body scripts for new templates
-- `src/lib/action-chips.ts` — dynamic Gemini-powered suggestions
-- `src/lib/product-dna.ts` — getProductContext() enrichment
-- `src/lib/frame-lock-prompt.ts` — 35+ flexible role mappings
-- `src/components/ApiKeySetupModal.tsx` — new setup wizard
-- `src/pages/DashboardHome.tsx` — triggers API key modal
-- `src/pages/GeneratePage.tsx` — template-first flow, storyboard-direct right panel
-- `src/pages/VideoPage.tsx` — flexible narrative roles, position-based coloring
+---
+
+### Technical Details
+
+**New files (7):**
+- `src/lib/prompt-blocks.ts`
+- `src/lib/generate-types.ts`
+- `src/components/generate/ProductUploadStep.tsx`
+- `src/components/generate/CharacterSelectStep.tsx`
+- `src/components/generate/TemplateSelectStep.tsx`
+- `src/components/generate/SceneSettingsStep.tsx`
+- `src/components/generate/StoryboardPanel.tsx`
+
+**Modified files (1):**
+- `src/pages/GeneratePage.tsx` — shrinks from ~1858 to ~450 lines
+
+**Invariants:**
+- All handler functions stay in GeneratePage
+- `StepLabel` component stays in GeneratePage (passed as prop or kept inline)
+- Quality blocks (`SKIN_BLOCK` etc.) usage in `generatePrompt` (line 635) and `generateSingleFrame` (line 895) unchanged
+- Template change dialog stays in GeneratePage
+- No behavior, styling, or logic changes
+
