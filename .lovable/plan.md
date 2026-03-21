@@ -1,90 +1,37 @@
 
-Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 
-## Completed Changes
+## Phase 1: Fix Image Storyboard Quality
 
-### Phase 1 (Previous Audit)
-- Cancel buttons fixed, prompt compression, storyboard prompts exposed, Gemini timeout 60s, landing page perf, shared hooks
+The root cause is clear: the storyboard frame generation appends ~400 words of redundant quality/skin/negative blocks to every prompt AND sends 3-4+ competing reference images. External tools work better because they send clean prompts with fewer images.
 
-### Phase 2 — Ad Engine Evolution
+### Changes
 
-### 1. Environment Library Overhaul
-- Replaced all Western-centric environments with Indonesian micro-environments per reference doc
-- Shortened descriptions from ~60 words to ~25 words (massive token savings)
-- Categories: Skincare (Bathroom Vanity, Morning Routine Sink, Bedroom Vanity, Spa Style), Fashion (Bedroom Mirror, Closet Area, Apartment Hallway, Balcony), Food (Kitchen Counter, Breakfast Table, Kitchen Island, Snack Table), Electronics (Creator Desk, Bedroom Work Desk, Gaming Setup, Coffee Table Review), Health (Living Room Workout, Home Yoga Corner, Balcony Workout, Home Gym Corner), Home (Couch Talk, Bed Talk, Desk Chat, Balcony Vlog, Kamar Kost)
+**File: `src/pages/GeneratePage.tsx`**
 
-### 2. Content Templates Expanded (8 → 14)
-- Added: GRWM, 3 Alasan, Expectation vs Reality, Tutorial Singkat, Day in My Life, First Impression
-- Each with full timing (20s) and compressed timing (10s) beats
-- All with `recommendedFor` category mappings
-- Updated `tiktok-hooks.ts` with hook categories and body scripts for all 6 new templates
+1. **Remove prompt bloat** (line 895)
+   - Current: `enhancedFramePrompt = currentPrompt + SKIN_BLOCK + QUALITY_BLOCK + NEGATIVE_BLOCK` (~400 extra words)
+   - New: Just use `currentPrompt` as-is — the Gemini-generated prompt already contains quality direction. Add only a minimal 1-line suffix: `"Ultra-realistic photo, 8K, natural lighting. No cartoon, no CGI, no watermark."`
 
-### 3. Storyboard Beats for New Templates
-- Added all 6 new template beats to `storyboard-angles.ts`
-- Added `constraints` field to StoryboardBeat interface
-- Enforced `{ noProductUsage: true }` on Before>After frame 1, GRWM frame 1, Day in My Life frame 1
-- These constraints are available for Gemini prompt generation to enforce narrative logic
+2. **Limit image_input to max 2 images** (lines 885-893)
+   - Current: Sends reference_photo + hero_image + product + frame0 = up to 4 images
+   - New priority logic:
+     - If `idx > 0` and frame 0 exists → use frame 0 as primary (visual consistency anchor)
+     - Then add ONE character reference (prefer `reference_photo_url` over `hero_image_url`, not both)
+     - Product image only if no character ref exists
+     - Max 2 images total
 
-### 4. API Key Setup Modal
-- Created `ApiKeySetupModal.tsx` — step-by-step wizard (Intro → Kie AI → Gemini → Done)
-- Shows instructions for obtaining each key with external links
-- Password toggle, test key, save & next flow
-- Progress bar across steps
-- Triggered from `DashboardHome.tsx` when API keys are missing
+3. **Change output_format from "jpg" to "png"** (line 103)
+   - Lossless output = sharper details, especially for faces
 
-### Phase 3 — Template-First Flow & Dynamic Narratives
+4. **Clean up unused blocks**
+   - Remove `SKIN_BLOCK`, `ENV_REALISM_BLOCK`, `UGC_STYLE_BLOCK` constants (lines 73-82) — they're only used in the storyboard path and are causing quality degradation
+   - Keep `QUALITY_BLOCK` and `NEGATIVE_BLOCK` as they're still referenced in the single-image generation path (line 635, 720 area) — but trim them down
 
-### 5. Flexible Narrative Engine
-- Replaced rigid Hook/Build/Demo/Proof/Convert roles with per-template flexible strings (35+ unique roles)
-- `storyboard-angles.ts`: Each template defines its own narrative stages (e.g., Problem→Pain Amplification→Demo→Result→CTA)
-- Position-based badge coloring system (works with any storyRole string)
-- `frame-lock-prompt.ts`: Updated with 35+ role-to-motion mappings for flexible roles
+**No changes to**: CreateCharacterPage.tsx (its blocks work fine for character generation), video generation, or UI layout.
 
-### 6. Template-First GeneratePage Flow
-- Moved template picker to left panel Step 3 ("Pilih Gaya Konten")
-- Removed mandatory "Base Image" step — Frame 1 is the establishing shot
-- Right panel now shows storyboard grid directly (removed old single-image view)
-- Beat preview shown in both left panel and right panel empty state
-- Frames 1-4 chain from Frame 0's result for visual consistency
+### Why This Fixes It
 
-### 6b. Two-Step Prompt-First Flow
-- "Generate Storyboard" → replaced with "Generate Prompts" (single Gemini call → 5 prompts as JSON array)
-- Right panel shows editable prompt cards with per-frame "Generate Frame" button
-- Users can review/edit each prompt before generating images
-- "Generate All" button runs all frames sequentially with 2s delay
-- Individual frame regeneration supported
-- Three right panel states: Empty → Prompt Review → Generating/Completed
+- **Fewer images** = model focuses on the prompt instead of trying to reconcile 4 conflicting references
+- **Cleaner prompt** = model interprets the Gemini-crafted narrative prompt without being confused by 400 words of contradictory quality directives
+- **PNG** = no lossy compression artifacts on faces/skin
 
-### 7. Dynamic Motion Suggestions
-- Replaced static `action-chips.ts` hardcoded lists with `generateDynamicChips()` using Gemini
-- Product-aware casual Indonesian motion instructions
-- Cached per template+beat+category combo
-
-### 8. Product DNA Enrichment
-- Added `getProductContext()` to `product-dna.ts`
-- Extracts target user, usage context, emotional angle from DNA fields
-- Injected into prompt generation for more authentic outputs
-
-### 9. VideoPage Flexible Roles
-- Replaced rigid ROLE_COLORS with position-based getRoleColor()
-- Replaced getSmartDialogSuggestion with comprehensive ROLE_DIALOG_MAP (35+ roles)
-- Each role maps to natural casual Indonesian dialog suggestions
-- Role badges now use position-based coloring matching storyboard-angles.ts
-
-## Remaining
-- Character prompt visibility in CreateCharacterPage
-- Gallery saving fix for single images (upload to storage before DB insert)
-- Media analysis panel (MediaInsightsPanel component)
-
-## Files Changed
-- `src/lib/category-options.ts` — full environment rewrite
-- `src/lib/content-templates.ts` — 6 new templates added
-- `src/lib/storyboard-angles.ts` — flexible narrative roles, per-template beats, constraints
-- `src/lib/tiktok-hooks.ts` — hook maps and body scripts for new templates
-- `src/lib/action-chips.ts` — dynamic Gemini-powered suggestions
-- `src/lib/product-dna.ts` — getProductContext() enrichment
-- `src/lib/frame-lock-prompt.ts` — 35+ flexible role mappings
-- `src/components/ApiKeySetupModal.tsx` — new setup wizard
-- `src/pages/DashboardHome.tsx` — triggers API key modal
-- `src/pages/GeneratePage.tsx` — template-first flow, storyboard-direct right panel
-- `src/pages/VideoPage.tsx` — flexible narrative roles, position-based coloring
