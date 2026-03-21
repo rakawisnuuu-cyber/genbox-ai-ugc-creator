@@ -874,17 +874,17 @@ Output ONLY the JSON array. No explanation.`,
     });
 
     try {
+      // Max 2 image refs to avoid confusing the model
       const imageInputs: string[] = [];
-      if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
-      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
-      if (productUrl) imageInputs.push(productUrl);
-
       if (idx > 0) {
         const frame0Url = shotStatuses[0]?.imageUrl;
-        if (frame0Url) imageInputs.unshift(frame0Url);
+        if (frame0Url) imageInputs.push(frame0Url); // visual consistency anchor
       }
+      const charRef = selectedChar?.reference_photo_url || selectedChar?.hero_image_url;
+      if (charRef && imageInputs.length < 2) imageInputs.push(charRef);
+      if (productUrl && imageInputs.length < 2) imageInputs.push(productUrl);
 
-      const enhancedFramePrompt = `${currentPrompt}\n\n${SKIN_BLOCK}\n\n${QUALITY_BLOCK}\n\n${NEGATIVE_BLOCK}`;
+      const enhancedFramePrompt = `${currentPrompt}${QUALITY_SUFFIX}`;
       const imageUrl = await generateKieImage(
         kieApiKey,
         enhancedFramePrompt,
