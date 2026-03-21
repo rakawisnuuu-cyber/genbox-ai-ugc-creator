@@ -37,6 +37,7 @@ import {
   CheckCircle2,
   XCircle,
   Play,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -79,33 +80,7 @@ const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no plastic s
 const ENV_REALISM_BLOCK = "Environment must look like a REAL lived-in space photographed with a phone or mirrorless camera. Include subtle signs of real life: a phone charger on a nightstand, a half-drunk glass of water, slightly wrinkled bedsheet corner, a book left open, shoes by the door, a bag on a chair. Background should have natural depth of field — slightly soft/blurred behind the subject, not everything in razor-sharp focus. Walls should have subtle natural texture variation, not perfectly flat rendered surfaces. Lighting should have natural falloff — brighter near windows, gradually darker in corners. No unnaturally symmetrical rooms, no impossibly clean surfaces, no repeated tile patterns, no plastic-looking materials, no floating furniture, no missing shadows.";
 const UGC_STYLE_BLOCK = "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
 
-/* ── Helper: convert image URL to base64 ────────────────────── */
-async function imageUrlToBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-/* ── Helper: convert File to base64 ─────────────────────────── */
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+import { imageUrlToBase64, fileToBase64 } from "@/lib/image-utils";
 
 /* ── Kie AI single image generation helper ──────────────────── */
 async function generateKieImage(
@@ -160,25 +135,13 @@ async function generateKieImage(
   return poll();
 }
 
-/* ── preset characters (same as CharactersPage) ─────────────── */
-const PRESETS: CharacterData[] = [
-  { id: "p1", name: "Hijab Casual", type: "Wanita", age_range: "20-25", style: "Modern", description: "Wanita muda dengan hijab modern pastel, ekspresi hangat dan ramah.", gradient_from: "from-emerald-900/40", gradient_to: "to-teal-900/40", is_preset: true },
-  { id: "p2", name: "Urban Trendy", type: "Pria", age_range: "22-28", style: "Streetwear", description: "Pria muda urban dengan gaya streetwear, percaya diri dan modern.", gradient_from: "from-blue-900/40", gradient_to: "to-indigo-900/40", is_preset: true },
-  { id: "p3", name: "Ibu Muda", type: "Wanita", age_range: "25-35", style: "Friendly", description: "Ibu muda yang relatable dan ramah.", gradient_from: "from-rose-900/40", gradient_to: "to-pink-900/40", is_preset: true },
-  { id: "p4", name: "Mahasiswa", type: "Pria/Wanita", age_range: "18-22", style: "Energik", description: "Mahasiswa energik dan ceria.", gradient_from: "from-amber-900/40", gradient_to: "to-orange-900/40", is_preset: true },
-  { id: "p5", name: "Beauty Enthusiast", type: "Wanita", age_range: "20-30", style: "Glowing", description: "Pecinta kecantikan dengan kulit glowing.", gradient_from: "from-fuchsia-900/40", gradient_to: "to-purple-900/40", is_preset: true },
-  { id: "p6", name: "Bapak UMKM", type: "Pria", age_range: "35-50", style: "Profesional", description: "Bapak pengusaha yang terpercaya.", gradient_from: "from-slate-800/40", gradient_to: "to-zinc-800/40", is_preset: true },
-  { id: "p7", name: "Gen-Z Creator", type: "Pria/Wanita", age_range: "17-22", style: "Trendy", description: "Content creator Gen-Z yang trendy.", gradient_from: "from-cyan-900/40", gradient_to: "to-sky-900/40", is_preset: true },
-  { id: "p8", name: "Office Worker", type: "Pria/Wanita", age_range: "25-35", style: "Smart Casual", description: "Pekerja kantor yang rapi.", gradient_from: "from-gray-800/40", gradient_to: "to-neutral-800/40", is_preset: true },
-  { id: "p9", name: "Ibu PKK", type: "Wanita", age_range: "35-50", style: "Ramah", description: "Ibu komunitas yang hangat.", gradient_from: "from-green-900/40", gradient_to: "to-lime-900/40", is_preset: true },
-  { id: "p10", name: "Cowok Gym", type: "Pria", age_range: "22-30", style: "Athletic", description: "Pria atletis dan percaya diri.", gradient_from: "from-red-900/40", gradient_to: "to-orange-900/40", is_preset: true },
-];
+import { PRESETS } from "@/lib/character-presets";
 
 type GenState = "idle" | "loading" | "completed" | "failed";
 
 // Per-shot status for multi-angle
 interface ShotStatus {
-  state: "pending" | "generating" | "completed" | "failed";
+  state: "pending" | "prompting" | "generating" | "completed" | "failed";
   imageUrl?: string;
   error?: string;
 }
@@ -619,7 +582,7 @@ Only the POSE, EXPRESSION, and PRODUCT INTERACTION change per frame. Everything 
       try {
         setShotStatuses((prev) => {
           const next = [...prev];
-          next[idx] = { state: "generating" };
+          next[idx] = { state: "prompting" };
           return next;
         });
 
@@ -684,6 +647,13 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
         }
 
         if (storyboardAbortRef.current) throw new Error("Cancelled");
+
+        // Switch to "generating" state now that prompt is ready
+        setShotStatuses((prev) => {
+          const next = [...prev];
+          next[idx] = { state: "generating" };
+          return next;
+        });
 
         // Build image inputs: base image + previous frame (if exists) + product image
         // Max 3 images, no character hero/reference — base image already has the character
@@ -1193,7 +1163,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                   )}
                   {storyboardDone && (
                     <p className="text-xs text-muted-foreground text-center">
-                      ✅ {completedShots} selesai{failedShots > 0 ? ` • ❌ ${failedShots} gagal` : ""} — {storyboardElapsed}s
+                      <CheckCircle2 className="inline h-3.5 w-3.5 text-green-400 mr-1" /> {completedShots} selesai{failedShots > 0 ? <> • <XCircle className="inline h-3.5 w-3.5 text-destructive mr-1" /> {failedShots} gagal</> : ""} — {storyboardElapsed}s
                     </p>
                   )}
 
@@ -1234,8 +1204,14 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                               <XCircle className="h-4 w-4 text-destructive/60" />
                             </div>
                           ) : shot.state === "generating" ? (
-                            <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex items-center justify-center">
+                            <div className="w-full aspect-[3/4] rounded-lg border border-border bg-muted/30 flex flex-col items-center justify-center gap-1.5">
                               <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                              <span className="text-[7px] text-primary/70 font-medium">Generating...</span>
+                            </div>
+                          ) : shot.state === "prompting" ? (
+                            <div className="w-full aspect-[3/4] rounded-lg border border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-1.5">
+                              <Sparkles className="h-4 w-4 text-primary/60 animate-pulse" />
+                              <span className="text-[7px] text-primary/70 font-medium">Building prompt...</span>
                             </div>
                           ) : (
                             <div className="w-full aspect-[3/4] rounded-lg border border-dashed border-border bg-muted/10 flex items-center justify-center">
@@ -1259,7 +1235,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                   {storyboardDone && (
                     <div className="space-y-2">
                       <p className="text-[10px] text-muted-foreground/60 text-center">
-                        Storyboard ini bisa langsung dijadikan video di Buat Video → pilih template yang sama
+                        Storyboard ini bisa langsung dijadikan video di Buat Video — pilih template yang sama
                       </p>
                       <button
                         onClick={() => {
@@ -1283,7 +1259,7 @@ Output ONLY the final prompt text, no JSON, no explanation.` });
                         className="w-full bg-primary text-primary-foreground font-bold text-xs py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
                       >
                         <Play className="h-3.5 w-3.5" />
-                        Buat Video dari Storyboard →
+                        Buat Video dari Storyboard <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={resetStoryboard}

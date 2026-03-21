@@ -39,6 +39,9 @@ import {
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
+  Lightbulb,
+  MessageSquare,
+  Clapperboard,
 } from "lucide-react";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
@@ -61,6 +64,9 @@ interface FrameState {
   mergedFrames: number[];
   /** If this frame is absorbed into another, store the parent index */
   mergedInto: number | null;
+  showGalleryPicker?: boolean;
+  scriptGenerating?: boolean;
+  promptGenerating?: boolean;
 }
 
 interface GalleryImage {
@@ -70,14 +76,14 @@ interface GalleryImage {
 
 const MODEL_COSTS: Record<VideoModel, number> = {
   grok: 1600,
-  veo_fast: 4800,
-  veo_quality: 19200,
+  veo_fast: 6400,
+  veo_quality: 32000,
 };
 
 const MODEL_LABELS: Record<VideoModel, { label: string; badge: string; badgeColor: string; audio: boolean; cost: string }> = {
   grok: { label: "Grok", badge: "HEMAT", badgeColor: "bg-green-500/20 text-green-400", audio: false, cost: "~Rp 1.600" },
-  veo_fast: { label: "Veo Fast", badge: "STANDARD", badgeColor: "bg-blue-500/20 text-blue-400", audio: true, cost: "~Rp 4.800" },
-  veo_quality: { label: "Veo Quality", badge: "PREMIUM", badgeColor: "bg-primary/20 text-primary", audio: true, cost: "~Rp 19.200" },
+  veo_fast: { label: "Veo Fast", badge: "STANDARD", badgeColor: "bg-blue-500/20 text-blue-400", audio: true, cost: "~Rp 6.400" },
+  veo_quality: { label: "Veo Quality", badge: "PREMIUM", badgeColor: "bg-primary/20 text-primary", audio: true, cost: "~Rp 32.000" },
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -87,6 +93,29 @@ const ROLE_COLORS: Record<string, string> = {
   Proof: "bg-purple-500/20 text-purple-400 border-purple-500/30",
   Convert: "bg-amber-500/20 text-amber-400 border-amber-500/30",
 };
+
+function BeatPreviewCard({ beat, index }: { beat: StoryboardBeat; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = beat.description.length > 50 || beat.label.length > 20;
+  return (
+    <div
+      className={`border border-border rounded-lg p-2 bg-muted/10 min-w-0 cursor-pointer transition-all ${expanded ? "col-span-5 sm:col-span-2" : ""}`}
+      onClick={() => isLong && setExpanded(!expanded)}
+    >
+      <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
+        {beat.storyRole}
+      </span>
+      <p className={`text-[10px] font-semibold text-foreground mt-1 ${expanded ? "" : "truncate"}`}>{beat.label}</p>
+      <p className="text-[8px] text-muted-foreground/60">{beat.beat}</p>
+      <p className={`text-[8px] text-muted-foreground mt-1 ${expanded ? "" : "line-clamp-3"}`}>{beat.description}</p>
+      {isLong && (
+        <span className="text-[7px] text-primary mt-1 inline-flex items-center gap-0.5">
+          {expanded ? "Sembunyikan" : "Selengkapnya"}
+        </span>
+      )}
+    </div>
+  );
+}
 
 /** Templates with heavy dialog → recommend Veo all */
 const DIALOG_HEAVY_TEMPLATES: ContentTemplateKey[] = ["problem_solution", "review_jujur", "quick_haul"];
@@ -166,27 +195,7 @@ function getSmartDialogSuggestion(
   }
 }
 
-/** Convert image URL to base64 for Gemini */
-async function imageUrlToBase64(url: string): Promise<{ mimeType: string; data: string } | null> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    const mimeType = blob.type || "image/jpeg";
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve(base64 ? { mimeType, data: base64 } : null);
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
+import { imageUrlToBase64WithMime as imageUrlToBase64 } from "@/lib/image-utils";
 
 const VideoPage = () => {
   const { user } = useAuth();
@@ -467,7 +476,7 @@ Rules:
       }
 
       setStoryboardPlanned(true);
-      toast({ title: "Storyboard berhasil direncanakan! ✨", description: "Edit setiap frame sesuai kebutuhan." });
+      toast({ title: "Storyboard berhasil direncanakan!", description: "Edit setiap frame sesuai kebutuhan." });
     } catch (e: any) {
       console.error("Plan storyboard failed:", e);
       toast({
@@ -612,7 +621,7 @@ Rules:
     const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
     const isCombined = mergedBeats.length > 0;
 
-    updateFrame(idx, { dialogue: "..." });
+    updateFrame(idx, { dialogue: "...", scriptGenerating: true });
     try {
       let systemText: string;
       let contentText: string;
@@ -643,9 +652,9 @@ Output ONLY the script text.`;
         contents: [{ parts: [{ text: contentText }] }],
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-      updateFrame(idx, { dialogue: text || frame.dialogue });
+      updateFrame(idx, { dialogue: text || frame.dialogue, scriptGenerating: false });
     } catch {
-      updateFrame(idx, { dialogue: frame.dialogue === "..." ? "" : frame.dialogue });
+      updateFrame(idx, { dialogue: frame.dialogue === "..." ? "" : frame.dialogue, scriptGenerating: false });
       toast({ title: "Gagal generate script", variant: "destructive" });
     }
   };
@@ -655,6 +664,7 @@ Output ONLY the script text.`;
     if (!geminiKey || keys.gemini.status !== "valid") {
       return frames[idx].prompt;
     }
+    updateFrame(idx, { promptGenerating: true });
     const frame = frames[idx];
     const beat = beats[idx];
     const template = getContentTemplate(selectedTemplate);
@@ -731,12 +741,13 @@ Content template: ${template?.label}`,
       });
       const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       if (text) {
-        updateFrame(idx, { prompt: text });
+        updateFrame(idx, { prompt: text, promptGenerating: false });
         return text;
       }
     } catch (e: any) {
       console.error("Prompt gen failed:", e);
     }
+    updateFrame(idx, { promptGenerating: false });
     return frame.prompt;
   };
 
@@ -922,26 +933,6 @@ Content template: ${template?.label}`,
             </div>
           ) : (
             <div className="space-y-3">
-              {galleryImages.length > 0 && (
-                <div>
-                  <p className="text-[11px] text-muted-foreground mb-2">Pilih dari gallery:</p>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                    {galleryImages.slice(0, 12).map((img) => (
-                      <button
-                        key={img.id}
-                        onClick={() => {
-                          setSourcePreview(img.image_url);
-                          setSourceUrl(img.image_url);
-                          setImageAsBase64(null); // Gallery images can't be converted (CORS) — Plan Storyboard handles detection
-                        }}
-                        className="aspect-square rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors"
-                      >
-                        <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
               <div
                 onClick={() => {
                   const inp = document.createElement("input");
@@ -1013,7 +1004,10 @@ Content template: ${template?.label}`,
                     </span>
                   )}
                   <p className="text-[11px] font-bold text-foreground">{t.label}</p>
-                  <p className="text-[9px] text-muted-foreground line-clamp-2 mt-0.5">{t.desc}</p>
+                  <p className={`text-[9px] text-muted-foreground mt-0.5 ${isSelected ? "" : "line-clamp-2"}`}>{t.desc}</p>
+                  {!isSelected && t.desc.length > 60 && (
+                    <span className="text-[8px] text-primary mt-0.5 inline-block">Selengkapnya</span>
+                  )}
                 </button>
               );
             })}
@@ -1023,16 +1017,9 @@ Content template: ${template?.label}`,
         {/* Beat preview */}
         <div>
           <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Storyboard Preview</label>
-          <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="grid grid-cols-5 gap-2">
             {beats.map((beat, i) => (
-              <div key={i} className="shrink-0 w-[110px] border border-border rounded-lg p-2 bg-muted/10">
-                <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
-                  {beat.storyRole}
-                </span>
-                <p className="text-[10px] font-semibold text-foreground mt-1">{beat.label}</p>
-                <p className="text-[8px] text-muted-foreground/60">{beat.beat}</p>
-                <p className="text-[8px] text-muted-foreground line-clamp-3 mt-1">{beat.description}</p>
-              </div>
+              <BeatPreviewCard key={i} beat={beat} index={i} />
             ))}
           </div>
         </div>
@@ -1122,13 +1109,13 @@ Content template: ${template?.label}`,
           ? "bg-amber-500/5 border-amber-500/20 text-amber-400"
           : "bg-green-500/5 border-green-500/20 text-green-400"
       }`}>
-        💡 {modelRec.text}
+        <Lightbulb className="inline h-3.5 w-3.5 mr-1" /> {modelRec.text}
       </div>
 
       {/* Dialog Tip */}
       <div className="rounded-xl px-4 py-2.5 border border-border bg-muted/20">
         <p className="text-[10px] text-muted-foreground">
-          💬 <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
+          <MessageSquare className="inline h-3 w-3 mr-1" /> <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
         </p>
       </div>
 
@@ -1267,31 +1254,60 @@ Content template: ${template?.label}`,
                         <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
                       </div>
                     )}
-                    <button
-                      onClick={() => {
-                        const inp = document.createElement("input");
-                        inp.type = "file";
-                        inp.accept = "image/jpeg,image/png,image/webp";
-                        inp.onchange = async (e) => {
-                          const f = (e.target as HTMLInputElement).files?.[0];
-                          if (!f) return;
-                          const preview = URL.createObjectURL(f);
-                          updateFrame(idx, { sourceImageUrl: preview });
-                          const ext = f.name.split(".").pop();
-                          const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
-                          const { error } = await supabase.storage.from("product-images").upload(path, f);
-                          if (!error) {
-                            const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                            updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
-                          }
-                        };
-                        inp.click();
-                      }}
-                      className="text-[10px] text-primary hover:underline"
-                    >
-                      Ganti
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => {
+                          const inp = document.createElement("input");
+                          inp.type = "file";
+                          inp.accept = "image/jpeg,image/png,image/webp";
+                          inp.onchange = async (e) => {
+                            const f = (e.target as HTMLInputElement).files?.[0];
+                            if (!f) return;
+                            const preview = URL.createObjectURL(f);
+                            updateFrame(idx, { sourceImageUrl: preview });
+                            const ext = f.name.split(".").pop();
+                            const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
+                            const { error } = await supabase.storage.from("product-images").upload(path, f);
+                            if (!error) {
+                              const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                              updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
+                            }
+                          };
+                          inp.click();
+                        }}
+                        className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Upload className="h-3 w-3" /> Upload
+                      </button>
+                      {galleryImages.length > 0 && (
+                        <button
+                          onClick={() => updateFrame(idx, { showGalleryPicker: !frame.showGalleryPicker })}
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                        >
+                          <ImageIcon className="h-3 w-3" /> Dari gallery
+                        </button>
+                      )}
+                    </div>
                   </div>
+                  {/* Inline gallery picker */}
+                  {frame.showGalleryPicker && galleryImages.length > 0 && (
+                    <div className="mt-2 p-2 rounded-lg border border-border bg-muted/20">
+                      <p className="text-[10px] text-muted-foreground mb-1.5">Pilih dari gallery:</p>
+                      <div className="flex gap-1.5 overflow-x-auto pb-1">
+                        {galleryImages.slice(0, 12).map((img) => (
+                          <button
+                            key={img.id}
+                            onClick={() => {
+                              updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false });
+                            }}
+                            className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-border hover:border-primary/50 transition-colors"
+                          >
+                            <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Gerakan / Action */}
@@ -1329,10 +1345,14 @@ Content template: ${template?.label}`,
                     <label className="text-[10px] text-muted-foreground font-medium">Dialog</label>
                     <button
                       onClick={() => generateFrameScript(idx)}
-                      disabled={frame.dialogue === "..."}
-                      className="text-[9px] text-primary hover:underline flex items-center gap-1"
+                      disabled={frame.scriptGenerating || frame.dialogue === "..."}
+                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
-                      <Sparkles className="h-2.5 w-2.5" /> Generate Script AI
+                      {frame.scriptGenerating ? (
+                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...</>
+                      ) : (
+                        <><Sparkles className="h-2.5 w-2.5" /> Generate Script AI</>
+                      )}
                     </button>
                   </div>
                   <Textarea
@@ -1358,9 +1378,14 @@ Content template: ${template?.label}`,
                     <label className="text-[10px] text-muted-foreground font-medium">Video Prompt</label>
                     <button
                       onClick={() => generateFramePrompt(idx)}
-                      className="text-[9px] text-primary hover:underline flex items-center gap-1"
+                      disabled={frame.promptGenerating}
+                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
-                      <Sparkles className="h-2.5 w-2.5" /> Generate Prompt
+                      {frame.promptGenerating ? (
+                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...</>
+                      ) : (
+                        <><Sparkles className="h-2.5 w-2.5" /> Generate Prompt</>
+                      )}
                     </button>
                   </div>
                   <Textarea
@@ -1553,7 +1578,7 @@ Content template: ${template?.label}`,
       {allDone && completedVideos.length > 0 && (
         <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 space-y-4">
           <div>
-            <p className="text-sm font-bold text-foreground">🎬 Semua Frame Selesai!</p>
+            <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Clapperboard className="h-4 w-4" /> Semua Frame Selesai!</p>
             <p className="text-[11px] text-muted-foreground">
               Total: {totalDuration}s ({completedVideos.length} × {completedVideos.length > 0 ? (completedVideos[0].model === "grok" ? "10s" : "8s") : "8s"})
             </p>

@@ -9,14 +9,14 @@ import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import GalleryContent from "@/components/GalleryContent";
 
 const MODEL_COST: Record<string, number> = {
-  nano: 320, seedream: 280, "nano-banana-2-pro": 640, grok: 1600, veo3_fast: 4800, veo3: 19200,
+  "nano-banana-pro": 1440, nano: 960, seedream: 440, grok: 1600, veo3_fast: 6400, veo3: 32000,
 };
 
 function estimateCost(model: string): number {
   for (const [key, cost] of Object.entries(MODEL_COST)) {
     if (model.includes(key)) return cost;
   }
-  return 320;
+  return 960;
 }
 
 const MONTH_NAMES_ID = [
@@ -129,7 +129,7 @@ const DashboardHome = () => {
         </div>
         <Link
           to="/generate"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold tracking-wider text-primary-foreground transition-all hover:bg-primary/90 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)]"
         >
           <ImagePlus size={14} /> Buat Gambar
         </Link>
@@ -159,10 +159,12 @@ const DashboardHome = () => {
           {/* Stats */}
           <div className="grid gap-3 sm:grid-cols-3">
             {stats.map((s, i) => (
-              <div key={s.label} className="rounded-xl border border-border bg-card p-5 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
+              <div key={s.label} className="rounded-2xl border border-border/60 bg-card/80 p-5 animate-fade-up" style={{ animationDelay: `${i * 60}ms` }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{s.label}</p>
-                  <s.icon className="h-4 w-4 text-muted-foreground/30" />
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">{s.label}</p>
+                  <div className="rounded-xl bg-primary/[0.08] p-2">
+                    <s.icon className="h-4 w-4 text-primary" />
+                  </div>
                 </div>
                 {loading ? <Skeleton className="h-8 w-20" /> : <AnimatedStat value={s.value} />}
                 <p className="mt-1.5 text-[11px] text-muted-foreground/60">
@@ -179,10 +181,10 @@ const DashboardHome = () => {
 
           {/* Activity */}
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
               Aktivitas 30 Hari
             </p>
-            <div className="rounded-xl border border-border bg-card p-5">
+            <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
               {loading ? (
                 <Skeleton className="h-[180px] w-full" />
               ) : dailyData.every((d) => d.count === 0) ? (
@@ -213,11 +215,11 @@ const DashboardHome = () => {
 
           {/* Quick Actions */}
           <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground/50">Mulai</p>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">Mulai</p>
             <div className="grid gap-3 sm:grid-cols-3">
               {actions.map((a) => (
-                <Link key={a.title} to={a.to} className="group rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:border-primary/20">
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                <Link key={a.title} to={a.to} className="group rounded-2xl border border-border/60 bg-card/80 p-5 card-hover">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-primary/[0.08]">
                     <a.icon size={18} className="text-primary" />
                   </div>
                   <h3 className="font-satoshi text-sm font-bold text-foreground">{a.title}</h3>

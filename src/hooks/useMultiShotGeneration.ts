@@ -30,8 +30,8 @@ interface ShotProgress {
 
 const COST_PER_SHOT: Record<string, number> = {
   grok: 1600,
-  veo_fast: 4800,
-  veo_quality: 19200,
+  veo_fast: 6400,
+  veo_quality: 32000,
 };
 
 export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
@@ -238,7 +238,7 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
       setProgress((p) => ({ ...p, status: "completed" }));
       onProjectStatusChange(finalCompleted ? "completed" : "completed");
     }
-  }, [modules, model, aspectRatio, kieApiKey, geminiApiKey, promptModel, characterHeroUrl, characterRefUrl, productImageUrl]);
+  }, [modules, model, aspectRatio, kieApiKey, geminiApiKey, promptModel, characterHeroUrl, productImageUrl]);
 
   const pause = useCallback(() => {
     pauseRef.current = true;

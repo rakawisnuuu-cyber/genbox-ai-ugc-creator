@@ -11,18 +11,31 @@ import FAQSection from "@/components/FAQSection";
 import FinalCTASection from "@/components/FinalCTASection";
 import TransactionPopup from "@/components/TransactionPopup";
 
+const SectionDivider = () => (
+  <div className="mx-auto max-w-5xl px-4">
+    <div className="h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
+  </div>
+);
+
 const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <AnimatedBackground />
       <Navbar />
       <HeroSection />
+      <SectionDivider />
       <DibuatUntukSection />
+      <SectionDivider />
       <FiturSection />
+      <SectionDivider />
       <CaraKerjaSection />
+      <SectionDivider />
       <HasilNyataSection />
+      <SectionDivider />
       <HargaSection />
+      <SectionDivider />
       <ApiCostSection />
+      <SectionDivider />
       <FAQSection />
       <FinalCTASection />
       <TransactionPopup />

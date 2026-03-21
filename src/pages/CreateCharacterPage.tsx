@@ -177,20 +177,7 @@ const DEFAULT_FORM: FormData = {
   bodyType: "average", ageRangeNew: "young_adult",
 };
 
-// ── HELPER: Convert image URL to base64 ──
-async function imageUrlToBase64(url: string): Promise<string> {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(',')[1];
-      resolve(base64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+import { imageUrlToBase64 } from "@/lib/image-utils";
 
 // ── HELPER: Assemble prompt for a shot ──
 function assemblePrompt(
@@ -342,7 +329,7 @@ export default function CreateCharacterPage() {
   const handleGenerate = async () => {
     if (!form.name.trim()) { toast({ title: "Nama wajib diisi", variant: "destructive" }); return; }
     if (!kieApiKey || !geminiKey) {
-      toast({ title: "Setup API keys dulu di Settings", description: "Buka Settings → API Keys untuk memasukkan key Kie AI dan Gemini.", variant: "destructive" });
+      toast({ title: "Setup API keys dulu di Settings", description: "Buka Settings — API Keys untuk memasukkan key Kie AI dan Gemini.", variant: "destructive" });
       navigate("/settings");
       return;
     }
@@ -953,8 +940,8 @@ export default function CreateCharacterPage() {
             <div>
               {!heroDone ? (
                 <>
-                  <p>Estimasi: ~Rp 1.600 untuk hero portrait</p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">1x Nano Banana Pro • Variasi opsional setelahnya</p>
+                  <p>Estimasi: ~Rp 1.440 untuk hero portrait</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">1x Nano Banana Pro (2K) • Variasi opsional setelahnya</p>
                 </>
               ) : allVariationsDone ? (
                 <>
@@ -997,7 +984,7 @@ export default function CreateCharacterPage() {
             </div>
           ) : (
             <Button onClick={handleGenerate} disabled={isGenerating} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
-              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter (~Rp 1.600)"}
+              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter (~Rp 1.440)"}
             </Button>
           )}
         </div>

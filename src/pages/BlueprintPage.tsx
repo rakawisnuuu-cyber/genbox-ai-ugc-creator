@@ -2,8 +2,8 @@ import { Workflow, ArrowRightLeft, Send, RefreshCw, BarChart3, Smartphone } from
 import { useToast } from "@/hooks/use-toast";
 
 const BLUEPRINTS = [
-  { icon: Workflow, name: "Product-to-UGC Pipeline", desc: "Webhook → analyze → generate → save" },
-  { icon: ArrowRightLeft, name: "Batch UGC Generator", desc: "Google Sheet → loop → generate all" },
+  { icon: Workflow, name: "Product-to-UGC Pipeline", desc: "Webhook — analyze — generate — save" },
+  { icon: ArrowRightLeft, name: "Batch UGC Generator", desc: "Google Sheet — loop — generate all" },
   { icon: Send, name: "Auto-Post to Social", desc: "Resize + caption + queue posting" },
 ];
 

@@ -1,4 +1,4 @@
-import { Sparkles, Package, ShoppingBag, UtensilsCrossed, Zap, User } from "lucide-react";
+import { Package, ShoppingBag, UtensilsCrossed, Zap, User } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { useRef, useState, useEffect } from "react";
 
@@ -22,10 +22,10 @@ const ComparisonCard = ({
   delay: number;
 }) => (
   <div
-    className={`snap-center rounded-xl border border-border bg-card transition-all duration-300 hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_0_30px_-5px_hsl(var(--primary)/0.15)] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+    className={`snap-center rounded-2xl border border-border/60 bg-card/80 card-hover ${isVisible ? "animate-fade-up" : "opacity-0"}`}
     style={{ animationDelay: `${delay}s` }}
   >
-    <div className="relative flex h-[200px] overflow-hidden rounded-t-xl">
+    <div className="relative flex h-[200px] overflow-hidden rounded-t-2xl">
       {/* Before */}
       <div className={`flex flex-1 flex-col items-center justify-center bg-gradient-to-br from-card ${gradient}`}>
         <span className="mb-3 rounded-full bg-orange-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-orange-400">
@@ -36,7 +36,7 @@ const ComparisonCard = ({
 
       {/* Divider with Zap */}
       <div className="absolute inset-y-0 left-1/2 flex -translate-x-1/2 items-center">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card animate-pulse-subtle">
+        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-border/60 bg-card animate-pulse-subtle">
           <Zap size={14} className="text-primary" />
         </div>
       </div>
@@ -56,7 +56,7 @@ const ComparisonCard = ({
     </div>
 
     {/* Label */}
-    <div className="border-t border-border px-4 py-3">
+    <div className="border-t border-border/60 px-4 py-3">
       <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
     </div>
   </div>
@@ -79,31 +79,30 @@ const HasilNyataSection = () => {
   }, []);
 
   return (
-    <section ref={ref} className="relative z-10 px-4 py-10 sm:py-14">
+    <section ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
       <div className="mx-auto max-w-5xl">
         {/* Badge */}
         <div className="flex justify-center">
           <div
-            className={`flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+            className={`flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary ${isVisible ? "animate-fade-up" : "opacity-0"}`}
             style={{ animationDelay: "0.1s" }}
           >
-            <Sparkles size={14} />
-            HASIL NYATA
+            Hasil Nyata
           </div>
         </div>
 
         {/* Heading */}
         <h2
-          className={`mx-auto mt-6 max-w-[700px] text-center font-satoshi text-[28px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mx-auto mt-6 max-w-[700px] text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{
             animationDelay: "0.2s",
-            background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
+            background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 56%) 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}
         >
-          DARI FOTO PRODUK BIASA KE KONTEN UGC PREMIUM
+          Dari Foto Produk Biasa ke Konten UGC Premium
         </h2>
 
         {/* Desktop grid */}

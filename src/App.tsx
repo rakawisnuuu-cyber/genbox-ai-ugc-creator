@@ -10,6 +10,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
 import GeneratePage from "./pages/GeneratePage";
 import CharactersPage from "./pages/CharactersPage";
+import GalleryPage from "./pages/GalleryPage";
 
 import PromptPage from "./pages/PromptPage";
 import BlueprintPage from "./pages/BlueprintPage";
@@ -18,19 +19,10 @@ import CreateCharacterPage from "./pages/CreateCharacterPage";
 import VideoPage from "./pages/VideoPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
+import CheckoutPage from "./pages/CheckoutPage";
+import CheckoutSuccessPage from "./pages/CheckoutSuccessPage";
 
 const queryClient = new QueryClient();
-
-const protectedPaths = [
-  "/dashboard",
-  "/generate",
-  "/characters",
-  
-  "/prompt",
-  "/blueprint",
-  "/video",
-  "/settings",
-];
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -42,6 +34,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
             <Route
               element={
                 <ProtectedRoute>
@@ -52,7 +46,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardHome />} />
               <Route path="/generate" element={<GeneratePage />} />
               <Route path="/characters" element={<CharactersPage />} />
-              
+              <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/prompt" element={<PromptPage />} />
               <Route path="/blueprint" element={<BlueprintPage />} />
               <Route path="/characters/create" element={<CreateCharacterPage />} />

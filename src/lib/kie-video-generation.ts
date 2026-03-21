@@ -46,7 +46,7 @@ const MAX_404_RETRIES = 5;
 
 // ── Error helper ────────────────────────────────────────────────────
 function extractError(json: any, fallback: string): string {
-  return json?.msg || json?.message || json?.error || fallback;
+  return json?.errorMessage || json?.msg || json?.message || json?.error || fallback;
 }
 
 // ── Task creation ───────────────────────────────────────────────────
@@ -86,15 +86,25 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   const veoModel = model === "veo_fast" ? "veo3_fast" : "veo3";
   console.log(`[kie] Creating Veo task. Model: ${veoModel}`);
 
+  // Determine generationType based on image count and model
+  const imageCount = imageUrls.filter(Boolean).length;
+  let generationType = "TEXT_2_VIDEO";
+  if (imageCount >= 2) {
+    generationType = "FIRST_AND_LAST_FRAMES_2_VIDEO";
+  } else if (imageCount === 1) {
+    generationType = model === "veo_fast" ? "REFERENCE_2_VIDEO" : "FIRST_AND_LAST_FRAMES_2_VIDEO";
+  }
+  console.log(`[kie] Veo generationType: ${generationType} (${imageCount} images, model=${model})`);
+
   const res = await fetch(`${KIE_BASE}/veo/generate`, {
     method: "POST",
     headers,
     body: JSON.stringify({
       prompt,
-      imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      imageUrls: imageCount > 0 ? imageUrls : undefined,
       model: veoModel,
       aspect_ratio: aspectRatio,
-      generationType: "FIRST_AND_LAST_FRAMES_2_VIDEO",
+      generationType,
       enableTranslation: true,
     }),
   });
@@ -209,7 +219,7 @@ async function pollTask(
         if (!url) throw new Error("No video URL in Veo result. Raw: " + JSON.stringify(j.data).slice(0, 300));
         return url;
       }
-      if (flag === 3) throw new Error(extractError(j.data, "Veo generation failed"));
+      if (flag === 2 || flag === 3) throw new Error(extractError(j.data, "Veo generation failed"));
     }
 
     await new Promise((resolve) => setTimeout(resolve, interval));

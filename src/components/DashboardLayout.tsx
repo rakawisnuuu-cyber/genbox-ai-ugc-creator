@@ -10,6 +10,7 @@ import {
   Settings,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -33,8 +34,8 @@ const navGroups: NavGroup[] = [
   {
     label: "GAMBAR & KARAKTER",
     items: [
-      { title: "Buat Gambar", icon: ImagePlus, path: "/generate" },
-      { title: "Karakter", icon: Users, path: "/characters" },
+      { title: "UGC Image Storyboard", icon: ImagePlus, path: "/generate" },
+      { title: "Create Unique Character", icon: Users, path: "/characters" },
     ],
   },
   {
@@ -74,12 +75,13 @@ const DashboardLayout = () => {
           onClick={onNavigate}
           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 ${
             active
-              ? "bg-primary/10 text-primary"
+              ? "bg-primary/[0.08] text-foreground"
               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
           }`}
         >
-          <item.icon className="h-4 w-4" />
+          <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
           {item.title}
+          {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
         </Link>
       </li>
     );
@@ -105,7 +107,7 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[220px] flex-col border-r border-border bg-background lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex" style={{ background: "hsl(220 8% 4.5%)" }}>
         {/* Logo */}
         <div className="px-5 pt-7 pb-1">
           <p className="font-satoshi text-base font-bold uppercase tracking-[0.2em] text-foreground">
@@ -120,31 +122,32 @@ const DashboardLayout = () => {
         </nav>
 
         {/* Settings */}
-        <div className="px-3 pb-2 border-t border-border pt-2">
+        <div className="px-3 pb-2 border-t border-border/60 pt-2">
           <ul className="space-y-0.5">
             {renderNavItem(settingsItem)}
           </ul>
         </div>
 
         {/* User */}
-        <div className="border-t border-border px-4 py-3.5">
+        <div className="border-t border-border/60 px-4 py-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold text-foreground">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary">
               {initial}
             </div>
             <p className="truncate text-[12px] text-muted-foreground flex-1">{displayName}</p>
             <button
               onClick={signOut}
-              className="text-[11px] text-muted-foreground/50 transition-colors hover:text-foreground"
+              className="text-muted-foreground/50 transition-colors hover:text-foreground p-1 rounded-md hover:bg-muted/50"
+              title="Keluar"
             >
-              Keluar
+              <LogOut className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
       </aside>
 
       {/* Mobile Top Bar */}
-      <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur-xl lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl lg:hidden">
         <p className="font-satoshi text-sm font-bold uppercase tracking-[0.2em] text-foreground">
           GENBOX
         </p>
@@ -158,33 +161,35 @@ const DashboardLayout = () => {
         <div className="fixed inset-0 z-40 bg-background pt-12 lg:hidden">
           <nav className="px-5 py-5">
             <SidebarNav onNavigate={() => setMobileOpen(false)} />
-            <div className="mt-4 pt-4 border-t border-border">
+            <div className="mt-4 pt-4 border-t border-border/60">
               <Link
                 to="/settings"
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                   isActive("/settings")
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/[0.08] text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Settings className="h-4 w-4" />
+                <Settings className={`h-4 w-4 ${isActive("/settings") ? "text-primary" : ""}`} />
                 Settings
+                {isActive("/settings") && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
               </Link>
             </div>
           </nav>
 
-          <div className="absolute inset-x-0 bottom-0 border-t border-border px-5 py-4">
+          <div className="absolute inset-x-0 bottom-0 border-t border-border/60 px-5 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold text-foreground">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary">
                 {initial}
               </div>
               <p className="truncate text-sm text-muted-foreground">{displayName}</p>
               <button
                 onClick={signOut}
-                className="ml-auto text-xs text-muted-foreground/50 transition-colors hover:text-foreground"
+                className="ml-auto text-muted-foreground/50 transition-colors hover:text-foreground p-1"
+                title="Keluar"
               >
-                Keluar
+                <LogOut className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -192,7 +197,7 @@ const DashboardLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className="mt-12 min-h-screen lg:ml-[220px] lg:mt-0">
+      <main className="mt-12 min-h-screen lg:ml-[232px] lg:mt-0">
         <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
           <Outlet />
         </div>

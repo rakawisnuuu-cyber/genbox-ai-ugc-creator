@@ -23,35 +23,35 @@ const DibuatUntukSection = () => {
   const { ref, isVisible } = useScrollReveal(0.15);
 
   return (
-    <section ref={ref} className="relative z-10 px-4 py-10 sm:py-14">
+    <section ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
       <div className="mx-auto max-w-5xl text-center">
         <h2
-          className={`font-satoshi text-[28px] font-bold uppercase leading-tight tracking-[0.04em] sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{
             animationDelay: "0.1s",
-            background: "linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 63%) 100%)",
+            background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 56%) 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}
         >
-          DIBUAT UNTUK AFFILIATE MARKETER INDONESIA
+          Dibuat untuk Affiliate Marketer Indonesia
         </h2>
         <p
           className={`mx-auto mt-4 max-w-[600px] font-body text-base text-muted-foreground sm:text-lg ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          Dari seller TikTok Shop sampai dropshipper — GENBOX bantu kamu bikin konten yang convert.
+          Konten UGC cepat untuk affiliate, seller, dan dropshipper.
         </p>
 
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {cards.map((card, i) => (
             <div
               key={card.title}
-              className={`rounded-xl border border-border bg-card p-6 text-left transition-all duration-300 hover:scale-[1.02] hover:border-primary/40 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+              className={`rounded-2xl border border-border/60 bg-card/80 p-6 text-left card-hover ${isVisible ? "animate-fade-up" : "opacity-0"}`}
               style={{ animationDelay: `${0.3 + i * 0.1}s` }}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/20">
                 <card.icon size={20} className="text-primary" />
               </div>
               <h3 className="mt-4 font-satoshi text-lg font-bold text-foreground">
