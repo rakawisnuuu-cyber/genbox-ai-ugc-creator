@@ -87,15 +87,15 @@ const CharactersPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-6 border-b border-[#2A2A2A] animate-fade-up" style={{ animationDelay: "100ms" }}>
+      <div className="flex gap-6 border-b border-border animate-fade-up" style={{ animationDelay: "100ms" }}>
         {([["preset", "PRESET"], ["custom", "KARAKTER SAYA"]] as const).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`pb-2 text-sm font-bold tracking-wider border-b-2 transition-colors ${
+            className={`pb-2.5 text-xs font-bold tracking-wider border-b-2 transition-colors ${
               tab === key
-                ? "text-white border-primary"
-                : "text-[#666] border-transparent hover:text-[#999]"
+                ? "text-foreground border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground/70"
             }`}
           >
             {label}
@@ -105,7 +105,7 @@ const CharactersPage = () => {
 
       {/* Content */}
       {tab === "preset" && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-fade-up" style={{ animationDelay: "200ms" }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-up" style={{ animationDelay: "200ms" }}>
           {PRESETS.map((p) => (
             <CharacterCard key={p.id} character={p} onDetail={setSelected} onUse={handleUse} />
           ))}
@@ -114,7 +114,6 @@ const CharactersPage = () => {
 
       {tab === "custom" && (
         <div className="animate-fade-up" style={{ animationDelay: "200ms" }}>
-          {/* Create button */}
           <button
             onClick={() => navigate("/characters/create")}
             className="mb-4 inline-flex items-center gap-2 bg-primary text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
@@ -125,12 +124,12 @@ const CharactersPage = () => {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : customChars.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 border border-dashed border-[#2A2A2A] rounded-xl">
-              <Images className="h-10 w-10 text-[#333] mb-3" />
-              <p className="text-sm text-[#666] mb-4">Belum ada karakter custom</p>
+            <div className="flex flex-col items-center justify-center py-20 border border-dashed border-border rounded-xl">
+              <Images className="h-10 w-10 text-muted-foreground/20 mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">Belum ada karakter custom</p>
               <button
                 onClick={() => navigate("/characters/create")}
                 className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
@@ -139,7 +138,7 @@ const CharactersPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {customChars.map((c) => (
                 <CharacterCard
                   key={c.id}
@@ -163,6 +162,10 @@ const CharactersPage = () => {
         onUse={(c) => {
           setSelected(null);
           handleUse(c);
+        }}
+        onDelete={(c) => {
+          setSelected(null);
+          handleDelete(c);
         }}
       />
     </div>

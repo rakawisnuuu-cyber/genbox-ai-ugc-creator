@@ -10,7 +10,7 @@ import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
 import GeneratePage from "./pages/GeneratePage";
 import CharactersPage from "./pages/CharactersPage";
-import GalleryPage from "./pages/GalleryPage";
+
 import PromptPage from "./pages/PromptPage";
 import BlueprintPage from "./pages/BlueprintPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -25,7 +25,7 @@ const protectedPaths = [
   "/dashboard",
   "/generate",
   "/characters",
-  "/gallery",
+  
   "/prompt",
   "/blueprint",
   "/video",
@@ -52,7 +52,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardHome />} />
               <Route path="/generate" element={<GeneratePage />} />
               <Route path="/characters" element={<CharactersPage />} />
-              <Route path="/gallery" element={<GalleryPage />} />
+              
               <Route path="/prompt" element={<PromptPage />} />
               <Route path="/blueprint" element={<BlueprintPage />} />
               <Route path="/characters/create" element={<CreateCharacterPage />} />

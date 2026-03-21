@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpscale } from "@/hooks/useUpscale";
-import { Download, Images, Loader2, Play, Copy, Film, Trash2 } from "lucide-react";
+import { Download, Images, Play, Copy, Film, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type Tab = "semua" | "gambar" | "video" | "karakter";
+type GalleryTab = "semua" | "gambar" | "video";
 
 interface Generation {
   id: string;
@@ -39,17 +39,14 @@ interface Generation {
   character_id: string | null;
 }
 
-const TABS: { key: Tab; label: string }[] = [
+const GALLERY_TABS: { key: GalleryTab; label: string }[] = [
   { key: "semua", label: "SEMUA" },
   { key: "gambar", label: "GAMBAR" },
   { key: "video", label: "VIDEO" },
-  { key: "karakter", label: "KARAKTER" },
 ];
 
 const handleDownload = async (url: string, filename?: string) => {
   const name = filename || url.split("/").pop()?.split("?")[0] || "download";
-  
-  // Try fetch + blob first (works for same-origin & CORS-enabled URLs)
   try {
     const res = await fetch(url, { mode: "cors" });
     if (res.ok) {
@@ -64,11 +61,8 @@ const handleDownload = async (url: string, filename?: string) => {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
       return;
     }
-  } catch {
-    // CORS blocked — fall through to proxy
-  }
+  } catch { /* CORS blocked */ }
 
-  // Fallback: use a CORS proxy via Supabase edge function or direct blob via XHR
   try {
     const blob = await new Promise<Blob>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -87,20 +81,17 @@ const handleDownload = async (url: string, filename?: string) => {
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
     return;
-  } catch {
-    // XHR also failed
-  }
+  } catch { /* XHR failed */ }
 
-  // Last resort: open in new tab and let user right-click save
   toast.info("Tidak bisa download otomatis. Klik kanan gambar → 'Save image as...'");
   window.open(url, "_blank");
 };
 
-const GalleryPage = () => {
+const GalleryContent = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { upscale, getState } = useUpscale();
-  const [tab, setTab] = useState<Tab>("semua");
+  const [tab, setTab] = useState<GalleryTab>("semua");
   const [items, setItems] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailItem, setDetailItem] = useState<Generation | null>(null);
@@ -149,22 +140,17 @@ const GalleryPage = () => {
     }
   };
 
-  // Filter out videos from image lightbox navigation
-  const imageItems = items.filter((i) => i.type !== "video");
-
   return (
-    <div className="space-y-6">
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-bold uppercase tracking-wider font-satoshi text-foreground">Gallery</h1>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-6 border-b border-border animate-fade-up" style={{ animationDelay: "50ms" }}>
-        {TABS.map((t) => (
+    <div className="space-y-5">
+      {/* Filter tabs */}
+      <div className="flex gap-5">
+        {GALLERY_TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`pb-2.5 text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${tab === t.key ? "text-foreground border-primary" : "text-muted-foreground border-transparent hover:text-foreground/70"}`}
+            className={`pb-2 text-[11px] font-bold uppercase tracking-wider transition-colors border-b-2 ${
+              tab === t.key ? "text-foreground border-primary" : "text-muted-foreground/50 border-transparent hover:text-muted-foreground"
+            }`}
           >
             {t.label}
           </button>
@@ -182,22 +168,22 @@ const GalleryPage = () => {
 
       {/* Empty */}
       {!loading && items.length === 0 && (
-        <div className="border-2 border-dashed border-border rounded-xl p-12 flex flex-col items-center text-center animate-fade-up">
+        <div className="border border-dashed border-border rounded-xl p-10 flex flex-col items-center text-center">
           {tab === "video" ? (
             <>
-              <Film className="h-12 w-12 text-muted-foreground/30 mb-4" />
-              <p className="font-semibold text-foreground mb-1">Belum ada video</p>
-              <p className="text-sm text-muted-foreground mb-6">Buat video pertamamu di halaman Buat Video</p>
-              <Button onClick={() => navigate("/video")} className="font-bold uppercase tracking-wider">
-                → Buat Video
+              <Film className="h-10 w-10 text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">Belum ada video</p>
+              <p className="text-[12px] text-muted-foreground/60 mb-5">Buat video pertamamu di halaman Buat Video</p>
+              <Button onClick={() => navigate("/video")} size="sm" className="text-[11px] font-bold uppercase tracking-wider">
+                Buat Video
               </Button>
             </>
           ) : (
             <>
-              <Images className="h-12 w-12 text-muted-foreground/30 mb-4" />
-              <p className="font-semibold text-foreground mb-1">Gallery masih kosong</p>
-              <p className="text-sm text-muted-foreground mb-6">Mulai generate untuk mengisi gallery kamu!</p>
-              <Button onClick={() => navigate("/generate")} className="font-bold uppercase tracking-wider">
+              <Images className="h-10 w-10 text-muted-foreground/20 mb-3" />
+              <p className="text-sm font-medium text-foreground mb-1">Gallery masih kosong</p>
+              <p className="text-[12px] text-muted-foreground/60 mb-5">Mulai generate untuk mengisi gallery kamu</p>
+              <Button onClick={() => navigate("/generate")} size="sm" className="text-[11px] font-bold uppercase tracking-wider">
                 Buat Gambar Pertama
               </Button>
             </>
@@ -207,13 +193,13 @@ const GalleryPage = () => {
 
       {/* Grid */}
       {!loading && items.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-up" style={{ animationDelay: "100ms" }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {items.map((item) => {
             if (item.type === "video") {
               return (
                 <div
                   key={item.id}
-                  className="relative group cursor-pointer rounded-xl overflow-hidden bg-background aspect-square border border-border hover:border-primary/30 transition-colors"
+                  className="relative group cursor-pointer rounded-xl overflow-hidden bg-background aspect-square border border-border hover:border-primary/20 transition-colors"
                   onClick={() => setSelectedVideo(item)}
                 >
                   <video
@@ -224,74 +210,67 @@ const GalleryPage = () => {
                     playsInline
                     onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = 0.1; }}
                   />
-                  {/* Play overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition-colors">
-                    <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
-                      <Play className="w-5 h-5 text-black ml-0.5" fill="black" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/30 group-hover:bg-background/50 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-foreground/90 flex items-center justify-center">
+                      <Play className="w-4 h-4 text-background ml-0.5" fill="currentColor" />
                     </div>
                   </div>
-                  {/* Delete button */}
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/20 hover:bg-destructive/40 text-destructive rounded-lg p-1.5"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/15 hover:bg-destructive/30 text-destructive rounded-lg p-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
-                  {/* VIDEO badge */}
                   <div className="absolute top-2 left-2">
-                    <span className="text-[10px] font-bold bg-primary/90 text-primary-foreground px-2 py-0.5 rounded-full">VIDEO</span>
+                    <span className="text-[9px] font-bold bg-primary/90 text-primary-foreground px-1.5 py-0.5 rounded-full">VIDEO</span>
                   </div>
-                  {/* Model on hover */}
                   <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[10px] bg-black/70 text-white px-2 py-0.5 rounded-full">{item.model}</span>
+                    <span className="text-[9px] bg-background/80 text-foreground px-1.5 py-0.5 rounded-full">{item.model}</span>
                   </div>
                 </div>
               );
             }
 
-            // Image card (existing)
             return (
-              <div key={item.id} className="group relative bg-muted/30 border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors">
+              <div key={item.id} className="group relative bg-card border border-border rounded-xl overflow-hidden hover:border-primary/20 transition-colors">
                 <div className="aspect-square relative">
                   {item.image_url ? (
                     <img src={item.upscaled_url || item.image_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Images className="h-8 w-8 text-muted-foreground/20" />
+                      <Images className="h-8 w-8 text-muted-foreground/15" />
                     </div>
                   )}
                   {item.upscale_factor && (
-                    <span className="absolute top-2 left-2 bg-primary/20 text-primary text-[9px] rounded-full px-1.5 py-0.5 font-medium">{item.upscale_factor}x</span>
+                    <span className="absolute top-2 left-2 bg-primary/15 text-primary text-[9px] rounded-full px-1.5 py-0.5 font-medium">{item.upscale_factor}x</span>
                   )}
-                  {/* Delete button */}
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/20 hover:bg-destructive/40 text-destructive rounded-lg p-1.5 z-10"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/15 hover:bg-destructive/30 text-destructive rounded-lg p-1.5 z-10"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <div className="absolute inset-0 bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2.5">
                     {item.image_url && (
                       <button onClick={(e) => { e.stopPropagation(); handleDownload(item.upscaled_url || item.image_url!, `genbox-${item.id}.png`); }}
-                        className="h-10 w-10 rounded-full bg-foreground/20 flex items-center justify-center text-foreground hover:bg-foreground/30 transition-colors">
-                        <Download className="h-4 w-4" />
+                        className="h-9 w-9 rounded-full bg-foreground/15 flex items-center justify-center text-foreground hover:bg-foreground/25 transition-colors">
+                        <Download className="h-3.5 w-3.5" />
                       </button>
                     )}
                     <button onClick={() => setDetailItem(item)}
-                      className="bg-foreground/20 text-foreground text-[11px] px-3 py-1.5 rounded-full hover:bg-foreground/30 transition-colors">
-                      Lihat Detail
+                      className="bg-foreground/15 text-foreground text-[10px] px-3 py-1.5 rounded-full hover:bg-foreground/25 transition-colors">
+                      Detail
                     </button>
                   </div>
                 </div>
-                <div className="p-2.5 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-blue-500/20 text-blue-400 rounded-full text-[10px] font-semibold px-2 py-0.5 uppercase">
+                <div className="p-2.5 space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="bg-primary/10 text-primary rounded-full text-[9px] font-semibold px-1.5 py-0.5 uppercase">
                       {item.type === "ugc_image" ? "IMAGE" : item.type.toUpperCase()}
                     </span>
-                    {item.model && <span className="text-[10px] text-muted-foreground">{item.model}</span>}
+                    {item.model && <span className="text-[9px] text-muted-foreground/50">{item.model}</span>}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">{format(new Date(item.created_at), "dd MMM yyyy")}</p>
+                  <p className="text-[10px] text-muted-foreground/40">{format(new Date(item.created_at), "dd MMM yyyy")}</p>
                 </div>
               </div>
             );
@@ -301,8 +280,8 @@ const GalleryPage = () => {
 
       {/* Image Detail modal */}
       {detailItem && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setDetailItem(null)}>
-          <div onClick={(e) => e.stopPropagation()} className="bg-card border border-border rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 space-y-4 animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setDetailItem(null)}>
+          <div onClick={(e) => e.stopPropagation()} className="bg-card border border-border rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 space-y-4 animate-scale-in">
             {detailItem.image_url && (
               <img src={detailItem.upscaled_url || detailItem.image_url} alt="" className="w-full rounded-lg" />
             )}
@@ -310,7 +289,7 @@ const GalleryPage = () => {
               {detailItem.image_url && (
                 <>
                   <button onClick={() => handleDownload(detailItem.upscaled_url || detailItem.image_url!, `genbox-${detailItem.id}.png`)}
-                    className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary/90">
+                    className="bg-primary text-primary-foreground text-[11px] font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary/90">
                     <Download className="h-3.5 w-3.5" /> Download
                   </button>
                   <UpscaleButton
@@ -325,19 +304,19 @@ const GalleryPage = () => {
             </div>
             {detailItem.prompt && (
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Prompt</p>
-                <p className="text-sm text-foreground">{detailItem.prompt}</p>
+                <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mb-1">Prompt</p>
+                <p className="text-[13px] text-foreground">{detailItem.prompt}</p>
               </div>
             )}
-            <div className="flex gap-4 text-xs text-muted-foreground">
+            <div className="flex gap-4 text-[11px] text-muted-foreground/50">
               <span>{detailItem.model}</span>
               <span>{format(new Date(detailItem.created_at), "dd MMM yyyy HH:mm")}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <button onClick={() => setDetailItem(null)} className="text-xs text-muted-foreground hover:text-foreground">Tutup</button>
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <button onClick={() => setDetailItem(null)} className="text-[11px] text-muted-foreground hover:text-foreground">Tutup</button>
               <button
                 onClick={() => { setDeleteTarget(detailItem); }}
-                className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1"
+                className="text-[11px] text-destructive hover:text-destructive/80 flex items-center gap-1"
               >
                 <Trash2 className="h-3 w-3" /> Hapus
               </button>
@@ -351,37 +330,33 @@ const GalleryPage = () => {
         <DialogContent className="max-w-2xl bg-background border-border p-0 overflow-hidden">
           {selectedVideo && (
             <div className="flex flex-col">
-              <div className="relative aspect-[9/16] max-h-[70vh] bg-black mx-auto w-full">
+              <div className="relative aspect-[9/16] max-h-[70vh] bg-background mx-auto w-full">
                 <video
                   src={selectedVideo.image_url || ""}
                   className="w-full h-full object-contain"
-                  controls
-                  autoPlay
-                  loop
-                  playsInline
+                  controls autoPlay loop playsInline
                 />
               </div>
               <div className="p-4 bg-card space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full font-medium">
+                  <span className="text-[10px] bg-primary/15 text-primary px-2 py-0.5 rounded-full font-medium">
                     {selectedVideo.model}
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground/50">
                     {new Date(selectedVideo.created_at).toLocaleDateString("id-ID", {
                       day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
                     })}
                   </span>
                 </div>
                 {selectedVideo.prompt && (
-                  <p className="text-sm text-muted-foreground line-clamp-3">{selectedVideo.prompt}</p>
+                  <p className="text-[12px] text-muted-foreground/70 line-clamp-3">{selectedVideo.prompt}</p>
                 )}
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleDownload(selectedVideo.image_url || "", `genbox-video-${selectedVideo.id}.mp4`)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm font-medium py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
                   >
-                    <Download className="w-4 h-4" />
-                    Download
+                    <Download className="w-4 h-4" /> Download
                   </button>
                   <button
                     onClick={() => {
@@ -420,4 +395,4 @@ const GalleryPage = () => {
   );
 };
 
-export default GalleryPage;
+export default GalleryContent;

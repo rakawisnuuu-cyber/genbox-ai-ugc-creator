@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from "react";
 import type { VideoModule } from "@/lib/video-modules";
-
+import { generateVideoAndWait, normalizeDurationForModel } from "@/lib/kie-video-generation";
+import { geminiFetch } from "@/lib/gemini-fetch";
+import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
 interface UseMultiShotGenerationOptions {
   projectId: string;
   modules: VideoModule[];
@@ -96,36 +98,21 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
   const enhanceModulePrompt = async (mod: VideoModule, shotIndex: number): Promise<string> => {
     if (!geminiApiKey) return mod.prompt;
     try {
-      const dialogueSection = mod.withDialogue && mod.dialogueText
-        ? `\n\nInclude natural spoken dialogue: "${mod.dialogueText}"\nAudio direction: ${mod.audioDirection || "natural ambient"}`
-        : `\nNo dialogue. Audio: ${mod.audioDirection || "ambient sounds only"}`;
+      const sysText = buildVideoDirectorInstruction({
+        shotIndex,
+        totalShots: modules.length,
+        duration: mod.duration,
+        moduleType: mod.type,
+        previousPrompt: shotIndex > 0 ? modules[shotIndex - 1]?.prompt : undefined,
+        withDialogue: mod.withDialogue,
+        dialogueText: mod.dialogueText,
+        audioDirection: mod.audioDirection,
+      });
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiApiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            systemInstruction: {
-              parts: [{
-                text: `You are an expert TikTok video prompt engineer. Enhance this video prompt for AI generation.
-
-Rules:
-- Output MUST be in English
-- Focus on MOTION, ACTION, CAMERA MOVEMENT
-- Keep under 80 words
-- Include audio/dialogue direction naturally in the prompt
-- NO brackets, NO placeholders, NO template markers
-- Output ONLY the final prompt text
-
-Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s. Module type: ${mod.type}.${dialogueSection}`,
-              }],
-            },
-            contents: [{ parts: [{ text: mod.prompt }] }],
-          }),
-        }
-      );
-      const json = await res.json();
+      const json = await geminiFetch(promptModel, geminiApiKey, {
+        systemInstruction: { parts: [{ text: sysText }] },
+        contents: [{ parts: [{ text: mod.prompt }] }],
+      });
       return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || mod.prompt;
     } catch {
       return mod.prompt;
@@ -138,116 +125,43 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
     shotIndex: number,
     enhancedPrompt: string
   ): Promise<string> => {
-    // Build image inputs
+    // Build image inputs — only use actual IMAGE URLs, never video URLs
     const imageInputs: string[] = [];
-    if (mod.source === "character" && characterHeroUrl) imageInputs.push(characterHeroUrl);
-    if (characterRefUrl) imageInputs.push(characterRefUrl);
-    if (mod.source === "product" && productImageUrl) imageInputs.push(productImageUrl);
-    else if (productImageUrl && mod.source === "character") imageInputs.push(productImageUrl);
-    // Add previous shot's last frame for continuity
-    if (shotIndex > 0 && lastFrameRef.current) imageInputs.push(lastFrameRef.current);
+    // Use module-specific sourceImageUrl as PRIMARY reference if available
+    if (mod.sourceImageUrl) {
+      imageInputs.push(mod.sourceImageUrl);
+    } else if (characterHeroUrl) {
+      // Fallback to global character hero image
+      imageInputs.push(characterHeroUrl);
+    }
+    // Always include product image as secondary reference if different from primary
+    if (productImageUrl && !imageInputs.includes(productImageUrl)) {
+      imageInputs.push(productImageUrl);
+    }
+    // For custom source modules with uploaded images
+    if (mod.source === "custom" && mod.customImageUrl && !imageInputs.includes(mod.customImageUrl)) {
+      imageInputs.push(mod.customImageUrl);
+    }
 
     const uniqueImages = [...new Set(imageInputs.filter(Boolean))];
 
-    let taskId: string;
-    let pollUrl: string;
-    let pollInterval: number;
+    console.log(`=== MULTI-SHOT: Generating shot ${shotIndex + 1} ===`);
+    console.log("Model:", model, "Duration:", mod.duration, "→", normalizeDurationForModel(model, mod.duration));
+    console.log("Images:", uniqueImages.length);
 
-    if (model === "grok") {
-      const createRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "grok-imagine/image-to-video",
-          input: {
-            image_urls: uniqueImages.length > 0 ? uniqueImages : undefined,
-            prompt: enhancedPrompt,
-            mode: "normal",
-            duration: String(Math.min(mod.duration, 8)),
-            resolution: "480p",
-          },
-        }),
-      });
-      const createJson = await createRes.json();
-      if (createJson.code !== 200 || !createJson.data?.taskId) {
-        throw new Error(createJson.message || "Failed to create Grok task");
-      }
-      taskId = createJson.data.taskId;
-      pollUrl = `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`;
-      pollInterval = 3000;
-    } else {
-      const veoModel = model === "veo_fast" ? "veo3_fast" : "veo3";
-      const createRes = await fetch("https://api.kie.ai/api/v1/veo/generate", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: enhancedPrompt,
-          imageUrls: uniqueImages.length > 0 ? uniqueImages : undefined,
-          model: veoModel,
-          aspect_ratio: aspectRatio,
-          generationType: "FIRST_AND_LAST_FRAMES_2_VIDEO",
-          enableTranslation: true,
-        }),
-      });
-      const createJson = await createRes.json();
-      taskId = createJson.data?.taskId || createJson.taskId;
-      if (!taskId) throw new Error(createJson.message || "Failed to create Veo task");
-      pollUrl = `https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`;
-      pollInterval = 5000;
-    }
+    const result = await generateVideoAndWait(
+      {
+        model: model as "grok" | "veo_fast" | "veo_quality",
+        prompt: enhancedPrompt,
+        imageUrls: uniqueImages,
+        duration: mod.duration,
+        aspectRatio,
+        apiKey: kieApiKey,
+      },
+      () => cancelRef.current,
+    );
 
-    // Poll with 404 retry limit and model-specific timeouts
-    const POLL_TIMEOUT: Record<string, number> = { grok: 180000, veo_fast: 300000, veo_quality: 600000 };
-    const MAX_404_RETRIES = 5;
-    const startTime = Date.now();
-    let consecutive404s = 0;
-
-    const poll = async (): Promise<string> => {
-      if (cancelRef.current) throw new Error("Cancelled");
-      if (Date.now() - startTime > (POLL_TIMEOUT[model] || 300000)) {
-        throw new Error("Timeout — generation took too long");
-      }
-
-      const r = await fetch(pollUrl, { headers: { Authorization: `Bearer ${kieApiKey}` } });
-      
-      if (r.status === 404) {
-        consecutive404s++;
-        console.error(`Poll 404 (${consecutive404s}/${MAX_404_RETRIES}). URL: ${pollUrl}`);
-        if (consecutive404s >= MAX_404_RETRIES) {
-          throw new Error("Task not found after multiple retries — task creation may have failed");
-        }
-        await new Promise((r) => setTimeout(r, pollInterval));
-        return poll();
-      }
-      consecutive404s = 0;
-
-      const j = await r.json();
-      console.log("Poll response:", j);
-
-      if (model === "grok") {
-        const state = j.data?.state;
-        if (state === "success") {
-          const resultJson = typeof j.data.resultJson === "string" ? JSON.parse(j.data.resultJson) : j.data.resultJson;
-          const url = resultJson?.resultUrls?.[0] || resultJson?.videoUrl || resultJson?.video_url || resultJson?.url || "";
-          if (!url) throw new Error("No video URL in Grok result");
-          return url;
-        }
-        if (state === "fail") throw new Error("Grok generation failed");
-      } else {
-        const status = j.data?.successFlag;
-        if (status === 1) {
-          const url = j.data?.videoUrl || j.data?.resultUrl || "";
-          if (!url) throw new Error("No video URL in Veo result");
-          return url;
-        }
-        if (status === 3) throw new Error("Veo generation failed");
-      }
-
-      await new Promise((r) => setTimeout(r, pollInterval));
-      return poll();
-    };
-
-    return await poll();
+    return result.videoUrl;
   };
 
   // Main generation loop
@@ -293,7 +207,6 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
         stopShotTimer();
 
         onModuleUpdate(i, { status: "completed", video_url: videoUrl });
-        lastFrameRef.current = videoUrl; // Use as reference for next shot
 
         setProgress((p) => ({
           ...p,
@@ -302,8 +215,9 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
       } catch (err: any) {
         stopShotTimer();
         if (cancelRef.current) break;
-        console.error(`Shot ${i + 1} failed:`, err);
-        onModuleUpdate(i, { status: "failed" });
+        const errorMsg = err?.message || "Unknown error";
+        console.error(`Shot ${i + 1} failed:`, errorMsg);
+        onModuleUpdate(i, { status: "failed", error_message: errorMsg });
         setProgress((p) => ({
           ...p,
           failedShots: [...p.failedShots, i],
@@ -365,8 +279,9 @@ Context: Shot #${shotIndex + 1} of ${modules.length}. Duration: ${mod.duration}s
       }));
     } catch (err: any) {
       stopShotTimer();
-      console.error(`Retry shot ${shotIdx + 1} failed:`, err);
-      onModuleUpdate(shotIdx, { status: "failed" });
+      const errorMsg = err?.message || "Unknown error";
+      console.error(`Retry shot ${shotIdx + 1} failed:`, errorMsg);
+      onModuleUpdate(shotIdx, { status: "failed", error_message: errorMsg });
     }
   }, [modules]);
 

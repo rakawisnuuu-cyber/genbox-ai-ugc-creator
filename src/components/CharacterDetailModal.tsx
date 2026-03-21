@@ -1,6 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { UserCircle, X, Download } from "lucide-react";
+import { UserCircle, X, Download, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { CharacterData } from "./CharacterCard";
 
 interface CharacterDetailModalProps {
@@ -8,10 +18,17 @@ interface CharacterDetailModalProps {
   open: boolean;
   onClose: () => void;
   onUse: (character: CharacterData) => void;
+  onDelete?: (character: CharacterData) => void;
 }
 
-const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDetailModalProps) => {
+const CharacterDetailModal = ({ character, open, onClose, onUse, onDelete }: CharacterDetailModalProps) => {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Reset lightbox when character changes or modal closes
+  useEffect(() => {
+    setLightboxUrl(null);
+  }, [character?.id, open]);
 
   if (!character) return null;
 
@@ -101,6 +118,14 @@ const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDeta
             >
               TUTUP
             </button>
+            {onDelete && !character.is_preset && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="border border-destructive/30 text-destructive font-bold text-sm py-2.5 px-3 rounded-lg hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -127,6 +152,28 @@ const CharacterDetailModal = ({ character, open, onClose, onUse }: CharacterDeta
           </a>
         </div>
       )}
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus karakter "{character.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>Karakter yang dihapus tidak bisa dikembalikan.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                onDelete!(character);
+                setShowDeleteConfirm(false);
+                onClose();
+              }}
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
