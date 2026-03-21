@@ -8,8 +8,6 @@ export interface VibePackConfig {
   hairStyle?: string;
   ageRange?: string;
   bodyType?: string;
-  imperfection?: string;
-  environment?: string;
 }
 
 export interface VibePack {
@@ -37,9 +35,6 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "lifestyle indoor, cozy warm environment",
       hairStyle: "Hijab Modern",
       ageRange: "20-28",
-      imperfection: "natural",
-      environment: "indoor_home",
-      bodyType: "average",
     },
   },
   {
@@ -57,9 +52,6 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "clean minimalist interior, neutral tones",
       hairStyle: "Lurus Panjang",
       ageRange: "20-28",
-      imperfection: "natural",
-      environment: "simple",
-      bodyType: "petite",
     },
   },
   {
@@ -76,9 +68,6 @@ export const VIBE_PACKS: VibePack[] = [
       lighting: "studio softbox lighting, professional portrait setup",
       setting: "office environment or studio backdrop, clean professional",
       ageRange: "25-35",
-      imperfection: "perfect",
-      environment: "studio",
-      bodyType: "average",
     },
   },
   {
@@ -96,9 +85,6 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "city street, graffiti wall, urban environment",
       hairStyle: "Messy Textured",
       ageRange: "18-25",
-      imperfection: "natural",
-      environment: "outdoor_urban",
-      bodyType: "athletic",
     },
   },
   {
@@ -115,9 +101,6 @@ export const VIBE_PACKS: VibePack[] = [
       lighting: "window light, soft diffused, slightly warm",
       setting: "minimalist interior, clean space, neutral palette room",
       ageRange: "20-30",
-      imperfection: "natural",
-      environment: "simple",
-      bodyType: "petite",
     },
   },
   {
@@ -135,69 +118,7 @@ export const VIBE_PACKS: VibePack[] = [
       setting: "home environment — kitchen, living room, or cozy interior",
       hairStyle: "Ponytail Rapi",
       ageRange: "28-38",
-      bodyType: "average",
-      imperfection: "natural",
-      environment: "indoor_home",
-    },
-  },
-  {
-    id: "cowok_urban",
-    name: "Cowok Urban",
-    description: "Gaya streetwear kasual untuk konten lifestyle cowok",
-    tags: ["Male", "Streetwear", "Urban", "Casual"],
-    previewGradient: "linear-gradient(135deg, hsl(210 25% 35%) 0%, hsl(180 20% 25%) 100%)",
-    config: {
-      hijab: "none, male character",
-      expression: "relaxed confident, slight smirk, laid-back attitude",
-      outfit: "oversized graphic tee or flannel shirt, jogger pants, sneakers, simple watch",
-      skinDetail: "natural Indonesian medium brown skin, slight stubble possible, realistic male skin texture",
-      lighting: "outdoor golden hour, warm directional light",
-      setting: "urban street, coffee shop exterior, city park bench",
-      hairStyle: "textured crop or messy comma hair",
-      ageRange: "20-28",
-      imperfection: "natural",
-      environment: "outdoor_urban",
-      bodyType: "athletic",
-    },
-  },
-  {
-    id: "bapak_profesional",
-    name: "Bapak Profesional",
-    description: "Tampilan mature dan polished untuk konten bisnis pria",
-    tags: ["Male", "Professional", "Mature", "Formal"],
-    previewGradient: "linear-gradient(135deg, hsl(220 20% 30%) 0%, hsl(200 15% 20%) 100%)",
-    config: {
-      hijab: "none, male character",
-      expression: "confident warm, professional trustworthy smile, composed",
-      outfit: "smart casual blazer over polo shirt or crisp button-down, chinos, leather watch",
-      skinDetail: "mature Indonesian male skin, well-groomed, clean-shaven or neat beard",
-      lighting: "studio softbox or office ambient, professional portrait lighting",
-      setting: "modern office, co-working space, or clean studio backdrop",
-      hairStyle: "neat side part or short clean cut",
-      ageRange: "35-50",
-      imperfection: "natural",
-      environment: "studio",
-      bodyType: "average",
-    },
-  },
-  {
-    id: "cowok_gym",
-    name: "Cowok Gym",
-    description: "Tampilan atletis energik untuk konten fitness dan sportswear",
-    tags: ["Male", "Athletic", "Fitness", "Energetic"],
-    previewGradient: "linear-gradient(135deg, hsl(150 30% 35%) 0%, hsl(170 25% 25%) 100%)",
-    config: {
-      hijab: "none, male character",
-      expression: "energetic determined, strong focused gaze, motivated",
-      outfit: "fitted dri-fit tank top or compression shirt, training shorts, sport shoes, wristband",
-      skinDetail: "toned Indonesian male skin, slight sweat sheen, healthy athletic glow",
-      lighting: "bright natural outdoor light or gym interior lighting, high contrast",
-      setting: "outdoor running track, gym interior, or park workout area",
-      hairStyle: "buzz cut or short swept back",
-      ageRange: "22-30",
-      imperfection: "natural",
-      environment: "outdoor_urban",
-      bodyType: "athletic",
+      bodyType: "Average/Medium",
     },
   },
 ];

@@ -1,90 +1,53 @@
 
-Goal: Evolve GENBOX into a UGC Ad Creation Engine.
 
-## Completed Changes
+# GENBOX Landing Page — Implementation Plan
 
-### Phase 1 (Previous Audit)
-- Cancel buttons fixed, prompt compression, storyboard prompts exposed, Gemini timeout 60s, landing page perf, shared hooks
+## Design Foundation
+Apply the GENBOX V2 design system: dark-only theme (#0A0A0A background, #141414 cards, lime green #BFFF00 accent), custom fonts (Satoshi for headings, DM Sans for body, JetBrains Mono for code/numbers), crosshair cursor, and scroll-triggered fade-up animations with staggered delays.
 
-### Phase 2 — Ad Engine Evolution
+## Landing Page Sections
 
-### 1. Environment Library Overhaul
-- Replaced all Western-centric environments with Indonesian micro-environments per reference doc
-- Shortened descriptions from ~60 words to ~25 words (massive token savings)
-- Categories: Skincare (Bathroom Vanity, Morning Routine Sink, Bedroom Vanity, Spa Style), Fashion (Bedroom Mirror, Closet Area, Apartment Hallway, Balcony), Food (Kitchen Counter, Breakfast Table, Kitchen Island, Snack Table), Electronics (Creator Desk, Bedroom Work Desk, Gaming Setup, Coffee Table Review), Health (Living Room Workout, Home Yoga Corner, Balcony Workout, Home Gym Corner), Home (Couch Talk, Bed Talk, Desk Chat, Balcony Vlog, Kamar Kost)
+### 1. Navbar
+- Fixed top with glassmorphism (`backdrop-blur-xl`, semi-transparent background)
+- "GENBOX" logo in lime green, bold uppercase tracking-widest
+- "MASUK" button on the right (ghost style with border)
 
-### 2. Content Templates Expanded (8 → 14)
-- Added: GRWM, 3 Alasan, Expectation vs Reality, Tutorial Singkat, Day in My Life, First Impression
-- Each with full timing (20s) and compressed timing (10s) beats
-- All with `recommendedFor` category mappings
-- Updated `tiktok-hooks.ts` with hook categories and body scripts for all 6 new templates
+### 2. Hero Section
+- Large gradient headline: **"Bikin Konten UGC Realistis. Tanpa Model, Tanpa Studio."**
+- Subtitle explaining AI-generated UGC for Indonesian e-commerce sellers
+- Glowing CTA button: **"BELI SEKARANG Rp 249.000"** with pulsing box-shadow animation
+- Subtle grid pattern background with floating particle effects
 
-### 3. Storyboard Beats for New Templates
-- Added all 6 new template beats to `storyboard-angles.ts`
-- Added `constraints` field to StoryboardBeat interface
-- Enforced `{ noProductUsage: true }` on Before>After frame 1, GRWM frame 1, Day in My Life frame 1
-- These constraints are available for Gemini prompt generation to enforce narrative logic
+### 3. Fitur Section (Features)
+- Section badge + heading: "FITUR UNGGULAN"
+- 6 feature cards in responsive grid (1/2/3 columns):
+  - Karakter AI Konsisten, Prompt Generator Otomatis, UGC Hyper-Realistis, Hemat 90% Biaya, Pakai API Key Sendiri, Siap untuk Marketplace
+- Each card: Lucide icon, title, description, hover scale + border glow
 
-### 4. API Key Setup Modal
-- Created `ApiKeySetupModal.tsx` — step-by-step wizard (Intro → Kie AI → Gemini → Done)
-- Shows instructions for obtaining each key with external links
-- Password toggle, test key, save & next flow
-- Progress bar across steps
-- Triggered from `DashboardHome.tsx` when API keys are missing
+### 4. Cara Kerja Section (How It Works)
+- 4 numbered steps with connecting visual elements:
+  1. Beli Akses → 2. Login → 3. Setup API Key → 4. Generate
+- Big mono numbers in lime, step descriptions below
 
-### Phase 3 — Template-First Flow & Dynamic Narratives
+### 5. Harga Section (Pricing)
+- Single highlighted pricing card with lime border and glow shadow
+- **"LIFETIME ACCESS — Rp 249.000"** (one-time payment)
+- Feature checklist with checkmarks
+- CTA button at bottom
 
-### 5. Flexible Narrative Engine
-- Replaced rigid Hook/Build/Demo/Proof/Convert roles with per-template flexible strings (35+ unique roles)
-- `storyboard-angles.ts`: Each template defines its own narrative stages (e.g., Problem→Pain Amplification→Demo→Result→CTA)
-- Position-based badge coloring system (works with any storyRole string)
-- `frame-lock-prompt.ts`: Updated with 35+ role-to-motion mappings for flexible roles
+### 6. FAQ Section
+- Accordion with 8 questions covering: how GENBOX works, API key setup, API costs, what you get, refund policy, marketplace compatibility, etc.
+- All in Bahasa Indonesia
 
-### 6. Template-First GeneratePage Flow
-- Moved template picker to left panel Step 3 ("Pilih Gaya Konten")
-- Removed mandatory "Base Image" step — Frame 1 is the establishing shot
-- Right panel now shows storyboard grid directly (removed old single-image view)
-- Beat preview shown in both left panel and right panel empty state
-- Frames 1-4 chain from Frame 0's result for visual consistency
+### 7. Final CTA Section
+- Bold "Mulai Sekarang" headline
+- WhatsApp link button for purchase/support
+- Subtle glow effects
 
-### 6b. Two-Step Prompt-First Flow
-- "Generate Storyboard" → replaced with "Generate Prompts" (single Gemini call → 5 prompts as JSON array)
-- Right panel shows editable prompt cards with per-frame "Generate Frame" button
-- Users can review/edit each prompt before generating images
-- "Generate All" button runs all frames sequentially with 2s delay
-- Individual frame regeneration supported
-- Three right panel states: Empty → Prompt Review → Generating/Completed
+## Animations & Polish
+- Every section uses IntersectionObserver for scroll-triggered `animate-fade-up`
+- Staggered animation delays on child elements
+- CTA glow animation on buy buttons
+- Floating background orbs (AnimatedBackground component)
+- Hover effects on all interactive elements
 
-### 7. Dynamic Motion Suggestions
-- Replaced static `action-chips.ts` hardcoded lists with `generateDynamicChips()` using Gemini
-- Product-aware casual Indonesian motion instructions
-- Cached per template+beat+category combo
-
-### 8. Product DNA Enrichment
-- Added `getProductContext()` to `product-dna.ts`
-- Extracts target user, usage context, emotional angle from DNA fields
-- Injected into prompt generation for more authentic outputs
-
-### 9. VideoPage Flexible Roles
-- Replaced rigid ROLE_COLORS with position-based getRoleColor()
-- Replaced getSmartDialogSuggestion with comprehensive ROLE_DIALOG_MAP (35+ roles)
-- Each role maps to natural casual Indonesian dialog suggestions
-- Role badges now use position-based coloring matching storyboard-angles.ts
-
-## Remaining
-- Character prompt visibility in CreateCharacterPage
-- Gallery saving fix for single images (upload to storage before DB insert)
-- Media analysis panel (MediaInsightsPanel component)
-
-## Files Changed
-- `src/lib/category-options.ts` — full environment rewrite
-- `src/lib/content-templates.ts` — 6 new templates added
-- `src/lib/storyboard-angles.ts` — flexible narrative roles, per-template beats, constraints
-- `src/lib/tiktok-hooks.ts` — hook maps and body scripts for new templates
-- `src/lib/action-chips.ts` — dynamic Gemini-powered suggestions
-- `src/lib/product-dna.ts` — getProductContext() enrichment
-- `src/lib/frame-lock-prompt.ts` — 35+ flexible role mappings
-- `src/components/ApiKeySetupModal.tsx` — new setup wizard
-- `src/pages/DashboardHome.tsx` — triggers API key modal
-- `src/pages/GeneratePage.tsx` — template-first flow, storyboard-direct right panel
-- `src/pages/VideoPage.tsx` — flexible narrative roles, position-based coloring

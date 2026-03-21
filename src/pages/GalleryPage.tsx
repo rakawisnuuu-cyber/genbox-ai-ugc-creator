@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUpscale } from "@/hooks/useUpscale";
-import { Download, Images, Loader2, Play, Copy, Film, Trash2, ArrowRight } from "lucide-react";
+import { Download, Images, Loader2, Play, Copy, Film } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -12,16 +12,6 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 type Tab = "semua" | "gambar" | "video" | "karakter";
 
@@ -46,56 +36,6 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "karakter", label: "KARAKTER" },
 ];
 
-const handleDownload = async (url: string, filename?: string) => {
-  const name = filename || url.split("/").pop()?.split("?")[0] || "download";
-  
-  // Try fetch + blob first (works for same-origin & CORS-enabled URLs)
-  try {
-    const res = await fetch(url, { mode: "cors" });
-    if (res.ok) {
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      return;
-    }
-  } catch {
-    // CORS blocked — fall through to proxy
-  }
-
-  // Fallback: use a CORS proxy via Supabase edge function or direct blob via XHR
-  try {
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("GET", url, true);
-      xhr.responseType = "blob";
-      xhr.onload = () => xhr.status === 200 ? resolve(xhr.response) : reject();
-      xhr.onerror = () => reject();
-      xhr.send();
-    });
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    return;
-  } catch {
-    // XHR also failed
-  }
-
-  // Last resort: open in new tab and let user right-click save
-  toast.info("Tidak bisa download otomatis. Klik kanan gambar — 'Save image as...'");
-  window.open(url, "_blank");
-};
-
 const GalleryPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -105,20 +45,6 @@ const GalleryPage = () => {
   const [loading, setLoading] = useState(true);
   const [detailItem, setDetailItem] = useState<Generation | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Generation | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Generation | null>(null);
-
-  const handleDelete = async (item: Generation) => {
-    const { error } = await supabase.from("generations").delete().eq("id", item.id);
-    if (error) {
-      toast.error("Gagal menghapus: " + error.message);
-    } else {
-      toast.success("Item dihapus");
-      setItems((prev) => prev.filter((i) => i.id !== item.id));
-      if (detailItem?.id === item.id) setDetailItem(null);
-      if (selectedVideo?.id === item.id) setSelectedVideo(null);
-    }
-    setDeleteTarget(null);
-  };
 
   const fetchItems = useCallback(async () => {
     if (!user) return;
@@ -188,8 +114,8 @@ const GalleryPage = () => {
               <Film className="h-12 w-12 text-muted-foreground/30 mb-4" />
               <p className="font-semibold text-foreground mb-1">Belum ada video</p>
               <p className="text-sm text-muted-foreground mb-6">Buat video pertamamu di halaman Buat Video</p>
-              <Button onClick={() => navigate("/video")} className="font-bold uppercase tracking-wider gap-2">
-                Buat Video <ArrowRight className="h-4 w-4" />
+              <Button onClick={() => navigate("/video")} className="font-bold uppercase tracking-wider">
+                → Buat Video
               </Button>
             </>
           ) : (
@@ -230,13 +156,6 @@ const GalleryPage = () => {
                       <Play className="w-5 h-5 text-black ml-0.5" fill="black" />
                     </div>
                   </div>
-                  {/* Delete button */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/20 hover:bg-destructive/40 text-destructive rounded-lg p-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
                   {/* VIDEO badge */}
                   <div className="absolute top-2 left-2">
                     <span className="text-[10px] font-bold bg-primary/90 text-primary-foreground px-2 py-0.5 rounded-full">VIDEO</span>
@@ -263,20 +182,13 @@ const GalleryPage = () => {
                   {item.upscale_factor && (
                     <span className="absolute top-2 left-2 bg-primary/20 text-primary text-[9px] rounded-full px-1.5 py-0.5 font-medium">{item.upscale_factor}x</span>
                   )}
-                  {/* Delete button */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(item); }}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive/20 hover:bg-destructive/40 text-destructive rounded-lg p-1.5 z-10"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     {item.image_url && (
-                      <button onClick={(e) => { e.stopPropagation(); handleDownload(item.upscaled_url || item.image_url!, `genbox-${item.id}.png`); }}
+                      <a href={item.upscaled_url || item.image_url} download target="_blank" rel="noopener noreferrer"
                         className="h-10 w-10 rounded-full bg-foreground/20 flex items-center justify-center text-foreground hover:bg-foreground/30 transition-colors">
                         <Download className="h-4 w-4" />
-                      </button>
+                      </a>
                     )}
                     <button onClick={() => setDetailItem(item)}
                       className="bg-foreground/20 text-foreground text-[11px] px-3 py-1.5 rounded-full hover:bg-foreground/30 transition-colors">
@@ -309,10 +221,10 @@ const GalleryPage = () => {
             <div className="flex items-center gap-2 flex-wrap">
               {detailItem.image_url && (
                 <>
-                  <button onClick={() => handleDownload(detailItem.upscaled_url || detailItem.image_url!, `genbox-${detailItem.id}.png`)}
+                  <a href={detailItem.upscaled_url || detailItem.image_url} download target="_blank" rel="noopener noreferrer"
                     className="bg-primary text-primary-foreground text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary/90">
                     <Download className="h-3.5 w-3.5" /> Download
-                  </button>
+                  </a>
                   <UpscaleButton
                     imageUrl={detailItem.image_url}
                     imageKey={detailItem.id}
@@ -333,15 +245,7 @@ const GalleryPage = () => {
               <span>{detailItem.model}</span>
               <span>{format(new Date(detailItem.created_at), "dd MMM yyyy HH:mm")}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <button onClick={() => setDetailItem(null)} className="text-xs text-muted-foreground hover:text-foreground">Tutup</button>
-              <button
-                onClick={() => { setDeleteTarget(detailItem); }}
-                className="text-xs text-destructive hover:text-destructive/80 flex items-center gap-1"
-              >
-                <Trash2 className="h-3 w-3" /> Hapus
-              </button>
-            </div>
+            <button onClick={() => setDetailItem(null)} className="text-xs text-muted-foreground hover:text-foreground">Tutup</button>
           </div>
         </div>
       )}
@@ -376,13 +280,14 @@ const GalleryPage = () => {
                   <p className="text-sm text-muted-foreground line-clamp-3">{selectedVideo.prompt}</p>
                 )}
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handleDownload(selectedVideo.image_url || "", `genbox-video-${selectedVideo.id}.mp4`)}
+                  <a
+                    href={selectedVideo.image_url || ""}
+                    download={`genbox-video-${selectedVideo.id}.mp4`}
                     className="flex-1 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-medium py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
                   >
                     <Download className="w-4 h-4" />
                     Download
-                  </button>
+                  </a>
                   <button
                     onClick={() => {
                       if (selectedVideo.image_url) {
@@ -400,22 +305,6 @@ const GalleryPage = () => {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Hapus item ini?</AlertDialogTitle>
-            <AlertDialogDescription>Item yang dihapus tidak bisa dikembalikan.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deleteTarget && handleDelete(deleteTarget)}>
-              Hapus
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

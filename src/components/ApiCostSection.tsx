@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Lightbulb } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Sparkles, Lightbulb } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 type ModelType = "IMAGE" | "VIDEO" | "MUSIC" | "PROMPT";
@@ -37,25 +37,23 @@ const typeBadge: Record<ModelType, string> = {
 };
 
 const models: Model[] = [
-  { name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 1K", note: "NEW — sub-second, subject consistency", provider: "GOOGLE", type: "IMAGE", credits: "8", price: "$0.04 (~Rp 640)" },
-  { name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 2K", note: "Default GENBOX resolution", provider: "GOOGLE", type: "IMAGE", credits: "12", price: "$0.06 (~Rp 960)" },
-  { name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 4K", note: "Ultra HD output", provider: "GOOGLE", type: "IMAGE", credits: "18", price: "$0.09 (~Rp 1.440)" },
-  { name: "Nano Banana Pro (Gemini 3.0 Pro Image) — 2K", note: "Multi-turn editing, deep reasoning", provider: "GOOGLE", type: "IMAGE", credits: "18", price: "$0.09 (~Rp 1.440)" },
-  { name: "Nano Banana Pro (Gemini 3.0 Pro Image) — 4K", note: "4K, multi-turn editing, deep reasoning", provider: "GOOGLE", type: "IMAGE", credits: "24", price: "$0.12 (~Rp 1.920)" },
-  { name: "Seedream 5.0 Lite", note: "Text/image-to-image, NEW", provider: "BYTEDANCE", type: "IMAGE", credits: "5.5", price: "$0.0275 (~Rp 440)" },
+  { name: "Nano Banana 2 (Gemini 3.1 Flash Image)", note: "NEW — sub-second 4K, subject consistency", provider: "GOOGLE", type: "IMAGE", credits: "~4", price: "~$0.02 (~Rp 320)" },
+  { name: "Nano Banana Pro (Gemini 3.0 Pro Image)", note: "4K, multi-turn editing, deep reasoning", provider: "GOOGLE", type: "IMAGE", credits: "~24", price: "~$0.12 (~Rp 1.920)" },
+  { name: "Nano Banana (Gemini 2.5 Flash Image)", note: "Fast & cheap, great for bulk", provider: "GOOGLE", type: "IMAGE", credits: "4", price: "$0.02 (~Rp 320)" },
+  { name: "Seedream 4.5", note: "4K, strong consistency", provider: "BYTEDANCE", type: "IMAGE", credits: "~5", price: "~$0.025 (~Rp 400)" },
+  { name: "Seedream 5.0 Lite", note: "Web search + reasoning, NEW", provider: "BYTEDANCE", type: "IMAGE", credits: "~7", price: "~$0.035 (~Rp 560)" },
   { name: "GPT Image 1.5", note: "#1 leaderboard, tiered quality", provider: "OPENAI", type: "IMAGE", credits: "~12", price: "~$0.04-0.08 (~Rp 640-1.280)" },
   { name: "4o Image (GPT-Image-1)", provider: "OPENAI", type: "IMAGE", credits: "10", price: "$0.05 (~Rp 800)" },
   { name: "Flux.1 Kontext", note: "Context-aware editing", provider: "BLACK FOREST LABS", type: "IMAGE", credits: "6", price: "$0.03 (~Rp 480)" },
-  { name: "Grok Imagine (6s, 720p)", note: "Text/image-to-video, hemat", provider: "GOOGLE", type: "VIDEO", credits: "20", price: "$0.10 (~Rp 1.600)" },
-  { name: "Veo 3.1 Fast (8s, with audio)", note: "Synced audio, 1080p", provider: "GOOGLE", type: "VIDEO", credits: "80", price: "$0.40 (~Rp 6.400)", discount: "-60%" },
-  { name: "Veo 3 Quality (8s, with audio)", note: "Premium cinematic", provider: "GOOGLE", type: "VIDEO", credits: "400", price: "$2.00 (~Rp 32.000)" },
-  { name: "Kling 3.0 (5s, 720p, no audio)", provider: "KLING", type: "VIDEO", credits: "100", price: "$0.50 (~Rp 8.000)" },
-  { name: "Kling 3.0 (5s, 720p, with audio)", provider: "KLING", type: "VIDEO", credits: "150", price: "$0.75 (~Rp 12.000)" },
+  { name: "Veo 3.1 Fast (8s, with audio)", note: "Synced audio, 1080p", provider: "GOOGLE", type: "VIDEO", credits: "60", price: "$0.30 (~Rp 4.800)", discount: "-70%" },
+  { name: "Veo 3 Quality (8s, with audio)", note: "Premium cinematic", provider: "GOOGLE", type: "VIDEO", credits: "250", price: "$1.25 (~Rp 20.000)" },
+  { name: "Kling 2.1 Standard (5s)", provider: "KLING", type: "VIDEO", credits: "~28", price: "~$0.14 (~Rp 2.240)" },
+  { name: "Kling 2.1 Pro (5s)", provider: "KLING", type: "VIDEO", credits: "~56", price: "~$0.28 (~Rp 4.480)" },
   { name: "Seedance 1.5 Pro (8s, with audio)", provider: "BYTEDANCE", type: "VIDEO", credits: "56", price: "$0.28 (~Rp 4.480)", discount: "-32%" },
   { name: "Hailuo (MiniMax)", provider: "HAILUO", type: "VIDEO", credits: "~50", price: "~$0.25 (~Rp 4.000)" },
   { name: "Runway Gen-4 Turbo", provider: "RUNWAY", type: "VIDEO", credits: "~100", price: "~$0.50 (~Rp 8.000)" },
   { name: "Suno V4.5 Plus", note: "Up to 8 min, vocals + instrumentals", provider: "SUNO", type: "MUSIC", credits: "~20", price: "~$0.10 (~Rp 1.600)" },
-  { name: "ElevenLabs V3 TTS", note: "Text-to-dialogue, voice cloning", provider: "ELEVENLABS", type: "MUSIC", credits: "14/1k chars", price: "$0.07 (~Rp 1.120)" },
+  { name: "ElevenLabs TTS", note: "Text-to-speech, voice cloning", provider: "ELEVENLABS", type: "MUSIC", credits: "~5", price: "~$0.025 (~Rp 400)" },
   { name: "Gemini 2.0 Flash", note: "Recommended for GENBOX prompts", provider: "GOOGLE", type: "PROMPT", credits: "0", price: "FREE", freePrice: true },
   { name: "Claude Sonnet", provider: "ANTHROPIC", type: "PROMPT", credits: "~2", price: "~$0.01 (~Rp 160)" },
 ];
@@ -86,25 +84,25 @@ const simCards = [
   {
     title: "Pemula",
     desc: "50 gambar + 5 video / bulan",
-    models: "Pakai: Nano Banana 2 (1K) + Grok 6s",
-    calc: "(50 × Rp 640) + (5 × Rp 1.600)",
-    total: 40000,
+    models: "Pakai: Nano Banana 2 + Kling Standard",
+    calc: "(50 × Rp 320) + (5 × Rp 2.240)",
+    total: 27200,
     vs: "vs. hire fotografer: Rp 500.000+",
   },
   {
     title: "Aktif",
     desc: "200 gambar + 20 video / bulan",
-    models: "Pakai: Nano Banana 2 (2K) + Seedance 8s",
-    calc: "(200 × Rp 960) + (20 × Rp 4.480)",
-    total: 281600,
+    models: "Pakai: Nano Banana 2 + Seedance 8s",
+    calc: "(200 × Rp 320) + (20 × Rp 4.480)",
+    total: 153600,
     vs: "vs. content agency: Rp 3.000.000+",
   },
   {
     title: "Power User",
     desc: "500 gambar + 50 video / bulan",
-    models: "Pakai: Nano Banana 2 (2K) + Veo 3.1 Fast",
-    calc: "(500 × Rp 960) + (50 × Rp 6.400)",
-    total: 800000,
+    models: "Pakai: Seedream 4.5 + Veo 3.1 Fast",
+    calc: "(500 × Rp 400) + (50 × Rp 4.800)",
+    total: 440000,
     vs: "vs. full production: Rp 10.000.000+",
   },
 ];
@@ -117,29 +115,30 @@ const ApiCostSection = () => {
   const filtered = activeTab === "ALL" ? models : models.filter((m) => m.type === activeTab);
 
   return (
-    <section id="api-cost" className="relative py-16 sm:py-24 overflow-hidden">
+    <section id="api-cost" className="relative py-10 sm:py-14 overflow-hidden">
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Badge */}
         <div
           className={`flex justify-center mb-6 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.1s" }}
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
-            Biaya API Transparan
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            BIAYA API TRANSPARAN
           </span>
         </div>
 
         <h2
-          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold uppercase tracking-wide text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          Kamu yang Kontrol Biaya
+          KAMU YANG KONTROL BIAYA
         </h2>
         <p
           className={`mt-4 text-center text-base text-muted-foreground max-w-xl mx-auto ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.3s" }}
         >
-          Sistem BYOK: kamu pakai API key sendiri, jadi biaya generation tetap murah dan transparan.
+          Sebagai pengguna BYOK, kamu bayar langsung ke provider via Kie.ai. 1 credit = $0.005.
         </p>
 
         {/* Tab filter */}
@@ -153,8 +152,8 @@ const ApiCostSection = () => {
               onClick={() => setActiveTab(t)}
               className={`rounded-full px-4 py-1.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 ${
                 activeTab === t
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border/60 text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground scale-105"
+                  : "border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
               {t}
@@ -164,78 +163,74 @@ const ApiCostSection = () => {
 
         {/* Table */}
         <div
-          className={`mt-8 overflow-hidden rounded-2xl border border-border/60 bg-card/80 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mt-8 overflow-hidden rounded-xl border border-border bg-card ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.4s" }}
         >
-           <div className="overflow-x-auto scrollbar-none">
+          <div className="overflow-x-auto scrollbar-none">
             <table className="w-full min-w-[700px] text-sm">
-              <thead className="sticky top-0 z-20">
-                <tr className="bg-secondary/50">
-                  <th className="sticky left-0 z-30 bg-secondary/50 min-w-[200px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+              <thead>
+                <tr className="bg-[hsl(0_0%_10%)]">
+                  <th className="sticky left-0 z-10 bg-[hsl(0_0%_10%)] min-w-[200px] px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
                     Model Name
                   </th>
-                  <th className="bg-secondary/50 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
                     Provider
                   </th>
-                  <th className="bg-secondary/50 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
                     Type
                   </th>
-                  <th className="bg-secondary/50 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
                     Credits
                   </th>
-                  <th className="bg-secondary/50 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                  <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-[hsl(0_0%_40%)]">
                     Est. Price
                   </th>
                 </tr>
               </thead>
+              <tbody>
+                {filtered.map((m, i) => (
+                  <tr
+                    key={m.name}
+                    className={`${
+                      i % 2 === 0 ? "bg-[hsl(0_0%_8%)]" : "bg-[hsl(0_0%_6.7%)]"
+                    } transition-colors hover:bg-secondary/60`}
+                  >
+                    <td className="sticky left-0 z-10 min-w-[200px] px-4 py-3 bg-inherit">
+                      <span className="font-medium text-foreground">{m.name}</span>
+                      {m.discount && (
+                        <span className="ml-2 inline-flex rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-400">
+                          {m.discount}
+                        </span>
+                      )}
+                      {m.note && (
+                        <span className="block text-[11px] text-muted-foreground mt-0.5">{m.note}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className={`h-2 w-2 rounded-full ${providerColors[m.provider] || "bg-gray-400"}`} />
+                        {m.provider}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeBadge[m.type]}`}>
+                        {m.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{m.credits}</td>
+                    <td className={`px-4 py-3 text-xs ${m.freePrice ? "font-bold text-primary" : "text-muted-foreground"}`}>
+                      {m.price}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
-            <div className="max-h-[420px] overflow-y-auto scrollbar-none">
-              <table className="w-full min-w-[700px] text-sm">
-                <tbody>
-                  {filtered.map((m, i) => (
-                    <tr
-                      key={m.name}
-                      className={`${
-                        i % 2 === 0 ? "bg-card/60" : "bg-card/30"
-                      } transition-colors hover:bg-secondary/60`}
-                    >
-                      <td className="sticky left-0 z-10 min-w-[200px] px-4 py-3 bg-inherit">
-                        <span className="font-medium text-foreground">{m.name}</span>
-                        {m.discount && (
-                          <span className="ml-2 inline-flex rounded-full bg-red-500/20 px-2 text-[10px] font-bold text-red-400">
-                            {m.discount}
-                          </span>
-                        )}
-                        {m.note && (
-                          <span className="block text-[11px] text-muted-foreground mt-0.5">{m.note}</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span className={`h-2 w-2 rounded-full ${providerColors[m.provider] || "bg-gray-400"}`} />
-                          {m.provider}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeBadge[m.type]}`}>
-                          {m.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{m.credits}</td>
-                      <td className={`px-4 py-3 text-xs ${m.freePrice ? "font-bold text-primary" : "text-muted-foreground"}`}>
-                        {m.price}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-border/60 px-4 py-3">
-            <span className="text-[11px] text-muted-foreground/50">{filtered.length} MODELS LOADED</span>
-            <span className="flex items-center gap-2 text-[11px] text-muted-foreground/50">
+          <div className="flex items-center justify-between border-t border-border px-4 py-3">
+            <span className="text-[11px] text-[hsl(0_0%_40%)]">{filtered.length} MODELS LOADED</span>
+            <span className="flex items-center gap-2 text-[11px] text-[hsl(0_0%_40%)]">
               LIVE API FEED
               <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse-subtle" />
             </span>
@@ -245,19 +240,19 @@ const ApiCostSection = () => {
         {/* Cost Simulator */}
         <div
           ref={simRef}
-          className={`mt-12 rounded-2xl border border-border/60 bg-card/80 p-6 sm:p-8 ${simVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mt-12 rounded-xl border border-border bg-card p-6 sm:p-8 ${simVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          <h3 className="flex items-center justify-center gap-2 font-satoshi text-lg font-bold tracking-tight text-foreground">
+          <h3 className="flex items-center justify-center gap-2 font-satoshi text-lg font-bold uppercase tracking-wider text-foreground">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
               <Lightbulb size={16} className="text-primary" />
             </span>
-            Simulasi Biaya Bulanan
+            SIMULASI BIAYA BULANAN
           </h3>
 
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
             {simCards.map((c) => (
-              <div key={c.title} className="rounded-2xl border border-border/60 bg-secondary/50 p-5">
+              <div key={c.title} className="rounded-xl border border-border bg-secondary/50 p-5">
                 <p className="font-satoshi text-base font-bold text-foreground">{c.title}</p>
                 <p className="mt-2 text-xs text-muted-foreground">{c.desc}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{c.models}</p>

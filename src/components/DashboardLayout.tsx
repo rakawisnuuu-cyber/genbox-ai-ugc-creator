@@ -1,23 +1,18 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
-import GeneratePage from "@/pages/GeneratePage";
-import VideoPage from "@/pages/VideoPage";
 import {
   LayoutDashboard,
   ImagePlus,
   Users,
   Film,
+  Wand2,
   Workflow,
+  GalleryHorizontalEnd,
   Settings,
-  Shield,
   Menu,
   X,
-  LogOut,
-  Lock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
-import GenboxLogo from "./GenboxLogo";
 
 interface NavItem {
   title: string;
@@ -39,8 +34,8 @@ const navGroups: NavGroup[] = [
   {
     label: "GAMBAR & KARAKTER",
     items: [
-      { title: "UGC Image Storyboard", icon: ImagePlus, path: "/generate" },
-      { title: "Create Unique Character", icon: Users, path: "/characters" },
+      { title: "Buat Gambar", icon: ImagePlus, path: "/generate" },
+      { title: "Karakter", icon: Users, path: "/characters" },
     ],
   },
   {
@@ -52,14 +47,9 @@ const navGroups: NavGroup[] = [
   {
     label: "TOOLS",
     items: [
-      
+      { title: "Prompt Generator", icon: Wand2, path: "/prompt" },
       { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
-    ],
-  },
-  {
-    label: "ADMIN",
-    items: [
-      { title: "Admin", icon: Shield, path: "/admin" },
+      { title: "Gallery", icon: GalleryHorizontalEnd, path: "/gallery" },
     ],
   },
 ];
@@ -68,168 +58,177 @@ const settingsItem: NavItem = { title: "Settings", icon: Settings, path: "/setti
 
 const DashboardLayout = () => {
   const { user, signOut } = useAuth();
-  const { isAdmin } = useIsAdmin();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const visitedPages = useRef(new Set<string>());
 
   const initial = user?.email?.charAt(0).toUpperCase() || "U";
   const displayName = user?.email?.split("@")[0] || "User";
 
-  const videoUnlockedRef = useRef(false);
-  const [videoUnlocked, setVideoUnlocked] = useState(false);
-
   const isActive = (path: string) => location.pathname === path;
-  const pathname = location.pathname;
-
-  // Unlock video when navigating with fromStoryboard state
-  if (pathname === "/video" && (location.state as any)?.fromStoryboard && !videoUnlockedRef.current) {
-    videoUnlockedRef.current = true;
-    if (!videoUnlocked) setVideoUnlocked(true);
-  }
-  const isKeepAlivePage = pathname === "/generate" || pathname === "/video";
-  const isFullWidthPage = pathname === "/generate" || pathname === "/video";
-
-  if (pathname === "/generate" || pathname === "/video") {
-    visitedPages.current.add(pathname);
-  }
+  const isFullWidthPage = location.pathname === "/generate" || location.pathname === "/video";
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item.path);
-    const isVideoLocked = item.path === "/video" && !videoUnlocked;
     return (
       <li key={item.path}>
         <Link
           to={item.path}
           onClick={onNavigate}
-          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-200 ${
+          className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
             active
-              ? "bg-primary/[0.08] text-foreground"
-              : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          } ${isVideoLocked && !active ? "opacity-50" : ""}`}
+              ? "border-l-2 border-primary bg-[hsl(0_0%_10%)] pl-[10px] text-foreground"
+              : "text-muted-foreground/60 hover:bg-muted/50 hover:text-muted-foreground"
+          }`}
         >
-          {isVideoLocked ? (
-            <>
-              <item.icon className="h-4 w-4 shrink-0 text-muted-foreground/25" />
-              <span className="truncate text-muted-foreground/25">{item.title}</span>
-              <Lock className="h-3 w-3 text-muted-foreground/15 ml-auto" />
-            </>
-          ) : (
-            <>
-              <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
-              {item.title}
-              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
-            </>
-          )}
+          <item.icon className="h-[18px] w-[18px]" />
+          {item.title}
         </Link>
       </li>
     );
   };
 
-  const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
-    const filteredGroups = navGroups.filter(
-      (group) => group.label !== "ADMIN" || isAdmin
-    );
-    return (
-      <div className="space-y-1">
-        {filteredGroups.map((group, gi) => (
-          <div key={gi}>
-            {group.label && (
-              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40 px-3 mt-7 mb-2">
-                {group.label}
-              </p>
-            )}
-            <ul className="space-y-0.5">
-              {group.items.map((item) => renderNavItem(item, onNavigate))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const DesktopNav = () => (
+    <div className="space-y-0.5">
+      {navGroups.map((group, gi) => (
+        <div key={gi}>
+          {group.label && (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50 px-4 mt-6 mb-1.5">
+              {group.label}
+            </p>
+          )}
+          <ul className="space-y-0.5">
+            {group.items.map((item) => renderNavItem(item))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
+
+  const MobileNav = () => (
+    <div className="space-y-1">
+      {navGroups.map((group, gi) => (
+        <div key={gi}>
+          {group.label && (
+            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50 px-3 mt-6 mb-1.5">
+              {group.label}
+            </p>
+          )}
+          <ul className="space-y-0.5">
+            {group.items.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center gap-3 py-3.5 px-3 text-base font-medium transition-colors ${
+                      active
+                        ? "border-l-2 border-primary pl-3 text-foreground"
+                        : "text-muted-foreground/60 hover:text-muted-foreground"
+                    }`}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.title}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex" style={{ background: "hsl(220 8% 4.5%)" }}>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-[hsl(0_0%_16%)] bg-background lg:flex">
         {/* Logo */}
-        <div className="px-5 pt-7 pb-1">
-          <GenboxLogo size={26} />
-          <span className="mt-1.5 block text-[10px] font-mono text-muted-foreground/40">v1.0</span>
+        <div className="px-5 pt-6">
+          <p className="font-satoshi text-lg font-bold uppercase tracking-widest text-foreground">
+            GENBOX
+          </p>
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="text-[11px] text-[hsl(0_0%_33%)]">v1.0</span>
+          </div>
         </div>
 
         {/* Nav */}
-        <nav className="mt-4 flex-1 overflow-y-auto px-3">
-          <SidebarNav />
+        <nav className="mt-8 flex-1 overflow-y-auto px-3">
+          <DesktopNav />
         </nav>
 
-        {/* Settings */}
-        <div className="px-3 pb-2 border-t border-border/60 pt-2">
+        {/* Settings (sticky bottom) */}
+        <div className="px-3 pb-2">
           <ul className="space-y-0.5">
             {renderNavItem(settingsItem)}
           </ul>
         </div>
 
         {/* User */}
-        <div className="border-t border-border/60 px-4 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary">
+        <div className="border-t border-[hsl(0_0%_16%)] px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(0_0%_16%)] text-xs font-bold text-foreground">
               {initial}
             </div>
-            <p className="truncate text-[12px] text-muted-foreground flex-1">{displayName}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm text-muted-foreground">{displayName}</p>
+            </div>
             <button
               onClick={signOut}
-              className="text-muted-foreground/50 transition-colors hover:text-foreground p-1 rounded-md hover:bg-muted/50"
-              title="Keluar"
+              className="text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
             >
-              <LogOut className="h-3.5 w-3.5" />
+              Keluar
             </button>
           </div>
         </div>
       </aside>
 
       {/* Mobile Top Bar */}
-      <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl lg:hidden">
-        <GenboxLogo size={22} />
+      <header className="fixed inset-x-0 top-0 z-50 flex h-14 items-center justify-between border-b border-[hsl(0_0%_16%)] bg-[hsl(0_0%_0%/0.9)] px-4 backdrop-blur-xl lg:hidden">
+        <p className="font-satoshi text-lg font-bold uppercase tracking-widest text-foreground">
+          GENBOX
+        </p>
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-foreground">
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </header>
 
       {/* Mobile Overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-background pt-12 lg:hidden">
-          <nav className="px-5 py-5">
-            <SidebarNav onNavigate={() => setMobileOpen(false)} />
-            <div className="mt-4 pt-4 border-t border-border/60">
+        <div className="fixed inset-0 z-40 bg-background/95 pt-14 backdrop-blur-lg lg:hidden">
+          <nav className="px-6 py-6">
+            <MobileNav />
+            {/* Settings in mobile */}
+            <div className="mt-4 pt-4 border-t border-[hsl(0_0%_16%)]">
               <Link
                 to="/settings"
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                className={`flex items-center gap-3 py-3.5 px-3 text-base font-medium transition-colors ${
                   isActive("/settings")
-                    ? "bg-primary/[0.08] text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "border-l-2 border-primary pl-3 text-foreground"
+                    : "text-muted-foreground/60 hover:text-muted-foreground"
                 }`}
               >
-                <Settings className={`h-4 w-4 ${isActive("/settings") ? "text-primary" : ""}`} />
+                <Settings className="h-5 w-5" />
                 Settings
-                {isActive("/settings") && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
               </Link>
             </div>
           </nav>
 
-          <div className="absolute inset-x-0 bottom-0 border-t border-border/60 px-5 py-4">
+          {/* Mobile user */}
+          <div className="absolute inset-x-0 bottom-0 border-t border-[hsl(0_0%_16%)] px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[hsl(0_0%_16%)] text-xs font-bold text-foreground">
                 {initial}
               </div>
               <p className="truncate text-sm text-muted-foreground">{displayName}</p>
               <button
                 onClick={signOut}
-                className="ml-auto text-muted-foreground/50 transition-colors hover:text-foreground p-1"
-                title="Keluar"
+                className="ml-auto text-xs text-muted-foreground/60 transition-colors hover:text-foreground"
               >
-                <LogOut className="h-4 w-4" />
+                Keluar
               </button>
             </div>
           </div>
@@ -237,24 +236,10 @@ const DashboardLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className="mt-12 min-h-[100dvh] lg:ml-[232px] lg:mt-0">
-        {/* Keep-alive pages: only mount after first visit, then toggle via display */}
-        {visitedPages.current.has("/generate") && (
-          <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
-            <GeneratePage />
-          </div>
-        )}
-        {visitedPages.current.has("/video") && (
-          <div style={{ display: pathname === "/video" ? "block" : "none" }}>
-            <VideoPage />
-          </div>
-        )}
-        {/* Other pages via Outlet */}
-        {!isKeepAlivePage && (
-          <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
-            <Outlet />
-          </div>
-        )}
+      <main className="mt-14 min-h-screen lg:ml-60 lg:mt-0">
+        <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-4 py-4 lg:px-6 lg:py-8"}`}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

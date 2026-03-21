@@ -1,5 +1,4 @@
-import { Check, ArrowRight, Gift, Lock, Zap, Infinity } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Check, ArrowRight, Gift, Lock, Zap, Infinity, Sparkles } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 const features = [
@@ -24,24 +23,25 @@ const HargaSection = () => {
   const { ref, isVisible } = useScrollReveal();
 
   return (
-    <section id="harga" className="relative py-16 sm:py-24 overflow-hidden">
+    <section id="harga" className="relative py-10 sm:py-14 overflow-hidden">
       <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Badge */}
         <div
           className={`flex justify-center mb-6 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.1s" }}
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
-            Harga
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            HARGA
           </span>
         </div>
 
         {/* Heading */}
         <h2
-          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold uppercase tracking-wide text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.2s" }}
         >
-          Satu Kali Bayar. Selamanya Milikmu.
+          SATU KALI BAYAR. SELAMANYA MILIKMU.
         </h2>
         <p
           className={`mt-4 text-center text-base text-muted-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
@@ -62,35 +62,30 @@ const HargaSection = () => {
             </span>
           </div>
 
-          <div className="rounded-3xl border-2 border-primary/50 bg-card/80 p-8 shadow-[0_0_48px_-12px_hsl(var(--primary)/0.15)] transition-shadow duration-300 hover:shadow-[0_0_60px_-8px_hsl(var(--primary)/0.25)]">
-            <p className="font-satoshi text-lg font-bold tracking-tight text-foreground">
-              BYOK Lifetime
+          <div className="rounded-2xl border-2 border-primary bg-card p-8 shadow-[0_0_30px_rgba(191,255,0,0.15)] transition-shadow duration-300 hover:shadow-[0_0_50px_rgba(191,255,0,0.25)] scale-[1.02]">
+            <p className="font-satoshi text-lg font-bold uppercase tracking-wider text-foreground">
+              BYOK LIFETIME
             </p>
 
-            <p className="mt-4 text-lg text-muted-foreground/60 line-through font-satoshi font-medium">
+            <p className="mt-4 font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">
               Rp 249.000
             </p>
-            <p className="font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">
-              Rp 149.000
-            </p>
             <p className="mt-2 text-sm font-bold text-primary">
-              sekali bayar · akses selamanya
+              sekali bayar • akses selamanya
             </p>
 
             {/* Features */}
             <ul className="mt-8 space-y-3">
               {features.map((f) => (
                 <li key={f} className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Check className="h-3 w-3 text-primary" />
-                  </span>
+                  <Check className="h-4 w-4 shrink-0 text-primary" />
                   {f}
                 </li>
               ))}
             </ul>
 
             {/* Bonus */}
-            <div className="mt-6 flex items-start gap-3 rounded-xl border border-border/60 bg-secondary/50 p-4">
+            <div className="mt-6 flex items-start gap-3 rounded-lg border border-border bg-secondary p-4">
               <Gift className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">BONUS:</span> n8n Automation Blueprint{" "}
@@ -99,13 +94,13 @@ const HargaSection = () => {
             </div>
 
             {/* CTA */}
-            <Link to="/checkout" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
-              Beli Sekarang
+            <button className="mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-4 text-sm font-bold uppercase tracking-wider text-primary-foreground transition-all hover:brightness-110 hover:-translate-y-0.5 animate-cta-glow">
+              BELI SEKARANG
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </button>
 
             <p className="mt-4 text-center text-[11px] text-muted-foreground">
-              QRIS · GoPay · ShopeePay · Virtual Account · Kartu Kredit
+              QRIS • GoPay • ShopeePay • Virtual Account • Kartu Kredit
             </p>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">

@@ -9,9 +9,7 @@ export interface VideoModule {
   video_url: string | null;
   thumbnail_url: string | null;
   status: "pending" | "generating" | "completed" | "failed";
-  error_message?: string;
   customImageUrl?: string;
-  sourceImageUrl?: string | null;
   withDialogue: boolean;
   scriptTemplate?: string | null;
   dialogueText?: string | null;

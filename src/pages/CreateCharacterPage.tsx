@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { geminiFetch } from "@/lib/gemini-fetch";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
@@ -17,7 +16,7 @@ import {
 import {
   Camera, RotateCcw, Mic, PersonStanding, Search, Hand,
   Zap, CheckCircle2, Loader2, AlertCircle, X, Download, Upload, ImageIcon,
-  Sparkles,
+  SlidersHorizontal, Sparkles,
 } from "lucide-react";
 import UpscaleButton from "@/components/UpscaleButton";
 import {
@@ -32,6 +31,7 @@ import {
 
 // ── TYPES ──
 type Gender = "female" | "male";
+type CreationMode = "simple" | "advanced";
 
 interface FormData {
   name: string;
@@ -65,44 +65,15 @@ interface ShotResult {
 }
 
 // ── GENBOX PROMPT SYSTEM CONSTANTS ──
+const REALISM_BASE = "Ultra-realistic photographic portrait, commercial photography, real-world studio photography, cinematic realism, lifelike details, true-to-life textures.";
 
-const QUALITY_BLOCK = "Ultra-realistic photographic portrait, 8K resolution, photographic realism, natural shallow depth of field, tack-sharp focus on subject, natural color grading with warm tones complementing Southeast Asian skin, realistic contrast.";
+const LIGHTING_BLOCK = "Professional studio lighting setup: soft key light from 45 degrees creating gentle modeling on the face, fill light reducing harsh shadows, subtle rim light separating subject from background. Warm neutral tones that complement Southeast Asian skin. No harsh directional shadows, no artificial color cast. Clean, professional, flattering but natural.";
 
-const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors.";
+const SKIN_BLOCK = "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
 
-const FACIAL_REALISM_BLOCK = "Face must have slight natural asymmetry — one eye marginally narrower, subtle lip unevenness, natural brow variation. Expression should have micro-tension — not a perfectly relaxed or perfectly smiling face, but the natural in-between states real faces hold. Avoid: perfectly symmetrical features, identical eye shapes, unnaturally even smile, doll-like proportions. NOTE: If a reference photo is provided, prioritize matching the reference face over these general asymmetry guidelines.";
+const QUALITY_BLOCK = "8K resolution, ultra-high detail, photographic realism, sharp focus, natural color grading, realistic contrast, clean studio image quality.";
 
-const HAIR_GROOMING_BLOCK = "Hair should look casually groomed — brushed and shaped with controlled volume and natural movement, as if the person prepared before filming but didn't visit a salon. Good: soft straight hair tucked behind ear, loose controlled waves, low ponytail, half-tied hair, light blow-dry look. Avoid: messy unbrushed bed-hair, frizzy uncontrolled volume, AND also avoid editorial salon-perfect styling. Hair should signal 'I look presentable for camera' — not 'I just woke up' and not 'I came from a photoshoot.'";
-
-// ── Dynamic skin block based on imperfection level ──
-function getSkinBlock(imperfection: string): string {
-  switch (imperfection) {
-    case "perfect":
-      return "Skin is clean, breathable, and healthy. Balanced complexion with natural warmth. Minimal natural makeup. No exaggerated texture, no gritty detail, no beauty filter smoothing. Skin looks real but flattering.";
-    case "very_natural":
-      return "Skin shows real human texture — visible pores under close inspection, possible small moles or beauty marks, light natural undereye circles, minor tone variation. Minimal or no makeup. No editorial beauty realism exaggeration. Skin looks healthy and real.";
-    case "raw":
-      return "Highly realistic skin — clearly visible pores, minor blemishes, possible acne marks, natural undereye circles, uneven skin tone areas. No makeup. Raw candid photography feel. Real, imperfect, human.";
-    default: // "natural"
-      return "Skin is clean, breathable, and healthy with soft visible texture under good lighting. Balanced complexion with gentle natural variation. Slight natural oil sheen on T-zone. Minimal makeup: soft base, subtle lip tint. No hyper-textured skin, no over-sharpened pores, no beauty filter. Think: real person who takes care of their skin.";
-  }
-}
-
-// ── Dynamic lighting block based on environment ──
-function getLightingBlock(environment: string): string {
-  switch (environment) {
-    case "indoor_home":
-      return "Warm natural indoor lighting — mix of window daylight and warm room lights, soft natural shadows, cozy warm color temperature. Natural light falloff from windows. Lighting must keep face clearly visible.";
-    case "indoor_cafe":
-      return "Warm ambient cafe lighting — pendant lights overhead, warm tungsten tones, soft mixed lighting from windows and interior lights. Natural shadow direction.";
-    case "outdoor_urban":
-      return "Natural outdoor daylight — warm overcast or golden hour light, natural shadows from surroundings, ambient light bounce.";
-    case "outdoor_nature":
-      return "Natural outdoor light — soft diffused daylight, warm golden tones, natural dappled light through trees.";
-    default: // "simple" or "studio"
-      return "Professional studio lighting setup: soft key light from 45 degrees creating gentle modeling on the face, fill light reducing harsh shadows, subtle rim light separating subject from background. Warm neutral tones that complement Southeast Asian skin. No harsh directional shadows, no artificial color cast. Clean, professional, flattering but natural.";
-  }
-}
+const NEGATIVE_BLOCK = "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter.";
 
 // ── SKIN TONE PROMPT MAPPING ──
 const SKIN_TONE_PROMPTS: Record<string, string> = {
@@ -136,13 +107,13 @@ const SHOT_CONFIGS: Record<ShotKey, { label: string; model: string; camera: stri
   },
   profile_3_4: {
     label: "3/4 Profile", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture, shallow depth of field.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, shallow depth of field.",
     framing: "Head and shoulders, turned 45 degrees to the right, looking slightly past camera. Expression is calm, natural, thoughtful. Background is a smooth soft grey studio gradient, same as hero shot.",
     icon: RotateCcw,
   },
   talking: {
     label: "Talking", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/1.8 aperture.",
     framing: "Chest-up direct angle, making direct eye contact. Expression is mid-sentence, mouth slightly open, animated, conversational — like speaking to camera in a product review. Background is the same smooth soft grey studio gradient.",
     icon: Mic,
   },
@@ -154,13 +125,13 @@ const SHOT_CONFIGS: Record<ShotKey, { label: string; model: string; camera: stri
   },
   skin_detail: {
     label: "Skin Detail", model: "nano-banana-pro",
-    camera: "Shot on a full-frame mirrorless camera, 85mm portrait lens, f/2.4 aperture, extreme close-up, face fills entire frame.",
+    camera: "Shot on a full-frame mirrorless camera, 85mm portrait lens, f/1.8 aperture, extreme close-up, face fills entire frame.",
     framing: "Face filling the entire frame from forehead to chin. Direct calm gaze, neutral relaxed expression. Background is completely blurred out of focus. Focus on realistic skin texture, pore detail, natural skin quality.",
     icon: Search,
   },
   product_interaction: {
     label: "Product", model: "nano-banana-2",
-    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.8 aperture, sharp focus on face and hands.",
+    camera: "Shot on a full-frame mirrorless camera, 50mm lens, f/2.0 aperture, sharp focus on face and hands.",
     framing: "Chest-up with hands visible in frame, holding a generic small product (bottle or box shape). Natural engaged expression, looking at product or toward camera. Background is the same smooth soft grey studio gradient.",
     icon: Hand,
   },
@@ -177,32 +148,39 @@ const DEFAULT_FORM: FormData = {
   bodyType: "average", ageRangeNew: "young_adult",
 };
 
-import { imageUrlToBase64 } from "@/lib/image-utils";
+// ── HELPER: Convert image URL to base64 ──
+async function imageUrlToBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
 
 // ── HELPER: Assemble prompt for a shot ──
 function assemblePrompt(
   shotKey: ShotKey,
   identityBlock: string,
   consistencyAnchors: string[],
-  options?: { imperfection?: string; environment?: string; advancedContext?: string },
 ) {
   const cfg = SHOT_CONFIGS[shotKey];
-  const imperfection = options?.imperfection || "natural";
-  const environment = options?.environment || "simple";
-  const parts = [
-    QUALITY_BLOCK,
+  return [
+    REALISM_BASE,
     cfg.camera,
     identityBlock,
     `MANDATORY consistency anchors: ${consistencyAnchors.join(", ")}`,
-    FACIAL_REALISM_BLOCK,
-    HAIR_GROOMING_BLOCK,
-  ];
-  if (options?.advancedContext) parts.push(options.advancedContext);
-  parts.push(cfg.framing);
-  parts.push(getLightingBlock(environment));
-  parts.push(getSkinBlock(imperfection));
-  parts.push(NEGATIVE_BLOCK);
-  return parts.join("\n\n");
+    cfg.framing,
+    LIGHTING_BLOCK,
+    SKIN_BLOCK,
+    QUALITY_BLOCK,
+    NEGATIVE_BLOCK,
+  ].join("\n\n");
 }
 
 // ── HELPER: Poll a Kie AI task ──
@@ -248,9 +226,9 @@ export default function CreateCharacterPage() {
   const { model: promptModel } = usePromptModel();
   const { upscale, getState: getUpscaleState } = useUpscale();
 
-  // Preset tracking
+  // Mode & vibe
+  const [mode, setMode] = useState<CreationMode>("simple");
   const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
-  const [presetEdited, setPresetEdited] = useState(false);
 
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -266,25 +244,16 @@ export default function CreateCharacterPage() {
   const [zoomedShot, setZoomedShot] = useState<{url: string, label: string} | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Hero-first: store identity data for later variation generation
-  const [identityData, setIdentityData] = useState<{ identityBlock: string; consistencyAnchors: string[]; advancedContext: string } | null>(null);
-  const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
-  const [generatingSingleShot, setGeneratingSingleShot] = useState<ShotKey | null>(null);
-
-  // Reference photo state (multi-photo, up to 5)
-  const [refPreviews, setRefPreviews] = useState<string[]>([]);
-  const [refUrls, setRefUrls] = useState<string[]>([]);
+  // Reference photo state
+  const [refPreview, setRefPreview] = useState<string | null>(null);
+  const [refUrl, setRefUrl] = useState<string | null>(null);
   const [refUploading, setRefUploading] = useState(false);
 
-  const set = (key: keyof FormData, val: string) => {
-    setForm((p) => ({ ...p, [key]: val }));
-    if (selectedVibe) setPresetEdited(true);
-  };
+  const set = (key: keyof FormData, val: string) => setForm((p) => ({ ...p, [key]: val }));
 
-  // ── Apply vibe pack to form (pre-fills all fields, keeps them visible) ──
+  // ── Apply vibe pack to form ──
   const applyVibePack = (pack: VibePack) => {
     setSelectedVibe(pack.id);
-    setPresetEdited(false);
     setForm((prev) => ({
       ...prev,
       expression: pack.config.expression,
@@ -292,58 +261,46 @@ export default function CreateCharacterPage() {
       skin_condition: pack.config.skinDetail,
       hair_style: pack.config.hairStyle || prev.hair_style,
       custom_notes: `[Vibe: ${pack.name}] Hijab: ${pack.config.hijab}. Lighting: ${pack.config.lighting}. Setting: ${pack.config.setting}.`,
-      imperfection: pack.config.imperfection || prev.imperfection,
-      environment: pack.config.environment || prev.environment,
-      bodyType: pack.config.bodyType || prev.bodyType,
     }));
   };
 
-  // ── Reference photo upload (multi) ──
+  // ── Customize: switch to advanced with pack values pre-filled ──
+  const customizeFromVibe = () => {
+    setMode("advanced");
+  };
+
+  // ── Reference photo upload ──
   const handleRefUpload = async (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
-      toast({ title: "File terlalu besar", description: "Maksimal 5MB per foto", variant: "destructive" });
+      toast({ title: "File terlalu besar", description: "Maksimal 5MB", variant: "destructive" });
       return;
     }
-    if (refPreviews.length >= 5) {
-      toast({ title: "Maksimal 5 foto", variant: "destructive" });
-      return;
-    }
-    const preview = URL.createObjectURL(file);
-    setRefPreviews((p) => [...p, preview]);
+    setRefPreview(URL.createObjectURL(file));
     setRefUploading(true);
 
     const ext = file.name.split(".").pop();
-    const path = `${user!.id}/references/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+    const path = `${user!.id}/references/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("character-packs").upload(path, file);
     if (error) {
       toast({ title: "Upload gagal", description: error.message, variant: "destructive" });
-      setRefPreviews((p) => p.filter((u) => u !== preview));
       setRefUploading(false);
       return;
     }
     const { data: urlData } = supabase.storage.from("character-packs").getPublicUrl(path);
-    setRefUrls((p) => [...p, urlData.publicUrl]);
+    setRefUrl(urlData.publicUrl);
     setRefUploading(false);
   };
 
-  const handleMultiRefUpload = async (files: FileList) => {
-    const remaining = 5 - refPreviews.length;
-    const toUpload = Array.from(files).slice(0, remaining);
-    for (const file of toUpload) {
-      await handleRefUpload(file);
-    }
+  const removeRef = () => {
+    setRefPreview(null);
+    setRefUrl(null);
   };
 
-  const removeRef = (index: number) => {
-    setRefPreviews((p) => p.filter((_, i) => i !== index));
-    setRefUrls((p) => p.filter((_, i) => i !== index));
-  };
-
-  // ── GENERATION FLOW — HERO ONLY ──
+  // ── GENERATION FLOW ──
   const handleGenerate = async () => {
     if (!form.name.trim()) { toast({ title: "Nama wajib diisi", variant: "destructive" }); return; }
     if (!kieApiKey || !geminiKey) {
-      toast({ title: "Setup API keys dulu di Settings", description: "Buka Settings — API Keys untuk memasukkan key Kie AI dan Gemini.", variant: "destructive" });
+      toast({ title: "Setup API keys dulu di Settings", description: "Buka Settings → API Keys untuk memasukkan key Kie AI dan Gemini.", variant: "destructive" });
       navigate("/settings");
       return;
     }
@@ -366,55 +323,51 @@ export default function CreateCharacterPage() {
 
       const geminiParts: any[] = [];
 
-      if (refUrls.length > 0) {
+      if (refUrl) {
         try {
-          for (const url of refUrls) {
-            const base64Ref = await imageUrlToBase64(url);
-            geminiParts.push({
-              inlineData: { mimeType: "image/jpeg", data: base64Ref },
-            });
-          }
+          const base64Ref = await imageUrlToBase64(refUrl);
           geminiParts.push({
-            text: refUrls.length > 1
-              ? `REFERENCE PHOTO ANALYSIS: ${refUrls.length} reference photos of the target person are attached above, taken from different angles. Cross-reference ALL photos to identify consistent facial features. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photos take priority for facial features.`
-              : "REFERENCE PHOTO ANALYSIS: A reference photo of the target person is attached above. Analyze it carefully. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photo takes priority for facial features.",
+            inlineData: { mimeType: "image/jpeg", data: base64Ref },
+          });
+          geminiParts.push({
+            text: "REFERENCE PHOTO ANALYSIS: A reference photo of the target person is attached above. Analyze it carefully. Describe the EXACT facial features you see: face shape, nose type, lip shape, eye shape, jawline, skin tone, skin texture, any distinctive marks (moles, dimples, scars), eyebrow shape, forehead size. Your identity_block MUST accurately describe this specific person's face — do not generalize or idealize. The form selections below are supplementary guidance, but the reference photo takes priority for facial features.",
           });
         } catch (e) {
-          console.warn("Failed to convert reference photo(s) to base64:", e);
+          console.warn("Failed to convert reference photo to base64:", e);
         }
       }
 
       geminiParts.push({
-        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.\n\nAttributes:\n- Gender: ${form.gender === "female" ? "Female" : "Male"}\n- Age range: ${form.age_range}\n- Skin tone: ${skinToneEnglish}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression tendency: ${form.expression}\n- Outfit style: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Additional notes: ${form.custom_notes || "none"}\n${advancedContext ? `\nAdvanced styling context:\n${advancedContext}` : ""}\n${refUrls.length > 0 ? `\nIMPORTANT: ${refUrls.length} reference photo(s) were provided. Your identity_block MUST describe the person in the photos as accurately as possible. Use the form attributes as supplementary styling guidance only.` : ""}\n\nRespond ONLY with valid JSON, no markdown:\n{\n  "identity_block": "A single detailed paragraph in English describing the EXACT physical appearance — face shape, specific nose type, lip shape, jawline, skin details, exact hair description with color and style, exact outfit with specific colors and materials. Include 3-5 distinctive anchor features (like a beauty mark, specific nose shape, dimples, etc) that should appear in every image.",\n  "hair_description": "Detailed hair description",\n  "outfit_description": "Specific outfit with exact colors and materials",\n  "consistency_anchors": ["anchor1", "anchor2", "anchor3"]\n}`,
+        text: `Based on these attributes, create an extremely detailed identity description for a realistic Indonesian person for AI image generation.\n\nAttributes:\n- Gender: ${form.gender === "female" ? "Female" : "Male"}\n- Age range: ${form.age_range}\n- Skin tone: ${skinToneEnglish}\n- Face shape: ${form.face_shape}\n- Eye color: ${form.eye_color}\n- Hair style: ${form.hair_style}\n- Hair color: ${form.hair_color}\n- Expression tendency: ${form.expression}\n- Outfit style: ${form.outfit_style}\n- Skin condition: ${form.skin_condition}\n- Additional notes: ${form.custom_notes || "none"}\n${advancedContext ? `\nAdvanced styling context:\n${advancedContext}` : ""}\n${refUrl ? "\nIMPORTANT: A reference photo was provided. Your identity_block MUST describe the person in the photo as accurately as possible. Use the form attributes as supplementary styling guidance only." : ""}\n\nRespond ONLY with valid JSON, no markdown:\n{\n  "identity_block": "A single detailed paragraph in English describing the EXACT physical appearance — face shape, specific nose type, lip shape, jawline, skin details, exact hair description with color and style, exact outfit with specific colors and materials. Include 3-5 distinctive anchor features (like a beauty mark, specific nose shape, dimples, etc) that should appear in every image.",\n  "hair_description": "Detailed hair description",\n  "outfit_description": "Specific outfit with exact colors and materials",\n  "consistency_anchors": ["anchor1", "anchor2", "anchor3"]\n}`,
       });
 
-      const genConfig: Record<string, any> = {};
-      if (promptModel !== "gemini-3.1-pro-preview") {
-        genConfig.responseMimeType = "application/json";
-      }
-
-      const geminiData = await geminiFetch(promptModel, geminiKey!, {
-        systemInstruction: {
-          parts: [{ text: "You are an expert at writing hyper-specific physical descriptions of people for AI image generation. Your descriptions must be extremely detailed and specific to ensure visual consistency across multiple generated images. HAIR GROOMING GUIDANCE: Always describe hair as casually groomed — brushed and shaped with controlled volume and natural movement, as if the person prepared before filming but didn't visit a salon. Avoid describing messy unbrushed hair AND also avoid editorial salon-perfect styling. Hair should signal 'presentable for camera.'" }],
-        },
-        contents: [{ parts: geminiParts }],
-        generationConfig: genConfig,
-      });
+      const geminiRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: "You are an expert at writing hyper-specific physical descriptions of people for AI image generation. Your descriptions must be extremely detailed and specific to ensure visual consistency across multiple generated images." }],
+            },
+            contents: [{ parts: geminiParts }],
+            generationConfig: { responseMimeType: "application/json" },
+          }),
+        }
+      );
+      const geminiData = await geminiRes.json();
       const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!rawText) throw new Error("Gagal generate identity prompt dari Gemini");
       const identityJson = JSON.parse(rawText);
       const identityBlock: string = identityJson.identity_block;
       const consistencyAnchors: string[] = identityJson.consistency_anchors || [];
 
-      // Store identity data for later variation generation
-      setIdentityData({ identityBlock, consistencyAnchors, advancedContext });
-
-      // ── STEP 2: Generate hero portrait ONLY ──
+      // ── STEP 2: Generate hero portrait ──
       setGenPhase("hero");
       setShots((p) => ({ ...p, hero_portrait: { status: "generating", model: SHOT_CONFIGS.hero_portrait.model } }));
 
-      const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors, { imperfection: form.imperfection, environment: form.environment, advancedContext });
-      const heroImageInput: string[] = refUrls.length > 0 ? [refUrls[0]] : [];
+      const heroPrompt = assemblePrompt("hero_portrait", identityBlock, consistencyAnchors);
+      const heroImageInput: string[] = refUrl ? [refUrl] : [];
 
       const heroCreateRes = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
         method: "POST",
@@ -434,36 +387,80 @@ export default function CreateCharacterPage() {
       setShots((p) => ({ ...p, hero_portrait: { status: "success", url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model } }));
       setCompletedCount(1);
 
+      // ── STEP 3: Generate remaining 5 shots ──
+      setGenPhase("variations");
+      REMAINING_KEYS.forEach((k) => {
+        setShots((p) => ({ ...p, [k]: { status: "generating", model: SHOT_CONFIGS[k].model } }));
+      });
+
+      let done = 1;
+      const finalResults: Record<string, { url: string; taskId: string; model: string }> = {
+        hero_portrait: { url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model },
+      };
+
+      const remainingImageInput: string[] = refUrl ? [refUrl, heroUrl] : [heroUrl];
+
+      await Promise.all(
+        REMAINING_KEYS.map(async (key) => {
+          const cfg = SHOT_CONFIGS[key];
+          const shotPrompt = assemblePrompt(key, identityBlock, consistencyAnchors);
+
+          try {
+            const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: cfg.model,
+                input: { prompt: shotPrompt, image_input: remainingImageInput, aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
+              }),
+            });
+            const json = await res.json();
+            if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
+            const taskId = json.data.taskId as string;
+
+            const imageUrl = await pollTask(taskId, kieApiKey);
+            setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
+            finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
+          } catch {
+            setShots((p) => ({ ...p, [key]: { status: "failed", model: cfg.model } }));
+          }
+          done++;
+          setCompletedCount(done);
+        })
+      );
+
       if (timerRef.current) clearInterval(timerRef.current);
 
-      // ── STEP 3: Save character immediately with hero only ──
+      // ── STEP 4: Save ──
       setGenPhase("saving");
-      const { data, error } = await supabase.from("characters").insert({
-        user_id: user!.id,
-        name: form.name,
-        gender: form.gender,
-        type: form.gender === "female" ? "Wanita" : "Pria",
-        age_range: form.age_range,
-        style: form.outfit_style,
-        tags: [form.gender === "female" ? "Wanita" : "Pria", form.age_range, form.outfit_style],
-        description: identityBlock.substring(0, 200),
-        config: form as any,
-        identity_prompt: identityBlock,
-        hero_image_url: heroUrl,
-        thumbnail_url: heroUrl,
-        reference_images: [heroUrl],
-        shot_metadata: { hero_portrait: { url: heroUrl, taskId: heroTaskId, model: SHOT_CONFIGS.hero_portrait.model } } as any,
-        gradient_from: "emerald-900/40",
-        gradient_to: "teal-900/40",
-        is_preset: false,
-        reference_photo_url: refUrls[0] || "",
-      } as any).select("id").single();
+      if (finalResults.hero_portrait?.url) {
+        const { data, error } = await supabase.from("characters").insert({
+          user_id: user!.id,
+          name: form.name,
+          gender: form.gender,
+          type: form.gender === "female" ? "Wanita" : "Pria",
+          age_range: form.age_range,
+          style: form.outfit_style,
+          tags: [form.gender === "female" ? "Wanita" : "Pria", form.age_range, form.outfit_style],
+          description: identityBlock.substring(0, 200),
+          config: form as any,
+          identity_prompt: identityBlock,
+          hero_image_url: finalResults.hero_portrait.url,
+          thumbnail_url: finalResults.hero_portrait.url,
+          reference_images: SHOT_KEYS.map((k) => finalResults[k]?.url || "").filter(Boolean),
+          shot_metadata: finalResults as any,
+          gradient_from: "emerald-900/40",
+          gradient_to: "teal-900/40",
+          is_preset: false,
+          reference_photo_url: refUrl || "",
+        } as any).select("id").single();
 
-      if (!error && data) {
-        setSavedId(data.id);
-        toast({ title: "Karakter berhasil dibuat!", description: "Hero portrait siap digunakan. Generate variasi kapan saja." });
+        if (!error && data) {
+          setSavedId(data.id);
+          toast({ title: "Karakter berhasil dibuat!" });
+        }
       } else {
-        toast({ title: "Gagal menyimpan", description: error?.message, variant: "destructive" });
+        toast({ title: "Hero portrait gagal", description: "Coba lagi.", variant: "destructive" });
       }
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -474,168 +471,26 @@ export default function CreateCharacterPage() {
     }
   };
 
-  // ── GENERATE ALL 5 VARIATIONS ──
-  const handleGenerateVariations = async () => {
-    if (!kieApiKey || !identityData || !savedId) return;
-    const heroUrl = shots.hero_portrait.url;
-    if (!heroUrl) return;
-
-    setIsGeneratingVariations(true);
-    setGenPhase("variations");
-    setCompletedCount(1);
-    setElapsed(0);
-    timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-
-    REMAINING_KEYS.forEach((k) => {
-      setShots((p) => ({ ...p, [k]: { status: "generating", model: SHOT_CONFIGS[k].model } }));
-    });
-
-    let done = 1;
-    const finalResults: Record<string, { url: string; taskId: string; model: string }> = {};
-    const remainingImageInput: string[] = refUrls.length > 0 ? [...refUrls, heroUrl] : [heroUrl];
-
-    const batches: ShotKey[][] = [];
-    for (let i = 0; i < REMAINING_KEYS.length; i += 2) {
-      batches.push(REMAINING_KEYS.slice(i, i + 2));
-    }
-
-    try {
-      for (const batch of batches) {
-        await Promise.all(
-          batch.map(async (key) => {
-            const cfg = SHOT_CONFIGS[key];
-            const shotPrompt = assemblePrompt(key, identityData.identityBlock, identityData.consistencyAnchors, {
-              imperfection: form.imperfection, environment: form.environment, advancedContext: identityData.advancedContext,
-            });
-            try {
-              const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: cfg.model,
-                  input: { prompt: shotPrompt, image_input: remainingImageInput, aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
-                }),
-              });
-              const json = await res.json();
-              if (json.code !== 200) throw new Error(`Task creation failed for ${key}`);
-              const taskId = json.data.taskId as string;
-              const imageUrl = await pollTask(taskId, kieApiKey);
-              setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: cfg.model } }));
-              finalResults[key] = { url: imageUrl, taskId, model: cfg.model };
-            } catch {
-              setShots((p) => ({ ...p, [key]: { status: "failed", model: cfg.model } }));
-            }
-            done++;
-            setCompletedCount(done);
-          })
-        );
-        if (batch !== batches[batches.length - 1]) {
-          await new Promise((r) => setTimeout(r, 2000));
-        }
-      }
-
-      if (timerRef.current) clearInterval(timerRef.current);
-
-      // Update existing character with variation data
-      const allUrls = [heroUrl, ...REMAINING_KEYS.map((k) => finalResults[k]?.url).filter(Boolean)];
-      const allMetadata = {
-        hero_portrait: { url: heroUrl, taskId: shots.hero_portrait.taskId, model: SHOT_CONFIGS.hero_portrait.model },
-        ...finalResults,
-      };
-
-      await supabase.from("characters").update({
-        reference_images: allUrls,
-        shot_metadata: allMetadata as any,
-      } as any).eq("id", savedId);
-
-      toast({ title: "Variasi selesai!", description: `${Object.keys(finalResults).length} variasi berhasil di-generate.` });
-    } catch (e: any) {
-      toast({ title: "Error variasi", description: e.message, variant: "destructive" });
-      if (timerRef.current) clearInterval(timerRef.current);
-    } finally {
-      setIsGeneratingVariations(false);
-      setGenPhase("idle");
-    }
-  };
-
-  // ── GENERATE SINGLE SHOT ──
-  const handleGenerateSingleShot = async (key: ShotKey) => {
-    if (!kieApiKey || !identityData || !savedId) return;
-    const heroUrl = shots.hero_portrait.url;
-    if (!heroUrl) return;
-
-    setGeneratingSingleShot(key);
-    setShots((p) => ({ ...p, [key]: { status: "generating", model: SHOT_CONFIGS[key].model } }));
-
-    const imageInput: string[] = refUrls.length > 0 ? [...refUrls, heroUrl] : [heroUrl];
-    const shotPrompt = assemblePrompt(key, identityData.identityBlock, identityData.consistencyAnchors, {
-      imperfection: form.imperfection, environment: form.environment, advancedContext: identityData.advancedContext,
-    });
-
-    try {
-      const res = await fetch("https://api.kie.ai/api/v1/jobs/createTask", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${kieApiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: SHOT_CONFIGS[key].model,
-          input: { prompt: shotPrompt, image_input: imageInput, aspect_ratio: "3:4", resolution: "2K", output_format: "jpg" },
-        }),
-      });
-      const json = await res.json();
-      if (json.code !== 200) throw new Error("Task creation failed");
-      const taskId = json.data.taskId as string;
-      const imageUrl = await pollTask(taskId, kieApiKey);
-
-      setShots((p) => ({ ...p, [key]: { status: "success", url: imageUrl, taskId, model: SHOT_CONFIGS[key].model } }));
-
-      // Update character record
-      const currentShots = { ...shots };
-      currentShots[key] = { status: "success", url: imageUrl, taskId, model: SHOT_CONFIGS[key].model };
-      const allUrls = SHOT_KEYS.map((k) => currentShots[k]?.url).filter(Boolean) as string[];
-      const shotMeta: any = {};
-      SHOT_KEYS.forEach((k) => {
-        if (currentShots[k]?.url) {
-          shotMeta[k] = { url: currentShots[k].url, taskId: currentShots[k].taskId, model: currentShots[k].model };
-        }
-      });
-
-      await supabase.from("characters").update({
-        reference_images: allUrls,
-        shot_metadata: shotMeta,
-      } as any).eq("id", savedId);
-
-      toast({ title: `${SHOT_CONFIGS[key].label} selesai!` });
-    } catch (e: any) {
-      setShots((p) => ({ ...p, [key]: { status: "failed", model: SHOT_CONFIGS[key].model } }));
-      toast({ title: "Gagal", description: e.message, variant: "destructive" });
-    } finally {
-      setGeneratingSingleShot(null);
-    }
-  };
-
   // ── SUMMARY PILLS ──
   const vibeSelected = VIBE_PACKS.find((v) => v.id === selectedVibe);
-  const pills = [
-    form.gender === "female" ? "Wanita" : "Pria",
-    form.age_range, form.skin_tone, form.face_shape, form.eye_color,
-    form.hair_style, form.hair_color, form.expression, form.outfit_style, form.skin_condition,
-  ].filter(Boolean);
+  const pills = mode === "simple" && vibeSelected
+    ? vibeSelected.tags
+    : [
+        form.gender === "female" ? "Wanita" : "Pria",
+        form.age_range, form.skin_tone, form.face_shape, form.eye_color,
+        form.hair_style, form.hair_color, form.expression, form.outfit_style, form.skin_condition,
+      ].filter(Boolean);
 
   // ── Progress label ──
   const progressLabel = (() => {
     switch (genPhase) {
       case "identity": return "Membuat identity prompt...";
-      case "hero": return "Membuat hero portrait...";
-      case "variations": return `Generating variasi... (${completedCount - 1}/5)`;
+      case "hero": return "Membuat hero portrait... (1/6)";
+      case "variations": return `Generating variasi... (${completedCount}/6)`;
       case "saving": return "Menyimpan karakter...";
       default: return "";
     }
   })();
-
-  const heroDone = shots.hero_portrait.status === "success";
-  const allVariationsDone = REMAINING_KEYS.every((k) => shots[k].status === "success");
-  const anyVariationGenerating = REMAINING_KEYS.some((k) => shots[k].status === "generating");
-  const variationsDoneCount = REMAINING_KEYS.filter((k) => shots[k].status === "success").length;
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -645,58 +500,79 @@ export default function CreateCharacterPage() {
           <div>
             <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase mb-1">Buat Karakter Baru</h1>
             <p className="text-sm text-muted-foreground mb-4">Kustomisasi karakter AI untuk konten UGC kamu</p>
+
+            {/* Mode Toggle */}
+            <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
+              <button
+                onClick={() => setMode("simple")}
+                className={`text-xs font-medium px-4 py-2 rounded-md transition-colors ${mode === "simple" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Sparkles className="h-3.5 w-3.5 inline mr-1.5" />
+                Simple
+              </button>
+              <button
+                onClick={() => setMode("advanced")}
+                className={`text-xs font-medium px-4 py-2 rounded-md transition-colors ${mode === "advanced" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5 inline mr-1.5" />
+                Advanced
+              </button>
+            </div>
           </div>
 
-          {/* Reference Photo Upload (Multi) */}
-          <FormGroup label={`Referensi Wajah (${refPreviews.length}/5)`}>
-            <div className="grid grid-cols-3 gap-2">
-              {refPreviews.map((preview, i) => (
-                <div key={i} className="relative aspect-square">
-                  <img src={preview} alt={`Ref ${i + 1}`} className="w-full h-full rounded-xl object-cover border border-border" />
-                  <button onClick={() => removeRef(i)} className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
-                    <X className="h-2.5 w-2.5" />
-                  </button>
-                </div>
-              ))}
-              {refPreviews.length < 5 && (
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length) handleMultiRefUpload(e.dataTransfer.files); }}
-                  onClick={() => {
-                    const inp = document.createElement("input");
-                    inp.type = "file"; inp.accept = "image/jpeg,image/png,image/webp"; inp.multiple = true;
-                    inp.onchange = (ev) => { const files = (ev.target as HTMLInputElement).files; if (files?.length) handleMultiRefUpload(files); };
-                    inp.click();
-                  }}
-                  className="aspect-square border-2 border-dashed border-border rounded-xl bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-1 cursor-pointer"
+          {/* Reference Photo Upload — shared between modes */}
+          <FormGroup label="Referensi Wajah (Opsional)">
+            {refPreview ? (
+              <div className="relative inline-block">
+                <img src={refPreview} alt="Reference" className="h-[120px] w-[120px] rounded-xl object-cover border border-border" />
+                <button
+                  onClick={removeRef}
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
                 >
-                  {refUploading ? (
+                  <X className="h-3 w-3" />
+                </button>
+                {refUploading && (
+                  <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
                     <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">Tambah</span>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            <p className="text-[11px] text-muted-foreground/60 mt-2 leading-relaxed">
-              Upload 1-5 foto dari berbagai sudut (depan, samping, 3/4) untuk hasil lebih akurat
-            </p>
-            {refPreviews.length > 0 && selectedVibe && (
-              <p className="text-[11px] text-primary/70 mt-1">
-                Preset sebagai styling guide — wajah akan dicocokkan dengan foto referensi.
-              </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files[0];
+                  if (file) handleRefUpload(file);
+                }}
+                onClick={() => {
+                  const inp = document.createElement("input");
+                  inp.type = "file";
+                  inp.accept = "image/jpeg,image/png,image/webp";
+                  inp.onchange = (ev) => {
+                    const f = (ev.target as HTMLInputElement).files?.[0];
+                    if (f) handleRefUpload(f);
+                  };
+                  inp.click();
+                }}
+                className="border-2 border-dashed border-border rounded-xl p-6 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-2 cursor-pointer"
+              >
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Drag & drop foto wajah</p>
+                <p className="text-xs text-muted-foreground/60">JPEG, PNG, WebP — Maks 5MB</p>
+              </div>
             )}
+            <p className="text-[11px] text-muted-foreground/60 mt-2 leading-relaxed">
+              Upload foto close-up wajah untuk hasil karakter yang lebih mirip.
+            </p>
           </FormGroup>
 
-          {/* Name */}
+          {/* Name — shared */}
           <FormGroup label="Nama Karakter">
             <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Contoh: Sarah Hijab" className="bg-muted/50 border-border" />
           </FormGroup>
 
-          {/* Gender */}
+          {/* Gender — shared */}
           <FormGroup label="Gender">
             <div className="flex gap-2">
               {(["female", "male"] as Gender[]).map((g) => (
@@ -708,148 +584,201 @@ export default function CreateCharacterPage() {
             </div>
           </FormGroup>
 
-          {/* ── QUICK PRESETS ── */}
-          <div className="space-y-2">
-            <label className="block text-xs uppercase tracking-widest text-muted-foreground font-medium">Quick Preset</label>
-            {selectedVibe && (
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[11px] bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  Preset: {vibeSelected?.name} {presetEdited ? "(edited)" : "✓"}
-                </span>
-                <button onClick={() => { setSelectedVibe(null); setPresetEdited(false); }} className="text-[11px] text-muted-foreground hover:text-foreground">✕ Reset</button>
+          {/* ── SIMPLE MODE: Vibe Pack Grid ── */}
+          {mode === "simple" && (
+            <div className="space-y-3 animate-fade-in">
+              <label className="block text-xs uppercase tracking-widest text-muted-foreground font-medium">Pilih Gaya Karakter</label>
+              <div className="grid grid-cols-2 gap-3">
+                {VIBE_PACKS.map((pack) => {
+                  const isSelected = selectedVibe === pack.id;
+                  return (
+                    <button
+                      key={pack.id}
+                      onClick={() => applyVibePack(pack)}
+                      className={`text-left rounded-xl overflow-hidden transition-all ${
+                        isSelected
+                          ? "border-2 border-primary ring-1 ring-primary/20"
+                          : "border border-border hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      {/* Gradient preview */}
+                      <div
+                        className="h-24 w-full"
+                        style={{ background: pack.previewGradient }}
+                      />
+                      <div className="p-3 bg-card">
+                        <p className="text-sm font-bold text-foreground">{pack.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{pack.description}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {pack.tags.map((tag) => (
+                            <span key={tag} className="text-[10px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-            )}
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
-              {VIBE_PACKS.map((pack) => {
-                const isSelected = selectedVibe === pack.id;
-                return (
-                  <button
-                    key={pack.id}
-                    onClick={() => applyVibePack(pack)}
-                    className={`shrink-0 flex items-center gap-2 rounded-lg px-3 py-2 transition-all text-left ${
-                      isSelected
-                        ? "bg-primary/10 border border-primary/30 ring-1 ring-primary/10"
-                        : "bg-muted/50 border border-border hover:border-muted-foreground/30"
-                    }`}
-                  >
-                    <div className="w-8 h-8 rounded-md shrink-0" style={{ background: pack.previewGradient }} />
-                    <div>
-                      <p className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{pack.name}</p>
-                      <p className="text-[10px] text-muted-foreground line-clamp-1 max-w-[100px]">{pack.description}</p>
-                    </div>
-                  </button>
-                );
-              })}
+
+              {/* Customize link */}
+              {selectedVibe && (
+                <button
+                  onClick={customizeFromVibe}
+                  className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-1"
+                >
+                  <SlidersHorizontal className="h-3 w-3" />
+                  Sesuaikan detail
+                </button>
+              )}
             </div>
-          </div>
+          )}
 
-          {/* ── ALL FORM FIELDS (always visible) ── */}
-          <div className="space-y-6">
-            <FormGroup label="Rentang Usia">
-              <Select value={form.ageRangeNew} onValueChange={(v) => set("ageRangeNew", v)}>
-                <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                <SelectContent>{AGE_RANGES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormGroup>
+          {/* ── ADVANCED MODE: All form fields ── */}
+          {mode === "advanced" && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Age Range */}
+              <FormGroup label="Rentang Usia">
+                <Select value={form.ageRangeNew} onValueChange={(v) => set("ageRangeNew", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {AGE_RANGES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
 
-            <FormGroup label="Warna Kulit">
-              <div className="flex gap-4">
-                {SKIN_TONES.map((t) => (
-                  <button key={t.hex} onClick={() => set("skin_tone", t.label)} className="flex flex-col items-center gap-1.5">
-                    <div className={`w-9 h-9 rounded-full transition-all ${form.skin_tone === t.label ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: t.hex }} />
-                    <span className="text-[11px] text-muted-foreground">{t.label}</span>
-                  </button>
-                ))}
+              {/* Skin Tone */}
+              <FormGroup label="Warna Kulit">
+                <div className="flex gap-4">
+                  {SKIN_TONES.map((t) => (
+                    <button key={t.hex} onClick={() => set("skin_tone", t.label)} className="flex flex-col items-center gap-1.5">
+                      <div className={`w-9 h-9 rounded-full transition-all ${form.skin_tone === t.label ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`} style={{ backgroundColor: t.hex }} />
+                      <span className="text-[11px] text-muted-foreground">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </FormGroup>
+
+              {/* Face Shape */}
+              <FormGroup label="Bentuk Wajah">
+                <Select value={form.face_shape} onValueChange={(v) => set("face_shape", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Oval", "Bulat", "Kotak", "Hati", "Lonjong"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* Eye Color */}
+              <FormGroup label="Warna Mata">
+                <Select value={form.eye_color} onValueChange={(v) => set("eye_color", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Coklat Tua", "Coklat Madu", "Hitam", "Coklat Terang"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* Hair Style */}
+              <FormGroup label="Gaya Rambut">
+                <Select value={form.hair_style} onValueChange={(v) => set("hair_style", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {HAIR_STYLES[form.gender].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* Hair Color */}
+              <FormGroup label="Warna Rambut">
+                <Select value={form.hair_color} onValueChange={(v) => set("hair_color", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Hitam", "Coklat Tua", "Coklat Madu", "Highlighted"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* Expression */}
+              <FormGroup label="Ekspresi">
+                <Select value={form.expression} onValueChange={(v) => set("expression", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Hangat & Ramah", "Percaya Diri", "Kalem Profesional", "Energik Ceria", "Lembut Natural"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* Outfit Style */}
+              <FormGroup label="Gaya Outfit">
+                <Select value={form.outfit_style} onValueChange={(v) => set("outfit_style", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Casual Modern", "Smart Casual", "Hijab Modern", "Streetwear", "Athletic", "Professional", "Beauty/Glam"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* Skin Condition */}
+              <FormGroup label="Kondisi Kulit">
+                <Select value={form.skin_condition} onValueChange={(v) => set("skin_condition", v)}>
+                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
+                  <SelectContent>
+                    {["Bersih Natural", "Sedikit Freckles", "Glowing Sehat", "Matte Clean"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FormGroup>
+
+              {/* ── NEW ADVANCED FIELDS ── */}
+              <div className="border-t border-border pt-6 space-y-6">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Detail Lanjutan</p>
+
+                {/* Body Type */}
+                <FormGroup label="Tipe Tubuh">
+                  <Select value={form.bodyType} onValueChange={(v) => set("bodyType", v)}>
+                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {BODY_TYPES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
+
+                {/* Imperfection Level */}
+                <FormGroup label="Level Imperfeksi Kulit">
+                  <Select value={form.imperfection} onValueChange={(v) => set("imperfection", v)}>
+                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {IMPERFECTION_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
+
+                {/* Environment Detail */}
+                <FormGroup label="Lingkungan Detail">
+                  <Select value={form.environment} onValueChange={(v) => set("environment", v)}>
+                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ENVIRONMENT_DETAILS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
+
+                {/* Micro Detail */}
+                <FormGroup label="Micro Detail">
+                  <Select value={form.microDetail} onValueChange={(v) => set("microDetail", v)}>
+                    <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MICRO_DETAIL_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormGroup>
               </div>
-            </FormGroup>
 
-            <FormGroup label="Bentuk Wajah">
-              <Select value={form.face_shape} onValueChange={(v) => set("face_shape", v)}>
-                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                <SelectContent>{["Oval", "Bulat", "Kotak", "Hati", "Lonjong"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormGroup>
-
-            <FormGroup label="Warna Mata">
-              <Select value={form.eye_color} onValueChange={(v) => set("eye_color", v)}>
-                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                <SelectContent>{["Coklat Tua", "Coklat Madu", "Hitam", "Coklat Terang"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormGroup>
-
-            <FormGroup label="Gaya Rambut">
-              <Select value={form.hair_style} onValueChange={(v) => set("hair_style", v)}>
-                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                <SelectContent>{HAIR_STYLES[form.gender].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormGroup>
-
-            <FormGroup label="Warna Rambut">
-              <Select value={form.hair_color} onValueChange={(v) => set("hair_color", v)}>
-                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                <SelectContent>{["Hitam", "Coklat Tua", "Coklat Madu", "Highlighted"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormGroup>
-
-            <FormGroup label="Ekspresi">
-              <Select value={form.expression} onValueChange={(v) => set("expression", v)}>
-                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                <SelectContent>{["Hangat & Ramah", "Percaya Diri", "Kalem Profesional", "Energik Ceria", "Lembut Natural"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormGroup>
-
-            <FormGroup label="Gaya Outfit">
-              <Select value={form.outfit_style} onValueChange={(v) => set("outfit_style", v)}>
-                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                <SelectContent>{["Casual Modern", "Smart Casual", "Hijab Modern", "Streetwear", "Athletic", "Professional", "Beauty/Glam"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormGroup>
-
-            <FormGroup label="Kondisi Kulit">
-              <Select value={form.skin_condition} onValueChange={(v) => set("skin_condition", v)}>
-                <SelectTrigger className="bg-muted/50 border-border"><SelectValue placeholder="Pilih" /></SelectTrigger>
-                <SelectContent>{["Bersih Natural", "Sedikit Freckles", "Glowing Sehat", "Matte Clean"].map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-              </Select>
-            </FormGroup>
-
-            {/* ── DETAIL LANJUTAN ── */}
-            <div className="border-t border-border pt-6 space-y-6">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground font-semibold">Detail Lanjutan</p>
-
-              <FormGroup label="Tipe Tubuh">
-                <Select value={form.bodyType} onValueChange={(v) => set("bodyType", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>{BODY_TYPES.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </FormGroup>
-
-              <FormGroup label="Level Imperfeksi Kulit">
-                <Select value={form.imperfection} onValueChange={(v) => set("imperfection", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>{IMPERFECTION_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </FormGroup>
-
-              <FormGroup label="Lingkungan Detail">
-                <Select value={form.environment} onValueChange={(v) => set("environment", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>{ENVIRONMENT_DETAILS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </FormGroup>
-
-              <FormGroup label="Micro Detail">
-                <Select value={form.microDetail} onValueChange={(v) => set("microDetail", v)}>
-                  <SelectTrigger className="bg-muted/50 border-border"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MICRO_DETAIL_LEVELS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                </Select>
+              {/* Custom Notes */}
+              <FormGroup label="Catatan Tambahan (Opsional)">
+                <Textarea value={form.custom_notes} onChange={(e) => set("custom_notes", e.target.value)} rows={3} placeholder="Detail tambahan..." className="bg-muted/50 border-border" />
               </FormGroup>
             </div>
-
-            <FormGroup label="Catatan Tambahan (Opsional)">
-              <Textarea value={form.custom_notes} onChange={(e) => set("custom_notes", e.target.value)} rows={3} placeholder="Detail tambahan..." className="bg-muted/50 border-border" />
-            </FormGroup>
-          </div>
+          )}
         </div>
 
         {/* ── RIGHT COLUMN: PREVIEW ── */}
@@ -858,18 +787,11 @@ export default function CreateCharacterPage() {
           <div className="bg-card border border-border rounded-xl p-5 mb-5">
             <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium mb-3">Preview Karakter</p>
 
-            {refPreviews.length > 0 && (
+            {refPreview && (
               <div className="flex items-center gap-3 mb-3">
-                <div className="flex -space-x-2">
-                  {refPreviews.slice(0, 3).map((p, i) => (
-                    <img key={i} src={p} alt={`Ref ${i+1}`} className="h-10 w-10 rounded-full object-cover border-2 border-card" />
-                  ))}
-                  {refPreviews.length > 3 && (
-                    <div className="h-10 w-10 rounded-full bg-secondary border-2 border-card flex items-center justify-center text-[10px] text-muted-foreground font-medium">+{refPreviews.length - 3}</div>
-                  )}
-                </div>
+                <img src={refPreview} alt="Ref" className="h-16 w-16 rounded-full object-cover border border-border" />
                 <div>
-                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">{refPreviews.length} Foto Referensi</p>
+                  <p className="text-[11px] uppercase tracking-widest text-muted-foreground font-medium">Foto Referensi</p>
                   <p className="text-[11px] text-primary/70">Wajah akan dicocokkan</p>
                 </div>
               </div>
@@ -884,7 +806,7 @@ export default function CreateCharacterPage() {
           </div>
 
           {/* Progress */}
-          {(isGenerating || isGeneratingVariations) && (
+          {isGenerating && (
             <div className="mb-4 space-y-2 animate-fade-in">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span className="flex items-center gap-2">
@@ -893,7 +815,7 @@ export default function CreateCharacterPage() {
                 </span>
                 <span>{elapsed}s</span>
               </div>
-              <Progress value={isGeneratingVariations ? ((completedCount - 1) / 5) * 100 : genPhase === "hero" ? 50 : genPhase === "saving" ? 90 : 10} className="h-2 bg-secondary" />
+              <Progress value={(completedCount / 6) * 100} className="h-2 bg-secondary" />
             </div>
           )}
 
@@ -905,21 +827,10 @@ export default function CreateCharacterPage() {
               const Icon = cfg.icon;
               const isPro = cfg.model === "nano-banana-pro";
               const isHero = key === "hero_portrait";
-              const isVariation = !isHero;
-              const canClickToGenerate = isVariation && heroDone && savedId && shot.status === "idle" && !isGeneratingVariations && !generatingSingleShot;
-
               return (
-                <div
-                  key={key}
-                  className={`relative aspect-[3/4] bg-muted/50 border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden transition-all ${
-                    isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" :
-                    canClickToGenerate ? "border-dashed border-muted-foreground/20 hover:border-primary/40 cursor-pointer" :
-                    "border-border"
-                  }`}
-                  onClick={canClickToGenerate ? () => handleGenerateSingleShot(key) : undefined}
-                >
+                <div key={key} className={`relative aspect-[3/4] bg-muted/50 border rounded-xl flex flex-col items-center justify-center gap-2 overflow-hidden ${isHero && shot.status === "success" ? "border-primary/50 ring-1 ring-primary/20" : "border-border"}`}>
                   {shot.status === "success" && shot.url ? (
-                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={(e) => { e.stopPropagation(); setZoomedShot({url: shot.url!, label: cfg.label}); }} />
+                    <img src={shot.url} alt={cfg.label} className="absolute inset-0 w-full h-full object-cover animate-fade-in cursor-pointer" onClick={() => setZoomedShot({url: shot.url!, label: cfg.label})} />
                   ) : shot.status === "generating" ? (
                     <div className="absolute inset-0 generation-mesh flex items-center justify-center">
                       <Loader2 className="w-6 h-6 text-primary/60 animate-spin" />
@@ -927,15 +838,10 @@ export default function CreateCharacterPage() {
                   ) : shot.status === "failed" ? (
                     <AlertCircle className="w-6 h-6 text-destructive" />
                   ) : (
-                    <Icon className={`w-6 h-6 ${canClickToGenerate ? "text-muted-foreground/50" : "text-muted-foreground/30"}`} />
+                    <Icon className="w-6 h-6 text-muted-foreground/30" />
                   )}
                   {shot.status !== "success" && (
-                    <span className={`text-[11px] uppercase tracking-wider text-center px-1 ${canClickToGenerate ? "text-muted-foreground/50" : "text-muted-foreground/30"}`}>
-                      {cfg.label}
-                    </span>
-                  )}
-                  {canClickToGenerate && (
-                    <span className="text-[9px] text-primary/60 mt-1">Klik untuk generate</span>
+                    <span className="text-[11px] text-muted-foreground/30 uppercase tracking-wider text-center px-1">{cfg.label}</span>
                   )}
                   {shot.status === "success" && shot.url && (
                     <>
@@ -962,45 +868,16 @@ export default function CreateCharacterPage() {
             })}
           </div>
 
-          {/* Cost indicator — dynamic */}
+          {/* Cost indicator */}
           <div className="flex items-start gap-2 bg-card border border-border rounded-lg p-3 mb-4 text-xs text-muted-foreground">
             <Zap className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <div>
-              {!heroDone ? (
-                <>
-                  <p>Estimasi: ~Rp 1.440 untuk hero portrait</p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">1x Nano Banana Pro (2K) • Variasi opsional setelahnya</p>
-                </>
-              ) : allVariationsDone ? (
-                <>
-                  <p>Hero ✓ • {variationsDoneCount} variasi ✓</p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">Semua shot selesai</p>
-                </>
-              ) : (
-                <>
-                  <p>Hero ✓ {variationsDoneCount > 0 ? `• ${variationsDoneCount}/5 variasi ✓` : ""}</p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-0.5">
-                    {5 - variationsDoneCount} variasi tersisa (+~Rp {((5 - variationsDoneCount) * 700).toLocaleString("id-ID")})
-                  </p>
-                </>
-              )}
+              <p>Estimasi: ~64 credits (~Rp 5.120) untuk 6 gambar</p>
+              <p className="text-[11px] text-muted-foreground/50 mt-0.5">2x Nano Banana Pro (hero + detail) + 4x Nano Banana 2 (sisanya)</p>
             </div>
           </div>
 
-          {/* Generate 5 variations button */}
-          {heroDone && savedId && !allVariationsDone && !isGeneratingVariations && (
-            <Button
-              onClick={handleGenerateVariations}
-              variant="outline"
-              disabled={!!generatingSingleShot}
-              className="w-full py-3 font-bold uppercase tracking-wider mb-3 border-primary/30 text-primary hover:bg-primary/10"
-            >
-              <ImageIcon className="w-4 h-4 mr-2" />
-              Generate {5 - variationsDoneCount} Variasi (+~Rp {((5 - variationsDoneCount) * 700).toLocaleString("id-ID")})
-            </Button>
-          )}
-
-          {/* Main action buttons */}
+          {/* Generate / success buttons */}
           {savedId ? (
             <div className="space-y-2 animate-fade-in">
               <Button onClick={() => navigate(`/generate?characterId=${savedId}`)} className="w-full py-3.5 font-bold uppercase tracking-wider">
@@ -1011,8 +888,8 @@ export default function CreateCharacterPage() {
               </Button>
             </div>
           ) : (
-            <Button onClick={handleGenerate} disabled={isGenerating} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
-              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter (~Rp 1.440)"}
+            <Button onClick={handleGenerate} disabled={isGenerating || (mode === "simple" && !selectedVibe)} className="w-full py-3.5 font-bold uppercase tracking-wider animate-cta-glow">
+              {isGenerating ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {progressLabel || "Generating..."}</> : "Generate Karakter"}
             </Button>
           )}
         </div>
