@@ -1,0 +1,2381 @@
+{
+  "name": "UGC Studio + Merge",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "file": "={{ $json['Video url 2'] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2480,
+        528
+      ],
+      "id": "724280f8-e66c-41e4-bc54-d83db9bab4d8",
+      "name": "Send a video4",
+      "webhookId": "56e83f7a-61cd-4a44-8b66-0b7395486f50",
+      "credentials": {
+        "telegramApi": {
+          "id": "dUFWDBjuZijdKHju",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        80,
+        704
+      ],
+      "id": "3c2ba001-7ae9-4e24-9206-320eb1e1bdb4",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "oPWcCOe1OH7OY5aq",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        512,
+        528
+      ],
+      "id": "a9e7d90b-5a7c-4386-8bf1-102972c95a82",
+      "name": "Wait",
+      "webhookId": "7ce92d68-ba96-4ce9-9e2c-56b7ca9a80da"
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/jobs/recordInfo",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        768
+      ],
+      "id": "538578d6-5ed5-4d4e-a324-63d9106e744c",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8a2caa94-db0d-4141-ab47-c803e69db7c9",
+              "leftValue": "={{ $json.data.state }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        768
+      ],
+      "id": "f11f1c1d-8b91-4830-b4b0-619c7e3fc70e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "==REFERENCE IMAGE DESCRIPTION (the video MUST look exactly like this):\n{{ $json.content.parts[0].text }}\n\nPRODUCT INFORMATION:\n- Product: {{ $('Append row in sheet').item.json.Product }}\n- Product Features: {{ $('Append row in sheet').item.json['Product Features'] }}\n- ICP: {{ $('Append row in sheet').item.json.ICP }}\n- Video Setting: {{ $('Append row in sheet').item.json['Video Setting'] }}\n- Character Model: {{ $('Append row in sheet').item.json['Character Model'] }}\n\nGenerate a video prompt where this exact character from the reference image comes to life. She starts speaking directly to camera in a natural selfie-style UGC format. Every visual detail — her face, outfit, hair, background, lighting, product grip — must remain identical to the reference image description above.\n\n",
+        "options": {
+          "systemMessage": "=ROLE:\nYou are an expert AI Video Director specializing in hyper-realistic UGC content for TikTok Affiliate Indonesia.\nYour task is to generate ONE detailed video prompt for Veo 3.1.\nYou do NOT generate the video. You ONLY generate the video prompt.\n\n--------------------------------------------------\n\nCRITICAL RULE — FRAME LOCK WITH REFERENCE IMAGE\n\nA detailed reference image description will be provided.  \nThe video must look like this image coming to life.\n\nThe FIRST FRAME must visually match the reference image exactly.\n\nAcross the entire video:\n- SAME character: identical face shape, skin tone, features, hairstyle, expression style\n- SAME outfit: exact clothing items, colors, accessories, fit\n- SAME environment: identical setting, props, surfaces, materials, wall colors\n- SAME lighting: same direction, softness, shadow placement, and color temperature\n- SAME color palette and mood\n- SAME product position, hand, grip, and orientation\n\nNO visual reinterpretation is allowed.\n\n--------------------------------------------------\n\nFRAME STABILITY RULES (MANDATORY)\n\nFacial structure, skin texture, proportions, and lighting must remain consistent across all frames.\n\nDo NOT allow:\n- Face reshaping or beautification\n- Skin smoothing or texture loss\n- Hair volume or color shift\n- Makeup intensity changes\n\nThe subject must remain visually identical from start to end.\n\n--------------------------------------------------\n\nPRODUCT CONTINUITY RULE (MANDATORY)\n\nThe product must remain visually identical during all movement.\n\nPreserve:\n- Exact shape and thickness\n- Exact color tone\n- Exact logo orientation and placement\n- Exact proportions and edges\n- Exact material appearance\n\nThe product must not morph, stretch, rotate incorrectly, or change color as the hand moves.\n\n--------------------------------------------------\n\nLIGHTING STABILITY RULE (MANDATORY)\n\nLighting must remain constant during the entire video.\n\nDo NOT allow:\n- Auto-exposure shifts\n- White balance changes\n- Color temperature drift\n- Shadow movement inconsistent with the reference\n\nThe lighting must feel locked to the original scene.\n\n--------------------------------------------------\n\nOBJECTIVE\n\nCreate a hyper-realistic selfie-style UGC video that feels naturally filmed by a real Indonesian person.\n\nTone: authentic, spontaneous, casual, non-commercial.\n\nThe phone must NEVER appear in frame.\n\n--------------------------------------------------\n\nFRAMING\n\n- Vertical format 9:16\n- Handheld selfie framing with subtle natural shake\n- Subject looks directly into camera\n- One hand holds or uses the product naturally\n- Camera distance and angle must match reference image\n\n--------------------------------------------------\n\nDIALOGUE STYLE\n\n- Casual Indonesian TikTok tone\n- Natural conversational pacing with small pauses and micro-breaths\n- Maximum 2–3 short sentences\n- Mention ONLY one main product benefit\n- Final sentence MUST include CTA:  \n  \"Klik keranjang kiri bawah ya!\"\n\n--------------------------------------------------\n\nMANDATORY STORY FLOW (follow this order)\n\n1. Call out relatable pain/problem\n2. Make it relatable (frustration, wasted money, failed attempts)\n3. Small emotional shift\n4. Introduce product as solution + mention one feature\n5. Light social proof or urgency\n6. End with CTA\n\n--------------------------------------------------\n\nTECHNICAL SPECS (must appear in output prompt)\n\n- Duration: 15 seconds\n- Shot type: handheld selfie\n- Camera: front-facing perspective with natural motion\n- Audio: direct casual talking to camera\n- No text overlay, subtitles, logos, or watermarks\n\n--------------------------------------------------\n\nOUTPUT FORMAT\n\nGenerate TWO video prompts as a JSON object.  \nNo markdown, no code blocks, only raw JSON.\n\n{\n  \"part1\": \"First ~8 seconds. Scene opens identical to reference image. Character begins speaking to camera, calling out the pain point and making it relatable. She holds the product naturally. Include full visual description from reference: character, outfit, environment, lighting, camera distance, and color tone. Duration ~8 seconds.\",\n\n  \"part2\": \"Continuation from second 8 onward. SAME character, SAME outfit, SAME background, SAME lighting, SAME camera angle — absolutely no visual changes. She continues speaking, introduces the product as the solution, mentions one feature, adds social proof, and ends with CTA: Klik keranjang kiri bawah ya! Transition must be seamless. Duration ~8–12 seconds.\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        528
+      ],
+      "id": "efb21f1b-d3fb-4ef4-a151-1c1062f647e5",
+      "name": "Veo Video Prompt"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        736
+      ],
+      "id": "89b8ba55-817e-450d-8056-5018ac11e8ff",
+      "name": "Wait5",
+      "webhookId": "b049e4b3-7d34-4fec-afc9-185d3a9764fa"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/veo/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prompt: $json['Video Prompt 1'], imageUrls: [$json.veo_image_url], model: \"veo3_fast\", aspectRatio: \"9:16\", enableTranslation: true, generationType: \"REFERENCE_2_VIDEO\" }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        736
+      ],
+      "id": "e340ae78-3acc-4dc6-8e1f-01cad0a755fe",
+      "name": "Veo Video",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "=Analyze this AI-generated image with EXTREME detail. Your description will be used as a reference to recreate this EXACT scene in a video. Every detail matters.\n\nDescribe the following elements with maximum precision:\n\n1. SUBJECT/CHARACTER:\n- Ethnicity, estimated age, gender\n- Face shape, skin tone, skin texture (pores, freckles, moles if visible)\n- Hairstyle: color, length, texture, how it's styled (messy bun, loose strands, etc.)\n- Facial expression: mouth position, eye direction, eyebrow position\n- Body pose: posture, hand positions, gestures\n- Outfit: exact clothing items, colors, fabric texture, fit (loose/tight), wrinkles, sleeves position\n- Accessories: apron, jewelry, watch, hair ties, etc.\n\n2. PRODUCT IN HAND:\n- What product is being held\n- Which hand holds it and how (grip style, finger placement)\n- Angle of the product relative to camera\n- Brand/logo visibility and position\n- Product color, material, size relative to the person\n\n3. ENVIRONMENT/BACKGROUND:\n- Setting type (kitchen, bedroom, bathroom, living room, outdoor)\n- Key furniture and objects visible\n- Wall color/material, countertop material\n- Props: food items, utensils, plants, decorations\n- Depth of field: what's in focus vs blurred\n\n4. LIGHTING:\n- Light source direction (left, right, above, window)\n- Light quality (soft, harsh, warm, cool)\n- Shadow placement and intensity\n- Overall brightness level\n- Color temperature (warm golden, cool blue, neutral)\n\n5. CAMERA/FRAMING:\n- Shot type (close-up, medium, wide)\n- Camera angle (eye-level, slightly above/below)\n- Subject position in frame (center, rule of thirds)\n- Aspect ratio orientation (portrait/landscape)\n- Depth of field strength (shallow bokeh vs deep focus)\n\n6. COLOR PALETTE & MOOD:\n- Dominant colors in the scene\n- Overall color grading/tone (warm, cool, muted, vibrant)\n- Mood/atmosphere conveyed\n\nOutput ONLY the description. No commentary, no suggestions, no markdown formatting. Write in continuous detailed prose, paragraph by paragraph following the order above.",
+        "imageUrls": "={{ JSON.parse($json.data.resultJson).resultUrls[0] }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        528
+      ],
+      "id": "4456c645-a679-4cc8-9971-3342cccd5b0a",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "EkfspU78UqDEdqM8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/veo/extend",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            },
+            {
+              "name": "prompt",
+              "value": "={{ $('Edit Fields1').item.json['Video Prompt 2'] }}"
+            },
+            {
+              "name": "model",
+              "value": "fast"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1712,
+        736
+      ],
+      "id": "b28db52e-ba2a-463e-a904-abe49dfe0f65",
+      "name": "Veo Video 2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f2dccc02-ac3a-4e83-9172-6f99dc324c21",
+              "name": "=Video Prompt 1",
+              "value": "={{ JSON.parse($json.output).part1 }}",
+              "type": "string"
+            },
+            {
+              "id": "e50da85a-ebe2-4a30-bb82-f0158f1a14be",
+              "name": "veo_image_url",
+              "value": "={{ JSON.parse($('HTTP Request1').item.json.data.resultJson).resultUrls[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "0bbdba86-2f6f-4cd9-ae5e-fce19f674d0f",
+              "name": "Video Prompt 2",
+              "value": "={{ JSON.parse($json.output).part2 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        992,
+        736
+      ],
+      "id": "ef023122-3ef3-4cf2-8d8b-38b2da52c6c1",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        736
+      ],
+      "id": "c3f60d2a-a4bf-426f-8d5e-3de14f0244b9",
+      "name": "Wait1",
+      "webhookId": "cd600e63-bbf1-49f9-9b5f-4946bb0e294a"
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/veo/record-info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1376,
+        736
+      ],
+      "id": "a99391a5-b5e7-4a9b-91c0-926d0615f565",
+      "name": "Get Veo Video1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/veo/record-info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1968,
+        736
+      ],
+      "id": "765c3800-8515-437c-90bc-d08b2085f3e1",
+      "name": "Get Veo Video 2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "95c6ee19-b8dd-4f79-8387-561f50e173eb",
+              "name": "Video url 1",
+              "value": "={{ $json['Finished Video'] }}",
+              "type": "string"
+            },
+            {
+              "id": "461c210d-7806-47a5-bd21-c8bada3a807f",
+              "name": "Video url 2",
+              "value": "={{ $json['Finished Video 2'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2256,
+        800
+      ],
+      "id": "0fda4288-9349-4560-991f-7268fd62547f",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "content": "## Banana Pro - Generate Image",
+        "height": 560,
+        "width": 2720,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        448
+      ],
+      "typeVersion": 1,
+      "id": "9381217b-e070-41dc-a5a7-7de9b67c23f7",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1aKnEEPtcSfoPZz6cSliYa-dlYGQO5e8RthXNf3QXp78",
+          "mode": "list",
+          "cachedResultName": "Salinan dari UGC Ads Veo & Sora",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aKnEEPtcSfoPZz6cSliYa-dlYGQO5e8RthXNf3QXp78/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1223267762,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aKnEEPtcSfoPZz6cSliYa-dlYGQO5e8RthXNf3QXp78/edit#gid=1223267762"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Product Photo": "={{ $('Append row in sheet').item.json['Product Photo'] }}",
+            "Finished Image": "={{ $('Edit Fields1').item.json.veo_image_url }}",
+            "Finished Video": "={{ $('Get Veo Video1').item.json.data.response.resultUrls[0] }}",
+            "Finished Video 2": "={{ $('Get Veo Video 2').item.json.data.response.resultUrls[0] }}"
+          },
+          "matchingColumns": [
+            "Product Photo"
+          ],
+          "schema": [
+            {
+              "id": "No",
+              "displayName": "No",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Character Model",
+              "displayName": "Character Model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Product Photo",
+              "displayName": "Product Photo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ICP",
+              "displayName": "ICP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Product Features",
+              "displayName": "Product Features",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Video Setting",
+              "displayName": "Video Setting",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Model",
+              "displayName": "Model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Finished Image",
+              "displayName": "Finished Image",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Finished Video",
+              "displayName": "Finished Video",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Finished Video 2",
+              "displayName": "Finished Video 2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2256,
+        672
+      ],
+      "id": "c6e43d45-2317-4aa9-b02a-99fb859bf8b9",
+      "name": "Update Tracker",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "iOuRI6vWzUhFuouP",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Sora 2 - Video (15sec)",
+        "height": 560,
+        "width": 1968,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        1088
+      ],
+      "typeVersion": 1,
+      "id": "f1171e08-6666-4ea2-8aca-f78396b0189c",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "file": "={{ $json.data.response.resultUrls[0] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1712,
+        528
+      ],
+      "id": "55943ebf-10c4-46db-9b65-2b9e57294378",
+      "name": "Send a video5",
+      "webhookId": "56e83f7a-61cd-4a44-8b66-0b7395486f50",
+      "credentials": {
+        "telegramApi": {
+          "id": "dUFWDBjuZijdKHju",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        112
+      ],
+      "id": "97fbfe7f-8c79-4f62-8d12-6f2c66140ca9",
+      "name": "Wait4",
+      "webhookId": "b049e4b3-7d34-4fec-afc9-185d3a9764fa"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8a2caa94-db0d-4141-ab47-c803e69db7c9",
+              "leftValue": "={{ $json.data.response }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        112
+      ],
+      "id": "ce31e07f-a5c5-4a82-a4ff-a6f380dc65ef",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Product: {{ $json.Product }}\n\nProduct ICP: {{ $json.ICP }}\n\nProduct Features: {{ $json['Product Features'] }}\n\nVideo Setting: {{ $json['Video Setting'] }}\n\n",
+        "options": {
+          "systemMessage": "=System Prompt Template: UGC Selfie Video Creation – TikTok Affiliate Indonesia (15 Detik + CTA)\n\nRole\nKamu adalah expert UGC creator TikTok Affiliate Indonesia.\nTugasmu adalah membuat prompt AI video (misal untuk Veo 3.1) berdasarkan:\n\nProduk\nICP (target pengguna)\n- Fitur utama\n- Setting video\n- Reference image untuk konsistensi visual\nVideo harus terlihat selfie natural, seperti konten review TikTok yang spontan. Jangan tampilkan HP di frame.\n\nRequirements\nSubject & Framing\n- Subjek adalah ICP asli (usia, gender, vibe sesuai target).\n- Video direkam selfie-style, kamera seolah dipegang tangan sendiri.\n- Subjek memegang atau menggunakan produk.\n- Format vertical 9:16.\n- Subjek berbicara langsung ke kamera.\n\nVisual Style\n- Lighting natural, realistis khas rumah/kos/apartemen/kamar/mobil Indonesia.\n- Ada handheld shake ringan, soft grain, vibe natural.\n- Tidak ada HP, teks overlay, iklan formal, logo, atau watermark.\n- Warna, tone, dan overall vibe harus konsisten dengan reference image.\n\nTone & Dialogue\n- Bahasa Indonesia santai, gaya TikTok, 2–3 kalimat pendek.\n- Gaya bicara seperti review jujur: ringan, simple, casual.\n- Menyebut 1 fitur utama produk.\nDi akhir, wajib ucapkan CTA:\n“Klik keranjang kiri bawah ya!”\n\nTechnical Specs\n- Durasi: 15  detik\n- Shot: Handheld selfie\n- Lighting: Natural\n- Audio: casual, ngomong ke kamera\n- Reference image: hanya untuk style matching (tanpa ditampilkan/ disebut)\n- Embedded Elements in the Prompt\n- ICP persona lengkap\n- Fitur utama produk\n- Setting & pencahayaan realistis\n\nCamera style (handheld, slight shake)\n- Reference image style consistency\n- Dialog natural + CTA klik keranjang keranjang kiri bawah\n- Example Output Prompt (TikTok Indonesia Style)\n\n“Selfie-style vertical 9:16 video selama 10 detik dari seorang wanita 25 tahun, tampilan rapi-casual sesuai tone dari reference image. Dia ada di kamar apartemen dengan cahaya jendela natural, memegang [Produk] sambil rekam selfie (HP tidak terlihat). Slight handheld shake, vibe natural. Dia menatap kamera dan berkata santai, ‘Gue baru coba ini dan ternyata enak banget dipakainya, beneran kepake tiap hari. Kalau kalian suka barang simpel tapi kepake banget, wajib punya sih. Klik keranjang kuning di bawah ya!’ Produk dan muka tetap terlihat jelas.”"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        112
+      ],
+      "id": "a496f99e-b09a-4707-b3ee-b6622eec4fcb",
+      "name": "Veo Video Prompt2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/veo/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.output\n  .replace(/\\r?\\n|\\r/g, ' ')\n  .replace(/\"/g, '')\n  .replace(/[“”]/g, '') // removes curly double quotes\n}}\",\n  \"imageUrls\": [\"{{ $('Append row in sheet').item.json['Product Photo'] }}\"],\n  \"model\": \"veo3_fast\",\n  \"aspectRatio\": \"9:16\",\n  \"enableTranslation\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        112
+      ],
+      "id": "2b5d408d-44ae-4ef4-91ac-e7af2f65d597",
+      "name": "Veo Video2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/veo/record-info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        112
+      ],
+      "id": "13672bc6-7fa6-40aa-a95a-1ffab38f52ba",
+      "name": "Get Veo Video2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.from.id }}",
+        "file": "={{ $json.data.response.resultUrls[0] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1024,
+        128
+      ],
+      "id": "0e2a8b73-c967-4a63-96a6-1fb0efa107cb",
+      "name": "Send a video",
+      "webhookId": "56e83f7a-61cd-4a44-8b66-0b7395486f50",
+      "credentials": {
+        "telegramApi": {
+          "id": "dUFWDBjuZijdKHju",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Veo 3\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/components/sticky-notes/)",
+        "height": 400,
+        "width": 1248
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "a955d985-ef9e-4416-9030-292ba032fd55",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ba016e41-1aba-4110-9fcb-6ef28e7af672",
+              "name": "product_name",
+              "value": "={{ $json.content.parts[0].text.match(/\\| product_name \\| (.*)\\|/)[1].trim() }}\n",
+              "type": "string"
+            },
+            {
+              "id": "7d04acb8-9e4b-4b91-a4b3-4d3d7864c551",
+              "name": "video_setting",
+              "value": "={{ $json.content.parts[0].text.match(/\\| video_setting \\| (.*)\\|/)[1].trim() }}\n",
+              "type": "string"
+            },
+            {
+              "id": "75219388-48a2-4be2-8a0b-dfa11e9cb022",
+              "name": "icp",
+              "value": "={{ $json.content.parts[0].text.match(/\\| icp \\| (.*)\\|/)[1].trim() }}\n",
+              "type": "string"
+            },
+            {
+              "id": "45e3cd72-8e8e-479c-92df-20288e41ff8b",
+              "name": "product_features",
+              "value": "={{ $json.content.parts[0].text.match(/\\| product_features \\| (.*)\\|/)[1].trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "b32f6e0a-1e3e-400c-b16e-078df84009d1",
+              "name": "character_model",
+              "value": "={{ $json.content.parts[0].text.match(/\\| character_model \\| (.*)\\|/)[1].trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "959dc195-5c35-4b3d-a18d-c4e94892de1d",
+              "name": "product_visual",
+              "value": "={{ $json.content.parts[0].text.match(/\\| product_visual \\| (.*)\\|/)[1].trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        704
+      ],
+      "id": "d981d8dd-4f0f-4fd6-8c51-ed7f7f19d2b8",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.photo.slice(-1)[0].file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -528,
+        576
+      ],
+      "id": "e69fc0bf-eed5-4eb9-a814-d96d6cbfb069",
+      "name": "Get a file",
+      "webhookId": "7c67dbc3-25be-48fc-915d-836a84c7541d",
+      "credentials": {
+        "telegramApi": {
+          "id": "dUFWDBjuZijdKHju",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.telegram.org/file/bot7851828313:AAEP6zpEnReJ37wfXP7sMxQWEvPwNbEQL0Y/' + $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -400,
+        576
+      ],
+      "id": "d1463d10-69ba-4d62-aed0-dd9e17c96d6c",
+      "name": "Download Image"
+    },
+    {
+      "parameters": {
+        "name": "={{ $json.result.file_path }}",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive",
+          "cachedResultUrl": "https://drive.google.com/drive/my-drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1gAxRcXkK7BxAEgiH55HV1Dw-lkSDd2DJ",
+          "mode": "list",
+          "cachedResultName": "DEMO n8n",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1gAxRcXkK7BxAEgiH55HV1Dw-lkSDd2DJ"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -256,
+        576
+      ],
+      "id": "97b48fe2-5962-4b0a-b866-4ddb703c3c85",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "8VpP8uhEcItGdwdF",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1aKnEEPtcSfoPZz6cSliYa-dlYGQO5e8RthXNf3QXp78",
+          "mode": "list",
+          "cachedResultName": "Salinan dari UGC Ads Veo & Sora",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aKnEEPtcSfoPZz6cSliYa-dlYGQO5e8RthXNf3QXp78/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1223267762,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1aKnEEPtcSfoPZz6cSliYa-dlYGQO5e8RthXNf3QXp78/edit#gid=1223267762"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ICP": "={{ $json.icp }}",
+            "Video Setting": "={{ $json.video_setting }}",
+            "Product Features": "={{ $json.product_features }}",
+            "Product": "={{ $json.product_name }}",
+            "Product Photo": "={{ $('Upload file').item.json.webContentLink }}",
+            "Character Model": "={{ $json.character_model }}",
+            "Product Visual": "={{ $json.product_visual }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "No",
+              "displayName": "No",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Product",
+              "displayName": "Product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Character Model",
+              "displayName": "Character Model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Product Photo",
+              "displayName": "Product Photo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Visual",
+              "displayName": "Product Visual",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ICP",
+              "displayName": "ICP",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Product Features",
+              "displayName": "Product Features",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Video Setting",
+              "displayName": "Video Setting",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Model",
+              "displayName": "Model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Finished Image",
+              "displayName": "Finished Image",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Finished Video",
+              "displayName": "Finished Video",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Finished Video 2",
+              "displayName": "Finished Video 2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -256,
+        704
+      ],
+      "id": "2dfdd991-2076-4048-877a-e7d5e2e9e40b",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "iOuRI6vWzUhFuouP",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -736,
+        576
+      ],
+      "id": "64f23835-4a32-44ab-a704-383d83a03d0e",
+      "name": "Telegram Trigger",
+      "webhookId": "fee2bf9c-c4a9-4470-9557-40a3cd92f54f",
+      "alwaysOutputData": false,
+      "credentials": {
+        "telegramApi": {
+          "id": "dUFWDBjuZijdKHju",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Product: {{ $json.Product }}\n\nProduct Visual: {{ $json[\"Product Visual\"] }}\n\nCharacter Model: {{ $json['Character Model'] }}",
+        "options": {
+          "systemMessage": "=ROLE\nYou generate hyper-realistic Indonesian UGC image prompts for affiliate ads.\n\nYour outputs must:\n\n1. Look like authentic smartphone photos of real people\n2. Preserve the product EXACTLY as shown in the reference\n3. Clearly communicate the product within the first glance\n\nOutput only the final image prompt. Never explain reasoning.\n\n---\n\nPRIORITY 1 — HUMAN REALISM\n\nPeople must look genuinely human and believable.\n\nInclude:\n\n* Natural skin texture visible only under good lighting or close distance\n* Balanced complexion (no exaggerated pores or gritty texture)\n* Slight facial asymmetry and natural expression tension\n* Flyaway hairs and subtle tone variation\n* Realistic posture and believable body weight\n\nSubjects must resemble real Indonesian people:\n\n* Warm olive to medium brown skin tones\n* Natural dark hair tones\n* Everyday relatable appearance (not runway model)\n\nAvoid:\n\n* Hyper-textured skin\n* Over-sharpened pores\n* Editorial beauty realism exaggeration\n\nSkin should look:\nClean, breathable, and healthy — not filtered, not gritty.\n\n---\n\nINDONESIAN HAIR GROOMING RULE\n\nHair should look casually groomed, as if the creator prepared before filming,\nbut not professionally styled.\n\nTarget look:\n\n* Brushed and shaped\n* Controlled volume\n* Natural movement\n* Slight styling intention\n\nGood examples:\n\n* Soft straight hair tucked behind ear\n* Loose controlled waves\n* Low ponytail\n* Half-tied hair\n* Light blow-dry look\n\nAvoid:\n\n* Messy unbrushed hair\n* Frizzy uncontrolled volume\n* Bed-hair appearance\n* Editorial salon styling\n\nHair should signal:\n“I look presentable for camera”\nnot\n“I just woke up”\nand not\n“I came from a photoshoot”\n\nHair must support Indonesian authenticity first,\nvisual appeal second.\n\n---\n\nREALISM CAMERA & LIGHTING LOGIC\n\nUse natural smartphone-style capture:\n\n* 35mm or 50mm equivalent feel\n* Shallow depth only when natural\n* Soft background falloff, never cinematic blur\n\nUse real-world lighting only:\n\n* Window light, daylight, or practical indoor sources\n* Natural shadow direction and softness\n* Lighting must keep product details clearly visible\n\nForce tactile realism in materials and environment,\nnot excessive facial texture.\n\n---\n\nUGC BEHAVIOR LOGIC\n\nSubjects behave like someone casually reviewing a product on TikTok.\n\nFavor:\n\n* Mid-sentence expressions or micro reactions\n* Natural hand adjustments and grip shifts\n* Slight posture imbalance or casual leaning\n* Attention split between product and camera\n\nAllow:\n\n* Slight handheld framing feel\n* Minor natural motion blur\n\nThe subject must feel spontaneous, not posed.\n\n---\n\nENVIRONMENT VARIETY RULE\n\nUse varied but believable real-life environments that support product context.\n\nPossible environments include:\n\n* Modern bathrooms with mirrors or vanity lighting\n* Kitchens, bedrooms, dressing tables, laundry spaces\n* Cafés, terraces, cars, or desks\n* Living rooms, balconies, or studio corners\n\nGuidelines:\n\n* Environment must support product story\n* Include small believable clutter\n* Avoid repeating identical setups\n* Environment must never overpower product visibility\n\n---\n\nAFFILIATE PRIORITY RULE\n\nThe product is always the visual priority.\n\nEnsure:\n\n* Product clearly visible and readable\n* Logo or key feature unobstructed\n* Pose naturally showcases product\n* Lighting supports product clarity\n\nAvoid:\n\n* Wide shots shrinking the product\n* Busy backgrounds distracting from product\n* Hands blocking branding\n\nThe viewer must instantly understand what is being promoted.\n\n---\n\nFIRST-FRAME CONVERSION RULE\n\nThe image must communicate the product instantly, even at thumbnail scale.\n\nEnsure:\n\n* Product silhouette readable small\n* Product placed within central viewing zone\n* Branding visible without zooming\n* Clear contrast between product and background\n\nRecognition must occur within 0.5 seconds.\n\n---\n\nPRIORITY 2 — PRODUCT FIDELITY LOCK\n\nThe product must match the reference image EXACTLY.\n\nPreserve:\n\n* Exact shape and proportions\n* Exact colors with no tonal shift\n* Exact logo placement and typography\n* Exact materials, seams, ports, labels, and details\n\nDo NOT redesign, simplify, or move branding.\n\nIf lighting affects perceived color, the product color must remain true.\n\nMANDATORY LINE TO INCLUDE IN OUTPUT:\n\"The product must match the reference exactly with no logo change, no color deviation, and no structural alteration.\"\n\n---\n\nPROMPT STRUCTURE (MANDATORY ORDER)\n\n1. Scene vibe and context\n2. Exact product micro-description from reference\n3. Indonesian subject description with realism cues\n4. Natural interaction with correct grip and weight physics\n5. Lighting source + environment depth + small clutter\n6. Vertical 9:16, smartphone feel, shallow depth only if natural\n7. Product lock sentence\n8. Style tags: raw photo, hyper-realistic, natural skin, realistic texture\n\n---\n\nNEGATIVE BLOCK (MANDATORY)\n\n(cartoon, CGI, 3d render, illustration, doll, airbrushed, studio lighting, stock photo look),\n(plastic skin, overly sharp pores, hyper-texture skin, beauty filter),\n(extra fingers, malformed hands),\n(product redesign, altered logo, wrong brand name, modified packaging, incorrect proportions, color-shifted product)\n\n---\n\nFINAL OUTPUT RULE\n\nAlways output one clean image prompt.\nNo headings. No explanations. Only the prompt text."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        48,
+        528
+      ],
+      "id": "8b520c77-bf5c-4ae2-9d46-788fc09880f1",
+      "name": "Generate Image Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/jobs/createTask",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"nano-banana-pro\",\n  \"input\": {\n    \"prompt\": \"{{ $json.output\n  .replace(/\\r?\\n|\\r/g, ' ')\n  .replace(/\"/g, '')\n  .replace(/[“”]/g, '') // removes curly double quotes\n}}\",\n    \"aspect_ratio\": \"9:16\",\n    \"resolution\": \"2K\",\n    \"output_format\": \"png\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        528
+      ],
+      "id": "01e66afd-7cf7-4846-9086-f3136532ee0a",
+      "name": "Get Image",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "=Analisa foto produk ini dengan SANGAT DETAIL. Deskripsi visual akan digunakan AI untuk merekonstruksi produk PERSIS SAMA tanpa melihat foto asli.\n\nOutputkan HASIL dalam format TABEL seperti di bawah ini (WAJIB sama persis):\n\n| column | value |\n|--------|--------|\n| product_name | ... |\n| product_visual | ... |\n| product_features | ... |\n| video_setting | ... |\n| icp | ... |\n| character_model | ... |\n\nAturan untuk product_visual:\nDeskripsikan produk seolah menjelaskan ke seniman yang BELUM PERNAH melihat produk ini. Tulis dalam bahasa Inggris, satu paragraf.\n\nWAJIB mencakup:\n1. Jenis & bentuk keseluruhan (bottle, tube, garment, device, pouch, box, dll)\n2. Ukuran relatif (palm-sized, handheld, wearable, dll)\n3. Warna EXACT tiap bagian (misal: \"matte black body, brushed silver trim, white cap\")\n4. Material & finishing (glossy plastic, frosted glass, cotton fabric, brushed metal, dll)\n5. SEMUA teks yang terlihat (brand name, variant, size, tagline) beserta posisi dan warna font\n6. Detail fungsional yang terlihat (pump, zipper, button, screen, port, strap, dropper, dll)\n7. Sudut foto dan kondisi produk (front view, opened, being worn, dll)\n\nJangan deskripsikan hal yang TIDAK terlihat di foto. Jangan mengarang detail.\n\nAturan umum:\n- TIDAK boleh ada penjelasan di luar tabel.\n- TIDAK boleh menggunakan markdown.\n- product_features pisahkan dengan koma.\n- Semua value harus 1 baris, tidak boleh multiline.",
+        "imageUrls": "={{ $json.webContentLink }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        704
+      ],
+      "id": "8d70dfa7-5f00-4b1d-af95-e831fa5bf152",
+      "name": "Analyze",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "EkfspU78UqDEdqM8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8a2caa94-db0d-4141-ab47-c803e69db7c9",
+              "leftValue": "={{ $json.data.response }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1504,
+        736
+      ],
+      "id": "6f150d2d-7060-4a64-943b-bad6303a77b7",
+      "name": "IF"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8a2caa94-db0d-4141-ab47-c803e69db7c9",
+              "leftValue": "={{ $json.data.response }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2096,
+        736
+      ],
+      "id": "4a9eed79-dabd-41e2-ab3f-699739f6232c",
+      "name": "IF 2"
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-sonnet-4",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        96,
+        1360
+      ],
+      "id": "99c21e0a-9294-4d33-8d07-59ca0802a734",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "oPWcCOe1OH7OY5aq",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        1184
+      ],
+      "id": "84ff2168-9a95-4fdd-b3e2-81882fae1996",
+      "name": "Wait2",
+      "webhookId": "7ce92d68-ba96-4ce9-9e2c-56b7ca9a80da"
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/jobs/recordInfo",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        384,
+        1424
+      ],
+      "id": "abe42e35-7024-4516-88c4-76a297d05b79",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8a2caa94-db0d-4141-ab47-c803e69db7c9",
+              "leftValue": "={{ $json.data.state }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        1424
+      ],
+      "id": "47f49864-515e-493f-ba2e-f40697982f61",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "==REFERENCE IMAGE DESCRIPTION (the video MUST look exactly like this):\n{{ $json.content.parts[0].text }}\n\nPRODUCT INFORMATION:\n- Product: {{ $('Append row in sheet').item.json.Product }}\n- Product Features: {{ $('Append row in sheet').item.json['Product Features'] }}\n- ICP: {{ $('Append row in sheet').item.json.ICP }}\n- Video Setting: {{ $('Append row in sheet').item.json['Video Setting'] }}\n- Character Model: {{ $('Append row in sheet').item.json['Character Model'] }}\n\nGenerate a video prompt where this exact character from the reference image comes to life. She starts speaking directly to camera in a natural selfie-style UGC format. Every visual detail — her face, outfit, hair, background, lighting, product grip — must remain identical to the reference image description above.\n\n",
+        "options": {
+          "systemMessage": "=SYSTEM PROMPT – UGC SELFIE VIDEO PROMPT GENERATOR\nTikTok Affiliate Indonesia (15s + CTA)\n\nROLE:\nYou are an expert AI Video Director specializing in hyper-realistic UGC content for TikTok Affiliate Indonesia.\nYour task is to generate ONE detailed video prompt for Veo 3.1.\nYou do NOT generate the video. You ONLY generate the video prompt.\n\n--------------------------------------------------\n\nCRITICAL RULE — FRAME LOCK WITH REFERENCE IMAGE\n\nA detailed reference image description will be provided.  \nThe video must look like this image coming to life.\n\nThe FIRST FRAME must visually match the reference image exactly.\n\nAcross the entire video:\n- SAME character: identical face shape, skin tone, features, hairstyle, expression style\n- SAME outfit: exact clothing items, colors, accessories, fit\n- SAME environment: identical setting, props, surfaces, materials, wall colors\n- SAME lighting: same direction, softness, shadow placement, and color temperature\n- SAME color palette and mood\n- SAME product position, hand, grip, and orientation\n\nNO visual reinterpretation is allowed.\n\n--------------------------------------------------\n\nFRAME STABILITY RULES (MANDATORY)\n\nFacial structure, skin texture, proportions, and lighting must remain consistent across all frames.\n\nDo NOT allow:\n- Face reshaping or beautification\n- Skin smoothing or texture loss\n- Hair volume or color shift\n- Makeup intensity changes\n\nThe subject must remain visually identical from start to end.\n\n--------------------------------------------------\n\nPRODUCT CONTINUITY RULE (MANDATORY)\n\nThe product must remain visually identical during all movement.\n\nPreserve:\n- Exact shape and thickness\n- Exact color tone\n- Exact logo orientation and placement\n- Exact proportions and edges\n- Exact material appearance\n\nThe product must not morph, stretch, rotate incorrectly, or change color as the hand moves.\n\n--------------------------------------------------\n\nLIGHTING STABILITY RULE (MANDATORY)\n\nLighting must remain constant during the entire video.\n\nDo NOT allow:\n- Auto-exposure shifts\n- White balance changes\n- Color temperature drift\n- Shadow movement inconsistent with the reference\n\nThe lighting must feel locked to the original scene.\n\n--------------------------------------------------\n\nOBJECTIVE\n\nCreate a hyper-realistic selfie-style UGC video that feels naturally filmed by a real Indonesian person.\n\nTone: authentic, spontaneous, casual, non-commercial.\n\nThe phone must NEVER appear in frame.\n\n--------------------------------------------------\n\nFRAMING\n\n- Vertical format 9:16\n- Handheld selfie framing with subtle natural shake\n- Subject looks directly into camera\n- One hand holds or uses the product naturally\n- Camera distance and angle must match reference image\n\n--------------------------------------------------\n\nDIALOGUE STYLE\n\n- Casual Indonesian TikTok tone\n- Natural conversational pacing with small pauses and micro-breaths\n- Maximum 2–3 short sentences\n- Mention ONLY one main product benefit\n- Final sentence MUST include CTA:  \n  \"Klik keranjang kiri bawah ya!\"\n\n--------------------------------------------------\n\nMANDATORY STORY FLOW (follow this order)\n\n1. Call out relatable pain/problem\n2. Make it relatable (frustration, wasted money, failed attempts)\n3. Small emotional shift\n4. Introduce product as solution + mention one feature\n5. Light social proof or urgency\n6. End with CTA\n\n--------------------------------------------------\n\nTECHNICAL SPECS (must appear in output prompt)\n\n- Duration: 15 seconds\n- Shot type: handheld selfie\n- Camera: front-facing perspective with natural motion\n- Audio: direct casual talking to camera\n- No text overlay, subtitles, logos, or watermarks\n\n--------------------------------------------------\n\nOUTPUT FORMAT\n\nGenerate TWO video prompts as a JSON object.  \nNo markdown, no code blocks, only raw JSON.\n\n{\n  \"part1\": \"First ~8 seconds. Scene opens identical to reference image. Character begins speaking to camera, calling out the pain point and making it relatable. She holds the product naturally. Include full visual description from reference: character, outfit, environment, lighting, camera distance, and color tone. Duration ~8 seconds.\",\n\n  \"part2\": \"Continuation from second 8 onward. SAME character, SAME outfit, SAME background, SAME lighting, SAME camera angle — absolutely no visual changes. She continues speaking, introduces the product as the solution, mentions one feature, adds social proof, and ends with CTA: Klik keranjang kiri bawah ya! Transition must be seamless. Duration ~8–12 seconds.\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        912,
+        1184
+      ],
+      "id": "3d9422e6-a5ae-4fc5-b5d1-b9b514d1ee1e",
+      "name": "Veo Video Prompt1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/veo/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prompt: $json['Video Prompt 1'], imageUrls: [$json.veo_image_url], model: \"veo3_fast\", aspectRatio: \"9:16\", enableTranslation: true, generationType: \"REFERENCE_2_VIDEO\" }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1136,
+        1392
+      ],
+      "id": "da29bfe3-0535-466e-82c8-65a3ac049067",
+      "name": "Veo Video1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "=Analyze this AI-generated image with EXTREME detail. Your description will be used as a reference to recreate this EXACT scene in a video. Every detail matters.\n\nDescribe the following elements with maximum precision:\n\n1. SUBJECT/CHARACTER:\n- Ethnicity, estimated age, gender\n- Face shape, skin tone, skin texture (pores, freckles, moles if visible)\n- Hairstyle: color, length, texture, how it's styled (messy bun, loose strands, etc.)\n- Facial expression: mouth position, eye direction, eyebrow position\n- Body pose: posture, hand positions, gestures\n- Outfit: exact clothing items, colors, fabric texture, fit (loose/tight), wrinkles, sleeves position\n- Accessories: apron, jewelry, watch, hair ties, etc.\n\n2. PRODUCT IN HAND:\n- What product is being held\n- Which hand holds it and how (grip style, finger placement)\n- Angle of the product relative to camera\n- Brand/logo visibility and position\n- Product color, material, size relative to the person\n\n3. ENVIRONMENT/BACKGROUND:\n- Setting type (kitchen, bedroom, bathroom, living room, outdoor)\n- Key furniture and objects visible\n- Wall color/material, countertop material\n- Props: food items, utensils, plants, decorations\n- Depth of field: what's in focus vs blurred\n\n4. LIGHTING:\n- Light source direction (left, right, above, window)\n- Light quality (soft, harsh, warm, cool)\n- Shadow placement and intensity\n- Overall brightness level\n- Color temperature (warm golden, cool blue, neutral)\n\n5. CAMERA/FRAMING:\n- Shot type (close-up, medium, wide)\n- Camera angle (eye-level, slightly above/below)\n- Subject position in frame (center, rule of thirds)\n- Aspect ratio orientation (portrait/landscape)\n- Depth of field strength (shallow bokeh vs deep focus)\n\n6. COLOR PALETTE & MOOD:\n- Dominant colors in the scene\n- Overall color grading/tone (warm, cool, muted, vibrant)\n- Mood/atmosphere conveyed\n\nOutput ONLY the description. No commentary, no suggestions, no markdown formatting. Write in continuous detailed prose, paragraph by paragraph following the order above.",
+        "imageUrls": "={{ JSON.parse($json.data.resultJson).resultUrls[0] }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        1344
+      ],
+      "id": "2ea71b9a-c40e-419e-b50f-e560945e4822",
+      "name": "Analyze an image1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "EkfspU78UqDEdqM8",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f2dccc02-ac3a-4e83-9172-6f99dc324c21",
+              "name": "=Video Prompt 1",
+              "value": "={{ JSON.parse($json.output).part1 }}",
+              "type": "string"
+            },
+            {
+              "id": "e50da85a-ebe2-4a30-bb82-f0158f1a14be",
+              "name": "veo_image_url",
+              "value": "={{ JSON.parse($('HTTP Request').item.json.data.resultJson).resultUrls[0] }}",
+              "type": "string"
+            },
+            {
+              "id": "0bbdba86-2f6f-4cd9-ae5e-fce19f674d0f",
+              "name": "Video Prompt 2",
+              "value": "={{ JSON.parse($json.output).part2 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1008,
+        1392
+      ],
+      "id": "e7ee3854-2697-4c8f-b318-15c03129c1e0",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1264,
+        1392
+      ],
+      "id": "2acb4baf-b506-41f4-88e5-0ffef1d8cb53",
+      "name": "Wait3",
+      "webhookId": "cd600e63-bbf1-49f9-9b5f-4946bb0e294a"
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/veo/record-info",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1392,
+        1392
+      ],
+      "id": "e052dcec-31e7-4557-948e-41fe062f917c",
+      "name": "Get Veo Video",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "sendVideo",
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "file": "={{ $json.data.response.resultUrls[0] }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1728,
+        1216
+      ],
+      "id": "2cd196f5-a444-4b2b-8bce-3b5588bcdfbc",
+      "name": "Send a video6",
+      "webhookId": "56e83f7a-61cd-4a44-8b66-0b7395486f50",
+      "credentials": {
+        "telegramApi": {
+          "id": "dUFWDBjuZijdKHju",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Product: {{ $json.Product }}\n\nProduct Visual: {{ $json[\"Product Visual\"] }}\n\nCharacter Model: {{ $json['Character Model'] }}",
+        "options": {
+          "systemMessage": "=SYSTEM PROMPT — ULTIMATE UGC VISUAL DIRECTOR (V5.4 AFFILIATE CALIBRATED)\n\nROLE\nYou generate hyper-realistic Indonesian UGC image prompts for affiliate ads.\n\nYour outputs must:\n\n1. Look like authentic smartphone photos of real people\n2. Preserve the product EXACTLY as shown in the reference\n3. Clearly communicate the product within the first glance\n\nOutput only the final image prompt. Never explain reasoning.\n\n---\n\nPRIORITY 1 — HUMAN REALISM\n\nPeople must look genuinely human and imperfect.\n\nInclude:\n\n* Visible pores and natural skin texture\n* Slight facial asymmetry and micro-expressions\n* Flyaway hairs and natural tone variation\n* Realistic posture and believable body weight\n\nSubjects must resemble real Indonesian people:\n\n* Warm olive to medium brown skin tones\n* Natural dark hair\n* Relatable everyday appearance (not model-like)\n\n---\n\nATTRACTIVENESS CALIBRATION SCALE (MANDATORY)\n\nHuman appearance must follow calibrated attractiveness suited to the product category while preserving UGC authenticity.\n\nLevel 1 — Everyday Real\nAverage relatable Indonesian appearance, minimal grooming, candid feel.\nUse for household or functional products.\n\nLevel 2 — Polished Everyday (DEFAULT)\nNaturally attractive real person with neat hair, healthy skin, good hygiene.\nStill looks like a normal TikTok user, not a model.\nUse for most affiliate products.\n\nLevel 3 — Creator Attractive\nNoticeably attractive like a lifestyle TikTok creator.\nClear skin, pleasant styling, good facial harmony, but still imperfect and human.\nUse for fashion, beauty, skincare, accessories.\n\nLevel 4 — Commercial Attractive (RESTRICTED)\nHigh attractiveness approaching ad talent but still grounded in realism.\nMust retain natural lighting, micro-imperfections, and casual behavior.\nUse sparingly for premium or aspirational products.\n\nLevel 5 — Model / Studio Look (FORBIDDEN)\nPerfect symmetry, glam makeup, studio lighting, catalog posing.\nNever use this level.\n\nSELECTION RULE\nAutomatically choose attractiveness level based on product category:\n\n* Beauty / Fashion / Apparel → Level 3\n* Premium lifestyle product → Level 3–4\n* Everyday product → Level 2\n* Functional / household → Level 1–2\n\nEven at higher levels, the subject must still look like a real Indonesian TikTok creator.\n\n---\n\nREALISM CAMERA & LIGHTING LOGIC\n\nUse natural smartphone-style capture:\n\n* 35mm or 50mm equivalent feel\n* Shallow depth of field only when natural\n* Soft background falloff, never cinematic blur\n\nUse real-world lighting:\n\n* Window light, daylight, or practical indoor sources\n* Natural shadow direction and softness\n* Lighting must keep product details clearly visible\n\nForce tactile realism:\n\n* Skin pores and micro texture\n* Fabric grain and stitching detail\n* Minor imperfections in surfaces\n\nTexture equals credibility.\n\n---\n\nUGC BEHAVIOR LOGIC\n\nSubjects behave like someone casually reviewing a product on TikTok.\n\nFavor:\n\n* Mid-sentence expressions or micro reactions\n* Natural hand adjustments and grip shifts\n* Slight posture imbalance or casual leaning\n* Attention split between product and camera\n\nAllow:\n\n* Slight handheld framing feel\n* Minor natural motion blur\n\nThe subject must feel spontaneous, not posed.\n\n---\n\nENVIRONMENT VARIETY RULE\n\nUse varied but believable real-life environments that support product context.\n\nExamples include:\n\n* Modern bathrooms, vanities, mirrors, dressing tables\n* Kitchens, bedrooms, laundry spaces, living rooms\n* Cafés, terraces, cars, offices, studios, desks\n* Podcast setups, balconies, workspaces\n\nGuidelines:\n\n* Environment must support the product story\n* Include believable clutter or lived-in detail\n* Avoid repeating the same environment style\n* Environment must never overpower product visibility\n\n---\n\nAFFILIATE PRIORITY RULE\n\nThe product is always the visual priority.\n\nEnsure:\n\n* Product is clearly visible and readable\n* Logo or key feature unobstructed\n* Pose helps showcase the product\n* Lighting supports product clarity\n\nAvoid:\n\n* Wide shots where product becomes secondary\n* Busy environments distracting from product\n* Compositions where product blends into background\n\nThe viewer must instantly understand what is being promoted.\n\n---\n\nFIRST-FRAME CONVERSION RULE\n\nThe image must communicate the product instantly, even at small preview size.\n\nEnsure:\n\n* Product silhouette readable at thumbnail scale\n* Product placed in central viewing zone\n* Branding visible without zoom\n* Clear contrast between product and background\n\nAvoid:\n\n* Product blending into similar colors\n* Extreme angles distorting shape\n* Hands covering defining features\n\nViewer must recognize the product within 0.5 seconds.\n\n---\n\nPRIORITY 2 — PRODUCT FIDELITY LOCK\n\nThe product must match the reference image EXACTLY.\n\nPreserve:\n\n* Exact shape and proportions\n* Exact colors with no tonal shift\n* Exact logo placement and typography\n* Exact materials, seams, ports, labels, and details\n\nDo NOT redesign, simplify, or move branding.\n\nIf lighting affects perceived color, product color must remain true.\n\nMANDATORY LINE TO INCLUDE IN OUTPUT:\n\"The product must match the reference exactly with no logo change, no color deviation, and no structural alteration.\"\n\n---\n\nPROMPT STRUCTURE (MANDATORY ORDER)\n\n1. Scene vibe and context\n2. Exact product micro-description from reference\n3. Indonesian subject description with realism cues + calibrated attractiveness level\n4. Natural interaction with correct grip and weight physics\n5. Lighting source + environment depth + small clutter\n6. Vertical 9:16, smartphone feel, shallow depth only if natural\n7. Product lock sentence\n8. Style tags: raw photo, hyper-realistic, visible pores, natural texture\n\n---\n\nNEGATIVE BLOCK (MANDATORY)\n\n(cartoon, CGI, 3d render, illustration, doll, airbrushed, studio lighting, stock photo look),\n(plastic skin, smooth skin, beauty filter),\n(extra fingers, malformed hands),\n(product redesign, altered logo, wrong brand name, modified packaging, incorrect proportions, color-shifted product)\n\n---\n\nFINAL OUTPUT RULE\n\nAlways output one clean image prompt.\nNo headings. No explanations. Only the prompt text.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        1184
+      ],
+      "id": "f4ccd7ca-921f-4067-b99e-cb93a6286793",
+      "name": "Generate Image Prompt1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/jobs/createTask",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"nano-banana-pro\",\n  \"input\": {\n    \"prompt\": \"{{ $json.output\n  .replace(/\\r?\\n|\\r/g, ' ')\n  .replace(/\"/g, '')\n  .replace(/[“”]/g, '') // removes curly double quotes\n}}\",\n    \"aspect_ratio\": \"9:16\",\n    \"resolution\": \"2K\",\n    \"output_format\": \"png\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        384,
+        1184
+      ],
+      "id": "b56e2b53-63ce-4e1f-830e-51616b32420a",
+      "name": "Get Image1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "d48WqgEphAFpAHk3",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8a2caa94-db0d-4141-ab47-c803e69db7c9",
+              "leftValue": "={{ $json.data.response }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1520,
+        1392
+      ],
+      "id": "84229d23-9c1d-4da3-a71d-4f6f05c7192b",
+      "name": "IF1"
+    }
+  ],
+  "pinData": {
+    "Wait5": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "0f3aecdca24c30ad63fcfc3735347be3",
+            "paramJson": "{\"model\":\"fast\",\"prompt\":\"Continuation seamless from second 8 onward. The same male character, outfit, posture, and exact environment remain unchanged with identical natural soft lighting, camera angle, focus, and handheld selfie slight movement. He shifts perspective lightly, introducing the Baseus MC1 Pro earbuds as the solution, highlighting the SuperBass 2.0 feature naturally while holding the charging case in the same manner. He adds soft social proof hinting at satisfaction and urgency and ends the casual, honest talk with the required CTA in Indonesian: \\\"Klik keranjang kiri bawah ya!\\\" The product placement remains perfectly consistent with fingers spread and front facing the camera showing the brand name. The atmosphere stays calm, casual, and inviting throughout. Duration: 8-12 seconds.\",\"taskId\":\"6959f503e904bc4b1608a61944888b98\"}",
+            "response": null,
+            "successFlag": 0,
+            "fallbackFlag": false,
+            "completeTime": null,
+            "createTime": 1771052631000,
+            "errorCode": null,
+            "errorMessage": null
+          }
+        }
+      }
+    ],
+    "Veo Video": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "6959f503e904bc4b1608a61944888b98"
+          }
+        }
+      }
+    ],
+    "Veo Video 2": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "0f3aecdca24c30ad63fcfc3735347be3"
+          }
+        }
+      }
+    ],
+    "Edit Fields1": [
+      {
+        "json": {
+          "Video Prompt 1": "First 8 seconds. Scene opens with the East/Southeast Asian male in his late 20s to early 30s seated slightly to the right of center in the frame, in a relaxed posture leaning slightly left in a vintage-style grey-brown leather office chair with wooden accents and chrome frame. He wears a heather grey short-sleeved crew-neck t-shirt with natural folds and dark navy blue sweatpants. His dark brown/black medium-length messy hair is pushed back with some strands falling on his forehead. His warm medium-tan skin with natural pores and slight stubble is softly lit by natural light from a large window to his left, casting gentle shadows along the right side of his face. He holds a matte black Baseus MC1 Pro wireless earbuds charging case naturally in his left hand, palm facing camera, fingers spread with thumb on bottom edge and index on the left side, angled slightly right revealing the white 'Baseus' text on the front. The blurred background shows the wooden desk with books, phone, resistance bands, green houseplants on shelves, and window with white frame and light-colored buildings outside. The camera is at a slightly below eye-level medium shot handheld selfie framing, with slight natural shake. He looks softly upward and left of the camera, smiling gently with mouth slightly open showing upper teeth with a gap, relaxed eyebrows with crinkles at eyes’ corners. He begins speaking casually in Indonesian style, calling out a common frustration about earbuds. Duration: 8 seconds.",
+          "veo_image_url": "https://tempfile.aiquickdraw.com/images/1771052318676-78fycxwrwcv.png",
+          "Video Prompt 2": "Continuation seamless from second 8 onward. The same male character, outfit, posture, and exact environment remain unchanged with identical natural soft lighting, camera angle, focus, and handheld selfie slight movement. He shifts perspective lightly, introducing the Baseus MC1 Pro earbuds as the solution, highlighting the SuperBass 2.0 feature naturally while holding the charging case in the same manner. He adds soft social proof hinting at satisfaction and urgency and ends the casual, honest talk with the required CTA in Indonesian: \"Klik keranjang kiri bawah ya!\" The product placement remains perfectly consistent with fingers spread and front facing the camera showing the brand name. The atmosphere stays calm, casual, and inviting throughout. Duration: 8-12 seconds."
+        }
+      }
+    ],
+    "Wait1": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "6959f503e904bc4b1608a61944888b98",
+            "paramJson": "{\"aspectRatio\":\"9:16\",\"enableFallback\":false,\"enableTranslation\":true,\"generationType\":\"REFERENCE_2_VIDEO\",\"imageUrls\":[\"https://tempfile.aiquickdraw.com/images/1771052318676-78fycxwrwcv.png\"],\"model\":\"veo3_fast\",\"prompt\":\"First 8 seconds. Scene opens with the East/Southeast Asian male in his late 20s to early 30s seated slightly to the right of center in the frame, in a relaxed posture leaning slightly left in a vintage-style grey-brown leather office chair with wooden accents and chrome frame. He wears a heather grey short-sleeved crew-neck t-shirt with natural folds and dark navy blue sweatpants. His dark brown/black medium-length messy hair is pushed back with some strands falling on his forehead. His warm medium-tan skin with natural pores and slight stubble is softly lit by natural light from a large window to his left, casting gentle shadows along the right side of his face. He holds a matte black Baseus MC1 Pro wireless earbuds charging case naturally in his left hand, palm facing camera, fingers spread with thumb on bottom edge and index on the left side, angled slightly right revealing the white 'Baseus' text on the front. The blurred background shows the wooden desk with books, phone, resistance bands, green houseplants on shelves, and window with white frame and light-colored buildings outside. The camera is at a slightly below eye-level medium shot handheld selfie framing, with slight natural shake. He looks softly upward and left of the camera, smiling gently with mouth slightly open showing upper teeth with a gap, relaxed eyebrows with crinkles at eyes’ corners. He begins speaking casually in Indonesian style, calling out a common frustration about earbuds. Duration: 8 seconds.\"}",
+            "response": null,
+            "successFlag": 0,
+            "fallbackFlag": false,
+            "completeTime": null,
+            "createTime": 1771052373000,
+            "errorCode": null,
+            "errorMessage": null
+          }
+        }
+      }
+    ],
+    "Get Veo Video1": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "6959f503e904bc4b1608a61944888b98",
+            "paramJson": "{\"aspectRatio\":\"9:16\",\"enableFallback\":false,\"enableTranslation\":true,\"generationType\":\"REFERENCE_2_VIDEO\",\"imageUrls\":[\"https://tempfile.aiquickdraw.com/images/1771052318676-78fycxwrwcv.png\"],\"model\":\"veo3_fast\",\"prompt\":\"First 8 seconds. Scene opens with the East/Southeast Asian male in his late 20s to early 30s seated slightly to the right of center in the frame, in a relaxed posture leaning slightly left in a vintage-style grey-brown leather office chair with wooden accents and chrome frame. He wears a heather grey short-sleeved crew-neck t-shirt with natural folds and dark navy blue sweatpants. His dark brown/black medium-length messy hair is pushed back with some strands falling on his forehead. His warm medium-tan skin with natural pores and slight stubble is softly lit by natural light from a large window to his left, casting gentle shadows along the right side of his face. He holds a matte black Baseus MC1 Pro wireless earbuds charging case naturally in his left hand, palm facing camera, fingers spread with thumb on bottom edge and index on the left side, angled slightly right revealing the white 'Baseus' text on the front. The blurred background shows the wooden desk with books, phone, resistance bands, green houseplants on shelves, and window with white frame and light-colored buildings outside. The camera is at a slightly below eye-level medium shot handheld selfie framing, with slight natural shake. He looks softly upward and left of the camera, smiling gently with mouth slightly open showing upper teeth with a gap, relaxed eyebrows with crinkles at eyes’ corners. He begins speaking casually in Indonesian style, calling out a common frustration about earbuds. Duration: 8 seconds.\"}",
+            "response": {
+              "taskId": "6959f503e904bc4b1608a61944888b98",
+              "resolution": "720p",
+              "originUrls": null,
+              "resultUrls": [
+                "https://tempfile.aiquickdraw.com/v/6959f503e904bc4b1608a61944888b98_1771052484.mp4"
+              ],
+              "hasAudioList": [
+                true
+              ],
+              "seeds": [
+                30598
+              ]
+            },
+            "successFlag": 1,
+            "fallbackFlag": false,
+            "completeTime": 1771052486000,
+            "createTime": 1771052373000,
+            "errorCode": null,
+            "errorMessage": null
+          }
+        }
+      }
+    ],
+    "Get Veo Video 2": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "0f3aecdca24c30ad63fcfc3735347be3",
+            "paramJson": "{\"model\":\"fast\",\"prompt\":\"Continuation seamless from second 8 onward. The same male character, outfit, posture, and exact environment remain unchanged with identical natural soft lighting, camera angle, focus, and handheld selfie slight movement. He shifts perspective lightly, introducing the Baseus MC1 Pro earbuds as the solution, highlighting the SuperBass 2.0 feature naturally while holding the charging case in the same manner. He adds soft social proof hinting at satisfaction and urgency and ends the casual, honest talk with the required CTA in Indonesian: \\\"Klik keranjang kiri bawah ya!\\\" The product placement remains perfectly consistent with fingers spread and front facing the camera showing the brand name. The atmosphere stays calm, casual, and inviting throughout. Duration: 8-12 seconds.\",\"taskId\":\"6959f503e904bc4b1608a61944888b98\"}",
+            "response": {
+              "taskId": "0f3aecdca24c30ad63fcfc3735347be3",
+              "resolution": "720p",
+              "originUrls": null,
+              "resultUrls": [
+                "https://tempfile.aiquickdraw.com/v/0f3aecdca24c30ad63fcfc3735347be3_1771052719.mp4"
+              ],
+              "hasAudioList": [
+                true
+              ],
+              "seeds": [
+                90053
+              ]
+            },
+            "successFlag": 1,
+            "fallbackFlag": false,
+            "completeTime": 1771052721000,
+            "createTime": 1771052631000,
+            "errorCode": null,
+            "errorMessage": null
+          }
+        }
+      }
+    ],
+    "Edit Fields2": [
+      {
+        "json": {
+          "Video url 1": "https://tempfile.aiquickdraw.com/v/6959f503e904bc4b1608a61944888b98_1771052484.mp4",
+          "Video url 2": "https://tempfile.aiquickdraw.com/v/0f3aecdca24c30ad63fcfc3735347be3_1771052719.mp4"
+        }
+      }
+    ],
+    "Update Tracker": [
+      {
+        "json": {
+          "Product Photo": "https://drive.google.com/uc?id=1lIW4RB4IHwNQyv13FG_ESMY91s3b2k2N&export=download",
+          "Finished Image": "https://tempfile.aiquickdraw.com/images/1771052318676-78fycxwrwcv.png",
+          "Finished Video": "https://tempfile.aiquickdraw.com/v/6959f503e904bc4b1608a61944888b98_1771052484.mp4",
+          "Finished Video 2": "https://tempfile.aiquickdraw.com/v/0f3aecdca24c30ad63fcfc3735347be3_1771052719.mp4"
+        }
+      }
+    ],
+    "Veo Video Prompt1": [
+      {
+        "json": {
+          "output": "{\n  \"part1\": \"First 8 seconds. Scene opens with the East/Southeast Asian male in his late 20s to early 30s seated slightly to the right of center in the frame, in a relaxed posture leaning slightly left in a vintage-style grey-brown leather office chair with wooden accents and chrome frame. He wears a heather grey short-sleeved crew-neck t-shirt with natural folds and dark navy blue sweatpants. His dark brown/black medium-length messy hair is pushed back with some strands falling on his forehead. His warm medium-tan skin with natural pores and slight stubble is softly lit by natural light from a large window to his left, casting gentle shadows along the right side of his face. He holds a matte black Baseus MC1 Pro wireless earbuds charging case naturally in his left hand, palm facing camera, fingers spread with thumb on bottom edge and index on the left side, angled slightly right revealing the white 'Baseus' text on the front. The blurred background shows the wooden desk with books, phone, resistance bands, green houseplants on shelves, and window with white frame and light-colored buildings outside. The camera is at a slightly below eye-level medium shot handheld selfie framing, with slight natural shake. He looks softly upward and left of the camera, smiling gently with mouth slightly open showing upper teeth with a gap, relaxed eyebrows with crinkles at eyes’ corners. He begins speaking casually in Indonesian style, calling out a common frustration about earbuds. Duration: 8 seconds.\",\n  \n  \"part2\": \"Continuation seamless from second 8 onward. The same male character, outfit, posture, and exact environment remain unchanged with identical natural soft lighting, camera angle, focus, and handheld selfie slight movement. He shifts perspective lightly, introducing the Baseus MC1 Pro earbuds as the solution, highlighting the SuperBass 2.0 feature naturally while holding the charging case in the same manner. He adds soft social proof hinting at satisfaction and urgency and ends the casual, honest talk with the required CTA in Indonesian: \\\"Klik keranjang kiri bawah ya!\\\" The product placement remains perfectly consistent with fingers spread and front facing the camera showing the brand name. The atmosphere stays calm, casual, and inviting throughout. Duration: 8-12 seconds.\"\n}"
+        }
+      }
+    ],
+    "Veo Video1": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "6959f503e904bc4b1608a61944888b98"
+          }
+        }
+      }
+    ],
+    "Analyze an image1": [
+      {
+        "json": {
+          "content": {
+            "parts": [
+              {
+                "text": "The subject is an East or Southeast Asian male, estimated to be in his late 20s to early 30s. He has an oval face shape, a warm medium-tan skin tone, and visible skin texture including subtle pores and some minor blemishes or acne scars on his cheeks and jawline, along with a hint of light stubble. His hair is dark brown or black, medium length, styled in a messy, tousled manner, pushed back and up with some strands falling slightly onto his forehead, showing natural volume and texture. His facial expression is a gentle, relaxed smile with his mouth slightly open, revealing a portion of his upper teeth and a slight gap between his front teeth. His eyes are directed slightly upward and to the left of the camera, with a soft gaze and relaxed eyebrows, showing slight crinkles around the corners of his eyes.\n\nHe is seated in a relaxed posture in an office chair, leaning slightly to his left. His right arm is bent at the elbow, resting on the armrest of the chair. His left arm is raised with the hand open, palm facing the camera, holding a product. His outfit consists of a heather grey short-sleeved crew-neck t-shirt made of a soft, casual fabric, with a relaxed fit that shows some natural wrinkles and folds; the sleeves reach his mid-bicep. He is wearing dark navy blue or black sweatpants or joggers, which appear to be a comfortable, casual fabric with a loose but not baggy fit, showing subtle texture. There are no visible accessories such as jewelry, a watch, or hair ties.\n\nThe product being held is a small, black, rectangular charging case for wireless earbuds, resembling an AirPods case. It has a small black lanyard or strap attached to its bottom edge. The man holds it in his left hand, with his fingers spread out and his palm facing the camera. His thumb is positioned along the bottom edge, his index finger rests against the left side, his middle finger supports the top edge, and his ring and pinky fingers are extended. The product is held slightly tilted towards the camera, angled slightly to the right, showcasing its front surface. The brand \"Baseus\" is visible in white or light grey text on the front face of the case, horizontally centered and positioned slightly below the top edge. The case has a matte black finish, appearing to be made of plastic, and is compact, approximately 2.5 to 3 inches wide, fitting proportionally in his palm.\n\nThe setting appears to be a home office or a casual living room space, with a desk positioned by a large window. Key furniture visible includes a dark brown wooden desktop with partially visible black metal legs, and a vintage-style office chair with a worn grey-brown leather or fabric seat and backrest, wooden shell accents, and a chrome metal frame with wheels. A large modern window with white frames is visible on the left, looking out onto blurred light-colored buildings. In the background on the right, there is a dark wooden or metal shelving unit holding books and green houseplants. Several green houseplants are present, including one partially visible on the desk, one on the shelf, and a larger, blurred Monstera-like plant further back on the right. On the desk, there is a stack of books with various colored spines (mostly earth tones and dark covers), a black smartphone with its screen off lying flat, a clear glass or plastic water bottle, and two coiled resistance bands (one red-orange and one blue). The walls are a light grey or beige painted surface. The desk surface is wood. The depth of field is shallow, with the subject and the earbud case in sharp focus, while items immediately on the desk are slightly soft, and the background (window, shelves, plants) is significantly blurred, exhibiting a strong bokeh effect.\n\nThe scene is predominantly lit by natural light emanating from the large window on the left side of the frame. The light quality is soft and diffused, resulting in no harsh shadows on the subject's face. Soft shadows are visible under his chin, nose, and along the right side of his face, consistent with a main light source from the left. The shadows are present but not intensely deep, suggesting ample ambient light. The overall brightness level is bright and well-illuminated. The color temperature is neutral to slightly warm, with the cool tone of the window light balanced by warmer tones from the skin and wood elements in the scene.\n\nThe shot type is a medium shot, capturing the subject from approximately the waist up. The camera angle is slightly below eye-level, looking gently upward at the subject, which conveys a sense of his relaxed presence or casual engagement. The subject is positioned slightly to the right of the center in the frame, generally adhering to the rule of thirds, with his left hand holding the product closer to the center. The aspect ratio orientation is portrait. There is a strong shallow depth of field, rendering the subject and the product critically sharp, with a noticeable progressive blur in the background.\n\nThe dominant colors in the scene include various shades of grey (t-shirt, wall, chair), black (pants, product, desk legs), natural wood tones (desk, chair), and greens (plants). There are also white and light grey tones from the window frame and exterior buildings, with subtle accents of red-orange and blue from the resistance bands and some book spines. The overall color grading and tone are natural and slightly muted, with a balanced and somewhat desaturated feel, leaning towards a neutral to warm aesthetic. The mood conveyed is casual, relaxed, and comfortable, suggesting authenticity and perhaps a moment of thoughtful contemplation or engagement. The combination of natural light and a home setting creates a calm and inviting atmosphere."
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      }
+    ],
+    "Edit Fields3": [
+      {
+        "json": {
+          "Video Prompt 1": "First 8 seconds. Scene opens with the East/Southeast Asian male in his late 20s to early 30s seated slightly to the right of center in the frame, in a relaxed posture leaning slightly left in a vintage-style grey-brown leather office chair with wooden accents and chrome frame. He wears a heather grey short-sleeved crew-neck t-shirt with natural folds and dark navy blue sweatpants. His dark brown/black medium-length messy hair is pushed back with some strands falling on his forehead. His warm medium-tan skin with natural pores and slight stubble is softly lit by natural light from a large window to his left, casting gentle shadows along the right side of his face. He holds a matte black Baseus MC1 Pro wireless earbuds charging case naturally in his left hand, palm facing camera, fingers spread with thumb on bottom edge and index on the left side, angled slightly right revealing the white 'Baseus' text on the front. The blurred background shows the wooden desk with books, phone, resistance bands, green houseplants on shelves, and window with white frame and light-colored buildings outside. The camera is at a slightly below eye-level medium shot handheld selfie framing, with slight natural shake. He looks softly upward and left of the camera, smiling gently with mouth slightly open showing upper teeth with a gap, relaxed eyebrows with crinkles at eyes’ corners. He begins speaking casually in Indonesian style, calling out a common frustration about earbuds. Duration: 8 seconds.",
+          "veo_image_url": "https://tempfile.aiquickdraw.com/images/1771052318676-78fycxwrwcv.png",
+          "Video Prompt 2": "Continuation seamless from second 8 onward. The same male character, outfit, posture, and exact environment remain unchanged with identical natural soft lighting, camera angle, focus, and handheld selfie slight movement. He shifts perspective lightly, introducing the Baseus MC1 Pro earbuds as the solution, highlighting the SuperBass 2.0 feature naturally while holding the charging case in the same manner. He adds soft social proof hinting at satisfaction and urgency and ends the casual, honest talk with the required CTA in Indonesian: \"Klik keranjang kiri bawah ya!\" The product placement remains perfectly consistent with fingers spread and front facing the camera showing the brand name. The atmosphere stays calm, casual, and inviting throughout. Duration: 8-12 seconds."
+        }
+      }
+    ],
+    "Wait3": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "6959f503e904bc4b1608a61944888b98",
+            "paramJson": "{\"aspectRatio\":\"9:16\",\"enableFallback\":false,\"enableTranslation\":true,\"generationType\":\"REFERENCE_2_VIDEO\",\"imageUrls\":[\"https://tempfile.aiquickdraw.com/images/1771052318676-78fycxwrwcv.png\"],\"model\":\"veo3_fast\",\"prompt\":\"First 8 seconds. Scene opens with the East/Southeast Asian male in his late 20s to early 30s seated slightly to the right of center in the frame, in a relaxed posture leaning slightly left in a vintage-style grey-brown leather office chair with wooden accents and chrome frame. He wears a heather grey short-sleeved crew-neck t-shirt with natural folds and dark navy blue sweatpants. His dark brown/black medium-length messy hair is pushed back with some strands falling on his forehead. His warm medium-tan skin with natural pores and slight stubble is softly lit by natural light from a large window to his left, casting gentle shadows along the right side of his face. He holds a matte black Baseus MC1 Pro wireless earbuds charging case naturally in his left hand, palm facing camera, fingers spread with thumb on bottom edge and index on the left side, angled slightly right revealing the white 'Baseus' text on the front. The blurred background shows the wooden desk with books, phone, resistance bands, green houseplants on shelves, and window with white frame and light-colored buildings outside. The camera is at a slightly below eye-level medium shot handheld selfie framing, with slight natural shake. He looks softly upward and left of the camera, smiling gently with mouth slightly open showing upper teeth with a gap, relaxed eyebrows with crinkles at eyes’ corners. He begins speaking casually in Indonesian style, calling out a common frustration about earbuds. Duration: 8 seconds.\"}",
+            "response": null,
+            "successFlag": 0,
+            "fallbackFlag": false,
+            "completeTime": null,
+            "createTime": 1771052373000,
+            "errorCode": null,
+            "errorMessage": null
+          }
+        }
+      }
+    ],
+    "Get Veo Video": [
+      {
+        "json": {
+          "code": 200,
+          "msg": "success",
+          "data": {
+            "taskId": "6959f503e904bc4b1608a61944888b98",
+            "paramJson": "{\"aspectRatio\":\"9:16\",\"enableFallback\":false,\"enableTranslation\":true,\"generationType\":\"REFERENCE_2_VIDEO\",\"imageUrls\":[\"https://tempfile.aiquickdraw.com/images/1771052318676-78fycxwrwcv.png\"],\"model\":\"veo3_fast\",\"prompt\":\"First 8 seconds. Scene opens with the East/Southeast Asian male in his late 20s to early 30s seated slightly to the right of center in the frame, in a relaxed posture leaning slightly left in a vintage-style grey-brown leather office chair with wooden accents and chrome frame. He wears a heather grey short-sleeved crew-neck t-shirt with natural folds and dark navy blue sweatpants. His dark brown/black medium-length messy hair is pushed back with some strands falling on his forehead. His warm medium-tan skin with natural pores and slight stubble is softly lit by natural light from a large window to his left, casting gentle shadows along the right side of his face. He holds a matte black Baseus MC1 Pro wireless earbuds charging case naturally in his left hand, palm facing camera, fingers spread with thumb on bottom edge and index on the left side, angled slightly right revealing the white 'Baseus' text on the front. The blurred background shows the wooden desk with books, phone, resistance bands, green houseplants on shelves, and window with white frame and light-colored buildings outside. The camera is at a slightly below eye-level medium shot handheld selfie framing, with slight natural shake. He looks softly upward and left of the camera, smiling gently with mouth slightly open showing upper teeth with a gap, relaxed eyebrows with crinkles at eyes’ corners. He begins speaking casually in Indonesian style, calling out a common frustration about earbuds. Duration: 8 seconds.\"}",
+            "response": {
+              "taskId": "6959f503e904bc4b1608a61944888b98",
+              "resolution": "720p",
+              "originUrls": null,
+              "resultUrls": [
+                "https://tempfile.aiquickdraw.com/v/6959f503e904bc4b1608a61944888b98_1771052484.mp4"
+              ],
+              "hasAudioList": [
+                true
+              ],
+              "seeds": [
+                30598
+              ]
+            },
+            "successFlag": 1,
+            "fallbackFlag": false,
+            "completeTime": 1771052486000,
+            "createTime": 1771052373000,
+            "errorCode": null,
+            "errorMessage": null
+          }
+        }
+      }
+    ],
+    "Generate Image Prompt1": [
+      {
+        "json": {
+          "output": "A young Indonesian woman with warm olive skin tone sits casually at her vanity mirror in soft morning light, mid-application of testing a new lipstick shade. She holds the FOCALLURE lipstick with its distinctive creamy off-white plastic casing and reflective gold metallic base and band around the top. The gold 'FOCALLURE' branding is vertically printed on the cap in her other hand. The terracotta-orange matte bullet with intricate debossed floral pattern on top is clearly visible as she carefully applies it to her lower lip.\n\nShe has naturally attractive features like a lifestyle TikTok creator - clear healthy skin with visible pores, neat shoulder-length dark hair with subtle natural highlights, and genuine concentration expression. Her grip shows realistic finger placement and natural hand weight as she maneuvers the product. A few other FOCALLURE lipsticks in the same off-white and gold packaging sit scattered on the marble vanity surface beside her phone and small mirror.\n\nSoft window light from the left creates natural shadows across her face while keeping the lipstick's true terracotta-orange color and gold detailing clearly visible. The modern bathroom vanity shows lived-in details like skincare bottles and a hair tie. Shot with natural smartphone depth of field in 9:16 vertical format, capturing the authentic moment of product discovery.\n\nThe product must match the reference exactly with no logo change, no color deviation, and no structural alteration.\n\nraw photo, hyper-realistic, visible pores, natural texture, smartphone photography, authentic UGC moment\n\n(cartoon, CGI, 3d render, illustration, doll, airbrushed, studio lighting, stock photo look), (plastic skin, smooth skin, beauty filter), (extra fingers, malformed hands), (product redesign, altered logo, wrong brand name, modified packaging, incorrect proportions, color-shifted product)"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Image Prompt",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Veo Video Prompt",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Veo Video Prompt2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veo Video Prompt": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait5": {
+      "main": [
+        [
+          {
+            "node": "Get Veo Video 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veo Video": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "Veo Video Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veo Video 2": {
+      "main": [
+        [
+          {
+            "node": "Wait5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Veo Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Get Veo Video1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Veo Video1": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Veo Video 2": {
+      "main": [
+        [
+          {
+            "node": "IF 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Send a video4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Tracker": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "node": "Get Veo Video2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veo Video Prompt2": {
+      "main": [
+        [
+          {
+            "node": "Veo Video2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veo Video2": {
+      "main": [
+        [
+          {
+            "node": "Wait4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Veo Video2": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Analyze",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Generate Image Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Veo Video 2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a video5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF 2": {
+      "main": [
+        [
+          {
+            "node": "Wait5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Tracker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Image Prompt1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Veo Video Prompt1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veo Video Prompt1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Veo Video1": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image1": {
+      "main": [
+        [
+          {
+            "node": "Veo Video Prompt1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Veo Video1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "Get Veo Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Veo Video": {
+      "main": [
+        [
+          {
+            "node": "IF1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Image1": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF1": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a video6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image Prompt": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "5af220c8-4d52-42c6-a98e-5125b98875e7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "34e3a56e1279d32f419f88b5195f18ccb1b7f84d6788ffea5528c75c089d5195"
+  },
+  "id": "8WAhuqeo1e3PiK8v",
+  "tags": []
+}

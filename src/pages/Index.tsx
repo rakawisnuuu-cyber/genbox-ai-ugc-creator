@@ -4,11 +4,12 @@ import HeroSection from "@/components/HeroSection";
 import DibuatUntukSection from "@/components/DibuatUntukSection";
 import FiturSection from "@/components/FiturSection";
 import CaraKerjaSection from "@/components/CaraKerjaSection";
-import HasilNyataSection from "@/components/HasilNyataSection";
+
 import HargaSection from "@/components/HargaSection";
 import ApiCostSection from "@/components/ApiCostSection";
 import FAQSection from "@/components/FAQSection";
 import FinalCTASection from "@/components/FinalCTASection";
+import FooterSection from "@/components/FooterSection";
 import TransactionPopup from "@/components/TransactionPopup";
 
 const SectionDivider = () => (
@@ -30,15 +31,12 @@ const Index = () => {
       <SectionDivider />
       <CaraKerjaSection />
       <SectionDivider />
-      <HasilNyataSection />
-      <SectionDivider />
       <HargaSection />
       <SectionDivider />
       <ApiCostSection />
       <SectionDivider />
       <FAQSection />
-      <FinalCTASection />
-      <TransactionPopup />
+      <FooterSection />
     </div>
   );
 };

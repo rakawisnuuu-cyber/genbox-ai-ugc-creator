@@ -1,31 +1,18 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 const faqs = [
   {
     q: "Apa itu GENBOX?",
-    a: "GENBOX adalah platform AI yang bantu kamu generate gambar dan video UGC realistis buat jualan online. Tinggal upload foto produk, pilih karakter, dan AI generate konten yang siap posting.",
+    a: "Platform AI untuk generate gambar dan video UGC realistis. Upload foto produk, pilih karakter, AI generate konten yang siap posting ke TikTok dan Instagram. Tanpa hire model, tanpa studio.",
   },
   {
-    q: "Bedanya apa dengan platform lain?",
-    a: "GENBOX fokus di satu hal: generate gambar UGC yang kelihatan natural, kayak difoto beneran pakai HP. Kamu pakai API key sendiri (BYOK) jadi generate unlimited tanpa batas kredit, dan karakter bisa dikustomisasi sesuai target market Indonesia — hijab, casual, profesional, dll.",
+    q: "BYOK itu apa?",
+    a: "BYOK (Bring Your Own Key) artinya kamu pakai API key sendiri untuk generate. Biaya langsung ke provider AI — mulai dari Rp 440/gambar. Platform GENBOX-nya sekali bayar, akses selamanya. Tanpa langganan bulanan.",
   },
   {
-    q: "Bayarnya gimana?",
-    a: "Satu kali bayar Rp 249.000, akses selamanya. Bisa bayar pakai QRIS, GoPay, OVO, Dana, ShopeePay, atau transfer bank. Gak ada langganan bulanan.",
-  },
-  {
-    q: "BYOK itu apa sih?",
-    a: "BYOK (Bring Your Own Key) artinya kamu pakai API key sendiri buat generate tanpa batas. Biaya API langsung ke provider, cuma ~Rp 150-500 per gambar. Platform GENBOX-nya sekali bayar selamanya.",
-  },
-  {
-    q: "Gimana cara setupnya?",
-    a: "Setelah bayar, kamu dapat username & password via WhatsApp. Login, masukkan API key di Settings, langsung bisa generate. Setup kurang dari 2 menit.",
+    q: "Bedanya apa dengan AI image tool lain?",
+    a: "GENBOX fokus di satu hal: UGC yang kelihatan real. Bukan gambar AI yang obvious. Kita pakai prompt system khusus untuk skin texture, lighting, dan angle yang bikin hasil generate kayak difoto beneran pakai HP. Plus karakter bisa dikustomisasi sesuai target market Indonesia.",
   },
 ];
 
@@ -33,54 +20,38 @@ const FAQSection = () => {
   const { ref, isVisible } = useScrollReveal();
 
   return (
-    <section id="faq" className="relative py-16 sm:py-24 overflow-hidden">
-      {/* Decorative glow */}
-      <div
-        className="pointer-events-none absolute -right-32 top-1/2 h-[350px] w-[350px] rounded-full opacity-[0.03]"
-        style={{
-          background: "radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)",
-        }}
-      />
-
-      <div ref={ref} className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Badge */}
-        <div
-          className={`flex justify-center mb-6 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.1s" }}
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
-            FAQ
-          </span>
-        </div>
-
+    <section id="faq" ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
+      <div className="mx-auto max-w-2xl">
         <h2
-          className={`text-center font-satoshi text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.2s" }}
+          className={`text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{
+            animationDelay: "0.1s",
+            background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 56%) 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
         >
-          Pertanyaan yang Sering Ditanya
+          FAQ
         </h2>
 
-        <div
-          className={`mx-auto mt-12 max-w-[700px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.3s" }}
+        <Accordion
+          type="single"
+          collapsible
+          className={`mt-8 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.2s" }}
         >
-          <Accordion type="single" collapsible className="space-y-2">
-            {faqs.map((faq, i) => (
-              <AccordionItem
-                key={i}
-                value={`item-${i}`}
-                className="rounded-2xl border border-border/60 bg-card/80 px-5"
-              >
-                <AccordionTrigger className="min-h-[44px] py-5 font-satoshi text-base font-semibold text-foreground hover:no-underline [&>svg]:text-primary">
-                  {faq.q}
-                </AccordionTrigger>
-                <AccordionContent className="pb-5 text-sm leading-relaxed text-muted-foreground">
-                  {faq.a}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </div>
+          {faqs.map((faq, i) => (
+            <AccordionItem key={i} value={`faq-${i}`} className="border-border/40">
+              <AccordionTrigger className="text-left font-satoshi text-[15px] font-bold text-foreground hover:text-primary transition-colors py-5">
+                {faq.q}
+              </AccordionTrigger>
+              <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">
+                {faq.a}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </div>
     </section>
   );

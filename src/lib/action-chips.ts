@@ -1,111 +1,59 @@
 /**
- * Action chip library organized by beat role × product category.
- * Provides smart action suggestions for each video frame.
+ * Action chip library — static fallback + dynamic Gemini-powered suggestions.
+ * Static chips provide instant suggestions while dynamic ones are product-aware.
  */
 
-export type BeatRole = "Hook" | "Build" | "Demo" | "Proof" | "Convert";
+import { geminiFetch } from "./gemini-fetch";
+import type { ProductDNA } from "./product-dna";
+
 export type ActionCategory = "universal" | "fashion" | "skincare" | "electronics" | "food" | "health" | "home";
 
-const ACTIONS: Record<BeatRole, Record<ActionCategory, string[]>> = {
-  Hook: {
-    universal: [
-      "Liat produk sambil bingung", "Pegang produk ke kamera", "Shock reaction lihat produk",
-      "Close-up produk ke lens", "Tunjukin produk dari belakang", "Pull produk dari tas",
-      "Reveal produk dari meja", "Angkat produk tiba-tiba", "Tap produk ke meja",
-    ],
-    fashion: [
-      "Mirror selfie sambil pegang baju", "Buka shopping bag excited", "Tunjukin outfit ke kamera",
-      "Throw outfit ke bahu", "Hold hanger depan kamera", "Reveal outfit dari belakang",
-      "Snap pose depan mirror", "Flip baju ke depan kamera", "Quick shoulder pose", "Liat outfit sambil senyum",
-    ],
-    skincare: [
-      "Ambil produk dari meja rias", "Liat produk penasaran", "Selfie sebelum pake",
-      "Shake bottle dekat kamera", "Close-up label produk", "Tap jar dengan jari",
-      "Put bottle next to face", "Turn bottle to show label", "Unbox produk cepat", "Smell produk reaction",
-    ],
-    electronics: [
-      "Ambil gadget dari box", "Turn device to camera", "Tap screen nyalain device",
-      "Hold gadget near lens", "Flip gadget di tangan", "Open case reveal device",
-      "Close-up tombol gadget", "Slide device keluar box", "Turn gadget slowly", "React to first look",
-    ],
-    food: [], health: [], home: [],
-  },
-  Demo: {
-    universal: [
-      "Tunjukin produk ke kamera", "Rotate produk pelan", "Close-up detail produk",
-      "Tap produk sambil jelasin", "Point ke fitur produk", "Hold produk di tangan",
-      "Compare sebelum sesudah", "Show texture / material", "Move produk closer to lens",
-    ],
-    fashion: [
-      "Pakai baju di depan mirror", "Adjust outfit detail", "Putar badan tunjukin fit",
-      "Tuck baju ke celana", "Smooth outfit ke bawah", "Step back tunjukin full fit",
-      "Walk pose ke kamera", "Fix sleeve / collar", "Show pocket detail", "Flip hemline",
-    ],
-    skincare: [
-      "Apply ke pipi pelan-pelan", "Buka tutup produk", "Tunjukin tekstur di tangan",
-      "Dot cream ke wajah", "Blend produk di pipi", "Pump produk ke tangan",
-      "Close-up skin application", "Spread serum di tangan", "Tap wajah setelah apply", "Compare before/after",
-    ],
-    electronics: [
-      "Swipe layar device", "Tap fitur di screen", "Show device dari samping",
-      "Rotate gadget pelan", "Press button demo", "Plug in device",
-      "Zoom in ke screen", "Scroll menu device", "Flip gadget back side", "Hold gadget while explaining",
-    ],
-    food: [], health: [], home: [],
-  },
-  Build: {
-    // Build uses same as Demo
-    universal: [],
-    fashion: [], skincare: [], electronics: [],
-    food: [], health: [], home: [],
-  },
-  Proof: {
-    universal: [
-      "Senyum sambil pegang produk", "Nodding sambil hold produk", "Thumbs up ke kamera",
-      "Show produk sambil excited", "React happy lihat hasil", "Look impressed ke kamera",
-      "Tap produk sambil senyum", "Laugh small reaction", "Raise eyebrow impressed",
-    ],
-    fashion: [
-      "Pose outfit confident", "Spin kecil pakai outfit", "Walk pose depan kamera",
-      "Show mirror reflection", "Hands in pocket pose", "Adjust hair with outfit",
-      "Small runway walk", "Turn shoulder pose",
-    ],
-    skincare: [
-      "Touch cheek after apply", "Smile lihat hasil di mirror", "Glow reaction",
-      "Compare skin dekat kamera", "Tap cheek satisfied", "Look surprised at result",
-      "Point ke wajah glow", "Happy nod to camera",
-    ],
-    electronics: [
-      "React impressed lihat layar", "Nod while holding gadget", "Point ke fitur keren",
-      "Show device with smile", "Tap screen confidently", "Thumbs up with gadget",
-      "Look amazed at feature", "Show gadget working",
-    ],
-    food: [], health: [], home: [],
-  },
-  Convert: {
-    universal: [
-      "Pegang produk ke kamera sambil senyum", "Angkat produk setinggi dada", "Thumbs up sambil hold produk",
-      "Point ke produk sambil ngomong", "Hold produk dekat lens", "Show produk steady ke kamera",
-      "Nod sambil pegang produk", "Present produk dua tangan",
-    ],
-    fashion: [
-      "Show outfit full body", "Point ke outfit sambil smile", "Hold hanger ke kamera",
-      "Turn body tunjukin fit", "Pose outfit confident", "Walk toward camera",
-    ],
-    skincare: [
-      "Hold bottle next to face", "Show texture close-up", "Point ke produk di tangan",
-      "Smile sambil hold jar", "Raise bottle ke kamera", "Close-up product reveal",
-    ],
-    electronics: [
-      "Hold gadget ke kamera", "Point ke screen", "Show device confidently",
-      "Raise gadget to lens", "Tap gadget sambil nod", "Present gadget dua tangan", "Flip gadget then smile",
-    ],
-    food: [], health: [], home: [],
-  },
-};
+/* ── Static Fallback Chips ─────────────────────────────────── */
 
-// Build inherits from Demo
-ACTIONS.Build = { ...ACTIONS.Demo };
+const STATIC_CHIPS: Record<ActionCategory, string[]> = {
+  universal: [
+    "Pegang produk ke kamera", "Tunjukin produk sambil senyum", "Close-up detail produk",
+    "Rotate produk pelan", "Tap produk sambil jelasin", "Thumbs up ke kamera",
+    "React happy lihat hasil", "Hold produk dekat lens", "Point ke fitur produk",
+    "Compare sebelum sesudah", "Nod sambil pegang produk", "Present produk dua tangan",
+  ],
+  fashion: [
+    "Mirror selfie sambil pegang baju", "Pakai baju di depan mirror", "Putar badan tunjukin fit",
+    "Walk pose ke kamera", "Show outfit full body", "Adjust outfit detail",
+    "Snap pose depan mirror", "Tuck baju ke celana", "Step back tunjukin full fit",
+    "Spin kecil pakai outfit", "Show pocket detail", "Hands in pocket pose",
+  ],
+  skincare: [
+    "Apply ke pipi pelan-pelan", "Tunjukin tekstur di tangan", "Dot cream ke wajah",
+    "Blend produk di pipi", "Pump produk ke tangan", "Touch cheek after apply",
+    "Close-up skin application", "Spread serum di tangan", "Tap wajah setelah apply",
+    "Shake bottle dekat kamera", "Compare skin dekat kamera", "Glow reaction",
+  ],
+  electronics: [
+    "Swipe layar device", "Tap fitur di screen", "Rotate gadget pelan",
+    "Press button demo", "Show device dari samping", "Hold gadget near lens",
+    "Flip gadget di tangan", "Zoom in ke screen", "Plug in device",
+    "React impressed lihat layar", "Show gadget working", "Unbox device excited",
+  ],
+  food: [
+    "Ambil makanan dari piring", "First bite reaction", "Tunjukin tekstur close-up",
+    "Tuang minuman pelan", "Aduk di mangkok", "Cium aroma sambil tutup mata",
+    "Potong makanan tunjukin isi", "Suap ke mulut pelan", "Angkat gelas toast",
+    "Tunjukin packaging makanan", "Buka bungkus snack", "Steam rising close-up",
+  ],
+  health: [
+    "Ambil suplemen dari botol", "Minum dengan air putih", "Shake bottle protein",
+    "Buka sachet supplement", "Campur ke dalam air", "Morning routine ambil vitamin",
+    "Post-workout minum", "Baca label nutrisi", "Tunjukin kapsul di tangan",
+    "Energized reaction setelah minum", "Stretch sambil hold produk", "Happy morning energy",
+  ],
+  home: [
+    "Letakkan produk di meja", "Tunjukin detail material", "Arrange di rak",
+    "Sentuh tekstur pelan", "Show fitur unik produk", "Reveal dari box",
+    "Pasang/install produk", "Step back lihat hasil", "Compare sebelum sesudah ruangan",
+    "Cozy setup moment", "Touch fabric/surface", "Adjust position styling",
+  ],
+};
 
 /** Normalize category string to ActionCategory */
 function normalizeCategory(cat?: string): ActionCategory {
@@ -120,13 +68,6 @@ function normalizeCategory(cat?: string): ActionCategory {
   return "universal";
 }
 
-function getPool(role: BeatRole, category: ActionCategory): string[] {
-  const catActions = ACTIONS[role]?.[category] || [];
-  const universalActions = ACTIONS[role]?.universal || [];
-  // If category has no specific actions, use universal
-  return catActions.length > 0 ? catActions : universalActions;
-}
-
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -136,34 +77,25 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-const ALL_ROLES: BeatRole[] = ["Hook", "Build", "Demo", "Proof", "Convert"];
-
 /**
- * Get action chips: 2 category-specific, 1 universal, 1 wildcard from different beat.
+ * Get static action chips — instant, no API call.
+ * Returns mix of category-specific and universal chips.
  */
 export function getActionChips(
   beatRole: string,
   category?: string,
   count: number = 4,
 ): string[] {
-  const role = (beatRole as BeatRole) || "Hook";
   const cat = normalizeCategory(category);
-
-  const catPool = shuffle(getPool(role, cat));
-  const uniPool = shuffle(ACTIONS[role]?.universal || []);
-  
-  // Wildcard: pick from a different beat's category actions
-  const otherRoles = ALL_ROLES.filter((r) => r !== role);
-  const wildcardRole = otherRoles[Math.floor(Math.random() * otherRoles.length)];
-  const wildcardPool = shuffle(getPool(wildcardRole, cat));
+  const catPool = shuffle(STATIC_CHIPS[cat] || []);
+  const uniPool = shuffle(STATIC_CHIPS.universal);
 
   const result: string[] = [];
   const used = new Set<string>();
 
   const addFrom = (pool: string[], max: number) => {
     for (const item of pool) {
-      if (result.length >= count) return;
-      if (max <= 0) return;
+      if (result.length >= count || max <= 0) return;
       if (!used.has(item)) {
         used.add(item);
         result.push(item);
@@ -172,28 +104,118 @@ export function getActionChips(
     }
   };
 
-  // 2 from category-specific
-  addFrom(catPool, 2);
-  // 1 from universal (avoid dupes if cat === universal)
+  // 3 from category, 1 from universal
+  addFrom(catPool, 3);
   addFrom(uniPool.filter((u) => !used.has(u)), 1);
-  // 1 wildcard
-  addFrom(wildcardPool.filter((w) => !used.has(w)), 1);
 
-  // Fill remaining if needed
+  // Fill remaining
   if (result.length < count) {
-    addFrom([...shuffle(catPool), ...shuffle(uniPool)].filter((x) => !used.has(x)), count - result.length);
+    addFrom([...catPool, ...uniPool].filter((x) => !used.has(x)), count - result.length);
   }
 
   return result.slice(0, count);
 }
 
-/**
- * Same as getActionChips but guaranteed fresh randomization each call.
- */
+/** Alias for backward compatibility */
 export function getShuffledChips(
   beatRole: string,
   category?: string,
   count: number = 4,
 ): string[] {
   return getActionChips(beatRole, category, count);
+}
+
+/* ── Dynamic Gemini-Powered Suggestions ────────────────────── */
+
+/** Cache key for dynamic suggestions */
+function cacheKey(templateKey: string, beatLabel: string, category: string): string {
+  return `${templateKey}::${beatLabel}::${category}`;
+}
+
+const dynamicCache = new Map<string, string[]>();
+
+/**
+ * Generate product-aware, context-specific action/motion suggestions via Gemini.
+ * Returns 4 suggestions tailored to the specific product, beat, and template.
+ * Falls back to static chips on failure.
+ */
+export async function generateDynamicChips(opts: {
+  geminiKey: string;
+  model: string;
+  templateKey: string;
+  templateLabel: string;
+  beatLabel: string;
+  beatDescription: string;
+  beatIndex: number;
+  productDNA?: ProductDNA | null;
+  count?: number;
+}): Promise<string[]> {
+  const {
+    geminiKey, model, templateKey, templateLabel,
+    beatLabel, beatDescription, beatIndex,
+    productDNA, count = 4,
+  } = opts;
+
+  const category = productDNA?.category || "other";
+  const key = cacheKey(templateKey, beatLabel, category);
+
+  // Check cache
+  if (dynamicCache.has(key)) return dynamicCache.get(key)!;
+
+  try {
+    const productContext = productDNA
+      ? `Product: ${productDNA.product_description || productDNA.sub_category || productDNA.category}
+Category: ${productDNA.category}/${productDNA.sub_category}
+Packaging: ${productDNA.packaging_type} | Material: ${productDNA.material}
+Usage type: ${productDNA.usage_type}`
+      : `Product category: ${category}`;
+
+    const json = await geminiFetch(model, geminiKey, {
+      contents: [{
+        parts: [{
+          text: `You are a TikTok UGC video director specializing in Indonesian content.
+
+Generate exactly ${count} specific motion/action suggestions for a video frame.
+
+Template: "${templateLabel}"
+Frame ${beatIndex + 1}: "${beatLabel}" — ${beatDescription}
+${productContext}
+
+Each suggestion should be:
+- In casual Indonesian (bahasa gaul)
+- Specific to THIS product type (not generic)
+- Describe a physical movement/action with camera direction
+- 8-15 words max
+- Feel like what a real Indonesian TikTok creator would do
+
+Example format for a face serum:
+"Teteskan serum ke ujung jari, close-up macro shot"
+"Tepuk-tepuk pipi lembut, POV angle dari atas"
+
+Return JSON array of ${count} strings only, no explanation:
+["suggestion 1", "suggestion 2", "suggestion 3", "suggestion 4"]`,
+        }],
+      }],
+    });
+
+    const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+
+    if (Array.isArray(parsed) && parsed.length >= count) {
+      const result = parsed.slice(0, count).map(String);
+      dynamicCache.set(key, result);
+      return result;
+    }
+  } catch (e) {
+    console.warn("[action-chips] Dynamic generation failed, using static fallback:", e);
+  }
+
+  // Fallback to static
+  return getActionChips(beatLabel, category, count);
+}
+
+/** Clear the dynamic chips cache */
+export function clearDynamicChipsCache() {
+  dynamicCache.clear();
 }

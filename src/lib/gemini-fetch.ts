@@ -3,7 +3,7 @@
  * Use this instead of raw fetch() for all Gemini calls.
  */
 
-const GEMINI_TIMEOUT_MS = 30_000;
+const GEMINI_TIMEOUT_MS = 60_000;
 
 export async function geminiFetch(
   model: string,
@@ -36,7 +36,7 @@ export async function geminiFetch(
   } catch (err: any) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      throw new Error("Gemini request timed out (30s). Coba lagi atau ganti model ke Flash.");
+      throw new Error("Gemini request timed out (60s). Coba lagi atau ganti model ke Flash.");
     }
     throw err;
   }
