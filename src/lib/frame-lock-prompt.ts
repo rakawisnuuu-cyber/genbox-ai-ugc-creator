@@ -13,7 +13,7 @@
  * - Cinematography-quality per-role directions
  */
 
-export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
+export type VideoModelType = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 
 /* ─── Model-Specific Format Guidance ──────────────────────────── */
 
@@ -125,18 +125,6 @@ Dialogue (spoken in Indonesian):
 
 Constraints:
 Single continuous shot. Same person. Same environment. Same lighting throughout. Product remains stable and unchanged.`,
-
-  sora2: `OUTPUT FORMAT — SORA 2:
-Write ONE flowing natural paragraph (4-5 sentences max). Simple and descriptive.
-Structure: Scene and character → main action with product → reaction or expression.
-No timestamps. No sections. Just a natural, concise paragraph.
-Sora 2 works best with clear, direct language — avoid technical cinematography terms.`,
-
-  sora2_pro: `OUTPUT FORMAT — SORA 2 PRO:
-Write ONE flowing natural paragraph (5-6 sentences max). Rich but concise.
-Structure: Environment and lighting → character with product → primary action → subtle expression shift.
-No timestamps. No sections. Just a vivid, natural paragraph.
-Sora 2 Pro handles more detail than standard but still prefers flowing prose over structured sections.`,
 };
 
 /* ─── Main System Instruction ─────────────────────────────────── */
@@ -144,31 +132,6 @@ Sora 2 Pro handles more detail than standard but still prefers flowing prose ove
 export const FRAME_LOCK_SYSTEM = `You are a video prompt generator for GENBOX, an AI UGC video creator for TikTok.
 
 Your task: convert storyboard data into stable, glitch-free prompts for AI video models (Veo, Kling, Grok).
-
-=== FRAME LOCK WITH REFERENCE IMAGE (HIGHEST PRIORITY) ===
-A reference image is attached to every generation request.
-The video must look like this EXACT image coming to life.
-The FIRST FRAME must visually match the reference image with zero deviation:
-
-SAME character: identical face shape, skin tone, pores, features, hairstyle, expression
-SAME outfit: exact clothing items, colors, accessories, fit, wrinkles
-SAME environment: identical setting, props, surfaces, materials, wall colors, furniture
-SAME lighting: same direction, softness, shadow placement, color temperature
-SAME color palette, white balance, and mood
-SAME product position, hand grip, and orientation
-NO visual reinterpretation is allowed. Do NOT improve, beautify, or reimagine the scene.
-The video is the reference image coming to life — nothing more, nothing less.
-
-=== LIGHTING STABILITY (MANDATORY — ALL FRAMES) ===
-Lighting must remain LOCKED to the reference image throughout the entire video.
-Do NOT allow:
-
-Auto-exposure shifts or brightness changes
-White balance or color temperature drift
-Shadow direction changes inconsistent with the reference
-Ambient light color shifts between frames
-Specular highlight changes on product surfaces
-The lighting must feel physically consistent as if filmed in one continuous take.
 
 === MOTION ANALYSIS (DO THIS BEFORE WRITING) ===
 Before writing the prompt, analyze these variables from the frame data:
@@ -198,17 +161,6 @@ Never add new descriptors like "cute girl", "Asian woman", "young creator" — t
 Define the product ONCE using the exact identifier provided (e.g. "a clear plastic bag labeled Pop Enjoy Caramel Popcorn").
 After that, refer to it only as "the same bag" or "the product" — never re-describe it differently.
 Never vary the product description: "bag of popcorn", "caramel package", "snack bag" = 3 different descriptions = product drift.
-
-=== PRODUCT CONTINUITY DURING MOTION (MANDATORY) ===
-The product must remain visually IDENTICAL during all movement and hand interactions.
-Preserve at ALL times:
-
-Exact shape, thickness, and proportions
-Exact color tone and material appearance (matte, glossy, transparent)
-Exact logo orientation, placement, and readability
-Exact edges, corners, and structural integrity
-The product must NOT morph, stretch, warp, rotate incorrectly, change color, shrink, grow, or lose detail as the hand moves.
-When the product is in motion, it must behave like a real physical object — rigid, stable, consistent.
 
 === DIALOGUE RULES (CRITICAL FOR LIP SYNC) ===
 Dialogue must ALWAYS appear in its own separate section, never embedded in action text.
@@ -269,7 +221,6 @@ Vary camera distance: some tight (30 cm), some medium (80 cm), some wide (1.2 m)
 === UGC STYLE ===
 TikTok UGC by an Indonesian content creator. Shot on smartphone, casual self-filmed feel, natural phone HDR, warm lighting, slight handheld sway.
 Authentic and relatable — NOT a commercial or cinematic production. Real lived-in environment, not a set.
-The phone/camera must NEVER appear in frame. The video is filmed FROM the phone, not OF the phone. No selfie stick, no phone reflection in mirrors, no device visible in any shot.
 
 === NO TEXT IN VIDEO ===
 The generated video must NOT contain any text, watermarks, subtitles, captions, labels, or on-screen graphics.
@@ -279,7 +230,7 @@ Add this to every prompt: "No text overlay, no captions, no watermarks, no on-sc
 
 === GLOBAL CONSISTENCY (APPLIED ACROSS ALL FRAMES) ===
 Always end every prompt with:
-"Single continuous shot. Same person — identical face, skin, hair, body. Same outfit — identical clothing, accessories, fit. Same environment — identical room, props, surfaces, wall colors. Same lighting — identical direction, temperature, shadows. Product remains physically stable: same shape, same color, same proportions, no morphing. No visual reinterpretation from the reference image."`;
+"Single continuous shot. Same person. Same environment. Product remains stable and unchanged."`;
 
 /* ─── Per-Role Cinematography Directions ──────────────────────── */
 

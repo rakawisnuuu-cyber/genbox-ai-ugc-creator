@@ -37,145 +37,26 @@ const typeBadge: Record<ModelType, string> = {
 };
 
 const models: Model[] = [
-  {
-    name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 1K",
-    note: "NEW — sub-second, subject consistency",
-    provider: "GOOGLE",
-    type: "IMAGE",
-    credits: "8",
-    price: "$0.04 (~Rp 640)",
-  },
-  {
-    name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 2K",
-    note: "Default GENBOX resolution",
-    provider: "GOOGLE",
-    type: "IMAGE",
-    credits: "12",
-    price: "$0.06 (~Rp 960)",
-  },
-  {
-    name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 4K",
-    note: "Ultra HD output",
-    provider: "GOOGLE",
-    type: "IMAGE",
-    credits: "18",
-    price: "$0.09 (~Rp 1.440)",
-  },
-  {
-    name: "Nano Banana Pro (Gemini 3.0 Pro Image) — 2K",
-    note: "Multi-turn editing, deep reasoning",
-    provider: "GOOGLE",
-    type: "IMAGE",
-    credits: "18",
-    price: "$0.09 (~Rp 1.440)",
-  },
-  {
-    name: "Nano Banana Pro (Gemini 3.0 Pro Image) — 4K",
-    note: "4K, multi-turn editing, deep reasoning",
-    provider: "GOOGLE",
-    type: "IMAGE",
-    credits: "24",
-    price: "$0.12 (~Rp 1.920)",
-  },
-  {
-    name: "Seedream 5.0 Lite",
-    note: "Text/image-to-image, NEW",
-    provider: "BYTEDANCE",
-    type: "IMAGE",
-    credits: "5.5",
-    price: "$0.0275 (~Rp 440)",
-  },
-  {
-    name: "GPT Image 1.5",
-    note: "#1 leaderboard, tiered quality",
-    provider: "OPENAI",
-    type: "IMAGE",
-    credits: "~12",
-    price: "~$0.04-0.08 (~Rp 640-1.280)",
-  },
+  { name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 1K", note: "NEW — sub-second, subject consistency", provider: "GOOGLE", type: "IMAGE", credits: "8", price: "$0.04 (~Rp 640)" },
+  { name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 2K", note: "Default GENBOX resolution", provider: "GOOGLE", type: "IMAGE", credits: "12", price: "$0.06 (~Rp 960)" },
+  { name: "Nano Banana 2 (Gemini 3.1 Flash Image) — 4K", note: "Ultra HD output", provider: "GOOGLE", type: "IMAGE", credits: "18", price: "$0.09 (~Rp 1.440)" },
+  { name: "Nano Banana Pro (Gemini 3.0 Pro Image) — 2K", note: "Multi-turn editing, deep reasoning", provider: "GOOGLE", type: "IMAGE", credits: "18", price: "$0.09 (~Rp 1.440)" },
+  { name: "Nano Banana Pro (Gemini 3.0 Pro Image) — 4K", note: "4K, multi-turn editing, deep reasoning", provider: "GOOGLE", type: "IMAGE", credits: "24", price: "$0.12 (~Rp 1.920)" },
+  { name: "Seedream 5.0 Lite", note: "Text/image-to-image, NEW", provider: "BYTEDANCE", type: "IMAGE", credits: "5.5", price: "$0.0275 (~Rp 440)" },
+  { name: "GPT Image 1.5", note: "#1 leaderboard, tiered quality", provider: "OPENAI", type: "IMAGE", credits: "~12", price: "~$0.04-0.08 (~Rp 640-1.280)" },
   { name: "4o Image (GPT-Image-1)", provider: "OPENAI", type: "IMAGE", credits: "10", price: "$0.05 (~Rp 800)" },
-  {
-    name: "Flux.1 Kontext",
-    note: "Context-aware editing",
-    provider: "BLACK FOREST LABS",
-    type: "IMAGE",
-    credits: "6",
-    price: "$0.03 (~Rp 480)",
-  },
-  {
-    name: "Grok Imagine (6s, 720p)",
-    note: "Text/image-to-video, hemat",
-    provider: "GOOGLE",
-    type: "VIDEO",
-    credits: "20",
-    price: "$0.10 (~Rp 1.600)",
-  },
-  {
-    name: "Veo 3.1 Fast (8s, with audio)",
-    note: "Synced audio, 1080p",
-    provider: "GOOGLE",
-    type: "VIDEO",
-    credits: "80",
-    price: "$0.40 (~Rp 6.400)",
-    discount: "-60%",
-  },
-  {
-    name: "Veo 3 Quality (8s, with audio)",
-    note: "Premium cinematic",
-    provider: "GOOGLE",
-    type: "VIDEO",
-    credits: "400",
-    price: "$2.00 (~Rp 32.000)",
-  },
-  {
-    name: "Kling 3.0 (5s, 720p, no audio)",
-    provider: "KLING",
-    type: "VIDEO",
-    credits: "100",
-    price: "$0.50 (~Rp 8.000)",
-  },
-  {
-    name: "Kling 3.0 (5s, 720p, with audio)",
-    provider: "KLING",
-    type: "VIDEO",
-    credits: "150",
-    price: "$0.75 (~Rp 12.000)",
-  },
-  {
-    name: "Seedance 1.5 Pro (8s, with audio)",
-    provider: "BYTEDANCE",
-    type: "VIDEO",
-    credits: "56",
-    price: "$0.28 (~Rp 4.480)",
-    discount: "-32%",
-  },
+  { name: "Flux.1 Kontext", note: "Context-aware editing", provider: "BLACK FOREST LABS", type: "IMAGE", credits: "6", price: "$0.03 (~Rp 480)" },
+  { name: "Grok Imagine (6s, 720p)", note: "Text/image-to-video, hemat", provider: "GOOGLE", type: "VIDEO", credits: "20", price: "$0.10 (~Rp 1.600)" },
+  { name: "Veo 3.1 Fast (8s, with audio)", note: "Synced audio, 1080p", provider: "GOOGLE", type: "VIDEO", credits: "80", price: "$0.40 (~Rp 6.400)", discount: "-60%" },
+  { name: "Veo 3 Quality (8s, with audio)", note: "Premium cinematic", provider: "GOOGLE", type: "VIDEO", credits: "400", price: "$2.00 (~Rp 32.000)" },
+  { name: "Kling 3.0 (5s, 720p, no audio)", provider: "KLING", type: "VIDEO", credits: "100", price: "$0.50 (~Rp 8.000)" },
+  { name: "Kling 3.0 (5s, 720p, with audio)", provider: "KLING", type: "VIDEO", credits: "150", price: "$0.75 (~Rp 12.000)" },
+  { name: "Seedance 1.5 Pro (8s, with audio)", provider: "BYTEDANCE", type: "VIDEO", credits: "56", price: "$0.28 (~Rp 4.480)", discount: "-32%" },
   { name: "Hailuo (MiniMax)", provider: "HAILUO", type: "VIDEO", credits: "~50", price: "~$0.25 (~Rp 4.000)" },
   { name: "Runway Gen-4 Turbo", provider: "RUNWAY", type: "VIDEO", credits: "~100", price: "~$0.50 (~Rp 8.000)" },
-  {
-    name: "Suno V4.5 Plus",
-    note: "Up to 8 min, vocals + instrumentals",
-    provider: "SUNO",
-    type: "MUSIC",
-    credits: "~20",
-    price: "~$0.10 (~Rp 1.600)",
-  },
-  {
-    name: "ElevenLabs V3 TTS",
-    note: "Text-to-dialogue, voice cloning",
-    provider: "ELEVENLABS",
-    type: "MUSIC",
-    credits: "14/1k chars",
-    price: "$0.07 (~Rp 1.120)",
-  },
-  {
-    name: "Gemini 2.0 Flash",
-    note: "Recommended for GENBOX prompts",
-    provider: "GOOGLE",
-    type: "PROMPT",
-    credits: "0",
-    price: "FREE",
-    freePrice: true,
-  },
+  { name: "Suno V4.5 Plus", note: "Up to 8 min, vocals + instrumentals", provider: "SUNO", type: "MUSIC", credits: "~20", price: "~$0.10 (~Rp 1.600)" },
+  { name: "ElevenLabs V3 TTS", note: "Text-to-dialogue, voice cloning", provider: "ELEVENLABS", type: "MUSIC", credits: "14/1k chars", price: "$0.07 (~Rp 1.120)" },
+  { name: "Gemini 2.0 Flash", note: "Recommended for GENBOX prompts", provider: "GOOGLE", type: "PROMPT", credits: "0", price: "FREE", freePrice: true },
   { name: "Claude Sonnet", provider: "ANTHROPIC", type: "PROMPT", credits: "~2", price: "~$0.01 (~Rp 160)" },
 ];
 
@@ -203,28 +84,28 @@ function AnimatedNumber({ target, visible }: { target: number; visible: boolean 
 
 const simCards = [
   {
-    title: "Content Creator",
-    desc: "1 video 24s + 5 gambar / hari",
-    models: "Nano Banana Pro (2K) + Veo 3.1 Fast",
-    calc: "(5 × Rp 1.440) + (3 × Rp 6.400) = Rp 26.400/hari",
-    total: 26400,
-    vs: "Di Higgsfield/Runway: ~Rp 80.000+/hari (atau habis credit)",
+    title: "Pemula",
+    desc: "50 gambar + 5 video / bulan",
+    models: "Pakai: Nano Banana 2 (1K) + Grok 6s",
+    calc: "(50 × Rp 640) + (5 × Rp 1.600)",
+    total: 40000,
+    vs: "vs. hire fotografer: Rp 500.000+",
   },
   {
-    title: "Brand / Agency",
-    desc: "3 video 24s + 15 gambar / hari",
-    models: "Nano Banana Pro (2K) + Veo 3.1 Fast",
-    calc: "(15 × Rp 1.440) + (9 × Rp 6.400) = Rp 79.200/hari",
-    total: 79200,
-    vs: "Di platform lain: subscription habis dalam 3 hari",
+    title: "Aktif",
+    desc: "200 gambar + 20 video / bulan",
+    models: "Pakai: Nano Banana 2 (2K) + Seedance 8s",
+    calc: "(200 × Rp 960) + (20 × Rp 4.480)",
+    total: 281600,
+    vs: "vs. content agency: Rp 3.000.000+",
   },
   {
-    title: "Hemat Mode",
-    desc: "1 video 24s + 5 gambar / hari",
-    models: "Nano Banana 2 (2K) + Seedance 1.5 Pro",
-    calc: "(5 × Rp 960) + (3 × Rp 4.480) = Rp 18.240/hari",
-    total: 18240,
-    vs: "Lebih murah dari 1 kopi Starbucks ☕",
+    title: "Power User",
+    desc: "500 gambar + 50 video / bulan",
+    models: "Pakai: Nano Banana 2 (2K) + Veo 3.1 Fast",
+    calc: "(500 × Rp 960) + (50 × Rp 6.400)",
+    total: 800000,
+    vs: "vs. full production: Rp 10.000.000+",
   },
 ];
 
@@ -286,7 +167,7 @@ const ApiCostSection = () => {
           className={`mt-8 overflow-hidden rounded-2xl border border-border/60 bg-card/80 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.4s" }}
         >
-          <div className="overflow-x-auto scrollbar-none">
+           <div className="overflow-x-auto scrollbar-none">
             <table className="w-full min-w-[700px] text-sm">
               <thead className="sticky top-0 z-20">
                 <tr className="bg-secondary/50">
@@ -314,7 +195,9 @@ const ApiCostSection = () => {
                   {filtered.map((m, i) => (
                     <tr
                       key={m.name}
-                      className={`${i % 2 === 0 ? "bg-card/60" : "bg-card/30"} transition-colors hover:bg-secondary/60`}
+                      className={`${
+                        i % 2 === 0 ? "bg-card/60" : "bg-card/30"
+                      } transition-colors hover:bg-secondary/60`}
                     >
                       <td className="sticky left-0 z-10 min-w-[200px] px-4 py-3 bg-inherit">
                         <span className="font-medium text-foreground">{m.name}</span>
@@ -323,7 +206,9 @@ const ApiCostSection = () => {
                             {m.discount}
                           </span>
                         )}
-                        {m.note && <span className="block text-[11px] text-muted-foreground mt-0.5">{m.note}</span>}
+                        {m.note && (
+                          <span className="block text-[11px] text-muted-foreground mt-0.5">{m.note}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -332,16 +217,12 @@ const ApiCostSection = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeBadge[m.type]}`}
-                        >
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${typeBadge[m.type]}`}>
                           {m.type}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{m.credits}</td>
-                      <td
-                        className={`px-4 py-3 text-xs ${m.freePrice ? "font-bold text-primary" : "text-muted-foreground"}`}
-                      >
+                      <td className={`px-4 py-3 text-xs ${m.freePrice ? "font-bold text-primary" : "text-muted-foreground"}`}>
                         {m.price}
                       </td>
                     </tr>
@@ -391,8 +272,7 @@ const ApiCostSection = () => {
           </div>
 
           <p className="mt-6 text-center text-[11px] text-muted-foreground leading-relaxed">
-            * Harga berdasarkan Kie.ai credit rate $0.005/credit. Kurs Rp 16.000/$. Harga dapat berubah sesuai provider.
-            Gemini Flash untuk prompt gratis.
+            * Harga berdasarkan Kie.ai credit rate $0.005/credit. Kurs Rp 16.000/$. Harga dapat berubah sesuai provider. Gemini Flash untuk prompt gratis.
           </p>
         </div>
       </div>

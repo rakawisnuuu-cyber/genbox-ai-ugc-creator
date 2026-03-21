@@ -1,4 +1,3 @@
-import { sanitizeForPrompt } from "@/lib/utils";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
@@ -69,9 +68,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { CharacterData } from "@/components/CharacterCard";
 
-/* ── Minimal quality suffix (replaces old bloated blocks) ──── */
-const QUALITY_SUFFIX = " Ultra-realistic photo, 8K, natural lighting. No cartoon, no CGI, no watermark.";
-const NEGATIVE_SUFFIX = " No cartoon, no anime, no CGI, no 3D render, no watermark, no text overlay, no distorted features.";
+/* ── GENBOX Realism Blocks ──────────────────────────────────── */
+const SKIN_BLOCK =
+  "Skin is realistic and natural with soft visible texture — subtle pores visible at close inspection but not exaggerated, healthy even complexion with gentle natural variation, slight natural oil sheen on forehead and nose, realistic but not gritty. Minimal natural makeup: soft even base, subtle lip tint, natural brow grooming, fresh and awake-looking. No heavy contouring, no Instagram filter look, no plastic smoothing, no beauty app retouching — but also not raw or unflattering. Think: how a real person looks after light makeup and good lighting at a professional photo session.";
+const QUALITY_BLOCK =
+  "High resolution photo, shot on smartphone camera, photographic realism, natural shallow depth of field, natural color grading with warm daylight tint, realistic contrast, slight natural grain. Looks like a real content creator's photo, not a studio shot.";
+const NEGATIVE_BLOCK =
+  "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no over-smoothing, no glamour filter, no artificial glow, no fantasy lighting, no neon, no watermark, no text overlay, no distorted features, no extra fingers, no warped proportions, no game engine look, no hyper-saturated colors, no beauty app filter, no Instagram filter, no perfectly symmetrical rooms, no impossibly clean environments, no plastic-looking surfaces, no floating objects without shadows, no uniform flat lighting across entire scene, no AI-typical repeated patterns on walls or floors, no sterile empty rooms, no professional studio lighting setup, no editorial fashion photography, no stock photo composition.";
+const ENV_REALISM_BLOCK =
+  "Environment must look like a REAL lived-in space photographed with a phone or mirrorless camera. Include subtle signs of real life: a phone charger on a nightstand, a half-drunk glass of water, slightly wrinkled bedsheet corner, a book left open, shoes by the door, a bag on a chair. Background should have natural depth of field — slightly soft/blurred behind the subject, not everything in razor-sharp focus. Walls should have subtle natural texture variation, not perfectly flat rendered surfaces. Lighting should have natural falloff — brighter near windows, gradually darker in corners. No unnaturally symmetrical rooms, no impossibly clean surfaces, no repeated tile patterns, no plastic-looking materials, no floating furniture, no missing shadows.";
+const UGC_STYLE_BLOCK =
+  "Shot on iPhone 15 or Samsung Galaxy S24, casual selfie or tripod angle, slight phone camera lens characteristics, natural phone HDR processing. This is UGC content by a content creator or affiliate marketer, NOT a professional photoshoot. The person looks like they're filming/photographing themselves for TikTok or Instagram — natural, relatable, slightly imperfect framing. Think: how a real affiliate marketer photographs themselves reviewing a product in their daily life. Not overly composed or art-directed.";
 
 import { imageUrlToBase64, fileToBase64 } from "@/lib/image-utils";
 
@@ -92,7 +99,7 @@ async function generateKieImage(
         image_input: [...new Set(imageInputs.filter(Boolean))],
         aspect_ratio: "3:4",
         resolution: "2K",
-        output_format: "png",
+        output_format: "jpg",
         google_search: false,
       },
     }),
@@ -376,15 +383,13 @@ const GeneratePage = () => {
             parts: [
               { inlineData: { mimeType: file.type || "image/jpeg", data: base64 } },
               {
-                text: `You are a casting director writing notes to find a photo double for this exact person. The identity_prompt must be detailed enough that a DIFFERENT AI system can generate images of this SAME person and they would be recognizable.
-
-Return JSON only:
+                text: `Analyze this person's photo for a UGC character profile. Return JSON only:
 {
-  "name": "2-3 word Indonesian descriptor based on their vibe (e.g. 'Hijab Casual', 'Cowok Gym', 'Ibu Muda')",
+  "name": "Short descriptive name based on their look, e.g. 'Hijab Modern', 'Cowok Casual', 'Ibu Muda' (2-3 words max, Indonesian)",
   "gender": "Pria or Wanita",
-  "age_range": "estimated range like 25-30",
-  "style": "one word: Modern, Casual, Sporty, Elegant, Professional, Edgy",
-  "identity_prompt": "Casting notes for this EXACT person — not an idealized version: Ethnicity/heritage appearance. Skin undertone (warm olive / cool beige / medium brown / deep brown / fair pink). Face shape (oval/round/square/heart) and distinctive features (high cheekbones, wide-set eyes, dimples, mole placement). Eyes (shape, single/double eyelid). Hair (exact color, approximate length, texture straight/wavy/curly, current style). Body build (petite/slim/average/athletic/curvy). Current outfit visible in photo. Do NOT beautify — describe exactly what you see."
+  "age_range": "estimated age range like 20-25",
+  "style": "one word style descriptor like Modern, Casual, Sporty, Elegant",
+  "identity_prompt": "Detailed description of this EXACT person: ethnicity, skin tone, face shape, eye shape, nose, lips, hair style/color/length, any distinctive features. Be very specific so AI can recreate this exact person."
 }`,
               },
             ],
@@ -508,12 +513,12 @@ Return JSON only:
     setGeneratingPrompt(true);
     try {
       const envOption = findOption(envOptions, background);
-      const bgRich = background === "Custom" ? sanitizeForPrompt(customBg) : envOption?.description || background;
+      const bgRich = background === "Custom" ? customBg : envOption?.description || background;
       const poseOption = findOption(poseOptions, pose);
       const poseRich = poseOption?.description || pose;
       const moodOption = findOption(moodOptions, mood);
       const moodRich = moodOption?.description || mood;
-      const characterIdentity = sanitizeForPrompt(selectedChar.identity_prompt || selectedChar.description);
+      const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
 
       const categoryInstruction = productDNA
         ? getCategoryPromptInstruction(productDNA)
@@ -624,7 +629,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
           .replace(/```\s*/g, "")
           .trim();
         const parsed = JSON.parse(cleaned);
-        const enhancedPrompt = `${parsed.final_prompt}${NEGATIVE_SUFFIX}`;
+        const enhancedPrompt = `${parsed.final_prompt}\n\n${NEGATIVE_BLOCK}`;
         setPrompt(enhancedPrompt);
 
         // Store scene fields for visual consistency in multi-angle
@@ -692,21 +697,8 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
 
     try {
       const imageInputs: string[] = [];
-      // Collect character reference images — prioritize multi-angle shots
-      const shotMeta = (selectedChar as any)?.shot_metadata;
-      if (shotMeta && typeof shotMeta === "object") {
-        const priorityKeys = ["hero_portrait", "neutral_identity", "profile_45"];
-        for (const key of priorityKeys) {
-          if (shotMeta[key]?.url) imageInputs.push(shotMeta[key].url);
-        }
-      }
-      // Fallback if no shot_metadata
-      if (imageInputs.length === 0) {
-        if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
-        if (selectedChar?.reference_photo_url && selectedChar.reference_photo_url !== selectedChar.hero_image_url) {
-          imageInputs.push(selectedChar.reference_photo_url);
-        }
-      }
+      if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
+      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
       if (productUrl) imageInputs.push(productUrl);
 
       const imageUrl = await generateKieImage(kieApiKey, prompt, imageInputs, () => abortRef.current);
@@ -753,7 +745,7 @@ ENVIRONMENT REALISM RULE: The background must look like a REAL space, not a 3D r
     const dna = productDNA || EMPTY_DNA;
     const beats = getStoryboardBeats(storyboardTemplate);
     const templateObj = CONTENT_TEMPLATES.find((t) => t.key === storyboardTemplate);
-    const characterIdentity = sanitizeForPrompt(selectedChar.identity_prompt || selectedChar.description);
+    const characterIdentity = selectedChar.identity_prompt || selectedChar.description;
     const consistencyBlock = buildProductConsistencyBlock(dna);
 
     setPromptsLoading(true);
@@ -806,12 +798,27 @@ ${beatsDesc}
 
 RULES:
 - Each prompt is a COMPLETE image generation prompt — character appearance, product, scene, lighting, camera
-- Frame 1: describe character and environment in full detail
-- Frames 2-${beats.length}: reference "same person, same outfit, same room"
-- Each frame uses a DIFFERENT camera angle (selfie, medium, POV, close-up, hero shot)
-- Prompts should be 60-90 words each — concise and focused
-- Do NOT add negative prompts — they will be appended separately
-- Photorealistic, UGC style, phone camera quality
+- Frame 1 is the ESTABLISHING shot — describe character and environment in full detail
+- Frames 2-${beats.length} MUST reference "same person, same outfit, same room" for consistency
+- Realistic skin, natural pores, phone camera quality, UGC style
+- No cartoon, no CGI, no 3D render, no watermark
+- Prompts should be 80-150 words each
+- Add "No cartoon, no anime, no CGI, no 3D render, no plastic skin, no watermark, no text overlay." at the end of each prompt
+CAMERA DIVERSITY — each frame MUST use a different camera setup:
+- Frame 1: Selfie close-up (30-40 cm from face). Product at edge of frame or on table.
+- Frame 2: Medium tabletop shot (80 cm away) OR product close-up. Product centered, hands introducing it.
+- Frame 3: POV or over-shoulder angle. Hands actively interacting with product. Face secondary.
+- Frame 4: Reaction close-up or side profile. Product in hand near face. Expression is the focus.
+- Frame 5: Medium hero shot. Product held toward camera. Confident presenting energy.
+
+PRODUCT JOURNEY across frames:
+Frame 1 → product barely visible or on table
+Frame 2 → product picked up, in hand
+Frame 3 → product being used/opened/applied
+Frame 4 → product near face, post-use reaction
+Frame 5 → product held toward camera, label visible
+
+NEVER generate 5 frames with the same selfie angle. Each frame must look like a DIFFERENT moment from a real TikTok video.
 
 Return a JSON array of ${beats.length} prompt strings. Example:
 ["prompt for frame 1", "prompt for frame 2", ...]
@@ -874,23 +881,17 @@ Output ONLY the JSON array. No explanation.`,
     });
 
     try {
-      // Max 2 image refs to avoid confusing the model
       const imageInputs: string[] = [];
+      if (selectedChar?.reference_photo_url) imageInputs.push(selectedChar.reference_photo_url);
+      if (selectedChar?.hero_image_url) imageInputs.push(selectedChar.hero_image_url);
+      if (productUrl) imageInputs.push(productUrl);
+
       if (idx > 0) {
         const frame0Url = shotStatuses[0]?.imageUrl;
-        if (frame0Url) imageInputs.push(frame0Url); // visual consistency anchor
+        if (frame0Url) imageInputs.unshift(frame0Url);
       }
-      const charRef = selectedChar?.reference_photo_url || selectedChar?.hero_image_url;
-      if (charRef && imageInputs.length < 2) imageInputs.push(charRef);
-      if (productUrl && imageInputs.length < 2) imageInputs.push(productUrl);
 
-      const enhancedFramePrompt = `${currentPrompt}${QUALITY_SUFFIX}`;
-      const imageUrl = await generateKieImage(
-        kieApiKey,
-        enhancedFramePrompt,
-        imageInputs,
-        () => storyboardAbortRef.current,
-      );
+      const imageUrl = await generateKieImage(kieApiKey, currentPrompt, imageInputs, () => storyboardAbortRef.current);
 
       setShotStatuses((prev) => {
         const next = [...prev];

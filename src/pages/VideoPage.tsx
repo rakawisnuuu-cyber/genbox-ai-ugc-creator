@@ -4,7 +4,7 @@ import { useLocation, useNavigate, Link } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
 import { getActionChips, getShuffledChips } from "@/lib/action-chips";
-import { generateVideoAndWait, fetchHDVideo } from "@/lib/kie-video-generation";
+import { generateVideoAndWait } from "@/lib/kie-video-generation";
 import { fileToBase64 } from "@/lib/image-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,23 +44,9 @@ import {
   MessageSquare,
   Clapperboard,
   ArrowRight,
-  MonitorUp,
 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import UpscaleButton from "@/components/UpscaleButton";
-import { useUpscale } from "@/hooks/useUpscale";
 
-type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
+type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 type FrameStatus = "idle" | "generating" | "completed" | "failed";
 
 interface FrameState {
@@ -87,10 +73,6 @@ interface FrameState {
   showEndGallery?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
-  /** Task ID from Kie AI — needed for HD upgrades */
-  taskId: string | null;
-  /** Currently loading HD resolution */
-  hdLoading: "1080p" | "4k" | null;
 }
 
 interface GalleryImage {
@@ -104,8 +86,6 @@ const MODEL_COSTS: Record<VideoModel, number> = {
   kling_pro: 4600,
   veo_fast: 6400,
   veo_quality: 32000,
-  sora2: 3200,
-  sora2_pro: 6400,
 };
 
 const MODEL_LABELS: Record<
@@ -133,20 +113,6 @@ const MODEL_LABELS: Record<
     audio: true,
     cost: "~Rp 4.600",
   },
-  sora2: {
-    label: "Sora 2",
-    badge: "NEW",
-    badgeColor: "bg-violet-500/20 text-violet-400",
-    audio: false,
-    cost: "~Rp 3.200",
-  },
-  sora2_pro: {
-    label: "Sora 2 Pro",
-    badge: "NEW PRO",
-    badgeColor: "bg-fuchsia-500/20 text-fuchsia-400",
-    audio: false,
-    cost: "~Rp 6.400",
-  },
   veo_fast: {
     label: "Veo Fast",
     badge: "STANDARD",
@@ -167,8 +133,6 @@ const MODEL_DURATIONS: Record<VideoModel, number[]> = {
   grok: [6, 10],
   kling_std: [5, 8, 10],
   kling_pro: [5, 8, 10, 15],
-  sora2: [10],
-  sora2_pro: [10],
   veo_fast: [8],
   veo_quality: [8],
 };
@@ -361,7 +325,6 @@ const VideoPage = () => {
   const { kieApiKey, geminiKey, keys } = useApiKeys();
   const { model: promptModel } = usePromptModel();
   const { toast } = useToast();
-  const { upscale, getState: getUpscaleState } = useUpscale();
 
   // Navigation state from storyboard
   const navState = location.state as any;
@@ -528,8 +491,6 @@ const VideoPage = () => {
         mergedFrames: [],
         mergedInto: null,
         endFrameUrl: null,
-        taskId: null,
-        hdLoading: null,
       };
     });
     setFrames(newFrames);
@@ -1037,7 +998,7 @@ Content template: ${template?.label}`,
       );
 
       clearInterval(frameTimersRef.current[idx]);
-      updateFrame(idx, { status: "completed", videoUrl: result.videoUrl, taskId: result.taskId });
+      updateFrame(idx, { status: "completed", videoUrl: result.videoUrl });
 
       // Save to gallery
       await supabase.from("generations").insert({
@@ -1052,13 +1013,9 @@ Content template: ${template?.label}`,
               ? "kling-3.0-std"
               : frame.model === "kling_pro"
                 ? "kling-3.0-pro"
-                : frame.model === "sora2"
-                  ? "sora-2"
-                  : frame.model === "sora2_pro"
-                    ? "sora-2-pro"
-                    : frame.model === "veo_fast"
-                      ? "veo3_fast"
-                      : "veo3",
+                : frame.model === "veo_fast"
+                  ? "veo3_fast"
+                  : "veo3",
         provider: "kie_ai",
         status: "completed",
         metadata: {
@@ -1467,18 +1424,6 @@ Content template: ${template?.label}`,
                           >
                             <ImageIcon className="h-3 w-3" /> Dari gallery
                           </button>
-                        )}
-                        {(frame.sourceImageUrl || sourceUrl) && frame.status !== "generating" && (
-                          <UpscaleButton
-                            imageUrl={(frame.sourceImageUrl || sourceUrl)!}
-                            imageKey={`frame-${idx}-source`}
-                            loading={getUpscaleState(`frame-${idx}-source`).loading}
-                            currentFactor={getUpscaleState(`frame-${idx}-source`).factor}
-                            onUpscale={async (key, url, factor) => {
-                              const result = await upscale(key, url, factor);
-                              if (result) updateFrame(idx, { sourceImageUrl: result });
-                            }}
-                          />
                         )}
                       </div>
                     </div>
@@ -1915,7 +1860,7 @@ Content template: ${template?.label}`,
                         </a>
                         <button
                           onClick={() => {
-                            updateFrame(idx, { status: "idle", videoUrl: null, taskId: null, hdLoading: null });
+                            updateFrame(idx, { status: "idle", videoUrl: null });
                             generateFrame(idx);
                           }}
                           className="text-xs py-2 px-3 rounded-xl border border-white/[0.06] text-muted-foreground hover:text-foreground flex items-center gap-1"
@@ -1923,68 +1868,6 @@ Content template: ${template?.label}`,
                           <RefreshCw className="h-3 w-3" /> Retry
                         </button>
                       </div>
-                      {/* HD Upgrade buttons — Veo only */}
-                      {(frame.model === "veo_fast" || frame.model === "veo_quality") && frame.taskId && (
-                        <div className="flex gap-2">
-                          <button
-                            disabled={!!frame.hdLoading}
-                            onClick={async () => {
-                              if (!kieApiKey) return;
-                              updateFrame(idx, { hdLoading: "1080p" });
-                              try {
-                                const hdUrl = await fetchHDVideo(frame.taskId!, kieApiKey, "1080p");
-                                updateFrame(idx, { videoUrl: hdUrl, hdLoading: null });
-                                toast({ title: "Video upgraded ke 1080p!" });
-                              } catch (e: any) {
-                                updateFrame(idx, { hdLoading: null });
-                                toast({ title: "1080p gagal", description: e.message, variant: "destructive" });
-                              }
-                            }}
-                            className="flex-1 text-[11px] py-1.5 rounded-lg border border-blue-500/20 text-blue-400 hover:bg-blue-500/10 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
-                          >
-                            {frame.hdLoading === "1080p" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MonitorUp className="h-3 w-3" />}
-                            1080p {frame.hdLoading !== "1080p" && <span className="text-[9px] text-muted-foreground/40">Free</span>}
-                          </button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <button
-                                disabled={!!frame.hdLoading}
-                                className="flex-1 text-[11px] py-1.5 rounded-lg border border-violet-500/20 text-violet-400 hover:bg-violet-500/10 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
-                              >
-                                {frame.hdLoading === "4k" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MonitorUp className="h-3 w-3" />}
-                                4K {frame.hdLoading !== "4k" && <span className="text-[9px] text-muted-foreground/40">~Rp 12.800</span>}
-                              </button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Upgrade ke 4K?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  4K upgrade membutuhkan kredit tambahan (~Rp 12.800, setara 2x Veo Fast). Proses memakan waktu 5-10 menit. Lanjutkan?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={async () => {
-                                    if (!kieApiKey) return;
-                                    updateFrame(idx, { hdLoading: "4k" });
-                                    try {
-                                      const hdUrl = await fetchHDVideo(frame.taskId!, kieApiKey, "4k");
-                                      updateFrame(idx, { videoUrl: hdUrl, hdLoading: null });
-                                      toast({ title: "Video upgraded ke 4K!" });
-                                    } catch (e: any) {
-                                      updateFrame(idx, { hdLoading: null });
-                                      toast({ title: "4K gagal", description: e.message, variant: "destructive" });
-                                    }
-                                  }}
-                                >
-                                  Ya, upgrade ke 4K
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      )}
                     </div>
                   ) : frame.status === "generating" ? (
                     <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">

@@ -5,7 +5,14 @@
 
 import { geminiFetch } from "./gemini-fetch";
 
-export type ProductCategory = "skincare" | "fashion" | "food" | "electronics" | "health" | "home" | "other";
+export type ProductCategory =
+  | "skincare"
+  | "fashion"
+  | "food"
+  | "electronics"
+  | "health"
+  | "home"
+  | "other";
 
 export interface ProductDNA {
   category: ProductCategory;
@@ -15,10 +22,8 @@ export interface ProductDNA {
   dominant_color: string;
   material: string;
   key_features: string;
-  key_benefits: string;
   brand_name: string;
   packaging_type: string;
-  ugc_hook: string;
 }
 
 export const EMPTY_DNA: ProductDNA = {
@@ -29,10 +34,8 @@ export const EMPTY_DNA: ProductDNA = {
   dominant_color: "",
   material: "",
   key_features: "",
-  key_benefits: "",
   brand_name: "unknown",
   packaging_type: "other",
-  ugc_hook: "",
 };
 
 const CATEGORY_LABELS: Record<ProductCategory, string> = {
@@ -45,15 +48,18 @@ const CATEGORY_LABELS: Record<ProductCategory, string> = {
   other: "Lainnya",
 };
 
-export const ALL_CATEGORIES: { value: ProductCategory; label: string }[] = Object.entries(CATEGORY_LABELS).map(
-  ([value, label]) => ({
+export const ALL_CATEGORIES: { value: ProductCategory; label: string }[] =
+  Object.entries(CATEGORY_LABELS).map(([value, label]) => ({
     value: value as ProductCategory,
     label,
-  }),
-);
+  }));
 
 /** Detect Product DNA from image via Gemini Vision */
-export async function detectProductDNA(imageBase64: string, model: string, apiKey: string): Promise<ProductDNA> {
+export async function detectProductDNA(
+  imageBase64: string,
+  model: string,
+  apiKey: string,
+): Promise<ProductDNA> {
   const genConfig: Record<string, any> = {};
   if (model !== "gemini-3.1-pro-preview") {
     genConfig.responseMimeType = "application/json";
@@ -67,21 +73,17 @@ export async function detectProductDNA(imageBase64: string, model: string, apiKe
             inlineData: { mimeType: "image/jpeg", data: imageBase64 },
           },
           {
-            text: `You are a product photographer's assistant AND content strategist preparing reference notes for an AI UGC content generation system.
-
-Analyze this product image. Return JSON only:
+            text: `Analyze this product image. Return JSON only, no explanation:
 {
   "category": "skincare | fashion | food | electronics | health | home | other",
-  "sub_category": "specific product type (e.g., face serum, wireless earbuds, protein bar, tote bag)",
+  "sub_category": "specific type like laptop bag, face serum, hoodie, bluetooth earbuds, protein powder, sofa",
   "usage_type": "wearable | handheld | consumable | furniture | cosmetic | supplement | device | decor",
-  "product_description": "Write exactly what a person would see holding this product: exact shape (cylinder/rectangle/pouch/etc), approximate size relative to an adult hand, main colors with specifics (e.g. matte white body with coral pink gradient label), any text or logo visible on packaging, cap or lid type, whether contents are visible through packaging",
-  "dominant_color": "primary color as seen from 1 meter away",
-  "material": "what the packaging appears to be made of (glass/plastic/cardboard/fabric/metal)",
-  "key_features": "2-4 visually distinctive features separated by commas",
-  "key_benefits": "2-3 likely product benefits based on packaging claims, product type, and visible text (e.g. hydrating, anti-aging, noise-cancelling, high-protein). If no claims visible, infer from product category",
-  "brand_name": "brand name if text is visible, otherwise unknown",
-  "packaging_type": "bottle | tube | box | bag | pouch | can | jar | loose | device | garment | furniture | other",
-  "ugc_hook": "One short sentence a content creator would say about this product in Indonesian (e.g. 'Serum ini bikin kulit glowing dalam 7 hari!' or 'Earbuds paling worth it di bawah 500rb')"
+  "product_description": "detailed visual description of exact shape color size material packaging brand text",
+  "dominant_color": "main color",
+  "material": "material type",
+  "key_features": "comma separated visible features",
+  "brand_name": "brand if visible or unknown",
+  "packaging_type": "bottle | tube | box | bag | pouch | can | jar | loose | device | garment | furniture | other"
 }`,
           },
         ],
@@ -94,10 +96,7 @@ Analyze this product image. Return JSON only:
   if (!rawText) return { ...EMPTY_DNA };
 
   try {
-    const cleaned = rawText
-      .replace(/```json\s*/g, "")
-      .replace(/```\s*/g, "")
-      .trim();
+    const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     const parsed = JSON.parse(cleaned);
     return {
       category: parsed.category?.toLowerCase() || "other",
@@ -107,10 +106,8 @@ Analyze this product image. Return JSON only:
       dominant_color: parsed.dominant_color || "",
       material: parsed.material || "",
       key_features: parsed.key_features || "",
-      key_benefits: parsed.key_benefits || "",
       brand_name: parsed.brand_name || "unknown",
       packaging_type: parsed.packaging_type || "other",
-      ugc_hook: parsed.ugc_hook || "",
     } as ProductDNA;
   } catch {
     return { ...EMPTY_DNA };
@@ -124,12 +121,14 @@ const CATEGORY_PROMPTS: Record<ProductCategory, string> = {
     "Person applying the skincare product, holding it near face, showing texture on skin. Close-up of product application, natural bathroom/vanity lighting.",
   fashion:
     "Person wearing the fashion item, showing fit and silhouette, styling naturally. Full body or detail shot highlighting fabric, cut, and design.",
-  food: "Appetizing food presentation, person about to eat or drink, warm inviting lighting. Show texture, steam, freshness. Kitchen or dining setting.",
+  food:
+    "Appetizing food presentation, person about to eat or drink, warm inviting lighting. Show texture, steam, freshness. Kitchen or dining setting.",
   electronics:
     "Person using the electronic device, screen or main feature visible, hands-on demo interaction. Clean desk or modern environment.",
   health:
     "Daily routine integration with the health product, active lifestyle context, morning ritual energy. Fresh, energetic, wellness-focused.",
-  home: "Product placed naturally in room setting with visible scale, lifestyle context. Person interacting with or admiring the home item.",
+  home:
+    "Product placed naturally in room setting with visible scale, lifestyle context. Person interacting with or admiring the home item.",
   other:
     "Person showcasing the product naturally, holding or using it with genuine interest. Well-lit, clean background.",
 };
@@ -180,26 +179,14 @@ function getSubCategoryAngles(sub: string): AngleDefinition[] | null {
 const CATEGORY_ANGLES: Record<ProductCategory, AngleDefinition[]> = {
   skincare: [
     { label: "Hero Holding", description: "Front-facing holding product near face", storyRole: "Attention" },
-    {
-      label: "Label Detail",
-      description: "Close-up texture/label detail, dropper or applicator visible",
-      storyRole: "Trust",
-    },
+    { label: "Label Detail", description: "Close-up texture/label detail, dropper or applicator visible", storyRole: "Trust" },
     { label: "Applying", description: "Applying on skin, showing texture spread", storyRole: "Value" },
     { label: "Selfie Style", description: "Selfie style holding product, phone camera angle", storyRole: "USP" },
-    {
-      label: "Flat Lay Beauty",
-      description: "Flat lay with beauty props (towel, mirror, flowers)",
-      storyRole: "Aspiration",
-    },
+    { label: "Flat Lay Beauty", description: "Flat lay with beauty props (towel, mirror, flowers)", storyRole: "Aspiration" },
     { label: "First Impression", description: "Unboxing or first impression reaction", storyRole: "Social Proof" },
   ],
   fashion: [
-    {
-      label: "Outfit Reveal",
-      description: "Full outfit reveal, confident standing pose head to toe",
-      storyRole: "Attention",
-    },
+    { label: "Outfit Reveal", description: "Full outfit reveal, confident standing pose head to toe", storyRole: "Attention" },
     { label: "Fabric Detail", description: "Fabric texture and stitching detail close-up", storyRole: "Trust" },
     { label: "In Motion", description: "Styling in motion — adjusting, turning, showing movement", storyRole: "Value" },
     { label: "Mirror Selfie", description: "Mirror selfie wearing the item", storyRole: "USP" },
@@ -208,11 +195,7 @@ const CATEGORY_ANGLES: Record<ProductCategory, AngleDefinition[]> = {
   ],
   food: [
     { label: "Hero Presentation", description: "Holding product with appetizing presentation", storyRole: "Attention" },
-    {
-      label: "Texture Close-up",
-      description: "Texture close-up, steam, condensation, ingredients visible",
-      storyRole: "Trust",
-    },
+    { label: "Texture Close-up", description: "Texture close-up, steam, condensation, ingredients visible", storyRole: "Trust" },
     { label: "Preparing", description: "Preparing, cooking, or mixing moment", storyRole: "Value" },
     { label: "First Bite", description: "First bite or sip genuine reaction", storyRole: "USP" },
     { label: "Flat Lay Plating", description: "Overhead flat lay with plating and utensils", storyRole: "Aspiration" },
@@ -224,26 +207,14 @@ const CATEGORY_ANGLES: Record<ProductCategory, AngleDefinition[]> = {
     { label: "Real Usage", description: "Real usage scenario (typing, browsing, listening)", storyRole: "Value" },
     { label: "Unboxing", description: "Unboxing reveal, first power on", storyRole: "USP" },
     { label: "Setup Context", description: "Desk or carry setup in context", storyRole: "Aspiration" },
-    {
-      label: "Feature Demo",
-      description: "Feature demonstration, screen interface visible",
-      storyRole: "Social Proof",
-    },
+    { label: "Feature Demo", description: "Feature demonstration, screen interface visible", storyRole: "Social Proof" },
   ],
   health: [
-    {
-      label: "Morning Routine",
-      description: "Morning routine holding product, fresh and energetic",
-      storyRole: "Attention",
-    },
+    { label: "Morning Routine", description: "Morning routine holding product, fresh and energetic", storyRole: "Attention" },
     { label: "Label Close-up", description: "Nutrition label and packaging close-up", storyRole: "Trust" },
     { label: "Taking/Mixing", description: "Taking or mixing the supplement", storyRole: "Value" },
     { label: "Active Context", description: "Post-workout or active context with product", storyRole: "USP" },
-    {
-      label: "Health Flat Lay",
-      description: "Flat lay with health props (water, fruits, gym gear)",
-      storyRole: "Aspiration",
-    },
+    { label: "Health Flat Lay", description: "Flat lay with health props (water, fruits, gym gear)", storyRole: "Aspiration" },
     { label: "Energy Reaction", description: "Energy reaction, feeling good moment", storyRole: "Social Proof" },
   ],
   home: [
@@ -264,7 +235,10 @@ const CATEGORY_ANGLES: Record<ProductCategory, AngleDefinition[]> = {
   ],
 };
 
-export function getAnglesByCategory(category: ProductCategory, sub_category?: string): AngleDefinition[] {
+export function getAnglesByCategory(
+  category: ProductCategory,
+  sub_category?: string,
+): AngleDefinition[] {
   if (sub_category) {
     const special = getSubCategoryAngles(sub_category);
     if (special) return special;
@@ -343,9 +317,8 @@ export function getProductContext(dna: ProductDNA): {
   };
 
   const guideKey = `${dna.packaging_type}+${dna.usage_type}`;
-  const interactionGuide =
-    interactionGuides[guideKey] ||
-    `Interact naturally with the ${dna.sub_category || dna.category} — pick up, examine, use as intended`;
+  const interactionGuide = interactionGuides[guideKey]
+    || `Interact naturally with the ${dna.sub_category || dna.category} — pick up, examine, use as intended`;
 
   // Target user inference
   const targetUsers: Record<ProductCategory, string> = {

@@ -5,7 +5,10 @@ import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 const features = [
   "Generate gambar unlimited",
   "Generate video unlimited",
+  "10+ karakter + kustomisasi",
   "Output tanpa watermark",
+  "AI Prompt Generator",
+  "n8n automation blueprint",
   "Setup guide lengkap",
   "Update fitur selamanya",
   "WhatsApp support group",
@@ -60,11 +63,19 @@ const HargaSection = () => {
           </div>
 
           <div className="rounded-3xl border-2 border-primary/50 bg-card/80 p-8 shadow-[0_0_48px_-12px_hsl(var(--primary)/0.15)] transition-shadow duration-300 hover:shadow-[0_0_60px_-8px_hsl(var(--primary)/0.25)]">
-            <p className="font-satoshi text-lg font-bold tracking-tight text-foreground">GENBOX Lifetime</p>
+            <p className="font-satoshi text-lg font-bold tracking-tight text-foreground">
+              BYOK Lifetime
+            </p>
 
-            <p className="mt-4 text-lg text-muted-foreground/60 line-through font-satoshi font-medium">Rp 249.000</p>
-            <p className="font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">Rp 129.000</p>
-            <p className="mt-2 text-sm font-bold text-primary">sekali bayar · akses selamanya</p>
+            <p className="mt-4 text-lg text-muted-foreground/60 line-through font-satoshi font-medium">
+              Rp 249.000
+            </p>
+            <p className="font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">
+              Rp 149.000
+            </p>
+            <p className="mt-2 text-sm font-bold text-primary">
+              sekali bayar · akses selamanya
+            </p>
 
             {/* Features */}
             <ul className="mt-8 space-y-3">
@@ -88,15 +99,14 @@ const HargaSection = () => {
             </div>
 
             {/* CTA */}
-            <Link
-              to="/checkout"
-              className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow"
-            >
+            <Link to="/checkout" className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
               Beli Sekarang
               <ArrowRight className="h-4 w-4" />
             </Link>
 
-            <p className="mt-4 text-center text-[11px] text-muted-foreground">QRIS · GoPay · Virtual Account</p>
+            <p className="mt-4 text-center text-[11px] text-muted-foreground">
+              QRIS · GoPay · ShopeePay · Virtual Account · Kartu Kredit
+            </p>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
               <Zap className="h-3 w-3 text-primary" />

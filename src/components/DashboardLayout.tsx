@@ -32,7 +32,9 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    items: [{ title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" }],
+    items: [
+      { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+    ],
   },
   {
     label: "GAMBAR & KARAKTER",
@@ -43,17 +45,22 @@ const navGroups: NavGroup[] = [
   },
   {
     label: "VIDEO",
-    items: [{ title: "Buat Video", icon: Film, path: "/video" }],
+    items: [
+      { title: "Buat Video", icon: Film, path: "/video" },
+    ],
   },
-  // {
-  //   label: "TOOLS",
-  //   items: [
-  //     // { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
-  //   ],
-  // },
+  {
+    label: "TOOLS",
+    items: [
+      
+      { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
+    ],
+  },
   {
     label: "ADMIN",
-    items: [{ title: "Admin", icon: Shield, path: "/admin" }],
+    items: [
+      { title: "Admin", icon: Shield, path: "/admin" },
+    ],
   },
 ];
 
@@ -120,7 +127,9 @@ const DashboardLayout = () => {
   };
 
   const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
-    const filteredGroups = navGroups.filter((group) => group.label !== "ADMIN" || isAdmin);
+    const filteredGroups = navGroups.filter(
+      (group) => group.label !== "ADMIN" || isAdmin
+    );
     return (
       <div className="space-y-1">
         {filteredGroups.map((group, gi) => (
@@ -130,7 +139,9 @@ const DashboardLayout = () => {
                 {group.label}
               </p>
             )}
-            <ul className="space-y-0.5">{group.items.map((item) => renderNavItem(item, onNavigate))}</ul>
+            <ul className="space-y-0.5">
+              {group.items.map((item) => renderNavItem(item, onNavigate))}
+            </ul>
           </div>
         ))}
       </div>
@@ -140,10 +151,7 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Desktop Sidebar */}
-      <aside
-        className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex"
-        style={{ background: "hsl(220 8% 4.5%)" }}
-      >
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex" style={{ background: "hsl(220 8% 4.5%)" }}>
         {/* Logo */}
         <div className="px-5 pt-7 pb-1">
           <GenboxLogo size={26} />
@@ -157,7 +165,9 @@ const DashboardLayout = () => {
 
         {/* Settings */}
         <div className="px-3 pb-2 border-t border-border/60 pt-2">
-          <ul className="space-y-0.5">{renderNavItem(settingsItem)}</ul>
+          <ul className="space-y-0.5">
+            {renderNavItem(settingsItem)}
+          </ul>
         </div>
 
         {/* User */}
