@@ -810,16 +810,6 @@ CAMERA DIVERSITY — each frame MUST use a different camera setup:
 - Frame 3: POV or over-shoulder angle. Hands actively interacting with product. Face secondary.
 - Frame 4: Reaction close-up or side profile. Product in hand near face. Expression is the focus.
 - Frame 5: Medium hero shot. Product held toward camera. Confident presenting energy.
-FRAME STABILITY (CRITICAL — MATCH THE CHARACTER REFERENCE IMAGE):
-- Every frame must show the EXACT person from the character reference image attached above
-- Do NOT beautify, slim, reshape, or enhance the person's appearance beyond what the reference shows
-- Facial structure: same nose shape, eye shape, jawline, forehead as the reference photo
-- Skin: same texture, same tone, same imperfections as the reference — no smoothing between frames
-- Hair: same volume, length, color, style as the reference — no changes across frames
-- Makeup: same intensity as the reference — if minimal in reference, stay minimal in all frames
-- Body: same proportions as the reference — no slimming or reshaping
-- If the reference shows a normal-looking person, generate a normal-looking person. Do NOT make them look like a model or influencer.
-- The person in ALL 5 frames must be recognizable as the SAME person in the reference photo.
 
 PRODUCT JOURNEY across frames:
 Frame 1 → product barely visible or on table
