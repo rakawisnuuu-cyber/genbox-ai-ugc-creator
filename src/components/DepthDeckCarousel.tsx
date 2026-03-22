@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, useMotionValue } from "framer-motion";
 
-const STORAGE_BASE = "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos";
+const STORAGE_BASE = "https://uxrxrsdasgvygoeavozp.supabase.co/storage/v1/object/public/showcase-videos";
 
 interface ShowcaseCard {
   id: number;
@@ -15,7 +15,6 @@ const showcaseCards: ShowcaseCard[] = [
   { id: 3, type: "video", url: `${STORAGE_BASE}/video-3.mp4` },
   { id: 4, type: "video", url: `${STORAGE_BASE}/video-4.mp4` },
   { id: 5, type: "video", url: `${STORAGE_BASE}/video-5.mp4` },
-  { id: 6, type: "video", url: `${STORAGE_BASE}/video-6.mp4` },
 ];
 
 interface DepthDeckCarouselProps {
@@ -136,9 +135,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
               {!mediaErrors[card.id] ? (
                 card.type === "video" ? (
                   <video
-                    ref={(el) => {
-                      videoRefs.current[card.id] = el;
-                    }}
+                    ref={(el) => { videoRefs.current[card.id] = el; }}
                     src={card.url}
                     className="absolute inset-0 h-full w-full object-cover"
                     muted
@@ -161,15 +158,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900/40 to-primary/10">
                   <div className="text-center">
                     <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        className="text-primary/60"
-                      >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-primary/60">
                         <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
                         <circle cx="9" cy="9" r="2" />
                         <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
@@ -201,7 +190,9 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
             key={i}
             onClick={() => setActiveIndex(i)}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              i === activeIndex ? "w-6 bg-primary" : "w-1.5 bg-white/20 hover:bg-white/40"
+              i === activeIndex
+                ? "w-6 bg-primary"
+                : "w-1.5 bg-white/20 hover:bg-white/40"
             }`}
           />
         ))}

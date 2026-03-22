@@ -4,7 +4,7 @@ import { useLocation, useNavigate, Link } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
 import { getActionChips, getShuffledChips } from "@/lib/action-chips";
-import { generateVideoAndWait, fetchHDVideo } from "@/lib/kie-video-generation";
+import { generateVideoAndWait } from "@/lib/kie-video-generation";
 import { fileToBase64 } from "@/lib/image-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -44,23 +44,9 @@ import {
   MessageSquare,
   Clapperboard,
   ArrowRight,
-  MonitorUp,
 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import UpscaleButton from "@/components/UpscaleButton";
-import { useUpscale } from "@/hooks/useUpscale";
 
-type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
+type VideoModel = "grok" | "veo_fast" | "veo_quality";
 type FrameStatus = "idle" | "generating" | "completed" | "failed";
 
 interface FrameState {
@@ -70,7 +56,6 @@ interface FrameState {
   actionChips: string[];
   prompt: string;
   model: VideoModel;
-  duration: number;
   skipped: boolean;
   status: FrameStatus;
   videoUrl: string | null;
@@ -87,10 +72,6 @@ interface FrameState {
   showEndGallery?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
-  /** Task ID from Kie AI — needed for HD upgrades */
-  taskId: string | null;
-  /** Currently loading HD resolution */
-  hdLoading: "1080p" | "4k" | null;
 }
 
 interface GalleryImage {
@@ -100,100 +81,15 @@ interface GalleryImage {
 
 const MODEL_COSTS: Record<VideoModel, number> = {
   grok: 1600,
-  kling_std: 2300,
-  kling_pro: 4600,
   veo_fast: 6400,
   veo_quality: 32000,
-  sora2: 3200,
-  sora2_pro: 6400,
 };
 
-const MODEL_LABELS: Record<
-  VideoModel,
-  { label: string; badge: string; badgeColor: string; audio: boolean; cost: string }
-> = {
-  grok: {
-    label: "Grok",
-    badge: "HEMAT",
-    badgeColor: "bg-green-500/20 text-green-400",
-    audio: false,
-    cost: "~Rp 1.600",
-  },
-  kling_std: {
-    label: "Kling",
-    badge: "VALUE",
-    badgeColor: "bg-cyan-500/20 text-cyan-400",
-    audio: true,
-    cost: "~Rp 2.300",
-  },
-  kling_pro: {
-    label: "Kling Pro",
-    badge: "PRO",
-    badgeColor: "bg-teal-500/20 text-teal-400",
-    audio: true,
-    cost: "~Rp 4.600",
-  },
-  sora2: {
-    label: "Sora 2",
-    badge: "NEW",
-    badgeColor: "bg-violet-500/20 text-violet-400",
-    audio: false,
-    cost: "~Rp 3.200",
-  },
-  sora2_pro: {
-    label: "Sora 2 Pro",
-    badge: "NEW PRO",
-    badgeColor: "bg-fuchsia-500/20 text-fuchsia-400",
-    audio: false,
-    cost: "~Rp 6.400",
-  },
-  veo_fast: {
-    label: "Veo Fast",
-    badge: "STANDARD",
-    badgeColor: "bg-blue-500/20 text-blue-400",
-    audio: true,
-    cost: "~Rp 6.400",
-  },
-  veo_quality: {
-    label: "Veo Quality",
-    badge: "PREMIUM",
-    badgeColor: "bg-primary/20 text-primary",
-    audio: true,
-    cost: "~Rp 32.000",
-  },
+const MODEL_LABELS: Record<VideoModel, { label: string; badge: string; badgeColor: string; audio: boolean; cost: string }> = {
+  grok: { label: "Grok", badge: "HEMAT", badgeColor: "bg-green-500/20 text-green-400", audio: false, cost: "~Rp 1.600" },
+  veo_fast: { label: "Veo Fast", badge: "STANDARD", badgeColor: "bg-blue-500/20 text-blue-400", audio: true, cost: "~Rp 6.400" },
+  veo_quality: { label: "Veo Quality", badge: "PREMIUM", badgeColor: "bg-primary/20 text-primary", audio: true, cost: "~Rp 32.000" },
 };
-
-const MODEL_DURATIONS: Record<VideoModel, number[]> = {
-  grok: [6, 10],
-  kling_std: [5, 8, 10],
-  kling_pro: [5, 8, 10, 15],
-  sora2: [10],
-  sora2_pro: [10],
-  veo_fast: [8],
-  veo_quality: [8],
-};
-
-function getSmartModelRecommendation(
-  hasDialog: boolean,
-  storyRole: string,
-  productCategory?: string,
-  isCombined?: boolean,
-): { model: VideoModel; reason: string } {
-  const isFood = productCategory?.toLowerCase() === "food";
-  const isASMR = ["Texture", "Sensory", "Slow Reveal", "Serene"].includes(storyRole);
-  const isPOV = storyRole.startsWith("POV");
-
-  if (isCombined) {
-    return { model: "kling_pro", reason: "Multi-beat frame — Kling Pro supports longer duration" };
-  }
-  if (isFood && hasDialog) {
-    return { model: "kling_std", reason: "Food + dialog — less face glitch than Veo" };
-  }
-  if (isASMR || isPOV || !hasDialog) {
-    return { model: "grok", reason: "Visual only — no audio needed" };
-  }
-  return { model: "veo_fast", reason: "Dialog frame — best lip sync" };
-}
 
 /** Position-based role colors — works with any flexible storyRole string */
 const POSITION_ROLE_COLORS = [
@@ -236,10 +132,7 @@ const DIALOG_HEAVY_TEMPLATES: ContentTemplateKey[] = ["problem_solution", "revie
 /** Templates mostly visual → mixed recommendation */
 const VISUAL_HEAVY_TEMPLATES: ContentTemplateKey[] = ["asmr_aesthetic", "pov_style"];
 
-function getModelRecommendation(template: ContentTemplateKey): {
-  text: string;
-  variant: "dialog" | "visual" | "hemat";
-} {
+function getModelRecommendation(template: ContentTemplateKey): { text: string; variant: "dialog" | "visual" | "hemat" } {
   if (DIALOG_HEAVY_TEMPLATES.includes(template)) {
     return {
       text: "Rekomendasi: Veo Fast untuk semua frame (audio + lip sync) — ~Rp 24.000 total",
@@ -261,33 +154,30 @@ function getModelRecommendation(template: ContentTemplateKey): {
 /** Smart dialog suggestions — maps flexible storyRoles to casual Indonesian dialog */
 const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
   // Opening / Hook roles
-  Problem: () => "Ini nih yang bikin aku kesel. Udah coba banyak tapi ga works.",
-  Hook: (cat) => {
-    const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1);
-    return hooks[0] || "Ini tuh ternyata sebagus ini. Awalnya ragu tapi setelah coba sendiri...";
-  },
-  Skeptical: () => "Beneran nih ini bagus? Aku ragu awalnya. Tapi yaudah coba dulu aja.",
-  Morning: () => "Pagi-pagi langsung skincare-an dulu dong. Ini udah jadi rutinitas wajib aku.",
+  "Problem": () => "Ini nih yang bikin aku kesel. Udah coba banyak tapi ga works.",
+  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Ini tuh ternyata sebagus ini. Awalnya ragu tapi setelah coba sendiri..."; },
+  "Skeptical": () => "Beneran nih ini bagus? Aku ragu awalnya. Tapi yaudah coba dulu aja.",
+  "Morning": () => "Pagi-pagi langsung skincare-an dulu dong. Ini udah jadi rutinitas wajib aku.",
   "First Look": () => "Baru pertama kali liat produk ini. Penasaran banget, kita liat ya.",
-  Excitement: () => "GUYS! Akhirnya dateng yang aku tunggu-tunggu! Kita unboxing bareng ya!",
-  Anticipation: () => "Penasaran banget sama ini. Banyak yang bilang bagus, aku mau buktiin sendiri.",
-  Setup: () => "Oke jadi aku mau tunjukin cara pakainya. Simpel banget sebenernya.",
+  "Excitement": () => "GUYS! Akhirnya dateng yang aku tunggu-tunggu! Kita unboxing bareng ya!",
+  "Anticipation": () => "Penasaran banget sama ini. Banyak yang bilang bagus, aku mau buktiin sendiri.",
+  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya. Simpel banget sebenernya.",
   "POV Reach": () => "",
-  Texture: () => "",
+  "Texture": () => "",
 
   // Mid roles
   "Pain Amplification": () => "Capek banget ngerasain kayak gini terus. Makanya aku cari solusinya.",
-  Personal: () => "Aku udah pake ini seminggu. Honestly mulai kerasa bedanya.",
+  "Personal": () => "Aku udah pake ini seminggu. Honestly mulai kerasa bedanya.",
   "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine. Gampang banget.",
-  Expectation: () => "Di packaging bilang bisa gini gitu. Penasaran apa beneran, kita buktiin.",
+  "Expectation": () => "Di packaging bilang bisa gini gitu. Penasaran apa beneran, kita buktiin.",
   "Alasan 1": () => "Alasan pertama kenapa aku suka. Hasilnya kerasa cepet banget.",
-  Midday: () => "Siang-siang gini tetep fresh. Ga perlu touch up sama sekali.",
+  "Midday": () => "Siang-siang gini tetep fresh. Ga perlu touch up sama sekali.",
   "First Open": () => "Wah packaging-nya bagus juga ya. Keliatan premium buat harga segini.",
-  Reveal: () => "Ini nih isinya, cakep banget. Desainnya minimalis tapi keliatan mahal.",
+  "Reveal": () => "Ini nih isinya, cakep banget. Desainnya minimalis tapi keliatan mahal.",
   "Step 1": () => "Pertama ambil secukupnya dulu. Ga perlu banyak, dikit aja cukup.",
 
-  // Demo / Usage roles
-  Demo: (cat) => {
+  // Demo / Usage roles  
+  "Demo": (cat) => {
     const demos: Record<string, string> = {
       skincare: "Cobain langsung di kulit aku. Teksturnya ringan, cepet nyerep. Ga lengket.",
       fashion: "Aku pake langsung ya. Jatuhnya bagus, bahannya adem. Fit-nya pas.",
@@ -298,57 +188,61 @@ const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
     };
     return demos[(cat || "").toLowerCase()] || "Langsung cobain ya. Cara pakainya gampang. Hasilnya langsung keliatan.";
   },
-  Usage: (cat) => ROLE_DIALOG_MAP["Demo"]?.(cat) || "Aku pake langsung, gampang banget. Simpel dan kelar.",
+  "Usage": (cat) => ROLE_DIALOG_MAP["Demo"]?.(cat) || "Aku pake langsung, gampang banget. Simpel dan kelar.",
   "Product Step": () => "Ini step paling penting. Jangan di-skip, ini yang bikin hasilnya maksimal.",
-  Application: () => "Apply-nya gampang, tinggal ratain aja. Siapa aja bisa.",
-  Try: () => "Oke cobain langsung ya. Biar kalian liat sendiri. Simpel banget.",
+  "Application": () => "Apply-nya gampang, tinggal ratain aja. Siapa aja bisa.",
+  "Try": () => "Oke cobain langsung ya. Biar kalian liat sendiri. Simpel banget.",
   "First Try": () => "Pertama kali pake nih, deg-degan. Tapi ternyata gampang banget.",
   "Product Moment": () => "Siang hari gini aku selalu pake ini. Udah jadi kebiasaan.",
   "Alasan 2": () => "Alasan kedua, ini tahan lama banget. Pagi sampe malem masih oke.",
   "Step 2": () => "Step kedua, ratain pelan-pelan. Ga usah buru-buru. Gampang kan?",
   "Speed Demo": () => "Cepet banget cara makenya. Cuma butuh beberapa detik. Praktis.",
-  Sensory: () => "",
+  "Sensory": () => "",
   "Slow Reveal": () => "",
   "POV Inspect": () => "",
   "POV Use": () => "",
-  Discovery: () => "Wah, ini ternyata bagus banget ya. Aku ga expect sama sekali. Beneran surprised sih aku.",
+  "Discovery": () => "Wah, ini ternyata bagus banget ya. Aku ga expect sama sekali. Beneran surprised sih aku.",
 
   // Result / Proof roles
-  Result: () => "Beneran kerasa bedanya. Ga expect secepet ini hasilnya. Worth it.",
+  "Result": () => "Beneran kerasa bedanya. Ga expect secepet ini hasilnya. Worth it.",
   "After Reveal": () => "Kerasa bedanya sih. Liat sendiri before after-nya. Gila hasilnya.",
-  Reality: () => "Wait, ini beneran bagus dong?! Aku kira biasa aja ternyata engga.",
+  "Reality": () => "Wait, ini beneran bagus dong?! Aku kira biasa aja ternyata engga.",
   "Alasan 3": () => "Alasan ketiga, harganya worth it banget sama kualitasnya. Ga nyesel.",
   "Almost Ready": () => "Tinggal finishing touch aja. Bentar lagi kelar. Ga sabar liat hasilnya.",
-  Benefit: () => "Kerasa banget benefitnya setelah rutin pake. Beneran recommended.",
-  Assessment: () => "Overall menurutku worth it. Plus minusnya lebih banyak plusnya.",
-  Impressed: () => "Aku kaget, hasilnya sebagus ini. Ga expect sama sekali. Harus coba.",
+  "Benefit": () => "Kerasa banget benefitnya setelah rutin pake. Beneran recommended.",
+  "Assessment": () => "Overall menurutku worth it. Plus minusnya lebih banyak plusnya.",
+  "Impressed": () => "Aku kaget, hasilnya sebagus ini. Ga expect sama sekali. Harus coba.",
   "Initial Result": () => "Baru pertama pake udah kerasa bedanya. Cepet banget keliatan.",
   "POV Result": () => "",
-  Serene: () => "",
+  "Serene": () => "",
 
   // CTA / Close roles
-  CTA: () => "Pokoknya ini harus punya. Udah recommend ke temen-temen juga. Coba deh!",
+  "CTA": () => "Pokoknya ini harus punya. Udah recommend ke temen-temen juga. Coba deh!",
   "Soft CTA": () => "Menurutku worth it banget. Harganya segitu dapet kualitas gini. Coba deh.",
-  Confidence: () => "Pede banget jadinya setelah pake ini. Game changer. Kalian harus coba.",
-  Ready: () => "Siap jalan! Produk ini ngebantu banget. Ga bisa balik ke yang lain.",
-  Converted: () => "Oke tarik kata-kata aku, ini bagus banget. Sekarang jadi langganan. Worth it!",
-  Summary: () => "Kesimpulannya, worth it banget. Bakal repurchase pasti. Kalian harus coba.",
-  Verdict: () => "Honest opinion, ini recommended banget. Ga bakal nyesel. Coba aja.",
-  Evening: () => "Malam-malam gini masih kerasa efeknya. Awet banget. Aku impressed.",
+  "Confidence": () => "Pede banget jadinya setelah pake ini. Game changer. Kalian harus coba.",
+  "Ready": () => "Siap jalan! Produk ini ngebantu banget. Ga bisa balik ke yang lain.",
+  "Converted": () => "Oke tarik kata-kata aku, ini bagus banget. Sekarang jadi langganan. Worth it!",
+  "Summary": () => "Kesimpulannya, worth it banget. Bakal repurchase pasti. Kalian harus coba.",
+  "Verdict": () => "Honest opinion, ini recommended banget. Ga bakal nyesel. Coba aja.",
+  "Evening": () => "Malam-malam gini masih kerasa efeknya. Awet banget. Aku impressed.",
   "Wrap Up": () => "Gampang kan ternyata? Simpel tapi hasilnya kerasa. Coba deh!",
   "Show Off": () => "Ini harus punya, serius. Beneran bagus. Must have banget.",
   "Face Reveal": () => "Tadaaa! Hasilnya kayak gini. Gimana menurut kalian? Bagus kan?",
 };
 
-function getSmartDialogSuggestion(role: string, templateKey: ContentTemplateKey, productCategory?: string): string {
+function getSmartDialogSuggestion(
+  role: string,
+  templateKey: ContentTemplateKey,
+  productCategory?: string,
+): string {
   // Try exact role match first
   const generator = ROLE_DIALOG_MAP[role];
   if (generator) return generator(productCategory);
-
+  
   // Fallback: try to find via template hooks
   const hooks = getRandomHooks(templateKey, 1);
   if (hooks[0]) return hooks[0];
-
+  
   return "";
 }
 
@@ -361,7 +255,6 @@ const VideoPage = () => {
   const { kieApiKey, geminiKey, keys } = useApiKeys();
   const { model: promptModel } = usePromptModel();
   const { toast } = useToast();
-  const { upscale, getState: getUpscaleState } = useUpscale();
 
   // Navigation state from storyboard
   const navState = location.state as any;
@@ -407,28 +300,19 @@ const VideoPage = () => {
   const detectProductFromImage = async (b64Override?: { mimeType: string; data: string } | null) => {
     if (!geminiKey || keys.gemini.status !== "valid") return;
     const b64 = b64Override || imageAsBase64;
-    if (!b64) {
-      return;
-    }
+    if (!b64) { return; }
     setDetectingProduct(true);
     try {
       const json = await geminiFetch(promptModel, geminiKey!, {
-        contents: [
-          {
-            parts: [
-              { inlineData: { mimeType: b64.mimeType, data: b64.data } },
-              {
-                text: `What product is in this image? Return JSON only, no explanation: { "category": "skincare|fashion|food|electronics|health|home|other", "sub_category": "specific type like kebaya, face serum, sneakers", "product_description": "detailed visual description of the product" }`,
-              },
-            ],
-          },
-        ],
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: b64.mimeType, data: b64.data } },
+            { text: `What product is in this image? Return JSON only, no explanation: { "category": "skincare|fashion|food|electronics|health|home|other", "sub_category": "specific type like kebaya, face serum, sneakers", "product_description": "detailed visual description of the product" }` },
+          ],
+        }],
       });
       const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const cleaned = rawText
-        .replace(/```json\s*/g, "")
-        .replace(/```\s*/g, "")
-        .trim();
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       const parsed = JSON.parse(cleaned);
       if (parsed.category || parsed.product_description) {
         setProductInfo({
@@ -452,7 +336,7 @@ const VideoPage = () => {
 
   // Template
   const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplateKey>(
-    navState?.template || "problem_solution",
+    navState?.template || "problem_solution"
   );
 
   // Gallery
@@ -504,12 +388,12 @@ const VideoPage = () => {
       // Smart dialog suggestion based on story role + product category
       const defaultDialogue = getSmartDialogSuggestion(beat.storyRole, selectedTemplate, productCategory);
       const hasDialogue = !!defaultDialogue.trim();
-      const rec = getSmartModelRecommendation(hasDialogue, beat.storyRole, productCategory, false);
-      const defaultModel = rec.model;
-      const defaultDuration = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
+      const defaultModel: VideoModel = hasDialogue ? "veo_fast" : "grok";
 
       // Source image: storyboard image if available, else source image
-      const frameSource = fromStoryboard && storyboardImages[i] ? storyboardImages[i] : sourceUrl;
+      const frameSource = fromStoryboard && storyboardImages[i]
+        ? storyboardImages[i]
+        : sourceUrl;
 
       return {
         sourceImageUrl: frameSource,
@@ -518,7 +402,6 @@ const VideoPage = () => {
         actionChips: getActionChips(beat.storyRole, productCategory),
         prompt: "",
         model: defaultModel,
-        duration: defaultDuration,
         skipped: false,
         status: "idle" as FrameStatus,
         videoUrl: null,
@@ -528,8 +411,6 @@ const VideoPage = () => {
         mergedFrames: [],
         mergedInto: null,
         endFrameUrl: null,
-        taskId: null,
-        hdLoading: null,
       };
     });
     setFrames(newFrames);
@@ -581,9 +462,9 @@ const VideoPage = () => {
 
     try {
       const template = getContentTemplate(selectedTemplate);
-      const beatDescriptions = beats
-        .map((b, i) => `Frame ${i + 1} (${b.storyRole}): ${b.label} — ${b.description}`)
-        .join("\n");
+      const beatDescriptions = beats.map((b, i) =>
+        `Frame ${i + 1} (${b.storyRole}): ${b.label} — ${b.description}`
+      ).join("\n");
 
       const contentParts: any[] = [];
 
@@ -633,7 +514,7 @@ Rules:
 - Prompts must describe continuous 8-second scenes with natural movement
 - Each frame's prompt should create visual continuity with the previous frame
 - The subject behaves like a TikTok content creator — spontaneous, casual, not posed
-- ${imageIncluded ? "Match the person, outfit, and environment from the reference image in all prompts" : "Describe a young Indonesian female content creator in a clean, well-lit room"}`,
+- ${imageIncluded ? "Match the person, outfit, and environment from the reference image in all prompts" : "Describe a young Indonesian female content creator in a clean, well-lit room"}`
       });
 
       const json = await geminiFetch(promptModel, geminiKey!, {
@@ -641,10 +522,7 @@ Rules:
       });
 
       const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      const cleaned = rawText
-        .replace(/```json\s*/g, "")
-        .replace(/```\s*/g, "")
-        .trim();
+      const cleaned = rawText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       const parsed = JSON.parse(cleaned);
 
       // Set product info from plan
@@ -668,26 +546,18 @@ Rules:
             const planned = parsed.frames[i];
             if (!planned) return frame;
             const hasDialog = !!planned.dialog?.trim();
-            const rec = getSmartModelRecommendation(
-              hasDialog,
-              beats[i]?.storyRole || "Hook",
-              (parsed.product?.category || productCategory).toLowerCase(),
-              false,
-            );
-            const dur = MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
             return {
               ...frame,
               action: planned.action || frame.action,
               dialogue: planned.dialog || frame.dialogue,
               prompt: planned.prompt || frame.prompt,
-              model: rec.model,
-              duration: dur,
+              model: hasDialog ? "veo_fast" as VideoModel : "grok" as VideoModel,
               actionChips: getActionChips(
                 beats[i]?.storyRole || "Hook",
-                (parsed.product?.category || productCategory).toLowerCase(),
+                (parsed.product?.category || productCategory).toLowerCase()
               ),
             };
-          }),
+          })
         );
       }
 
@@ -720,7 +590,9 @@ Rules:
       if (currentMergedCount >= 3) return prev;
 
       // Find the next available frame (after all currently merged ones)
-      const lastIdx = parentFrame.mergedFrames.length > 0 ? Math.max(...parentFrame.mergedFrames) : idx;
+      const lastIdx = parentFrame.mergedFrames.length > 0
+        ? Math.max(...parentFrame.mergedFrames)
+        : idx;
       const targetIdx = lastIdx + 1;
 
       if (targetIdx >= next.length) return prev;
@@ -837,9 +709,7 @@ Rules:
       if (isCombined) {
         const allBeats = [beat, ...mergedBeats];
         const combinedDuration = allBeats.length * 8;
-        const beatDescList = allBeats
-          .map((b) => `'${b.label}' — ${b.description}`)
-          .join(", then naturally flowing into ");
+        const beatDescList = allBeats.map((b) => `'${b.label}' — ${b.description}`).join(", then naturally flowing into ");
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
 Write a short spoken dialog covering ${allBeats.length} beats in one natural flow. Maximum 25-30 words total (this is still only ${combinedDuration} seconds of video). 2-3 sentences max. Do NOT write more — the person speaks at normal pace, not rushing.
@@ -848,7 +718,7 @@ Previous frame's dialog was: '${prevDialog}'.
 Casual Indonesian. Output ONLY the script text.`;
         contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
       } else {
-        const duration = frames[idx]?.duration || 8;
+        const duration = frames[idx]?.model === "grok" ? 10 : 8;
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
 Write a short spoken dialog for the '${beat.label}' part. Maximum 20-25 words (about ${duration} seconds of natural speech). 2 sentences max. Do NOT write more.
@@ -884,7 +754,7 @@ Output ONLY the script text.`;
     const sysText = buildVideoDirectorInstruction({
       shotIndex: idx,
       totalShots: 5,
-      duration: frame.duration || 8,
+      duration: frame.model === "grok" ? 10 : 8,
       moduleType: beat.storyRole.toLowerCase(),
       previousPrompt: prevPrompt,
       withDialogue: !!frame.dialogue.trim(),
@@ -893,26 +763,20 @@ Output ONLY the script text.`;
       contentTemplate: selectedTemplate,
       model: frame.model,
       environmentDescription: environmentDesc || undefined,
-      productDescription: productInfo.product_description || productInfo.category || "consumer product",
-      globalConsistency: `The same person appears in all frames. The same ${productInfo.product_description || "product"} appears in all frames. Same ${environmentDesc || "environment"} and lighting throughout.`,
     });
 
     const contentParts: any[] = [];
     // Use stored base64 (CORS-free) for visual reference, fall back to URL fetch
     if (imageAsBase64) {
       contentParts.push({ inlineData: { mimeType: imageAsBase64.mimeType, data: imageAsBase64.data } });
-      contentParts.push({
-        text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY. Do NOT reinterpret any visual element.",
-      });
+      contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY. Do NOT reinterpret any visual element." });
     } else {
       const imgUrl = frame.sourceImageUrl || sourceUrl;
       if (imgUrl) {
         const b64 = await imageUrlToBase64(imgUrl);
         if (b64) {
           contentParts.push({ inlineData: { mimeType: b64.mimeType, data: b64.data } });
-          contentParts.push({
-            text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY. Do NOT reinterpret any visual element.",
-          });
+          contentParts.push({ text: "This is the reference image. Match the person, outfit, environment, and lighting EXACTLY. Do NOT reinterpret any visual element." });
         }
       }
     }
@@ -1004,7 +868,7 @@ Content template: ${template?.label}`,
       }
 
       const beat = beats[idx];
-      const duration = frame.duration || 8;
+      const duration = frame.model === "grok" ? 10 : 8;
 
       // Build image URLs — use dual input for combined Veo frames (start + end frame)
       const isVeo = frame.model === "veo_fast" || frame.model === "veo_quality";
@@ -1015,10 +879,8 @@ Content template: ${template?.label}`,
         // Combined frames: use start + end frame images
         const startImg = frame.sourceImageUrl || storyboardImages[idx] || imgUrl;
         const endFrameRemoved = frame.endFrameUrl === "__none__";
-        const endImg = endFrameRemoved
-          ? null
-          : frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]];
-        videoImageUrls = endImg && startImg !== endImg ? [startImg, endImg] : [startImg];
+        const endImg = endFrameRemoved ? null : (frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]);
+        videoImageUrls = (endImg && startImg !== endImg) ? [startImg, endImg] : [startImg];
       } else {
         // Single frame or Grok: one image only
         videoImageUrls = [imgUrl];
@@ -1037,7 +899,7 @@ Content template: ${template?.label}`,
       );
 
       clearInterval(frameTimersRef.current[idx]);
-      updateFrame(idx, { status: "completed", videoUrl: result.videoUrl, taskId: result.taskId });
+      updateFrame(idx, { status: "completed", videoUrl: result.videoUrl });
 
       // Save to gallery
       await supabase.from("generations").insert({
@@ -1045,20 +907,7 @@ Content template: ${template?.label}`,
         type: "video",
         image_url: result.videoUrl,
         prompt: usedPrompt,
-        model:
-          frame.model === "grok"
-            ? "grok-imagine"
-            : frame.model === "kling_std"
-              ? "kling-3.0-std"
-              : frame.model === "kling_pro"
-                ? "kling-3.0-pro"
-                : frame.model === "sora2"
-                  ? "sora-2"
-                  : frame.model === "sora2_pro"
-                    ? "sora-2-pro"
-                    : frame.model === "veo_fast"
-                      ? "veo3_fast"
-                      : "veo3",
+        model: frame.model === "grok" ? "grok-imagine" : frame.model === "veo_fast" ? "veo3_fast" : "veo3",
         provider: "kie_ai",
         status: "completed",
         metadata: {
@@ -1108,11 +957,10 @@ Content template: ${template?.label}`,
   const skippedCount = frames.filter((f) => f.skipped && f.mergedInto === null).length;
   const mergedCount = frames.filter((f) => f.mergedInto !== null).length;
   const failedCount = frames.filter((f) => f.status === "failed" && f.mergedInto === null).length;
-  const allDone =
-    frames.length > 0 && frames.every((f) => f.skipped || f.mergedInto !== null || f.status === "completed");
+  const allDone = frames.length > 0 && frames.every((f) => f.skipped || f.mergedInto !== null || f.status === "completed");
   const totalDuration = activeFrames.reduce((s, f) => {
     if (f.status !== "completed") return s;
-    return s + (f.duration || 8);
+    return s + (f.model === "grok" ? 10 : 8);
   }, 0);
   const actualCost = completedFrames.reduce((s, f) => s + MODEL_COSTS[f.model], 0);
 
@@ -1186,29 +1034,10 @@ Content template: ${template?.label}`,
   // Status pill helper
   const getStatusPill = (status: FrameStatus) => {
     switch (status) {
-      case "completed":
-        return (
-          <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px] font-medium">
-            Done
-          </span>
-        );
-      case "failed":
-        return (
-          <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Failed</span>
-        );
-      case "generating":
-        return (
-          <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-medium flex items-center gap-1">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Generating
-          </span>
-        );
-      default:
-        return (
-          <span className="bg-white/[0.04] text-muted-foreground/40 rounded-md px-2 py-0.5 text-[10px] font-medium">
-            Idle
-          </span>
-        );
+      case "completed": return <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Done</span>;
+      case "failed": return <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Failed</span>;
+      case "generating": return <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-medium flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Generating</span>;
+      default: return <span className="bg-white/[0.04] text-muted-foreground/40 rounded-md px-2 py-0.5 text-[10px] font-medium">Idle</span>;
     }
   };
 
@@ -1255,22 +1084,18 @@ Content template: ${template?.label}`,
         <div className="rounded-xl px-4 py-2 border border-white/[0.06] bg-white/[0.02] text-[11px] flex items-center gap-2">
           <span>🏷️</span>
           <span className="font-medium text-foreground">{productInfo.product_description}</span>
-          <span className="text-muted-foreground/40">
-            ({productInfo.category}/{productInfo.sub_category || "general"})
-          </span>
+          <span className="text-muted-foreground/40">({productInfo.category}/{productInfo.sub_category || "general"})</span>
         </div>
       )}
 
       {/* Model recommendation */}
-      <div
-        className={`rounded-xl px-4 py-2.5 border text-[11px] ${
-          modelRec.variant === "dialog"
-            ? "bg-blue-500/5 border-blue-500/20 text-blue-400"
-            : modelRec.variant === "visual"
-              ? "bg-amber-500/5 border-amber-500/20 text-amber-400"
-              : "bg-green-500/5 border-green-500/20 text-green-400"
-        }`}
-      >
+      <div className={`rounded-xl px-4 py-2.5 border text-[11px] ${
+        modelRec.variant === "dialog"
+          ? "bg-blue-500/5 border-blue-500/20 text-blue-400"
+          : modelRec.variant === "visual"
+          ? "bg-amber-500/5 border-amber-500/20 text-amber-400"
+          : "bg-green-500/5 border-green-500/20 text-green-400"
+      }`}>
         <Lightbulb className="inline h-3.5 w-3.5 mr-1" /> {modelRec.text}
       </div>
 
@@ -1294,10 +1119,7 @@ Content template: ${template?.label}`,
           // Skeleton during planning
           if (planningStoryboard) {
             return (
-              <div
-                key={idx}
-                className="border border-white/[0.06] rounded-xl p-4 space-y-3 animate-pulse bg-white/[0.02]"
-              >
+              <div key={idx} className="border border-white/[0.06] rounded-xl p-4 space-y-3 animate-pulse bg-white/[0.02]">
                 <div className="flex items-center gap-2">
                   <Skeleton className="h-5 w-8" />
                   <Skeleton className="h-4 w-24" />
@@ -1311,10 +1133,7 @@ Content template: ${template?.label}`,
           // Merged-into indicator
           if (frame.mergedInto !== null) {
             return (
-              <div
-                key={idx}
-                className="border border-dashed border-white/[0.06] rounded-xl px-4 py-2 opacity-40 flex items-center gap-2"
-              >
+              <div key={idx} className="border border-dashed border-white/[0.06] rounded-xl px-4 py-2 opacity-40 flex items-center gap-2">
                 <Link2 className="h-3 w-3 text-muted-foreground/40" />
                 <span className="text-[10px] text-muted-foreground/40">
                   F{idx + 1} ({beat.label}) — digabungkan ke F{frame.mergedInto + 1}
@@ -1332,13 +1151,10 @@ Content template: ${template?.label}`,
             <div
               key={idx}
               className={`border rounded-xl overflow-hidden transition-all ${
-                frame.skipped
-                  ? "opacity-40 border-white/[0.04]"
-                  : frame.status === "completed"
-                    ? "border-emerald-500/20 bg-white/[0.02]"
-                    : isCombined
-                      ? "border-primary/20 bg-white/[0.02]"
-                      : "border-white/[0.06] bg-white/[0.02]"
+                frame.skipped ? "opacity-40 border-white/[0.04]" :
+                frame.status === "completed" ? "border-emerald-500/20 bg-white/[0.02]" :
+                isCombined ? "border-primary/20 bg-white/[0.02]" :
+                "border-white/[0.06] bg-white/[0.02]"
               }`}
             >
               {/* Collapsed Header — ~56px */}
@@ -1364,10 +1180,7 @@ Content template: ${template?.label}`,
                   {allBeatLabels.map((b, bi) => {
                     const actualIdx = bi === 0 ? idx : frame.mergedFrames[bi - 1];
                     return (
-                      <span
-                        key={bi}
-                        className={`text-[9px] px-2 py-0.5 rounded-md font-medium shrink-0 ${getRoleColor(actualIdx)}`}
-                      >
+                      <span key={bi} className={`text-[9px] px-2 py-0.5 rounded-md font-medium shrink-0 ${getRoleColor(actualIdx)}`}>
                         {b.storyRole}
                       </span>
                     );
@@ -1384,11 +1197,7 @@ Content template: ${template?.label}`,
                       className="scale-75"
                     />
                   </div>
-                  {frame.expanded ? (
-                    <ChevronUp className="h-4 w-4 text-muted-foreground/30" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground/30" />
-                  )}
+                  {frame.expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground/30" /> : <ChevronDown className="h-4 w-4 text-muted-foreground/30" />}
                 </div>
               </div>
 
@@ -1420,11 +1229,9 @@ Content template: ${template?.label}`,
 
                   {/* Source image */}
                   <div>
-                    <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1">
-                      Referensi gambar
-                    </label>
+                    <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1">Referensi gambar</label>
                     <div className="flex items-center gap-2">
-                      {frame.sourceImageUrl || sourceUrl ? (
+                      {(frame.sourceImageUrl || sourceUrl) ? (
                         <img
                           src={frame.sourceImageUrl || sourceUrl!}
                           alt={`Frame ${idx + 1} ref`}
@@ -1468,18 +1275,6 @@ Content template: ${template?.label}`,
                             <ImageIcon className="h-3 w-3" /> Dari gallery
                           </button>
                         )}
-                        {(frame.sourceImageUrl || sourceUrl) && frame.status !== "generating" && (
-                          <UpscaleButton
-                            imageUrl={(frame.sourceImageUrl || sourceUrl)!}
-                            imageKey={`frame-${idx}-source`}
-                            loading={getUpscaleState(`frame-${idx}-source`).loading}
-                            currentFactor={getUpscaleState(`frame-${idx}-source`).factor}
-                            onUpscale={async (key, url, factor) => {
-                              const result = await upscale(key, url, factor);
-                              if (result) updateFrame(idx, { sourceImageUrl: result });
-                            }}
-                          />
-                        )}
                       </div>
                     </div>
                     {frame.showGalleryPicker && galleryImages.length > 0 && (
@@ -1489,9 +1284,7 @@ Content template: ${template?.label}`,
                           {galleryImages.slice(0, 12).map((img) => (
                             <button
                               key={img.id}
-                              onClick={() =>
-                                updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false })
-                              }
+                              onClick={() => updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false })}
                               className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
                             >
                               <img src={img.image_url} alt="" className="w-full h-full object-cover" />
@@ -1503,12 +1296,63 @@ Content template: ${template?.label}`,
                     {/* Start + End frame picker for combined Veo frames */}
                     {isCombined && (frame.model === "veo_fast" || frame.model === "veo_quality") && (
                       <>
-                        <div className="mt-2 flex items-center gap-3">
-                          {/* Start frame — clickable to upload */}
-                          <div className="text-center">
-                            <p className="text-[9px] text-muted-foreground mb-1">Start</p>
+                      <div className="mt-2 flex items-center gap-3">
+                        {/* Start frame — clickable to upload */}
+                        <div className="text-center">
+                          <p className="text-[9px] text-muted-foreground mb-1">Start</p>
+                          <button
+                            className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
+                            onClick={() => {
+                              const inp = document.createElement("input");
+                              inp.type = "file";
+                              inp.accept = "image/jpeg,image/png,image/webp";
+                              inp.onchange = async (e) => {
+                                const f = (e.target as HTMLInputElement).files?.[0];
+                                if (!f) return;
+                                const preview = URL.createObjectURL(f);
+                                updateFrame(idx, { sourceImageUrl: preview });
+                                const ext = f.name.split(".").pop();
+                                const path = `${user!.id}/video-sources/${Date.now()}-start.${ext}`;
+                                const { error } = await supabase.storage.from("product-images").upload(path, f);
+                                if (!error) {
+                                  const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                                  updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
+                                }
+                              };
+                              inp.click();
+                            }}
+                          >
+                            {(frame.sourceImageUrl || storyboardImages[idx]) ? (
+                              <img src={frame.sourceImageUrl || storyboardImages[idx]} alt="Start frame" className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
+                                <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Upload className="h-4 w-4 text-white" />
+                            </div>
+                          </button>
+                          <p className="text-[8px] text-muted-foreground mt-0.5">F{idx + 1}</p>
+                          {galleryImages.length > 0 && (
                             <button
-                              className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
+                              onClick={() => updateFrame(idx, { showStartGallery: !frame.showStartGallery, showEndGallery: false })}
+                              className="text-[10px] text-primary hover:underline mt-0.5"
+                            >
+                              From gallery
+                            </button>
+                          )}
+                        </div>
+
+                        <span className="text-muted-foreground/30 text-lg">→</span>
+
+                        {/* End frame — clickable to upload, with remove button */}
+                        <div className="text-center">
+                          <p className="text-[9px] text-muted-foreground mb-1">End</p>
+                          {frame.endFrameUrl === "__none__" ? (
+                            /* Removed state — show empty dashed card */
+                            <button
+                              className="relative group h-20 w-14 rounded-lg border-2 border-dashed border-white/[0.12] hover:border-primary/40 transition-colors flex flex-col items-center justify-center gap-1"
                               onClick={() => {
                                 const inp = document.createElement("input");
                                 inp.type = "file";
@@ -1517,57 +1361,26 @@ Content template: ${template?.label}`,
                                   const f = (e.target as HTMLInputElement).files?.[0];
                                   if (!f) return;
                                   const preview = URL.createObjectURL(f);
-                                  updateFrame(idx, { sourceImageUrl: preview });
+                                  updateFrame(idx, { endFrameUrl: preview });
                                   const ext = f.name.split(".").pop();
-                                  const path = `${user!.id}/video-sources/${Date.now()}-start.${ext}`;
+                                  const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
                                   const { error } = await supabase.storage.from("product-images").upload(path, f);
                                   if (!error) {
-                                    const { data: urlData } = supabase.storage
-                                      .from("product-images")
-                                      .getPublicUrl(path);
-                                    updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
+                                    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                                    updateFrame(idx, { endFrameUrl: urlData.publicUrl });
                                   }
                                 };
                                 inp.click();
                               }}
                             >
-                              {frame.sourceImageUrl || storyboardImages[idx] ? (
-                                <img
-                                  src={frame.sourceImageUrl || storyboardImages[idx]}
-                                  alt="Start frame"
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
-                                  <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <Upload className="h-4 w-4 text-white" />
-                              </div>
+                              <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
+                              <span className="text-[7px] text-muted-foreground/40 leading-tight">Add end<br/>frame</span>
                             </button>
-                            <p className="text-[8px] text-muted-foreground mt-0.5">F{idx + 1}</p>
-                            {galleryImages.length > 0 && (
+                          ) : (
+                            /* Normal state — show image with remove X */
+                            <div className="relative">
                               <button
-                                onClick={() =>
-                                  updateFrame(idx, { showStartGallery: !frame.showStartGallery, showEndGallery: false })
-                                }
-                                className="text-[10px] text-primary hover:underline mt-0.5"
-                              >
-                                From gallery
-                              </button>
-                            )}
-                          </div>
-
-                          <span className="text-muted-foreground/30 text-lg">→</span>
-
-                          {/* End frame — clickable to upload, with remove button */}
-                          <div className="text-center">
-                            <p className="text-[9px] text-muted-foreground mb-1">End</p>
-                            {frame.endFrameUrl === "__none__" ? (
-                              /* Removed state — show empty dashed card */
-                              <button
-                                className="relative group h-20 w-14 rounded-lg border-2 border-dashed border-white/[0.12] hover:border-primary/40 transition-colors flex flex-col items-center justify-center gap-1"
+                                className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
                                 onClick={() => {
                                   const inp = document.createElement("input");
                                   inp.type = "file";
@@ -1581,138 +1394,80 @@ Content template: ${template?.label}`,
                                     const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
                                     const { error } = await supabase.storage.from("product-images").upload(path, f);
                                     if (!error) {
-                                      const { data: urlData } = supabase.storage
-                                        .from("product-images")
-                                        .getPublicUrl(path);
+                                      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
                                       updateFrame(idx, { endFrameUrl: urlData.publicUrl });
                                     }
                                   };
                                   inp.click();
                                 }}
                               >
-                                <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
-                                <span className="text-[7px] text-muted-foreground/40 leading-tight">
-                                  Add end
-                                  <br />
-                                  frame
-                                </span>
-                              </button>
-                            ) : (
-                              /* Normal state — show image with remove X */
-                              <div className="relative">
-                                <button
-                                  className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
-                                  onClick={() => {
-                                    const inp = document.createElement("input");
-                                    inp.type = "file";
-                                    inp.accept = "image/jpeg,image/png,image/webp";
-                                    inp.onchange = async (e) => {
-                                      const f = (e.target as HTMLInputElement).files?.[0];
-                                      if (!f) return;
-                                      const preview = URL.createObjectURL(f);
-                                      updateFrame(idx, { endFrameUrl: preview });
-                                      const ext = f.name.split(".").pop();
-                                      const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
-                                      const { error } = await supabase.storage.from("product-images").upload(path, f);
-                                      if (!error) {
-                                        const { data: urlData } = supabase.storage
-                                          .from("product-images")
-                                          .getPublicUrl(path);
-                                        updateFrame(idx, { endFrameUrl: urlData.publicUrl });
-                                      }
-                                    };
-                                    inp.click();
-                                  }}
-                                >
-                                  {frame.endFrameUrl ||
-                                  storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]] ? (
-                                    <img
-                                      src={
-                                        frame.endFrameUrl ||
-                                        storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]
-                                      }
-                                      alt="End frame"
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
-                                      <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
-                                    </div>
-                                  )}
-                                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <Upload className="h-4 w-4 text-white" />
+                                {(frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) ? (
+                                  <img src={frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]} alt="End frame" className="h-full w-full object-cover" />
+                                ) : (
+                                  <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
+                                    <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
                                   </div>
-                                </button>
-                                {/* Remove end frame button */}
-                                {(frame.endFrameUrl ||
-                                  storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateFrame(idx, { endFrameUrl: "__none__" });
-                                    }}
-                                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] z-10"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
                                 )}
-                              </div>
-                            )}
-                            <p className="text-[8px] text-muted-foreground mt-0.5">
-                              F{frame.mergedFrames[frame.mergedFrames.length - 1] + 1}
-                            </p>
-                            {galleryImages.length > 0 && (
-                              <button
-                                onClick={() =>
-                                  updateFrame(idx, { showEndGallery: !frame.showEndGallery, showStartGallery: false })
-                                }
-                                className="text-[10px] text-primary hover:underline mt-0.5"
-                              >
-                                From gallery
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Upload className="h-4 w-4 text-white" />
+                                </div>
                               </button>
-                            )}
+                              {/* Remove end frame button */}
+                              {(frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); updateFrame(idx, { endFrameUrl: "__none__" }); }}
+                                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] z-10"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          <p className="text-[8px] text-muted-foreground mt-0.5">F{frame.mergedFrames[frame.mergedFrames.length - 1] + 1}</p>
+                          {galleryImages.length > 0 && (
+                            <button
+                              onClick={() => updateFrame(idx, { showEndGallery: !frame.showEndGallery, showStartGallery: false })}
+                              className="text-[10px] text-primary hover:underline mt-0.5"
+                            >
+                              From gallery
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {/* Inline gallery picker for Start */}
+                      {frame.showStartGallery && galleryImages.length > 0 && (
+                        <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                          <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih start frame dari gallery:</p>
+                          <div className="flex gap-1.5 overflow-x-auto pb-1">
+                            {galleryImages.slice(0, 12).map((img) => (
+                              <button
+                                key={img.id}
+                                onClick={() => updateFrame(idx, { sourceImageUrl: img.image_url, showStartGallery: false })}
+                                className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
+                              >
+                                <img src={img.image_url} alt="" className="h-full w-full object-cover" />
+                              </button>
+                            ))}
                           </div>
                         </div>
-                        {/* Inline gallery picker for Start */}
-                        {frame.showStartGallery && galleryImages.length > 0 && (
-                          <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
-                            <p className="text-[10px] text-muted-foreground/30 mb-1.5">
-                              Pilih start frame dari gallery:
-                            </p>
-                            <div className="flex gap-1.5 overflow-x-auto pb-1">
-                              {galleryImages.slice(0, 12).map((img) => (
-                                <button
-                                  key={img.id}
-                                  onClick={() =>
-                                    updateFrame(idx, { sourceImageUrl: img.image_url, showStartGallery: false })
-                                  }
-                                  className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
-                                >
-                                  <img src={img.image_url} alt="" className="h-full w-full object-cover" />
-                                </button>
-                              ))}
-                            </div>
+                      )}
+                      {/* Inline gallery picker for End */}
+                      {frame.showEndGallery && galleryImages.length > 0 && (
+                        <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
+                          <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih end frame dari gallery:</p>
+                          <div className="flex gap-1.5 overflow-x-auto pb-1">
+                            {galleryImages.slice(0, 12).map((img) => (
+                              <button
+                                key={img.id}
+                                onClick={() => updateFrame(idx, { endFrameUrl: img.image_url, showEndGallery: false })}
+                                className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
+                              >
+                                <img src={img.image_url} alt="" className="h-full w-full object-cover" />
+                              </button>
+                            ))}
                           </div>
-                        )}
-                        {/* Inline gallery picker for End */}
-                        {frame.showEndGallery && galleryImages.length > 0 && (
-                          <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
-                            <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih end frame dari gallery:</p>
-                            <div className="flex gap-1.5 overflow-x-auto pb-1">
-                              {galleryImages.slice(0, 12).map((img) => (
-                                <button
-                                  key={img.id}
-                                  onClick={() =>
-                                    updateFrame(idx, { endFrameUrl: img.image_url, showEndGallery: false })
-                                  }
-                                  className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
-                                >
-                                  <img src={img.image_url} alt="" className="h-full w-full object-cover" />
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
+                        </div>
+                      )}
                       </>
                     )}
                   </div>
@@ -1741,9 +1496,7 @@ Content template: ${template?.label}`,
                         </button>
                       ))}
                       <button
-                        onClick={() =>
-                          updateFrame(idx, { actionChips: getShuffledChips(beat.storyRole, productCategory) })
-                        }
+                        onClick={() => updateFrame(idx, { actionChips: getShuffledChips(beat.storyRole, productCategory) })}
                         className="text-[10px] px-2.5 py-1.5 rounded-lg border border-white/[0.06] text-muted-foreground/30 hover:text-foreground transition-colors flex items-center gap-0.5"
                       >
                         <RefreshCw className="h-2.5 w-2.5" /> Acak
@@ -1761,13 +1514,9 @@ Content template: ${template?.label}`,
                         className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
                       >
                         {frame.scriptGenerating ? (
-                          <>
-                            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...
-                          </>
+                          <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...</>
                         ) : (
-                          <>
-                            <Sparkles className="h-2.5 w-2.5" /> Generate Script AI
-                          </>
+                          <><Sparkles className="h-2.5 w-2.5" /> Generate Script AI</>
                         )}
                       </button>
                     </div>
@@ -1776,14 +1525,9 @@ Content template: ${template?.label}`,
                       onChange={(e) => {
                         updateFrame(idx, { dialogue: e.target.value });
                         if (e.target.value.trim() && frame.model === "grok") {
-                          const dur = MODEL_DURATIONS["veo_fast"]?.[0] || 8;
-                          updateFrame(idx, { model: "veo_fast", duration: dur });
-                        } else if (
-                          !e.target.value.trim() &&
-                          (frame.model === "veo_fast" || frame.model === "kling_std")
-                        ) {
-                          const dur = MODEL_DURATIONS["grok"]?.[1] || 10;
-                          updateFrame(idx, { model: "grok", duration: dur });
+                          updateFrame(idx, { model: "veo_fast" });
+                        } else if (!e.target.value.trim() && frame.model === "veo_fast") {
+                          updateFrame(idx, { model: "grok" });
                         }
                       }}
                       rows={2}
@@ -1802,13 +1546,9 @@ Content template: ${template?.label}`,
                         className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
                       >
                         {frame.promptGenerating ? (
-                          <>
-                            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...
-                          </>
+                          <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...</>
                         ) : (
-                          <>
-                            <Sparkles className="h-2.5 w-2.5" /> Generate Prompt
-                          </>
+                          <><Sparkles className="h-2.5 w-2.5" /> Generate Prompt</>
                         )}
                       </button>
                     </div>
@@ -1824,74 +1564,26 @@ Content template: ${template?.label}`,
                   {/* Model selector — inline radio pills */}
                   <div>
                     <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1.5">Model</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {(Object.keys(MODEL_LABELS) as VideoModel[]).map((m) => {
-                        const info = MODEL_LABELS[m];
-                        const isSelected = frame.model === m;
+                    <div className="flex gap-2">
+                      {(["grok", "veo_fast", "veo_quality"] as VideoModel[]).map((m) => {
+                        const mi = MODEL_LABELS[m];
+                        const selected = frame.model === m;
                         return (
                           <button
                             key={m}
-                            onClick={() => {
-                              const dur = MODEL_DURATIONS[m]?.[Math.min(1, MODEL_DURATIONS[m].length - 1)] || 8;
-                              updateFrame(idx, { model: m, duration: dur });
-                            }}
-                            className={`flex-1 min-w-[100px] text-[10px] py-2 rounded-lg border text-center transition-colors ${
-                              isSelected
-                                ? "border-primary bg-primary/10 text-primary font-medium"
-                                : "border-border/30 text-muted-foreground/50 hover:border-border"
+                            onClick={() => updateFrame(idx, { model: m })}
+                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] transition-all text-center ${
+                              selected
+                                ? "border border-primary/20 bg-primary/[0.04] text-primary font-semibold"
+                                : "border border-white/[0.06] bg-white/[0.03] text-muted-foreground hover:text-foreground"
                             }`}
                           >
-                            <span className="font-medium">{info.label}</span>
-                            <span className="text-muted-foreground/30 ml-1">{info.cost}</span>
-                            {info.audio && <span className="ml-1 text-[8px]">🔊</span>}
+                            <span className="font-medium">{mi.label}</span>
+                            <span className="text-[9px] opacity-60 ml-1">{mi.cost}</span>
                           </button>
                         );
                       })}
                     </div>
-                    {/* Duration selector */}
-                    {MODEL_DURATIONS[frame.model].length > 1 && (
-                      <div className="flex items-center gap-1.5 mt-2">
-                        <span className="text-[9px] text-muted-foreground/40">Duration:</span>
-                        {MODEL_DURATIONS[frame.model].map((d) => (
-                          <button
-                            key={d}
-                            onClick={() => updateFrame(idx, { duration: d })}
-                            className={`text-[10px] px-2.5 py-1 rounded-md border transition-colors ${
-                              frame.duration === d
-                                ? "border-primary bg-primary/10 text-primary font-medium"
-                                : "border-border/30 text-muted-foreground/50 hover:border-border"
-                            }`}
-                          >
-                            {d}s
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {/* Smart model recommendation */}
-                    {(() => {
-                      const isCombinedFrame = frame.mergedFrames.length > 0;
-                      const rec = getSmartModelRecommendation(
-                        !!frame.dialogue?.trim(),
-                        beat.storyRole,
-                        productCategory,
-                        isCombinedFrame,
-                      );
-                      if (rec.model !== frame.model) {
-                        return (
-                          <button
-                            onClick={() => {
-                              const dur =
-                                MODEL_DURATIONS[rec.model]?.[Math.min(1, MODEL_DURATIONS[rec.model].length - 1)] || 8;
-                              updateFrame(idx, { model: rec.model, duration: dur });
-                            }}
-                            className="w-full mt-1.5 text-[10px] text-primary/50 hover:text-primary flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-primary/10 hover:border-primary/20 transition-colors"
-                          >
-                            <Sparkles className="h-3 w-3" /> Suggestion: {MODEL_LABELS[rec.model].label} — {rec.reason}
-                          </button>
-                        );
-                      }
-                      return null;
-                    })()}
                   </div>
 
                   {/* Generate / Result */}
@@ -1914,77 +1606,12 @@ Content template: ${template?.label}`,
                           <Download className="h-3 w-3" /> Download
                         </a>
                         <button
-                          onClick={() => {
-                            updateFrame(idx, { status: "idle", videoUrl: null, taskId: null, hdLoading: null });
-                            generateFrame(idx);
-                          }}
+                          onClick={() => { updateFrame(idx, { status: "idle", videoUrl: null }); generateFrame(idx); }}
                           className="text-xs py-2 px-3 rounded-xl border border-white/[0.06] text-muted-foreground hover:text-foreground flex items-center gap-1"
                         >
                           <RefreshCw className="h-3 w-3" /> Retry
                         </button>
                       </div>
-                      {/* HD Upgrade buttons — Veo only */}
-                      {(frame.model === "veo_fast" || frame.model === "veo_quality") && frame.taskId && (
-                        <div className="flex gap-2">
-                          <button
-                            disabled={!!frame.hdLoading}
-                            onClick={async () => {
-                              if (!kieApiKey) return;
-                              updateFrame(idx, { hdLoading: "1080p" });
-                              try {
-                                const hdUrl = await fetchHDVideo(frame.taskId!, kieApiKey, "1080p");
-                                updateFrame(idx, { videoUrl: hdUrl, hdLoading: null });
-                                toast({ title: "Video upgraded ke 1080p!" });
-                              } catch (e: any) {
-                                updateFrame(idx, { hdLoading: null });
-                                toast({ title: "1080p gagal", description: e.message, variant: "destructive" });
-                              }
-                            }}
-                            className="flex-1 text-[11px] py-1.5 rounded-lg border border-blue-500/20 text-blue-400 hover:bg-blue-500/10 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
-                          >
-                            {frame.hdLoading === "1080p" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MonitorUp className="h-3 w-3" />}
-                            1080p {frame.hdLoading !== "1080p" && <span className="text-[9px] text-muted-foreground/40">Free</span>}
-                          </button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <button
-                                disabled={!!frame.hdLoading}
-                                className="flex-1 text-[11px] py-1.5 rounded-lg border border-violet-500/20 text-violet-400 hover:bg-violet-500/10 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-40"
-                              >
-                                {frame.hdLoading === "4k" ? <Loader2 className="h-3 w-3 animate-spin" /> : <MonitorUp className="h-3 w-3" />}
-                                4K {frame.hdLoading !== "4k" && <span className="text-[9px] text-muted-foreground/40">~Rp 12.800</span>}
-                              </button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Upgrade ke 4K?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  4K upgrade membutuhkan kredit tambahan (~Rp 12.800, setara 2x Veo Fast). Proses memakan waktu 5-10 menit. Lanjutkan?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={async () => {
-                                    if (!kieApiKey) return;
-                                    updateFrame(idx, { hdLoading: "4k" });
-                                    try {
-                                      const hdUrl = await fetchHDVideo(frame.taskId!, kieApiKey, "4k");
-                                      updateFrame(idx, { videoUrl: hdUrl, hdLoading: null });
-                                      toast({ title: "Video upgraded ke 4K!" });
-                                    } catch (e: any) {
-                                      updateFrame(idx, { hdLoading: null });
-                                      toast({ title: "4K gagal", description: e.message, variant: "destructive" });
-                                    }
-                                  }}
-                                >
-                                  Ya, upgrade ke 4K
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      )}
                     </div>
                   ) : frame.status === "generating" ? (
                     <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
@@ -1996,19 +1623,9 @@ Content template: ${template?.label}`,
                     </div>
                   ) : frame.status === "failed" ? (
                     <div className="space-y-2">
-                      <div className="flex items-start gap-2 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
-                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
-                        {frame.errorMsg?.includes("SAFETY_BLOCKED") ? (
-                          <div className="space-y-1">
-                            <p className="text-[10px] text-red-400 font-medium">Blocked by Google safety filter</p>
-                            <p className="text-[10px] text-muted-foreground/40">
-                              Try editing the prompt to be less specific about body/face, or switch to Kling (no safety
-                              filter).
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-[10px] text-red-400">{frame.errorMsg || "Gagal"}</p>
-                        )}
+                      <div className="flex items-center gap-2 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
+                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
+                        <p className="text-[10px] text-red-400">{frame.errorMsg || "Gagal"}</p>
                       </div>
                       {anyGenerating ? (
                         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2">
@@ -2023,56 +1640,47 @@ Content template: ${template?.label}`,
                         </button>
                       )}
                     </div>
-                  ) : anyGenerating ? (
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2 rounded-xl bg-white/[0.02]">
-                      <Lock className="h-3 w-3" /> Tunggu frame sebelumnya selesai...
-                    </div>
                   ) : (
-                    <button
-                      onClick={() => generateFrame(idx)}
-                      disabled={batchGenerating}
-                      className="w-full text-xs py-2.5 rounded-xl border border-primary/30 text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
-                    >
-                      <Film className="h-3.5 w-3.5" />
-                      Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
-                    </button>
+                    anyGenerating ? (
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2 rounded-xl bg-white/[0.02]">
+                        <Lock className="h-3 w-3" /> Tunggu frame sebelumnya selesai...
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => generateFrame(idx)}
+                        disabled={batchGenerating}
+                        className="w-full text-xs py-2.5 rounded-xl border border-primary/30 text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                      >
+                        <Film className="h-3.5 w-3.5" />
+                        Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
+                      </button>
+                    )
                   )}
 
                   {/* Combine links */}
-                  {!isCombined &&
-                    idx < frames.length - 1 &&
-                    frames[idx + 1]?.mergedInto === null &&
-                    !frames[idx + 1]?.mergedFrames.length &&
-                    !frame.skipped &&
-                    frame.status !== "generating" && (
-                      <button
-                        onClick={() => combineWithNext(idx)}
-                        className="text-[10px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors mt-1"
-                      >
-                        <Link2 className="h-3 w-3" /> Gabungkan dengan frame berikutnya ↓
-                      </button>
-                    )}
-                  {isCombined &&
-                    canCombineMore &&
-                    (() => {
-                      const lastMerged = frame.mergedFrames[frame.mergedFrames.length - 1];
-                      const nextAfterMerged = lastMerged + 1;
-                      if (
-                        nextAfterMerged < frames.length &&
-                        frames[nextAfterMerged]?.mergedInto === null &&
-                        !frames[nextAfterMerged]?.mergedFrames.length
-                      ) {
-                        return (
-                          <button
-                            onClick={() => combineWithNext(idx)}
-                            className="text-[10px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors"
-                          >
-                            <Link2 className="h-3 w-3" /> Gabungkan frame berikutnya juga ↓
-                          </button>
-                        );
-                      }
-                      return null;
-                    })()}
+                  {!isCombined && idx < frames.length - 1 && frames[idx + 1]?.mergedInto === null && !frames[idx + 1]?.mergedFrames.length && !frame.skipped && frame.status !== "generating" && (
+                    <button
+                      onClick={() => combineWithNext(idx)}
+                      className="text-[10px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors mt-1"
+                    >
+                      <Link2 className="h-3 w-3" /> Gabungkan dengan frame berikutnya ↓
+                    </button>
+                  )}
+                  {isCombined && canCombineMore && (() => {
+                    const lastMerged = frame.mergedFrames[frame.mergedFrames.length - 1];
+                    const nextAfterMerged = lastMerged + 1;
+                    if (nextAfterMerged < frames.length && frames[nextAfterMerged]?.mergedInto === null && !frames[nextAfterMerged]?.mergedFrames.length) {
+                      return (
+                        <button
+                          onClick={() => combineWithNext(idx)}
+                          className="text-[10px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors"
+                        >
+                          <Link2 className="h-3 w-3" /> Gabungkan frame berikutnya juga ↓
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               )}
             </div>
@@ -2084,12 +1692,9 @@ Content template: ${template?.label}`,
       {allDone && completedVideos.length > 0 && (
         <div className="border border-white/[0.06] rounded-xl p-5 bg-white/[0.02] space-y-4">
           <div>
-            <p className="text-sm font-bold text-foreground flex items-center gap-1.5">
-              <Clapperboard className="h-4 w-4" /> Semua Frame Selesai!
-            </p>
+            <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Clapperboard className="h-4 w-4" /> Semua Frame Selesai!</p>
             <p className="text-[11px] text-muted-foreground/40">
-              Total: {totalDuration}s ({completedVideos.length} ×{" "}
-              {completedVideos.length > 0 ? (completedVideos[0].model === "grok" ? "10s" : "8s") : "8s"})
+              Total: {totalDuration}s ({completedVideos.length} × {completedVideos.length > 0 ? (completedVideos[0].model === "grok" ? "10s" : "8s") : "8s"})
             </p>
           </div>
 
@@ -2097,8 +1702,7 @@ Content template: ${template?.label}`,
           {playingAll && completedVideos[playIndex] && (
             <div className="space-y-3">
               <p className="text-[10px] text-muted-foreground/40 text-center">
-                Frame {completedVideos[playIndex].idx + 1} — {completedVideos[playIndex].beat?.label} ({playIndex + 1}/
-                {completedVideos.length})
+                Frame {completedVideos[playIndex].idx + 1} — {completedVideos[playIndex].beat?.label} ({playIndex + 1}/{completedVideos.length})
               </p>
               <video
                 ref={playerRef}
@@ -2115,9 +1719,7 @@ Content template: ${template?.label}`,
                     key={vi}
                     onClick={() => setPlayIndex(vi)}
                     className={`h-12 w-9 rounded-md overflow-hidden border-2 transition-all ${
-                      vi === playIndex
-                        ? "ring-2 ring-primary border-primary"
-                        : "border-white/[0.06] opacity-60 hover:opacity-100"
+                      vi === playIndex ? "ring-2 ring-primary border-primary" : "border-white/[0.06] opacity-60 hover:opacity-100"
                     }`}
                   >
                     <video src={v.videoUrl!} muted className="w-full h-full object-cover" />
@@ -2160,16 +1762,14 @@ Content template: ${template?.label}`,
             </span>
             {batchGenerating && batchCurrentFrame >= 0 && (
               <span className="text-[10px] text-primary flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" />F{batchCurrentFrame + 1} —{" "}
-                {formatTime(frames[batchCurrentFrame]?.elapsed || 0)}
+                <Loader2 className="h-3 w-3 animate-spin" />
+                F{batchCurrentFrame + 1} — {formatTime(frames[batchCurrentFrame]?.elapsed || 0)}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             {batchGenerating && (
-              <button onClick={cancelBatch} className="text-[11px] text-red-400 hover:underline px-3 py-1.5">
-                Cancel
-              </button>
+              <button onClick={cancelBatch} className="text-[11px] text-red-400 hover:underline px-3 py-1.5">Cancel</button>
             )}
             <button
               onClick={generateAll}

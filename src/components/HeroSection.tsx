@@ -1,13 +1,13 @@
 import { useEffect, useRef, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
-import { Zap, Infinity, CreditCard } from "lucide-react";
 
 const DepthDeckCarousel = lazy(() => import("@/components/DepthDeckCarousel"));
 
-const trustPills = [
-  { icon: Zap, label: "Setup 2 Menit" },
-  { icon: Infinity, label: "Akses Selamanya" },
-  { icon: CreditCard, label: "Tanpa Langganan" },
+const particles = [
+  { size: 5, top: "18%", left: "12%", delay: "0s" },
+  { size: 7, top: "25%", left: "85%", delay: "-1.2s" },
+  { size: 4, top: "70%", left: "8%", delay: "-2.5s" },
+  { size: 6, top: "65%", left: "90%", delay: "-3.8s" },
 ];
 
 const HeroSection = () => {
@@ -42,7 +42,10 @@ const HeroSection = () => {
       />
 
       {/* Grid pattern with parallax */}
-      <div ref={gridRef} className="absolute inset-0 grid-pattern" />
+      <div
+        ref={gridRef}
+        className="absolute inset-0 grid-pattern"
+      />
 
       {/* Ambient glow behind headline */}
       <div
@@ -52,67 +55,80 @@ const HeroSection = () => {
         }}
       />
 
+      {/* Particles */}
+      {particles.map((p, i) => (
+        <div
+          key={i}
+          className="hero-particle absolute rounded-full bg-primary"
+          style={{
+            width: p.size,
+            height: p.size,
+            top: p.top,
+            left: p.left,
+            animationDelay: p.delay,
+          }}
+        />
+      ))}
+
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center px-4 text-center">
-        {/* Badge */}
+        {/* Badge — outlined with pulsing dot */}
+        <div
+          className="animate-fade-up flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary"
+          style={{ animationDelay: "0.1s" }}
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+          </span>
+          AI-Powered UGC Generator
+        </div>
 
         {/* Headline */}
         <h1
-          className="animate-fade-up mt-8 max-w-[820px] font-satoshi text-[32px] font-bold leading-[1.08] tracking-tight sm:text-[44px] lg:text-[58px]"
+          className="animate-fade-up mt-8 max-w-[800px] font-satoshi text-[32px] font-bold leading-[1.1] tracking-tight sm:text-[44px] lg:text-[56px]"
           style={{
             animationDelay: "0.2s",
-            background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 50%) 100%)",
+            background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 56%) 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             backgroundClip: "text",
           }}
         >
-          Konten UGC yang Converts
-          <br />
-          <span
-            style={{
-              background: "linear-gradient(90deg, hsl(var(--primary)) 0%, hsl(75 70% 65%) 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            Tanpa Model, Tanpa Studio
-          </span>
+          Bikin Konten UGC Realistis dalam 30 Detik
         </h1>
 
         {/* Subheadline */}
         <p
-          className="animate-fade-up mt-6 max-w-[560px] font-body text-[15px] leading-relaxed text-muted-foreground sm:text-lg"
+          className="animate-fade-up mt-6 max-w-[600px] font-body text-base text-muted-foreground sm:text-lg"
           style={{ animationDelay: "0.3s" }}
         >
-          Generate foto & video UGC realistis untuk TikTok Shop, Shopee, dan Instagram.
-          <span className="text-foreground/70"> Powered by AI, siap posting dalam 30 detik.</span>
+          Generate UGC konten berkualitas tinggi — tanpa model, tanpa studio.
         </p>
 
-        {/* Single CTA */}
-        <div className="animate-fade-up mt-10" style={{ animationDelay: "0.4s" }}>
+        {/* Buttons */}
+        <div
+          className="animate-fade-up mt-8 flex flex-col items-center gap-4 sm:flex-row"
+          style={{ animationDelay: "0.4s" }}
+        >
           <Link
             to="/login"
-            className="group inline-flex h-12 items-center gap-2 rounded-xl bg-primary px-8 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_hsl(var(--primary)/0.5)] hover:bg-[hsl(var(--lime-hover))]"
+            className="flex h-12 items-center rounded-lg bg-primary px-6 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--lime-hover))]"
           >
-            Mulai Generate
-            <span className="transition-transform group-hover:translate-x-0.5">→</span>
+            Cobain Sekarang <span className="ml-1.5">→</span>
           </Link>
+          <button className="flex h-12 items-center gap-2 rounded-lg border border-foreground/20 bg-transparent px-6 text-sm font-bold tracking-wider text-foreground transition-colors hover:bg-foreground/5">
+            Lihat Demo
+          </button>
         </div>
 
-        {/* Trust pills */}
-        <div className="animate-fade-up mt-8 flex flex-wrap justify-center gap-3" style={{ animationDelay: "0.5s" }}>
-          {trustPills.map((pill) => (
-            <div
-              key={pill.label}
-              className="flex items-center gap-1.5 rounded-full border border-border/40 bg-card/50 px-3 py-1.5 text-[11px] text-muted-foreground backdrop-blur-sm"
-            >
-              <pill.icon className="h-3 w-3 text-primary/60" />
-              {pill.label}
-            </div>
-          ))}
-        </div>
+        {/* Trust text */}
+        <p
+          className="animate-fade-up mt-6 text-xs text-[hsl(var(--text-muted))]"
+          style={{ animationDelay: "0.5s" }}
+        >
+          Lifetime access · Setup 2 menit · Tanpa langganan
+        </p>
       </div>
 
       {/* Showcase section */}
@@ -123,13 +139,7 @@ const HeroSection = () => {
         <p className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/40">
           Hasil generate dari GENBOX
         </p>
-        <Suspense
-          fallback={
-            <div className="h-[340px] flex items-center justify-center">
-              <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            </div>
-          }
-        >
+        <Suspense fallback={<div className="h-[340px] flex items-center justify-center"><div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
           <DepthDeckCarousel autoPlayInterval={3500} />
         </Suspense>
       </div>
