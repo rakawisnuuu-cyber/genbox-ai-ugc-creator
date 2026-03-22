@@ -1,18 +1,23 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Outlet, useLocation, Link } from "react-router-dom";
+import GeneratePage from "@/pages/GeneratePage";
+import VideoPage from "@/pages/VideoPage";
 import {
   LayoutDashboard,
   ImagePlus,
   Users,
   Film,
-  Wand2,
   Workflow,
   Settings,
+  Shield,
   Menu,
   X,
   LogOut,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import GenboxLogo from "./GenboxLogo";
 
 interface NavItem {
   title: string;
@@ -27,29 +32,28 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    items: [
-      { title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-    ],
+    items: [{ title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" }],
   },
   {
     label: "GAMBAR & KARAKTER",
     items: [
-      { title: "UGC Image Storyboard", icon: ImagePlus, path: "/generate" },
-      { title: "Create Unique Character", icon: Users, path: "/characters" },
+      { title: "Generate Image", icon: ImagePlus, path: "/generate" },
+      { title: "Create Avatar", icon: Users, path: "/characters" },
     ],
   },
   {
     label: "VIDEO",
-    items: [
-      { title: "Buat Video", icon: Film, path: "/video" },
-    ],
+    items: [{ title: "Buat Video", icon: Film, path: "/video" }],
   },
+  // {
+  //   label: "TOOLS",
+  //   items: [
+  //     // { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
+  //   ],
+  // },
   {
-    label: "TOOLS",
-    items: [
-      { title: "Prompt Generator", icon: Wand2, path: "/prompt" },
-      { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
-    ],
+    label: "ADMIN",
+    items: [{ title: "Admin", icon: Shield, path: "/admin" }],
   },
 ];
 
@@ -57,17 +61,35 @@ const settingsItem: NavItem = { title: "Settings", icon: Settings, path: "/setti
 
 const DashboardLayout = () => {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const visitedPages = useRef(new Set<string>());
 
   const initial = user?.email?.charAt(0).toUpperCase() || "U";
   const displayName = user?.email?.split("@")[0] || "User";
 
+  const videoUnlockedRef = useRef(false);
+  const [videoUnlocked, setVideoUnlocked] = useState(false);
+
   const isActive = (path: string) => location.pathname === path;
-  const isFullWidthPage = location.pathname === "/generate" || location.pathname === "/video";
+  const pathname = location.pathname;
+
+  // Unlock video when navigating with fromStoryboard state
+  if (pathname === "/video" && (location.state as any)?.fromStoryboard && !videoUnlockedRef.current) {
+    videoUnlockedRef.current = true;
+    if (!videoUnlocked) setVideoUnlocked(true);
+  }
+  const isKeepAlivePage = pathname === "/generate" || pathname === "/video";
+  const isFullWidthPage = pathname === "/generate" || pathname === "/video";
+
+  if (pathname === "/generate" || pathname === "/video") {
+    visitedPages.current.add(pathname);
+  }
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const active = isActive(item.path);
+    const isVideoLocked = item.path === "/video" && !videoUnlocked;
     return (
       <li key={item.path}>
         <Link
@@ -77,43 +99,55 @@ const DashboardLayout = () => {
             active
               ? "bg-primary/[0.08] text-foreground"
               : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-          }`}
+          } ${isVideoLocked && !active ? "opacity-50" : ""}`}
         >
-          <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
-          {item.title}
-          {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+          {isVideoLocked ? (
+            <>
+              <item.icon className="h-4 w-4 shrink-0 text-muted-foreground/25" />
+              <span className="truncate text-muted-foreground/25">{item.title}</span>
+              <Lock className="h-3 w-3 text-muted-foreground/15 ml-auto" />
+            </>
+          ) : (
+            <>
+              <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
+              {item.title}
+              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+            </>
+          )}
         </Link>
       </li>
     );
   };
 
-  const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => (
-    <div className="space-y-1">
-      {navGroups.map((group, gi) => (
-        <div key={gi}>
-          {group.label && (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40 px-3 mt-7 mb-2">
-              {group.label}
-            </p>
-          )}
-          <ul className="space-y-0.5">
-            {group.items.map((item) => renderNavItem(item, onNavigate))}
-          </ul>
-        </div>
-      ))}
-    </div>
-  );
+  const SidebarNav = ({ onNavigate }: { onNavigate?: () => void }) => {
+    const filteredGroups = navGroups.filter((group) => group.label !== "ADMIN" || isAdmin);
+    return (
+      <div className="space-y-1">
+        {filteredGroups.map((group, gi) => (
+          <div key={gi}>
+            {group.label && (
+              <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/40 px-3 mt-7 mb-2">
+                {group.label}
+              </p>
+            )}
+            <ul className="space-y-0.5">{group.items.map((item) => renderNavItem(item, onNavigate))}</ul>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex" style={{ background: "hsl(220 8% 4.5%)" }}>
+      <aside
+        className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-border/60 lg:flex"
+        style={{ background: "hsl(220 8% 4.5%)" }}
+      >
         {/* Logo */}
         <div className="px-5 pt-7 pb-1">
-          <p className="font-satoshi text-base font-bold uppercase tracking-[0.2em] text-foreground">
-            GENBOX
-          </p>
-          <span className="mt-1 block text-[10px] font-mono text-muted-foreground/40">v1.0</span>
+          <GenboxLogo size={26} />
+          <span className="mt-1.5 block text-[10px] font-mono text-muted-foreground/40">v1.0</span>
         </div>
 
         {/* Nav */}
@@ -123,9 +157,7 @@ const DashboardLayout = () => {
 
         {/* Settings */}
         <div className="px-3 pb-2 border-t border-border/60 pt-2">
-          <ul className="space-y-0.5">
-            {renderNavItem(settingsItem)}
-          </ul>
+          <ul className="space-y-0.5">{renderNavItem(settingsItem)}</ul>
         </div>
 
         {/* User */}
@@ -148,9 +180,7 @@ const DashboardLayout = () => {
 
       {/* Mobile Top Bar */}
       <header className="fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-between border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl lg:hidden">
-        <p className="font-satoshi text-sm font-bold uppercase tracking-[0.2em] text-foreground">
-          GENBOX
-        </p>
+        <GenboxLogo size={22} />
         <button onClick={() => setMobileOpen(!mobileOpen)} className="text-foreground">
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
@@ -197,10 +227,24 @@ const DashboardLayout = () => {
       )}
 
       {/* Main Content */}
-      <main className="mt-12 min-h-screen lg:ml-[232px] lg:mt-0">
-        <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
-          <Outlet />
-        </div>
+      <main className="mt-12 min-h-[100dvh] lg:ml-[232px] lg:mt-0">
+        {/* Keep-alive pages: only mount after first visit, then toggle via display */}
+        {visitedPages.current.has("/generate") && (
+          <div style={{ display: pathname === "/generate" ? "block" : "none" }}>
+            <GeneratePage />
+          </div>
+        )}
+        {visitedPages.current.has("/video") && (
+          <div style={{ display: pathname === "/video" ? "block" : "none" }}>
+            <VideoPage />
+          </div>
+        )}
+        {/* Other pages via Outlet */}
+        {!isKeepAlivePage && (
+          <div className={`mx-auto ${isFullWidthPage ? "" : "max-w-5xl px-5 py-6 lg:px-8 lg:py-10"}`}>
+            <Outlet />
+          </div>
+        )}
       </main>
     </div>
   );

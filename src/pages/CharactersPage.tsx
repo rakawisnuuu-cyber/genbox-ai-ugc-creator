@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Images } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useCustomCharacters } from "@/hooks/useCustomCharacters";
 import CharacterCard, { type CharacterData } from "@/components/CharacterCard";
 import CharacterDetailModal from "@/components/CharacterDetailModal";
 
@@ -11,47 +11,10 @@ import { PRESETS } from "@/lib/character-presets";
 
 const CharactersPage = () => {
   const [tab, setTab] = useState<"preset" | "custom">("preset");
-  const [customChars, setCustomChars] = useState<CharacterData[]>([]);
-  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<CharacterData | null>(null);
-  const { user } = useAuth();
+  const { customChars, loading, refetch: fetchCustom } = useCustomCharacters();
   const { toast } = useToast();
   const navigate = useNavigate();
-
-  const fetchCustom = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data } = await supabase
-      .from("characters")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("is_preset", false)
-      .order("created_at", { ascending: false });
-    if (data) {
-      setCustomChars(
-        data.map((d) => ({
-          id: d.id,
-          name: d.name,
-          type: d.type,
-          age_range: d.age_range,
-          style: d.style,
-          description: d.description,
-          gradient_from: d.gradient_from,
-          gradient_to: d.gradient_to,
-          is_preset: false,
-          hero_image_url: d.hero_image_url ?? undefined,
-          reference_images: d.reference_images ?? undefined,
-          identity_prompt: d.identity_prompt ?? undefined,
-          reference_photo_url: d.reference_photo_url ?? undefined,
-        }))
-      );
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (tab === "custom") fetchCustom();
-  }, [tab, user]);
 
   const handleUse = (c: CharacterData) => {
     navigate("/generate", { state: { character: c } });
@@ -95,6 +58,15 @@ const CharactersPage = () => {
       {/* Content */}
       {tab === "preset" && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-up" style={{ animationDelay: "200ms" }}>
+          <button
+            onClick={() => navigate("/characters/create")}
+            className="group/create flex flex-col items-center justify-center gap-3 aspect-[3/4] rounded-2xl border-2 border-dashed border-border/60 hover:border-primary/50 bg-card/40 hover:bg-card/80 transition-all cursor-pointer"
+          >
+            <div className="h-12 w-12 rounded-xl bg-primary/10 group-hover/create:bg-primary/20 flex items-center justify-center transition-colors">
+              <Plus className="h-6 w-6 text-primary" />
+            </div>
+            <span className="text-xs font-bold text-muted-foreground group-hover/create:text-foreground transition-colors">BUAT KARAKTER BARU</span>
+          </button>
           {PRESETS.map((p) => (
             <CharacterCard key={p.id} character={p} onDetail={setSelected} onUse={handleUse} />
           ))}
