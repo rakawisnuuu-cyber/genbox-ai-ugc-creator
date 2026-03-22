@@ -13,6 +13,7 @@ import { buildProductConsistencyBlock, getCategoryPromptInstruction, getProductC
 
 export type ContentMode = "ugc" | "commercial";
 export type ImageModelType = "nano-banana" | "nano-banana-2" | "nano-banana-pro";
+export type ImageModel = ImageModelType;
 export type RealismLevel = "standard" | "ultra" | "raw_phone";
 
 export type ShotTypeKey = "hero" | "product_detail" | "usage" | "reaction" | "lifestyle" | "face_closeup";

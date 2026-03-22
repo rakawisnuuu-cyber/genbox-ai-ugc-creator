@@ -5,7 +5,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { generateImageAndWait, type ImageResult } from "@/lib/kie-image-generation";
-import type { ImageShotPlan, ImageModel } from "@/lib/image-generation-engine";
+import { generateImageAndWait } from "@/lib/kie-image-generation";
 
 export interface ImageProgress {
   currentShot: number;
@@ -42,15 +42,7 @@ export function useImageGeneration() {
       characterImageUrl: string;
       productImageUrl: string;
     }) => {
-      const {
-        shots,
-        imageModel,
-        resolution,
-        aspectRatio,
-        kieApiKey,
-        characterImageUrl,
-        productImageUrl,
-      } = options;
+      const { shots, imageModel, resolution, aspectRatio, kieApiKey, characterImageUrl, productImageUrl } = options;
 
       cancelRef.current = false;
       const results: Array<ImageResult | null> = new Array(shots.length).fill(null);
@@ -153,16 +145,8 @@ export function useImageGeneration() {
       characterImageUrl: string;
       productImageUrl: string;
     }) => {
-      const {
-        shotIndex,
-        shot,
-        imageModel,
-        resolution,
-        aspectRatio,
-        kieApiKey,
-        characterImageUrl,
-        productImageUrl,
-      } = options;
+      const { shotIndex, shot, imageModel, resolution, aspectRatio, kieApiKey, characterImageUrl, productImageUrl } =
+        options;
 
       const imageInputs: string[] = [];
       if (characterImageUrl) imageInputs.push(characterImageUrl);
@@ -176,17 +160,15 @@ export function useImageGeneration() {
       }));
 
       try {
-        const result = await generateImageAndWait(
-          {
-            model: imageModel,
-            prompt: shot.prompt,
-            imageInputs,
-            resolution,
-            aspectRatio,
-            outputFormat: "png",
-            apiKey: kieApiKey,
-          },
-        );
+        const result = await generateImageAndWait({
+          model: imageModel,
+          prompt: shot.prompt,
+          imageInputs,
+          resolution,
+          aspectRatio,
+          outputFormat: "png",
+          apiKey: kieApiKey,
+        });
 
         setProgress((p) => {
           const newResults = [...p.results];
