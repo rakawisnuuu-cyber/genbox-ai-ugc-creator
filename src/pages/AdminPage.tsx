@@ -10,7 +10,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Shield, Plus, ToggleLeft, ToggleRight, Ticket } from "lucide-react";
+import { Trash2, RefreshCw, Shield, Plus, ToggleLeft, ToggleRight, Ticket, Clock, CalendarPlus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface AdminUser {
@@ -28,6 +28,13 @@ interface InviteCode {
   created_at: string;
 }
 
+interface TrialUser {
+  user_id: string;
+  email: string;
+  created_at: string;
+  trial_expires_at: string | null;
+}
+
 const AdminPage = () => {
   // Users state
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -40,6 +47,11 @@ const AdminPage = () => {
   const [codesLoading, setCodesLoading] = useState(true);
   const [newCode, setNewCode] = useState("");
   const [newUses, setNewUses] = useState("");
+
+  // Trials state
+  const [trialUsers, setTrialUsers] = useState<TrialUser[]>([]);
+  const [trialsLoading, setTrialsLoading] = useState(true);
+  const [extendDays, setExtendDays] = useState<Record<string, string>>({});
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -63,7 +75,50 @@ const AdminPage = () => {
     setCodesLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); fetchCodes(); }, []);
+  const fetchTrialUsers = async () => {
+    setTrialsLoading(true);
+    // Get users from edge function and profiles from DB
+    const [usersRes, profilesRes] = await Promise.all([
+      supabase.functions.invoke("admin-users", { method: "GET" }),
+      supabase.from("profiles").select("user_id, trial_expires_at, created_at"),
+    ]);
+    if (usersRes.data?.users && profilesRes.data) {
+      const profileMap = new Map(profilesRes.data.map((p: any) => [p.user_id, p]));
+      const merged: TrialUser[] = usersRes.data.users.map((u: AdminUser) => {
+        const profile = profileMap.get(u.id) as any;
+        return {
+          user_id: u.id,
+          email: u.email,
+          created_at: u.created_at,
+          trial_expires_at: profile?.trial_expires_at || null,
+        };
+      });
+      setTrialUsers(merged);
+    }
+    setTrialsLoading(false);
+  };
+
+  const handleExtendTrial = async (userId: string, days: number) => {
+    const user = trialUsers.find((u) => u.user_id === userId);
+    const base = user?.trial_expires_at ? new Date(user.trial_expires_at) : new Date();
+    const newExpiry = new Date(Math.max(base.getTime(), Date.now()) + days * 86400000);
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ trial_expires_at: newExpiry.toISOString() })
+      .eq("user_id", userId);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `Extended by ${days} days` });
+      setTrialUsers((prev) =>
+        prev.map((u) => u.user_id === userId ? { ...u, trial_expires_at: newExpiry.toISOString() } : u)
+      );
+    }
+  };
+
+  useEffect(() => { fetchUsers(); fetchCodes(); fetchTrialUsers(); }, []);
 
   const handleDelete = async (userId: string) => {
     setDeleting(userId);
@@ -130,6 +185,7 @@ const AdminPage = () => {
       <Tabs defaultValue="users">
         <TabsList>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="trials">Trials</TabsTrigger>
           <TabsTrigger value="codes">Invite Codes</TabsTrigger>
         </TabsList>
 
@@ -172,6 +228,85 @@ const AdminPage = () => {
                       </TableCell>
                     </TableRow>
                   ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ─── TRIALS TAB ─── */}
+        <TabsContent value="trials">
+          <div className="flex justify-end mb-4">
+            <Button variant="outline" size="sm" onClick={fetchTrialUsers} disabled={trialsLoading}>
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${trialsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+
+          {trialsLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : trialUsers.length === 0 ? (
+            <p className="text-muted-foreground text-center py-20">No users found.</p>
+          ) : (
+            <div className="rounded-lg border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Signup</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[200px]">Extend</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {trialUsers.map((u) => {
+                    const expired = u.trial_expires_at ? new Date() > new Date(u.trial_expires_at) : false;
+                    const daysLeft = u.trial_expires_at
+                      ? Math.ceil((new Date(u.trial_expires_at).getTime() - Date.now()) / 86400000)
+                      : null;
+                    return (
+                      <TableRow key={u.user_id} className={expired ? "opacity-60" : ""}>
+                        <TableCell className="font-medium">{u.email}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{fmt(u.created_at)}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">{fmt(u.trial_expires_at)}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center gap-1 text-xs font-medium ${
+                            expired ? "text-destructive" : "text-primary"
+                          }`}>
+                            <Clock className="h-3 w-3" />
+                            {expired ? "Expired" : `${daysLeft}d left`}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="7"
+                              value={extendDays[u.user_id] || ""}
+                              onChange={(e) => setExtendDays((prev) => ({ ...prev, [u.user_id]: e.target.value }))}
+                              className="h-7 w-16 text-xs"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => {
+                                const days = parseInt(extendDays[u.user_id] || "7") || 7;
+                                handleExtendTrial(u.user_id, days);
+                              }}
+                            >
+                              <CalendarPlus className="h-3 w-3 mr-1" />
+                              +days
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
