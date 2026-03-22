@@ -516,7 +516,7 @@ const CATEGORY_SHOT_FRAGMENTS: Record<ProductCategory, CategoryFragments> = {
 const SHOT_DIRECTION: Record<ShotTypeKey, string> = {
   hero: "DIRECTION: Main hero shot. Character holding product confidently, product label clearly visible facing camera. Both character face and product must be prominent in frame.",
   product_detail:
-    "DIRECTION: Creator showing product to camera close-up. Product fills 60-70% of frame, label and texture razor sharp. Creator's face and body visible BEHIND the product but naturally out of focus — shallow depth of field from phone focusing on the near object. Like a TikTok creator holding product toward the lens saying 'coba liat ini'. One hand holding product, other hand may point at label or feature. NOT a flat lay, NOT product-on-table — this is handheld toward camera.",
+    "DIRECTION: Product-only close-up. NO human face in frame. Show only hands or product on surface. Focus on packaging detail, texture, label, and material quality. Shallow depth of field on product.",
   usage:
     "DIRECTION: Natural usage moment. Character actively USING the product in its intended way — not just holding it. Show the ACTION of application/consumption/interaction. Hands and product interaction must be the focal point.",
   reaction:
