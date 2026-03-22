@@ -128,7 +128,10 @@ const TEMPLATE_HOOK_MAP: Record<ContentTemplateKey, HookCategory[]> = {
   tutorial_singkat: ["curiosity", "recommendation", "mini_story"],
   day_in_my_life: ["mini_story", "relatable_problem", "recommendation"],
   first_impression: ["honest_review", "surprise", "curiosity"],
-};
+  hero_product: ["curiosity", "surprise", "recommendation"],
+  brand_campaign: ["mini_story", "curiosity", "pattern_interrupt"],
+  katalog_produk: ["curiosity", "recommendation"],
+  studio_editorial: ["pattern_interrupt", "curiosity", "surprise"],
 
 /** Get the relevant hook categories for a template */
 export function getHookCategoriesForTemplate(templateKey: ContentTemplateKey): HookCategory[] {
