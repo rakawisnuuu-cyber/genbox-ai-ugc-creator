@@ -42,12 +42,25 @@ export function useImageGeneration() {
       characterImageUrl: string;
       productImageUrl: string;
     }) => {
-      const { shots, imageModel, resolution, aspectRatio, kieApiKey, characterImageUrl, productImageUrl } = options;
+      const {
+        shots,
+        imageModel,
+        resolution,
+        aspectRatio,
+        kieApiKey,
+        characterImageUrl,
+        productImageUrl,
+      } = options;
 
       cancelRef.current = false;
       const results: Array<ImageResult | null> = new Array(shots.length).fill(null);
       const completed: number[] = [];
       const failed: number[] = [];
+
+      // Build image inputs (max 2)
+      const imageInputs: string[] = [];
+      if (characterImageUrl) imageInputs.push(characterImageUrl);
+      if (productImageUrl && imageInputs.length < 2) imageInputs.push(productImageUrl);
 
       setProgress({
         currentShot: 0,
@@ -68,32 +81,17 @@ export function useImageGeneration() {
         }));
       }, 1000);
 
-      const PRODUCT_ONLY_SHOTS: string[] = ["lifestyle"];
-      const FACE_ONLY_SHOTS: string[] = ["reaction", "face_closeup"];
-
       for (let i = 0; i < shots.length; i++) {
         if (cancelRef.current) break;
 
         setProgress((p) => ({ ...p, currentShot: i }));
-
-        // Per-shot reference image strategy
-        const shotType = shots[i].shotType;
-        const shotInputs: string[] = [];
-        if (PRODUCT_ONLY_SHOTS.includes(shotType)) {
-          if (productImageUrl) shotInputs.push(productImageUrl);
-        } else if (FACE_ONLY_SHOTS.includes(shotType)) {
-          if (characterImageUrl) shotInputs.push(characterImageUrl);
-        } else {
-          if (characterImageUrl) shotInputs.push(characterImageUrl);
-          if (productImageUrl && shotInputs.length < 2) shotInputs.push(productImageUrl);
-        }
 
         try {
           const result = await generateImageAndWait(
             {
               model: imageModel,
               prompt: shots[i].prompt,
-              imageInputs: shotInputs,
+              imageInputs,
               resolution,
               aspectRatio,
               outputFormat: "png",
@@ -155,21 +153,20 @@ export function useImageGeneration() {
       characterImageUrl: string;
       productImageUrl: string;
     }) => {
-      const { shotIndex, shot, imageModel, resolution, aspectRatio, kieApiKey, characterImageUrl, productImageUrl } =
-        options;
+      const {
+        shotIndex,
+        shot,
+        imageModel,
+        resolution,
+        aspectRatio,
+        kieApiKey,
+        characterImageUrl,
+        productImageUrl,
+      } = options;
 
-      const PRODUCT_ONLY_SHOTS: string[] = ["lifestyle"];
-      const FACE_ONLY_SHOTS: string[] = ["reaction", "face_closeup"];
-      const shotType = shot.shotType;
       const imageInputs: string[] = [];
-      if (PRODUCT_ONLY_SHOTS.includes(shotType)) {
-        if (productImageUrl) imageInputs.push(productImageUrl);
-      } else if (FACE_ONLY_SHOTS.includes(shotType)) {
-        if (characterImageUrl) imageInputs.push(characterImageUrl);
-      } else {
-        if (characterImageUrl) imageInputs.push(characterImageUrl);
-        if (productImageUrl && imageInputs.length < 2) imageInputs.push(productImageUrl);
-      }
+      if (characterImageUrl) imageInputs.push(characterImageUrl);
+      if (productImageUrl && imageInputs.length < 2) imageInputs.push(productImageUrl);
 
       setProgress((p) => ({
         ...p,
@@ -179,15 +176,17 @@ export function useImageGeneration() {
       }));
 
       try {
-        const result = await generateImageAndWait({
-          model: imageModel,
-          prompt: shot.prompt,
-          imageInputs,
-          resolution,
-          aspectRatio,
-          outputFormat: "png",
-          apiKey: kieApiKey,
-        });
+        const result = await generateImageAndWait(
+          {
+            model: imageModel,
+            prompt: shot.prompt,
+            imageInputs,
+            resolution,
+            aspectRatio,
+            outputFormat: "png",
+            apiKey: kieApiKey,
+          },
+        );
 
         setProgress((p) => {
           const newResults = [...p.results];
