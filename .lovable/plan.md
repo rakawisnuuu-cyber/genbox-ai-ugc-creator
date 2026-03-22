@@ -1,37 +1,27 @@
 
 
-## Phase 1: Fix Image Storyboard Quality
+## Updated Plan: Build Complete Image Studio (GeneratePage.tsx)
 
-The root cause is clear: the storyboard frame generation appends ~400 words of redundant quality/skin/negative blocks to every prompt AND sends 3-4+ competing reference images. External tools work better because they send clean prompts with fewer images.
+Same plan as previously approved, with the corrected file count.
 
-### Changes
+### Modified files (3):
 
-**File: `src/pages/GeneratePage.tsx`**
+1. **`src/lib/content-templates.ts`** — Add 4 commercial template keys (`hero_product`, `brand_campaign`, `katalog_produk`, `studio_editorial`) to `ContentTemplateKey` type and add their full `ContentTemplate` entries with timing beats, descriptions, and category recommendations
 
-1. **Remove prompt bloat** (line 895)
-   - Current: `enhancedFramePrompt = currentPrompt + SKIN_BLOCK + QUALITY_BLOCK + NEGATIVE_BLOCK` (~400 extra words)
-   - New: Just use `currentPrompt` as-is — the Gemini-generated prompt already contains quality direction. Add only a minimal 1-line suffix: `"Ultra-realistic photo, 8K, natural lighting. No cartoon, no CGI, no watermark."`
+2. **`src/lib/kie-video-generation.ts`** — Add `extendVeoVideo({ taskId, prompt, model, apiKey })` function for extended Veo segments (POST `/veo/extend`, poll same as regular Veo)
 
-2. **Limit image_input to max 2 images** (lines 885-893)
-   - Current: Sends reference_photo + hero_image + product + frame0 = up to 4 images
-   - New priority logic:
-     - If `idx > 0` and frame 0 exists → use frame 0 as primary (visual consistency anchor)
-     - Then add ONE character reference (prefer `reference_photo_url` over `hero_image_url`, not both)
-     - Product image only if no character ref exists
-     - Max 2 images total
+3. **`src/lib/storyboard-angles.ts`** — Add 4 commercial storyboard beat arrays to the `STORYBOARDS` record:
+   - `hero_product`: 5 beats focused on product-centric shots (Hero Angle → Detail Close-up → Lifestyle Context → Feature Highlight → Brand Statement)
+   - `brand_campaign`: 5 beats for brand storytelling (Brand Mood → Identity Shot → Product Integration → Aspirational Moment → Brand Lockup)
+   - `katalog_produk`: 5 beats for catalog/e-commerce (Clean Product → Variant Display → Scale/Size → Texture Detail → Styled Flat Lay)
+   - `studio_editorial`: 5 beats for editorial photography (Editorial Pose → Fashion Detail → Environment Mood → Dynamic Movement → Magazine Cover)
 
-3. **Change output_format from "jpg" to "png"** (line 103)
-   - Lossless output = sharper details, especially for faces
+### New files (5) — unchanged from approved plan:
+1. `src/pages/GeneratePage.tsx` — complete rewrite
+2. `src/lib/image-generation-engine.ts` — shot planner + realism directives
+3. `src/lib/kie-image-generation.ts` — Kie AI image generation client
+4. `src/hooks/useImageGeneration.ts` — generation progress hook
+5. `src/lib/image-to-video-prompts.ts` — motion prompt templates
 
-4. **Clean up unused blocks**
-   - Remove `SKIN_BLOCK`, `ENV_REALISM_BLOCK`, `UGC_STYLE_BLOCK` constants (lines 73-82) — they're only used in the storyboard path and are causing quality degradation
-   - Keep `QUALITY_BLOCK` and `NEGATIVE_BLOCK` as they're still referenced in the single-image generation path (line 635, 720 area) — but trim them down
-
-**No changes to**: CreateCharacterPage.tsx (its blocks work fine for character generation), video generation, or UI layout.
-
-### Why This Fixes It
-
-- **Fewer images** = model focuses on the prompt instead of trying to reconcile 4 conflicting references
-- **Cleaner prompt** = model interprets the Gemini-crafted narrative prompt without being confused by 400 words of contradictory quality directives
-- **PNG** = no lossy compression artifacts on faces/skin
+### Build order: Part 1 → Part 2 → Part 3 → Part 4 (sequential)
 
