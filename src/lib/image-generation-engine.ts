@@ -563,28 +563,24 @@ export function planImageShots(config: GenerationConfig): ImageShotPlan[] {
       ? pickRandomVariant(mode === "ugc" ? catFragment.ugc : catFragment.commercial)
       : style.promptFragment;
 
-    const parts: string[] = [realism];
-    if (boost) parts.push(boost);
+    // Build a single cohesive prompt — avoid multiple sections that cause collage generation
+    const charLine = !style.expression.includes("N/A")
+      ? `${characterDescription}, ${skin} skin, ${style.expression} expression.`
+      : "";
 
-    // Category-aware scene direction (replaces generic promptFragment)
-    parts.push(`SCENE: ${chosenPose}`);
-    parts.push(SHOT_DIRECTION[shotKey]);
+    const prompt = [
+      `ONE SINGLE PHOTO, not a collage, not a grid, not multiple images. Generate exactly one photograph.`,
+      realism,
+      boost,
+      SHOT_DIRECTION[shotKey],
+      `Scene: ${chosenPose}. ${charLine} Environment: ${environment.description || environment.label}. ${style.lighting}. Shot on ${style.camera}, ${style.lens} lens.`,
+      `Product: ${productDNA.product_description}. ${productDNA.dominant_color} ${productDNA.packaging_type}. ${catDetail}.`,
+      `${productCtx.interactionGuide}. Mood: ${productCtx.emotionalAngle}.`,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    if (!style.expression.includes("N/A")) {
-      parts.push(`CHARACTER: ${characterDescription}. Skin tone: ${skin}. Expression: ${style.expression}.`);
-    }
-    parts.push(`CAMERA: ${style.camera}, ${style.lens} lens, ${style.distance} distance, ${style.angle} angle.`);
-    parts.push(`LIGHTING: ${style.lighting}`);
-    parts.push(`COMPOSITION: ${style.composition}`);
-    parts.push(`ENVIRONMENT: ${environment.description || environment.label}`);
-
-    // Product consistency
-    parts.push(productBlock);
-    parts.push(`PRODUCT DETAILS: ${catDetail}`);
-
-    // Rich product context — interaction + emotion
-    parts.push(`INTERACTION: ${productCtx.interactionGuide}`);
-    parts.push(`EMOTIONAL CONTEXT: ${productCtx.emotionalAngle}`);
+    const parts: string[] = [prompt];
 
     return {
       shotIndex: idx,
