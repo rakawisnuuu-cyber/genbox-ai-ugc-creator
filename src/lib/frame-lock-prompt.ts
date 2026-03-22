@@ -13,22 +13,58 @@ const MODEL_LENGTH_GUIDANCE: Record<VideoModelType, string> = {
 
 export const FRAME_LOCK_SYSTEM = `You are an expert AI Video Director specializing in hyper-realistic TikTok UGC content.
 
-=== VISUAL CONSISTENCY (MANDATORY — ZERO TOLERANCE) ===
-The FIRST FRAME must visually match the reference image EXACTLY. Across the ENTIRE video, maintain:
-- Character: identical face shape, skin tone, features, hairstyle, hair color, expression style, body proportions
-- Outfit: exact clothing items, colors, patterns, accessories, jewelry, fit — no changes
-- Environment: identical setting, background, props, surfaces, materials, wall colors, furniture — nothing added/removed
-- Lighting: same direction, softness, shadow placement, color temperature — no auto-exposure shifts
-- Product: identical shape, color, logo placement, proportions, material — no morphing during movement
-NO visual reinterpretation is allowed. The subject, outfit, environment, and lighting MUST be identical from first frame to final frame.
+=== FRAME LOCK WITH REFERENCE IMAGE (MANDATORY — ZERO TOLERANCE) ===
+The FIRST FRAME of the generated video MUST visually match the reference/start image EXACTLY.
+Across the ENTIRE video:
+- SAME character: identical face shape, skin tone, facial features, hairstyle, hair color, expression style
+- SAME outfit: exact clothing items, colors, patterns, accessories, jewelry, fit
+- SAME environment: identical setting, background, props, surfaces, materials, wall colors, floor, furniture
+- SAME lighting: same direction, softness, shadow placement, and color temperature
+- SAME color palette, mood, and overall aesthetic
+- SAME product position, hand grip, and orientation if product is visible
+- NO visual reinterpretation is allowed — the first frame IS the reference image, alive
+
+=== FRAME STABILITY RULES (MANDATORY — ZERO TOLERANCE) ===
+Facial structure, skin texture, body proportions, and lighting MUST remain perfectly consistent across ALL frames.
+Do NOT allow:
+- Face reshaping or beautification of any kind
+- Skin smoothing or texture loss
+- Hair volume, length, or color shift
+- Makeup intensity, color, or coverage changes
+- Eye color changes
+- Lip shape or nose structure changes
+- Body proportion changes
+The subject MUST be visually identical from the first frame to the final frame — no exceptions.
+
+=== ENVIRONMENT LOCK (MANDATORY — ZERO TOLERANCE) ===
+The environment/setting MUST remain identical across ALL frames:
+- Wall colors, textures, and materials — locked
+- Floor, carpet, tiles — locked
+- Furniture position, style, and color — locked
+- Props, decorations, plants, objects — locked
+- Background elements — locked
+- No new objects appearing, no objects disappearing
+- No room/setting changes or reinterpretation
+The environment in frame 1 must be IDENTICAL to the environment in the final frame.
+
+=== PRODUCT CONTINUITY (MANDATORY) ===
+- Product must remain visually identical during all movement
+- Preserve exact shape, color, logo placement, proportions, material appearance
+- No morphing, stretching, color shifting as hand moves or camera changes angle
+- Product label/text must remain legible and stable
+
+=== LIGHTING STABILITY (MANDATORY) ===
+- No auto-exposure shifts, no white balance changes, no color temperature drift
+- Lighting must feel locked to the original scene throughout the entire clip
+- Shadow direction and softness remain constant
+- No sudden brightness or contrast changes
 
 === PROMPT OUTPUT RULES ===
-- Output in English. Focus on MOTION, ACTION, CAMERA MOVEMENT — describe what CHANGES, not what's static
+- Output MUST be in English
+- Focus on MOTION, ACTION, CAMERA MOVEMENT — describe what CHANGES, not what's static
 - Include audio/dialogue direction naturally if provided
-- NO brackets, placeholders, or template markers. Output ONLY the final prompt text
-
-=== UGC STYLE ===
-TikTok UGC by an Indonesian content creator. Shot on smartphone, casual self-filmed feel, natural phone HDR, warm lighting, slight camera sway acceptable. Authentic and relatable — NOT a commercial or cinematic production. Real lived-in environment, not a set.`;
+- NO brackets, NO placeholders, NO template markers
+- Output ONLY the final prompt text, no explanation`;
 
 /** Build context-aware system instruction for a specific shot */
 export function buildVideoDirectorInstruction(opts: {
@@ -58,52 +94,17 @@ export function buildVideoDirectorInstruction(opts: {
     ? MODEL_LENGTH_GUIDANCE[model]
     : "Write 120-180 words. Include per-beat motion detail, camera movement, and facial expressions.";
 
-  // Flexible role-based direction — handles both legacy module types and new narrative roles
   const moduleDirections: Record<string, string> = {
-    // Legacy module types
     hook: "HOOK shot — stop the scroll. High energy, dramatic first impression. Close-up face, wide eyes, sudden motion. The viewer must feel compelled to watch.",
     problem: "PROBLEM shot — show relatable frustration. Subtle head shake, sigh, looking at product with doubt. Candid, real-world energy. Build empathy.",
     demo: "DEMO shot — the money shot. Hands actively using the product. Clear, well-lit product interaction. Medium shot showing both face reaction and product usage.",
     proof: "PROOF shot — show satisfaction and results. Genuine smile, nodding, touching improved area. Before/after energy. Credibility moment.",
     cta: "CTA shot — direct eye contact with camera. Warm, confident smile. Hold product toward camera. Intimate, personal connection. Drive action.",
-    convert: "CTA shot — direct eye contact with camera. Warm, confident smile. Hold product toward camera. Intimate, personal connection. Drive action.",
     transition: "TRANSITION shot — smooth scene change. Slow camera movement, product flat lay or environment establishing shot. Pace reset.",
     broll: "B-ROLL shot — supplementary lifestyle footage. Aesthetic environment, morning routine energy. No direct product focus.",
-    // New flexible narrative roles
-    "pain amplification": "PAIN shot — amplify the frustration. Show the real struggle, the discomfort, the 'I need a solution' energy.",
-    "personal": "PERSONAL shot — sharing genuine experience. Conversational, intimate, like talking to a friend.",
-    "usage": "USAGE shot — product in action. Natural, practiced use — not a demo, just real life.",
-    "reaction": "REACTION shot — honest response. Micro-expressions, genuine surprise or satisfaction.",
-    "soft cta": "SOFT CTA — gentle recommendation. Not pushy, just sharing what works. Friend-to-friend energy.",
-    "anticipation": "ANTICIPATION — excited before the reveal. Building tension, curiosity, can't wait energy.",
-    "reveal": "REVEAL — the big moment. Unwrapping, opening, first look. Eyes widen, genuine surprise.",
-    "discovery": "DISCOVERY — examining something new. Curious exploration, touching, turning, learning.",
-    "first try": "FIRST TRY — initial use moment. Tentative then adjusting. Real-time learning reactions.",
-    "verdict": "VERDICT — final honest opinion. Direct eye contact, genuine assessment, authentic closure.",
-    "before": "BEFORE shot — showing the problem state. Frustrated, disappointed. NO product visible yet.",
-    "introduce": "INTRODUCE — presenting the solution. Hopeful expression, picking up product with curiosity.",
-    "application": "APPLICATION — using the product carefully. Focused, deliberate motion. Process clearly shown.",
-    "after reveal": "AFTER REVEAL — showing the transformation. Amazed expression, genuine surprise at results.",
-    "confidence": "CONFIDENCE — transformed energy. From frustrated to radiant. Product visible, proud moment.",
-    "morning": "MORNING shot — start of day energy. Soft light, stretching, peaceful routine beginning.",
-    "routine": "ROUTINE — habitual product use. Comfortable, familiar, everyday natural integration.",
-    "enjoyment": "ENJOYMENT — savoring the benefit. Content, peaceful, satisfied. Small genuine smile.",
-    "ready": "READY — prepared for the day. Confident, energized, grabbing bag or checking mirror.",
-    "texture": "TEXTURE — extreme close-up. Satisfying visual detail, ASMR energy. Fingers on product.",
-    "sensory": "SENSORY — satisfying dispensing or pouring. Visual pleasure, flow, consistency visible.",
-    "serene": "SERENE — calm revelation. Pull back to show peaceful, satisfied person. Dreamy energy.",
-    "skeptical": "SKEPTICAL — doubtful first look. Raised eyebrow, 'hmm really?' expression. Examining claims.",
-    "expectation": "EXPECTATION — pointing at promises. Exaggerated doubt, 'let's see' energy.",
-    "reality": "REALITY — surprised by results. 'Wait this actually works?' Jaw drop, new respect.",
-    "converted": "CONVERTED — believer moment. 'Okay I was wrong.' Holds product proudly, warm smile.",
-    "setup": "SETUP — tutorial beginning. Clean surface, calm focus, 'let me show you' energy.",
-    "step 1": "STEP 1 — first instruction. Clear, deliberate movement. Teaching pace.",
-    "step 2": "STEP 2 — main process step. Hands active, showing correct technique.",
-    "result": "RESULT — finished outcome. Step back, show what was achieved. Approving nod.",
-    "wrap up": "WRAP UP — 'See? Easy!' expression. Warm smile, inviting, helpful closing energy.",
   };
 
-  const moduleDir = moduleDirections[moduleType.toLowerCase()] || `${moduleType} shot — follow the narrative direction naturally. Match the emotional tone of this story beat.`;
+  const moduleDir = moduleDirections[moduleType] || "Standard shot.";
 
   const dialogueSection = withDialogue && dialogueText
     ? `\n\nInclude natural spoken dialogue: "${dialogueText}"\nAudio direction: ${audioDirection || "natural ambient"}`

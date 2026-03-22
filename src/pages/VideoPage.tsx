@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import { buildVideoDirectorInstruction } from "@/lib/frame-lock-prompt";
 import { getActionChips, getShuffledChips } from "@/lib/action-chips";
 import { generateVideoAndWait } from "@/lib/kie-video-generation";
-import { fileToBase64 } from "@/lib/image-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
@@ -43,7 +42,6 @@ import {
   Lightbulb,
   MessageSquare,
   Clapperboard,
-  ArrowRight,
 } from "lucide-react";
 
 type VideoModel = "grok" | "veo_fast" | "veo_quality";
@@ -66,10 +64,7 @@ interface FrameState {
   mergedFrames: number[];
   /** If this frame is absorbed into another, store the parent index */
   mergedInto: number | null;
-  endFrameUrl: string | null;
   showGalleryPicker?: boolean;
-  showStartGallery?: boolean;
-  showEndGallery?: boolean;
   scriptGenerating?: boolean;
   promptGenerating?: boolean;
 }
@@ -91,18 +86,13 @@ const MODEL_LABELS: Record<VideoModel, { label: string; badge: string; badgeColo
   veo_quality: { label: "Veo Quality", badge: "PREMIUM", badgeColor: "bg-primary/20 text-primary", audio: true, cost: "~Rp 32.000" },
 };
 
-/** Position-based role colors — works with any flexible storyRole string */
-const POSITION_ROLE_COLORS = [
-  "bg-red-500/20 text-red-400 border-red-500/30",
-  "bg-amber-500/20 text-amber-400 border-amber-500/30",
-  "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  "bg-green-500/20 text-green-400 border-green-500/30",
-  "bg-purple-500/20 text-purple-400 border-purple-500/30",
-];
-
-function getRoleColor(beatIndex: number): string {
-  return POSITION_ROLE_COLORS[beatIndex % POSITION_ROLE_COLORS.length];
-}
+const ROLE_COLORS: Record<string, string> = {
+  Hook: "bg-red-500/20 text-red-400 border-red-500/30",
+  Build: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  Demo: "bg-green-500/20 text-green-400 border-green-500/30",
+  Proof: "bg-purple-500/20 text-purple-400 border-purple-500/30",
+  Convert: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+};
 
 function BeatPreviewCard({ beat, index }: { beat: StoryboardBeat; index: number }) {
   const [expanded, setExpanded] = useState(false);
@@ -112,7 +102,7 @@ function BeatPreviewCard({ beat, index }: { beat: StoryboardBeat; index: number 
       className={`border border-border rounded-lg p-2 bg-muted/10 min-w-0 cursor-pointer transition-all ${expanded ? "col-span-5 sm:col-span-2" : ""}`}
       onClick={() => isLong && setExpanded(!expanded)}
     >
-      <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole, index)}`}>
+      <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-medium ${getStoryRoleColor(beat.storyRole)}`}>
         {beat.storyRole}
       </span>
       <p className={`text-[10px] font-semibold text-foreground mt-1 ${expanded ? "" : "truncate"}`}>{beat.label}</p>
@@ -151,99 +141,58 @@ function getModelRecommendation(template: ContentTemplateKey): { text: string; v
   };
 }
 
-/** Smart dialog suggestions — maps flexible storyRoles to casual Indonesian dialog */
-const ROLE_DIALOG_MAP: Record<string, (productCategory?: string) => string> = {
-  // Opening / Hook roles
-  "Problem": () => "Ini nih yang bikin aku kesel. Udah coba banyak tapi ga works.",
-  "Hook": (cat) => { const hooks = getRandomHooks("problem_solution" as ContentTemplateKey, 1); return hooks[0] || "Ini tuh ternyata sebagus ini. Awalnya ragu tapi setelah coba sendiri..."; },
-  "Skeptical": () => "Beneran nih ini bagus? Aku ragu awalnya. Tapi yaudah coba dulu aja.",
-  "Morning": () => "Pagi-pagi langsung skincare-an dulu dong. Ini udah jadi rutinitas wajib aku.",
-  "First Look": () => "Baru pertama kali liat produk ini. Penasaran banget, kita liat ya.",
-  "Excitement": () => "GUYS! Akhirnya dateng yang aku tunggu-tunggu! Kita unboxing bareng ya!",
-  "Anticipation": () => "Penasaran banget sama ini. Banyak yang bilang bagus, aku mau buktiin sendiri.",
-  "Setup": () => "Oke jadi aku mau tunjukin cara pakainya. Simpel banget sebenernya.",
-  "POV Reach": () => "",
-  "Texture": () => "",
-
-  // Mid roles
-  "Pain Amplification": () => "Capek banget ngerasain kayak gini terus. Makanya aku cari solusinya.",
-  "Personal": () => "Aku udah pake ini seminggu. Honestly mulai kerasa bedanya.",
-  "Routine Start": () => "Langsung ambil produknya, udah jadi daily routine. Gampang banget.",
-  "Expectation": () => "Di packaging bilang bisa gini gitu. Penasaran apa beneran, kita buktiin.",
-  "Alasan 1": () => "Alasan pertama kenapa aku suka. Hasilnya kerasa cepet banget.",
-  "Midday": () => "Siang-siang gini tetep fresh. Ga perlu touch up sama sekali.",
-  "First Open": () => "Wah packaging-nya bagus juga ya. Keliatan premium buat harga segini.",
-  "Reveal": () => "Ini nih isinya, cakep banget. Desainnya minimalis tapi keliatan mahal.",
-  "Step 1": () => "Pertama ambil secukupnya dulu. Ga perlu banyak, dikit aja cukup.",
-
-  // Demo / Usage roles  
-  "Demo": (cat) => {
-    const demos: Record<string, string> = {
-      skincare: "Cobain langsung di kulit aku. Teksturnya ringan, cepet nyerep. Ga lengket.",
-      fashion: "Aku pake langsung ya. Jatuhnya bagus, bahannya adem. Fit-nya pas.",
-      food: "Langsung cobain ya. Enak banget, rasanya pas. Ga terlalu manis.",
-      electronics: "Nyalain dulu nih. Responsif banget, smooth. Fitur ini yang bikin worth it.",
-      health: "Langsung minum kayak biasa. Rasanya ga aneh, gampang banget.",
-      home: "Pasang langsung ya. Bagus kan jadinya. Kualitasnya oke buat harga segini.",
-    };
-    return demos[(cat || "").toLowerCase()] || "Langsung cobain ya. Cara pakainya gampang. Hasilnya langsung keliatan.";
-  },
-  "Usage": (cat) => ROLE_DIALOG_MAP["Demo"]?.(cat) || "Aku pake langsung, gampang banget. Simpel dan kelar.",
-  "Product Step": () => "Ini step paling penting. Jangan di-skip, ini yang bikin hasilnya maksimal.",
-  "Application": () => "Apply-nya gampang, tinggal ratain aja. Siapa aja bisa.",
-  "Try": () => "Oke cobain langsung ya. Biar kalian liat sendiri. Simpel banget.",
-  "First Try": () => "Pertama kali pake nih, deg-degan. Tapi ternyata gampang banget.",
-  "Product Moment": () => "Siang hari gini aku selalu pake ini. Udah jadi kebiasaan.",
-  "Alasan 2": () => "Alasan kedua, ini tahan lama banget. Pagi sampe malem masih oke.",
-  "Step 2": () => "Step kedua, ratain pelan-pelan. Ga usah buru-buru. Gampang kan?",
-  "Speed Demo": () => "Cepet banget cara makenya. Cuma butuh beberapa detik. Praktis.",
-  "Sensory": () => "",
-  "Slow Reveal": () => "",
-  "POV Inspect": () => "",
-  "POV Use": () => "",
-  "Discovery": () => "Wah, ini ternyata bagus banget ya. Aku ga expect sama sekali. Beneran surprised sih aku.",
-
-  // Result / Proof roles
-  "Result": () => "Beneran kerasa bedanya. Ga expect secepet ini hasilnya. Worth it.",
-  "After Reveal": () => "Kerasa bedanya sih. Liat sendiri before after-nya. Gila hasilnya.",
-  "Reality": () => "Wait, ini beneran bagus dong?! Aku kira biasa aja ternyata engga.",
-  "Alasan 3": () => "Alasan ketiga, harganya worth it banget sama kualitasnya. Ga nyesel.",
-  "Almost Ready": () => "Tinggal finishing touch aja. Bentar lagi kelar. Ga sabar liat hasilnya.",
-  "Benefit": () => "Kerasa banget benefitnya setelah rutin pake. Beneran recommended.",
-  "Assessment": () => "Overall menurutku worth it. Plus minusnya lebih banyak plusnya.",
-  "Impressed": () => "Aku kaget, hasilnya sebagus ini. Ga expect sama sekali. Harus coba.",
-  "Initial Result": () => "Baru pertama pake udah kerasa bedanya. Cepet banget keliatan.",
-  "POV Result": () => "",
-  "Serene": () => "",
-
-  // CTA / Close roles
-  "CTA": () => "Pokoknya ini harus punya. Udah recommend ke temen-temen juga. Coba deh!",
-  "Soft CTA": () => "Menurutku worth it banget. Harganya segitu dapet kualitas gini. Coba deh.",
-  "Confidence": () => "Pede banget jadinya setelah pake ini. Game changer. Kalian harus coba.",
-  "Ready": () => "Siap jalan! Produk ini ngebantu banget. Ga bisa balik ke yang lain.",
-  "Converted": () => "Oke tarik kata-kata aku, ini bagus banget. Sekarang jadi langganan. Worth it!",
-  "Summary": () => "Kesimpulannya, worth it banget. Bakal repurchase pasti. Kalian harus coba.",
-  "Verdict": () => "Honest opinion, ini recommended banget. Ga bakal nyesel. Coba aja.",
-  "Evening": () => "Malam-malam gini masih kerasa efeknya. Awet banget. Aku impressed.",
-  "Wrap Up": () => "Gampang kan ternyata? Simpel tapi hasilnya kerasa. Coba deh!",
-  "Show Off": () => "Ini harus punya, serius. Beneran bagus. Must have banget.",
-  "Face Reveal": () => "Tadaaa! Hasilnya kayak gini. Gimana menurut kalian? Bagus kan?",
+/** Smart dialog suggestions per frame role and product category */
+const DEMO_DIALOGS: Record<string, string> = {
+  skincare: "Aku coba pake langsung ya di kulit aku...",
+  fashion: "Aku coba pakai nih, liat deh hasilnya...",
+  food: "Kita cobain rasanya langsung ya...",
+  electronics: "Aku nyalain dulu nih, kita liat fiturnya...",
+  health: "Aku minum langsung ya, biasa tiap pagi...",
+  home: "Aku coba pasang langsung ya...",
+  other: "Aku coba langsung ya biar kalian liat...",
 };
+
+const PROOF_DIALOGS = [
+  "Hasilnya ternyata beneran kerasa bedanya...",
+  "Wah beneran kerasa bedanya sih ini...",
+  "Oke aku kaget sih, hasilnya sebagus ini...",
+  "Ini beneran di luar ekspektasi aku...",
+];
+
+const CTA_DIALOGS = [
+  "Worth it sih, kalian coba deh!",
+  "Link di bio ya! Cobain deh.",
+  "Aku recommend banget sih ini. Cek link di bio!",
+  "Kalian harus coba ini sih, worth it banget.",
+];
 
 function getSmartDialogSuggestion(
   role: string,
   templateKey: ContentTemplateKey,
   productCategory?: string,
 ): string {
-  // Try exact role match first
-  const generator = ROLE_DIALOG_MAP[role];
-  if (generator) return generator(productCategory);
-  
-  // Fallback: try to find via template hooks
-  const hooks = getRandomHooks(templateKey, 1);
-  if (hooks[0]) return hooks[0];
-  
-  return "";
+  switch (role) {
+    case "Hook": {
+      const hooks = getRandomHooks(templateKey, 1);
+      return hooks[0] || "";
+    }
+    case "Build": {
+      const bodies = getRandomBodyScripts(templateKey, 1);
+      return bodies[0] || "";
+    }
+    case "Demo": {
+      const cat = (productCategory || "other").toLowerCase();
+      return DEMO_DIALOGS[cat] || DEMO_DIALOGS.other;
+    }
+    case "Proof": {
+      return PROOF_DIALOGS[Math.floor(Math.random() * PROOF_DIALOGS.length)];
+    }
+    case "Convert": {
+      return CTA_DIALOGS[Math.floor(Math.random() * CTA_DIALOGS.length)];
+    }
+    default:
+      return "";
+  }
 }
 
 import { imageUrlToBase64WithMime as imageUrlToBase64 } from "@/lib/image-utils";
@@ -258,8 +207,7 @@ const VideoPage = () => {
 
   // Navigation state from storyboard
   const navState = location.state as any;
-  const [fromStoryboard, setFromStoryboard] = useState(navState?.fromStoryboard === true);
-  const [storyboardImages, setStoryboardImages] = useState<string[]>(navState?.storyboardImages || []);
+  const fromStoryboard = navState?.fromStoryboard === true;
 
   // ─── First-class product info state ───
   interface ProductInfo {
@@ -362,7 +310,7 @@ const VideoPage = () => {
   const frameTimersRef = useRef<Record<number, ReturnType<typeof setInterval>>>({});
 
   const beats = getStoryboardBeats(selectedTemplate);
-  // storyboardImages is now state (synced via keep-alive useEffect)
+  const storyboardImages: string[] = navState?.storyboardImages || [];
   const modelRec = getModelRecommendation(selectedTemplate);
 
   // Load gallery
@@ -410,7 +358,6 @@ const VideoPage = () => {
         expanded: i === 0,
         mergedFrames: [],
         mergedInto: null,
-        endFrameUrl: null,
       };
     });
     setFrames(newFrames);
@@ -423,32 +370,6 @@ const VideoPage = () => {
       initializeFrames();
     }
   }, [fromStoryboard, setupDone, sourceUrl, initializeFrames]);
-
-  // Keep-alive state sync: when location.state changes (re-navigation), re-sync all state
-  useEffect(() => {
-    const state = location.state as any;
-    if (state?.fromStoryboard && state?.sourceImage) {
-      setFromStoryboard(true);
-      setSourceUrl(state.sourceImage);
-      setSourcePreview(state.sourceImage);
-      if (state.storyboardImages) setStoryboardImages(state.storyboardImages);
-      if (state.template) setSelectedTemplate(state.template);
-      const dna = state.productDNA || state.productDna;
-      if (dna && (dna.category || dna.product_description)) {
-        setProductInfo({
-          category: dna.category || "",
-          sub_category: dna.sub_category || "",
-          product_description: dna.product_description || "",
-        });
-      } else if (state.productCategory) {
-        setProductInfo((prev) => ({ ...prev, category: state.productCategory }));
-      }
-      // Reset frames so initializeFrames runs again with new data
-      setSetupDone(false);
-      setFrames([]);
-      setStoryboardPlanned(false);
-    }
-  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Plan Storyboard — ONE Gemini call to detect product + plan all 5 frames */
   const planStoryboard = async () => {
@@ -603,8 +524,6 @@ Rules:
       next[idx] = {
         ...parentFrame,
         mergedFrames: [...parentFrame.mergedFrames, targetIdx],
-        sourceImageUrl: storyboardImages[idx] || parentFrame.sourceImageUrl,
-        endFrameUrl: storyboardImages[targetIdx] || null,
         dialogue: [parentFrame.dialogue, next[targetIdx].dialogue].filter(Boolean).join(" "),
         prompt: "", // clear prompt so it regenerates with combined context
         status: "idle",
@@ -665,11 +584,19 @@ Rules:
     setSourcePreview(URL.createObjectURL(file));
     setUploading(true);
 
-    // Convert File to base64 immediately (CORS-free) using shared utility
-    const b64Data = await fileToBase64(file);
-    const mimeType = file.type || "image/jpeg";
-    const b64 = { mimeType, data: b64Data };
-    setImageAsBase64(b64);
+    // Convert File to base64 immediately (CORS-free)
+    const b64 = await new Promise<{ mimeType: string; data: string } | null>((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        const mimeType = result.split(",")[0].split(":")[1].split(";")[0];
+        const data = result.split(",")[1];
+        resolve(data ? { mimeType, data } : null);
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+    if (b64) setImageAsBase64(b64);
 
     const ext = file.name.split(".").pop();
     const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
@@ -708,22 +635,21 @@ Rules:
 
       if (isCombined) {
         const allBeats = [beat, ...mergedBeats];
-        const combinedDuration = allBeats.length * 8;
         const beatDescList = allBeats.map((b) => `'${b.label}' — ${b.description}`).join(", then naturally flowing into ");
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
-Write a short spoken dialog covering ${allBeats.length} beats in one natural flow. Maximum 25-30 words total (this is still only ${combinedDuration} seconds of video). 2-3 sentences max. Do NOT write more — the person speaks at normal pace, not rushing.
-Beats: first ${beatDescList}.
-Previous frame's dialog was: '${prevDialog}'.
-Casual Indonesian. Output ONLY the script text.`;
+Write a 2-3 sentence TikTok dialog covering ${allBeats.length} story beats in sequence: first ${beatDescList}.
+The dialog should transition smoothly between all beats in one natural spoken flow.
+Keep it under 30 words total, casual Indonesian.
+Output ONLY the script text.`;
         contentText = `Combined beats for a '${template?.label}' video:\n${allBeats.map((b, i) => `Beat ${i + 1}: ${b.storyRole} — ${b.description}`).join("\n")}`;
       } else {
-        const duration = frames[idx]?.model === "grok" ? 10 : 8;
         systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.
 ${productContextLine}
-Write a short spoken dialog for the '${beat.label}' part. Maximum 20-25 words (about ${duration} seconds of natural speech). 2 sentences max. Do NOT write more.
+Write a 1-2 sentence TikTok dialog in casual Indonesian for the '${beat.label}' part of a '${template?.label}' video.
 Previous frame's dialog was: '${prevDialog}'.
-This should flow naturally as the next thing the person would say. Casual Indonesian.
+This should flow naturally as the next thing the person would say.
+Keep it under 20 words, punchy and natural.
 Output ONLY the script text.`;
         contentText = `Beat: ${beat.storyRole} — ${beat.description}`;
       }
@@ -833,9 +759,6 @@ Content template: ${template?.label}`,
     return frame.prompt;
   };
 
-  // Per-frame cancel ref for individual and batch generation
-  const frameCancelRef = useRef(false);
-
   // Generate single frame video
   const generateFrame = async (idx: number) => {
     if (!kieApiKey || keys.kie_ai.status !== "valid") {
@@ -849,7 +772,6 @@ Content template: ${template?.label}`,
       return;
     }
 
-    frameCancelRef.current = false;
     updateFrame(idx, { status: "generating", videoUrl: null, errorMsg: "", elapsed: 0 });
 
     // Start timer
@@ -870,32 +792,16 @@ Content template: ${template?.label}`,
       const beat = beats[idx];
       const duration = frame.model === "grok" ? 10 : 8;
 
-      // Build image URLs — use dual input for combined Veo frames (start + end frame)
-      const isVeo = frame.model === "veo_fast" || frame.model === "veo_quality";
-      const isCombined = frame.mergedFrames.length > 0;
-
-      let videoImageUrls: string[];
-      if (isVeo && isCombined) {
-        // Combined frames: use start + end frame images
-        const startImg = frame.sourceImageUrl || storyboardImages[idx] || imgUrl;
-        const endFrameRemoved = frame.endFrameUrl === "__none__";
-        const endImg = endFrameRemoved ? null : (frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]);
-        videoImageUrls = (endImg && startImg !== endImg) ? [startImg, endImg] : [startImg];
-      } else {
-        // Single frame or Grok: one image only
-        videoImageUrls = [imgUrl];
-      }
-
       const result = await generateVideoAndWait(
         {
           model: frame.model,
           prompt: usedPrompt,
-          imageUrls: videoImageUrls,
+          imageUrls: [imgUrl],
           duration,
           aspectRatio,
           apiKey: kieApiKey,
         },
-        () => frameCancelRef.current || batchCancelRef.current,
+        () => false,
       );
 
       clearInterval(frameTimersRef.current[idx]);
@@ -1009,65 +915,181 @@ Content template: ${template?.label}`,
   const formatRupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-  // Show gate screen if no storyboard data
-  if (!fromStoryboard || !sourceUrl) {
+  // Show setup if not done
+  if (!setupDone) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-120px)] lg:min-h-[calc(100dvh-60px)] text-center px-6">
-        <Film className="h-14 w-14 text-muted-foreground/10 mb-6" />
-        <h2 className="text-[20px] font-satoshi font-bold text-foreground mb-3">Create a storyboard first</h2>
-        <p className="text-[14px] text-muted-foreground/40 max-w-[420px] leading-relaxed mb-6">
-          Generate your image storyboard in the Image Studio, then come back to turn frames into video.
-        </p>
-        <Link
-          to="/generate"
-          className="rounded-xl bg-primary text-primary-foreground px-6 py-3 text-[14px] font-semibold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors"
+      <div className="space-y-6 max-w-2xl mx-auto">
+        <div>
+          <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Buat Video</h1>
+          <p className="text-xs text-muted-foreground mt-1">Generate video UGC frame-by-frame dari storyboard</p>
+        </div>
+
+        {/* Source Image */}
+        <div>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Source Image</label>
+          {sourcePreview ? (
+            <div className="relative inline-block">
+              <img src={sourcePreview} alt="Source" className="max-w-[180px] rounded-xl object-cover border border-border" />
+              <button onClick={() => { setSourcePreview(null); setSourceUrl(null); }} className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
+                <X className="h-3 w-3" />
+              </button>
+              {uploading && (
+                <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div
+                onClick={() => {
+                  const inp = document.createElement("input");
+                  inp.type = "file";
+                  inp.accept = "image/jpeg,image/png,image/webp";
+                  inp.onchange = (e) => {
+                    const f = (e.target as HTMLInputElement).files?.[0];
+                    if (f) handleFileSelect(f);
+                  };
+                  inp.click();
+                }}
+                className="border-2 border-dashed border-border rounded-xl p-6 bg-background hover:border-primary/30 transition-colors flex flex-col items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Upload className="h-6 w-6 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Upload gambar</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Product Detection Banner */}
+        {(productInfo.product_description || detectingProduct) && (
+          <div className={`rounded-xl px-4 py-2.5 border text-[11px] flex items-center gap-2 ${
+            detectingProduct
+              ? "bg-muted/30 border-border text-muted-foreground"
+              : "bg-primary/5 border-primary/20 text-foreground"
+          }`}>
+            {detectingProduct ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                <span>Mendeteksi produk...</span>
+              </>
+            ) : (
+              <>
+                <span>🏷️</span>
+                <span>
+                  <span className="font-medium">Produk:</span> {productInfo.product_description}
+                  {productInfo.category && (
+                    <span className="text-muted-foreground"> ({productInfo.category}/{productInfo.sub_category || "general"})</span>
+                  )}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Template Selector */}
+        <div>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Template Konten</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {CONTENT_TEMPLATES.map((t) => {
+              const isSelected = selectedTemplate === t.key;
+              const isRecommended = productInfo.category ? isRecommendedForCategory(t, productInfo.category) : false;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setSelectedTemplate(t.key)}
+                  className={`text-left rounded-xl p-3 transition-all relative ${
+                    isSelected
+                      ? "border-2 border-primary bg-primary/5 ring-1 ring-primary/20"
+                      : isRecommended
+                        ? "border border-primary/40 bg-primary/5 hover:border-primary/60"
+                        : "border border-border bg-card hover:border-muted-foreground/30"
+                  }`}
+                >
+                  {isRecommended && !isSelected && (
+                    <span className="absolute -top-1.5 -right-1.5 text-[7px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+                      ✦ REC
+                    </span>
+                  )}
+                  <p className="text-[11px] font-bold text-foreground">{t.label}</p>
+                  <p className={`text-[9px] text-muted-foreground mt-0.5 ${isSelected ? "" : "line-clamp-2"}`}>{t.desc}</p>
+                  {!isSelected && t.desc.length > 60 && (
+                    <span className="text-[8px] text-primary mt-0.5 inline-block">Selengkapnya</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Beat preview */}
+        <div>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2.5">Storyboard Preview</label>
+          <div className="grid grid-cols-5 gap-2">
+            {beats.map((beat, i) => (
+              <BeatPreviewCard key={i} beat={beat} index={i} />
+            ))}
+          </div>
+        </div>
+
+        {/* Aspect Ratio */}
+        <div>
+          <label className="text-xs uppercase tracking-widest text-muted-foreground font-medium block mb-2">Aspect Ratio</label>
+          <div className="flex gap-2">
+            {(["9:16", "16:9"] as const).map((ar) => (
+              <button
+                key={ar}
+                onClick={() => setAspectRatio(ar)}
+                className={`text-xs px-4 py-2 rounded-lg transition-colors ${
+                  aspectRatio === ar
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {ar === "9:16" ? "9:16 Portrait" : "16:9 Landscape"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Start Button — Plan Storyboard */}
+        <button
+          onClick={planStoryboard}
+          disabled={!sourceUrl || planningStoryboard}
+          className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3.5 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40"
         >
-          Go to Image Studio <ArrowRight className="h-4 w-4" />
-        </Link>
-        <p className="text-[12px] text-muted-foreground/25 mt-4">
-          Storyboard images will flow into the video editor automatically
+          {planningStoryboard ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
+          {planningStoryboard ? "MERENCANAKAN STORYBOARD..." : "PLAN STORYBOARD"}
+        </button>
+        <p className="text-[10px] text-muted-foreground text-center -mt-3">
+          Satu panggilan AI untuk mendeteksi produk & merencanakan semua 5 frame sekaligus
         </p>
       </div>
     );
   }
 
-  // Status pill helper
-  const getStatusPill = (status: FrameStatus) => {
-    switch (status) {
-      case "completed": return <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Done</span>;
-      case "failed": return <span className="bg-red-500/10 text-red-400 rounded-md px-2 py-0.5 text-[10px] font-medium">Failed</span>;
-      case "generating": return <span className="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[10px] font-medium flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" />Generating</span>;
-      default: return <span className="bg-white/[0.04] text-muted-foreground/40 rounded-md px-2 py-0.5 text-[10px] font-medium">Idle</span>;
-    }
-  };
-
   // Main frame editor
   return (
-    <div className="space-y-3 max-w-2xl mx-auto pb-24">
+    <div className="space-y-4 max-w-2xl mx-auto pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Buat Video</h1>
-          <p className="text-xs text-muted-foreground/40 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {getContentTemplate(selectedTemplate)?.label} • {activeFrames.length} frame • Est. {formatRupiah(totalCost)}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex rounded-lg overflow-hidden border border-white/[0.06]">
-            {(["9:16", "16:9"] as const).map((ar) => (
-              <button
-                key={ar}
-                onClick={() => setAspectRatio(ar)}
-                className={`text-[10px] px-2.5 py-1 transition-colors ${
-                  aspectRatio === ar
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-white/[0.03] text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {ar}
-              </button>
-            ))}
-          </div>
+          <button
+            onClick={() => { setSetupDone(false); setFrames([]); setStoryboardPlanned(false); }}
+            className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Kembali
+          </button>
           <button
             onClick={planStoryboard}
             disabled={planningStoryboard}
@@ -1079,17 +1101,16 @@ Content template: ${template?.label}`,
         </div>
       </div>
 
-      {/* Product Info Banner */}
+      {/* Product Info Banner (compact) */}
       {productInfo.product_description && (
-        <div className="rounded-xl px-4 py-2 border border-white/[0.06] bg-white/[0.02] text-[11px] flex items-center gap-2">
+        <div className="rounded-xl px-4 py-2 border border-primary/20 bg-primary/5 text-[11px] flex items-center gap-2">
           <span>🏷️</span>
           <span className="font-medium text-foreground">{productInfo.product_description}</span>
-          <span className="text-muted-foreground/40">({productInfo.category}/{productInfo.sub_category || "general"})</span>
+          <span className="text-muted-foreground">({productInfo.category}/{productInfo.sub_category || "general"})</span>
         </div>
       )}
 
-      {/* Model recommendation */}
-      <div className={`rounded-xl px-4 py-2.5 border text-[11px] ${
+      <div className={`rounded-xl px-4 py-3 border text-[11px] ${
         modelRec.variant === "dialog"
           ? "bg-blue-500/5 border-blue-500/20 text-blue-400"
           : modelRec.variant === "visual"
@@ -1099,610 +1120,483 @@ Content template: ${template?.label}`,
         <Lightbulb className="inline h-3.5 w-3.5 mr-1" /> {modelRec.text}
       </div>
 
-      {/* Planning loading */}
+      {/* Dialog Tip */}
+      <div className="rounded-xl px-4 py-2.5 border border-border bg-muted/20">
+        <p className="text-[10px] text-muted-foreground">
+          <MessageSquare className="inline h-3 w-3 mr-1" /> <span className="font-medium text-foreground">Tip:</span> Tulis dialog per frame, atau gabungkan cerita di satu frame dan skip frame lainnya. Setiap frame = 8 detik.
+        </p>
+      </div>
+
+      {/* Planning loading state */}
       {planningStoryboard && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 flex items-center gap-3">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <div>
             <p className="text-xs font-medium text-foreground">Merencanakan storyboard...</p>
-            <p className="text-[10px] text-muted-foreground/40">Menganalisis produk & membuat rencana 5 frame</p>
+            <p className="text-[10px] text-muted-foreground">Menganalisis produk & membuat rencana 5 frame</p>
           </div>
         </div>
       )}
 
-      {/* 5 Frame Cards — Accordion Style */}
-      <div className="space-y-2">
-        {frames.map((frame, idx) => {
-          const beat = beats[idx];
-          if (!beat) return null;
+      {/* 5 Frame Cards */}
+      {frames.map((frame, idx) => {
+        const beat = beats[idx];
+        if (!beat) return null;
 
-          // Skeleton during planning
-          if (planningStoryboard) {
-            return (
-              <div key={idx} className="border border-white/[0.06] rounded-xl p-4 space-y-3 animate-pulse bg-white/[0.02]">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-5 w-8" />
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-12 rounded-md" />
-                </div>
-                <Skeleton className="h-10 w-full" />
-              </div>
-            );
-          }
-
-          // Merged-into indicator
-          if (frame.mergedInto !== null) {
-            return (
-              <div key={idx} className="border border-dashed border-white/[0.06] rounded-xl px-4 py-2 opacity-40 flex items-center gap-2">
-                <Link2 className="h-3 w-3 text-muted-foreground/40" />
-                <span className="text-[10px] text-muted-foreground/40">
-                  F{idx + 1} ({beat.label}) — digabungkan ke F{frame.mergedInto + 1}
-                </span>
-              </div>
-            );
-          }
-
-          const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
-          const isCombined = mergedBeats.length > 0;
-          const allBeatLabels = [beat, ...mergedBeats];
-          const canCombineMore = frame.mergedFrames.length + 1 < 3;
-
+        // Show skeleton during planning
+        if (planningStoryboard) {
           return (
-            <div
-              key={idx}
-              className={`border rounded-xl overflow-hidden transition-all ${
-                frame.skipped ? "opacity-40 border-white/[0.04]" :
-                frame.status === "completed" ? "border-emerald-500/20 bg-white/[0.02]" :
-                isCombined ? "border-primary/20 bg-white/[0.02]" :
-                "border-white/[0.06] bg-white/[0.02]"
-              }`}
-            >
-              {/* Collapsed Header — ~56px */}
-              <div
-                className="h-14 px-4 flex items-center justify-between cursor-pointer"
-                onClick={() => updateFrame(idx, { expanded: !frame.expanded })}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  {/* Thumbnail if completed */}
-                  {frame.status === "completed" && frame.videoUrl && (
-                    <video
-                      src={frame.videoUrl}
-                      muted
-                      className="h-10 w-8 rounded-md object-cover shrink-0 border border-white/[0.06]"
-                    />
-                  )}
-                  <span className="text-[13px] font-bold text-muted-foreground/30 shrink-0">
-                    {isCombined ? `#${idx + 1}+${frame.mergedFrames.map((m) => m + 1).join("+")}` : `#${idx + 1}`}
-                  </span>
-                  <span className="text-[13px] font-medium text-foreground truncate">
-                    {isCombined ? allBeatLabels.map((b) => b.label.split("—")[0].trim()).join(" + ") : beat.label}
-                  </span>
-                  {allBeatLabels.map((b, bi) => {
-                    const actualIdx = bi === 0 ? idx : frame.mergedFrames[bi - 1];
-                    return (
-                      <span key={bi} className={`text-[9px] px-2 py-0.5 rounded-md font-medium shrink-0 ${getRoleColor(actualIdx)}`}>
-                        {b.storyRole}
-                      </span>
-                    );
-                  })}
-                  {isCombined && <Link2 className="h-3 w-3 text-primary shrink-0" />}
-                </div>
-                <div className="flex items-center gap-2">
-                  {getStatusPill(frame.status)}
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-[9px] text-muted-foreground/30">Skip</span>
-                    <Switch
-                      checked={frame.skipped}
-                      onCheckedChange={(v) => updateFrame(idx, { skipped: v })}
-                      className="scale-75"
-                    />
-                  </div>
-                  {frame.expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground/30" /> : <ChevronDown className="h-4 w-4 text-muted-foreground/30" />}
-                </div>
+            <div key={idx} className="border border-border rounded-xl p-4 space-y-3 animate-pulse">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-8" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-12 rounded-full" />
               </div>
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          );
+        }
 
-              {/* Expanded Content */}
-              {frame.expanded && !frame.skipped && (
-                <div className="px-4 pb-4 space-y-3 border-t border-white/[0.04] pt-3">
-                  {/* Beat descriptions */}
-                  {isCombined ? (
-                    <div className="space-y-1">
-                      {allBeatLabels.map((b, bi) => (
-                        <p key={bi} className="text-[10px] text-muted-foreground/40 italic">
-                          <span className="font-medium text-foreground not-italic">{b.storyRole}:</span> {b.description}
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground/40 italic">{beat.description}</p>
-                  )}
+        // If this frame is merged into another, show collapsed indicator
+        if (frame.mergedInto !== null) {
+          return (
+            <div key={idx} className="border border-dashed border-border rounded-xl px-4 py-2 opacity-40 flex items-center gap-2">
+              <Link2 className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">
+                F{idx + 1} ({beat.label}) — digabungkan ke F{frame.mergedInto + 1}
+              </span>
+            </div>
+          );
+        }
 
-                  {/* Split button */}
-                  {isCombined && (
-                    <button
-                      onClick={() => splitFrame(idx)}
-                      className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                    >
-                      <Unlink className="h-3 w-3" /> Pisahkan kembali
-                    </button>
-                  )}
+        const roleColor = ROLE_COLORS[beat.storyRole] || "bg-muted text-muted-foreground";
+        const modelInfo = MODEL_LABELS[frame.model];
+        const mergedBeats = frame.mergedFrames.map((mi) => beats[mi]).filter(Boolean);
+        const isCombined = mergedBeats.length > 0;
+        const allBeatLabels = [beat, ...mergedBeats];
+        const canCombineMore = frame.mergedFrames.length + 1 < 3; // max 3
 
-                  {/* Source image */}
-                  <div>
-                    <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1">Referensi gambar</label>
-                    <div className="flex items-center gap-2">
-                      {(frame.sourceImageUrl || sourceUrl) ? (
-                        <img
-                          src={frame.sourceImageUrl || sourceUrl!}
-                          alt={`Frame ${idx + 1} ref`}
-                          className="h-14 w-14 rounded-lg object-cover border border-white/[0.06]"
-                        />
-                      ) : (
-                        <div className="h-14 w-14 rounded-lg border border-dashed border-white/[0.06] bg-white/[0.02] flex items-center justify-center">
-                          <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
-                        </div>
-                      )}
-                      <div className="flex flex-col gap-1">
+        return (
+          <div
+            key={idx}
+            className={`border rounded-xl overflow-hidden transition-all ${
+              frame.skipped ? "opacity-40 border-border" : frame.status === "completed" ? "border-green-500/30 bg-green-500/5" : isCombined ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+            }`}
+          >
+            {/* Frame Header */}
+            <div
+              className="px-4 py-3 flex items-center justify-between cursor-pointer"
+              onClick={() => updateFrame(idx, { expanded: !frame.expanded })}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-bold text-foreground shrink-0">
+                  {isCombined ? `F${idx + 1}+${frame.mergedFrames.map((m) => m + 1).join("+")}` : `F${idx + 1}`}
+                </span>
+                <span className="text-xs text-muted-foreground truncate">
+                  {isCombined ? allBeatLabels.map((b) => b.label.split("—")[0].trim()).join(" + ") : beat.label}
+                </span>
+                {allBeatLabels.map((b, bi) => (
+                  <span key={bi} className={`text-[8px] px-1.5 py-0.5 rounded-full font-semibold shrink-0 ${ROLE_COLORS[b.storyRole] || roleColor}`}>
+                    {b.storyRole}
+                  </span>
+                ))}
+                {frame.status === "completed" && <span className="text-[9px] text-green-400 font-medium shrink-0">✓</span>}
+                {frame.status === "generating" && <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />}
+                {frame.status === "failed" && <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />}
+                {isCombined && <Link2 className="h-3 w-3 text-primary shrink-0" />}
+              </div>
+              <div className="flex items-center gap-2">
+                {/* Skip toggle */}
+                <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-[9px] text-muted-foreground">Skip</span>
+                  <Switch
+                    checked={frame.skipped}
+                    onCheckedChange={(v) => updateFrame(idx, { skipped: v })}
+                    className="scale-75"
+                  />
+                </div>
+                {frame.expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+              </div>
+            </div>
+
+            {/* Expanded content */}
+            {frame.expanded && !frame.skipped && (
+              <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+                {/* Beat description(s) */}
+                {isCombined ? (
+                  <div className="space-y-1">
+                    {allBeatLabels.map((b, bi) => (
+                      <p key={bi} className="text-[10px] text-muted-foreground italic">
+                        <span className="font-medium text-foreground not-italic">{b.storyRole}:</span> {b.description}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground italic">{beat.description}</p>
+                )}
+
+                {/* Split button for combined frames */}
+                {isCombined && (
+                  <button
+                    onClick={() => splitFrame(idx)}
+                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                  >
+                    <Unlink className="h-3 w-3" /> Pisahkan kembali
+                  </button>
+                )}
+
+                {/* Source image */}
+                <div>
+                  <label className="text-[10px] text-muted-foreground font-medium block mb-1">Referensi gambar</label>
+                  <div className="flex items-center gap-2">
+                    {(frame.sourceImageUrl || sourceUrl) ? (
+                      <img
+                        src={frame.sourceImageUrl || sourceUrl!}
+                        alt={`Frame ${idx + 1} ref`}
+                        className="h-16 w-16 rounded-lg object-cover border border-border"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded-lg border border-dashed border-border bg-muted/20 flex items-center justify-center">
+                        <ImageIcon className="h-4 w-4 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => {
+                          const inp = document.createElement("input");
+                          inp.type = "file";
+                          inp.accept = "image/jpeg,image/png,image/webp";
+                          inp.onchange = async (e) => {
+                            const f = (e.target as HTMLInputElement).files?.[0];
+                            if (!f) return;
+                            const preview = URL.createObjectURL(f);
+                            updateFrame(idx, { sourceImageUrl: preview });
+                            const ext = f.name.split(".").pop();
+                            const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
+                            const { error } = await supabase.storage.from("product-images").upload(path, f);
+                            if (!error) {
+                              const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+                              updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
+                            }
+                          };
+                          inp.click();
+                        }}
+                        className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                      >
+                        <Upload className="h-3 w-3" /> Upload
+                      </button>
+                      {galleryImages.length > 0 && (
                         <button
-                          onClick={() => {
-                            const inp = document.createElement("input");
-                            inp.type = "file";
-                            inp.accept = "image/jpeg,image/png,image/webp";
-                            inp.onchange = async (e) => {
-                              const f = (e.target as HTMLInputElement).files?.[0];
-                              if (!f) return;
-                              const preview = URL.createObjectURL(f);
-                              updateFrame(idx, { sourceImageUrl: preview });
-                              const ext = f.name.split(".").pop();
-                              const path = `${user!.id}/video-sources/${Date.now()}.${ext}`;
-                              const { error } = await supabase.storage.from("product-images").upload(path, f);
-                              if (!error) {
-                                const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                                updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
-                              }
-                            };
-                            inp.click();
-                          }}
+                          onClick={() => updateFrame(idx, { showGalleryPicker: !frame.showGalleryPicker })}
                           className="text-[10px] text-primary hover:underline flex items-center gap-1"
                         >
-                          <Upload className="h-3 w-3" /> Upload
+                          <ImageIcon className="h-3 w-3" /> Dari gallery
                         </button>
-                        {galleryImages.length > 0 && (
+                      )}
+                    </div>
+                  </div>
+                  {/* Inline gallery picker */}
+                  {frame.showGalleryPicker && galleryImages.length > 0 && (
+                    <div className="mt-2 p-2 rounded-lg border border-border bg-muted/20">
+                      <p className="text-[10px] text-muted-foreground mb-1.5">Pilih dari gallery:</p>
+                      <div className="flex gap-1.5 overflow-x-auto pb-1">
+                        {galleryImages.slice(0, 12).map((img) => (
                           <button
-                            onClick={() => updateFrame(idx, { showGalleryPicker: !frame.showGalleryPicker })}
-                            className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                            key={img.id}
+                            onClick={() => {
+                              updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false });
+                            }}
+                            className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-border hover:border-primary/50 transition-colors"
                           >
-                            <ImageIcon className="h-3 w-3" /> Dari gallery
+                            <img src={img.image_url} alt="" className="w-full h-full object-cover" />
                           </button>
-                        )}
+                        ))}
                       </div>
                     </div>
-                    {frame.showGalleryPicker && galleryImages.length > 0 && (
-                      <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
-                        <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih dari gallery:</p>
-                        <div className="flex gap-1.5 overflow-x-auto pb-1">
-                          {galleryImages.slice(0, 12).map((img) => (
-                            <button
-                              key={img.id}
-                              onClick={() => updateFrame(idx, { sourceImageUrl: img.image_url, showGalleryPicker: false })}
-                              className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
-                            >
-                              <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {/* Start + End frame picker for combined Veo frames */}
-                    {isCombined && (frame.model === "veo_fast" || frame.model === "veo_quality") && (
-                      <>
-                      <div className="mt-2 flex items-center gap-3">
-                        {/* Start frame — clickable to upload */}
-                        <div className="text-center">
-                          <p className="text-[9px] text-muted-foreground mb-1">Start</p>
-                          <button
-                            className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
-                            onClick={() => {
-                              const inp = document.createElement("input");
-                              inp.type = "file";
-                              inp.accept = "image/jpeg,image/png,image/webp";
-                              inp.onchange = async (e) => {
-                                const f = (e.target as HTMLInputElement).files?.[0];
-                                if (!f) return;
-                                const preview = URL.createObjectURL(f);
-                                updateFrame(idx, { sourceImageUrl: preview });
-                                const ext = f.name.split(".").pop();
-                                const path = `${user!.id}/video-sources/${Date.now()}-start.${ext}`;
-                                const { error } = await supabase.storage.from("product-images").upload(path, f);
-                                if (!error) {
-                                  const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                                  updateFrame(idx, { sourceImageUrl: urlData.publicUrl });
-                                }
-                              };
-                              inp.click();
-                            }}
-                          >
-                            {(frame.sourceImageUrl || storyboardImages[idx]) ? (
-                              <img src={frame.sourceImageUrl || storyboardImages[idx]} alt="Start frame" className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
-                                <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
-                              </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <Upload className="h-4 w-4 text-white" />
-                            </div>
-                          </button>
-                          <p className="text-[8px] text-muted-foreground mt-0.5">F{idx + 1}</p>
-                          {galleryImages.length > 0 && (
-                            <button
-                              onClick={() => updateFrame(idx, { showStartGallery: !frame.showStartGallery, showEndGallery: false })}
-                              className="text-[10px] text-primary hover:underline mt-0.5"
-                            >
-                              From gallery
-                            </button>
-                          )}
-                        </div>
+                  )}
+                </div>
 
-                        <span className="text-muted-foreground/30 text-lg">→</span>
-
-                        {/* End frame — clickable to upload, with remove button */}
-                        <div className="text-center">
-                          <p className="text-[9px] text-muted-foreground mb-1">End</p>
-                          {frame.endFrameUrl === "__none__" ? (
-                            /* Removed state — show empty dashed card */
-                            <button
-                              className="relative group h-20 w-14 rounded-lg border-2 border-dashed border-white/[0.12] hover:border-primary/40 transition-colors flex flex-col items-center justify-center gap-1"
-                              onClick={() => {
-                                const inp = document.createElement("input");
-                                inp.type = "file";
-                                inp.accept = "image/jpeg,image/png,image/webp";
-                                inp.onchange = async (e) => {
-                                  const f = (e.target as HTMLInputElement).files?.[0];
-                                  if (!f) return;
-                                  const preview = URL.createObjectURL(f);
-                                  updateFrame(idx, { endFrameUrl: preview });
-                                  const ext = f.name.split(".").pop();
-                                  const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
-                                  const { error } = await supabase.storage.from("product-images").upload(path, f);
-                                  if (!error) {
-                                    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                                    updateFrame(idx, { endFrameUrl: urlData.publicUrl });
-                                  }
-                                };
-                                inp.click();
-                              }}
-                            >
-                              <ImageIcon className="h-3.5 w-3.5 text-muted-foreground/30" />
-                              <span className="text-[7px] text-muted-foreground/40 leading-tight">Add end<br/>frame</span>
-                            </button>
-                          ) : (
-                            /* Normal state — show image with remove X */
-                            <div className="relative">
-                              <button
-                                className="relative group h-20 w-14 rounded-lg overflow-hidden border-2 border-primary/30 hover:border-primary/60 transition-colors"
-                                onClick={() => {
-                                  const inp = document.createElement("input");
-                                  inp.type = "file";
-                                  inp.accept = "image/jpeg,image/png,image/webp";
-                                  inp.onchange = async (e) => {
-                                    const f = (e.target as HTMLInputElement).files?.[0];
-                                    if (!f) return;
-                                    const preview = URL.createObjectURL(f);
-                                    updateFrame(idx, { endFrameUrl: preview });
-                                    const ext = f.name.split(".").pop();
-                                    const path = `${user!.id}/video-sources/${Date.now()}-end.${ext}`;
-                                    const { error } = await supabase.storage.from("product-images").upload(path, f);
-                                    if (!error) {
-                                      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
-                                      updateFrame(idx, { endFrameUrl: urlData.publicUrl });
-                                    }
-                                  };
-                                  inp.click();
-                                }}
-                              >
-                                {(frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) ? (
-                                  <img src={frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]} alt="End frame" className="h-full w-full object-cover" />
-                                ) : (
-                                  <div className="h-full w-full bg-white/[0.02] flex items-center justify-center">
-                                    <ImageIcon className="h-4 w-4 text-muted-foreground/20" />
-                                  </div>
-                                )}
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <Upload className="h-4 w-4 text-white" />
-                                </div>
-                              </button>
-                              {/* Remove end frame button */}
-                              {(frame.endFrameUrl || storyboardImages[frame.mergedFrames[frame.mergedFrames.length - 1]]) && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); updateFrame(idx, { endFrameUrl: "__none__" }); }}
-                                  className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-[10px] z-10"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              )}
-                            </div>
-                          )}
-                          <p className="text-[8px] text-muted-foreground mt-0.5">F{frame.mergedFrames[frame.mergedFrames.length - 1] + 1}</p>
-                          {galleryImages.length > 0 && (
-                            <button
-                              onClick={() => updateFrame(idx, { showEndGallery: !frame.showEndGallery, showStartGallery: false })}
-                              className="text-[10px] text-primary hover:underline mt-0.5"
-                            >
-                              From gallery
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                      {/* Inline gallery picker for Start */}
-                      {frame.showStartGallery && galleryImages.length > 0 && (
-                        <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
-                          <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih start frame dari gallery:</p>
-                          <div className="flex gap-1.5 overflow-x-auto pb-1">
-                            {galleryImages.slice(0, 12).map((img) => (
-                              <button
-                                key={img.id}
-                                onClick={() => updateFrame(idx, { sourceImageUrl: img.image_url, showStartGallery: false })}
-                                className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
-                              >
-                                <img src={img.image_url} alt="" className="h-full w-full object-cover" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      {/* Inline gallery picker for End */}
-                      {frame.showEndGallery && galleryImages.length > 0 && (
-                        <div className="mt-2 p-2 rounded-lg border border-white/[0.06] bg-white/[0.02]">
-                          <p className="text-[10px] text-muted-foreground/30 mb-1.5">Pilih end frame dari gallery:</p>
-                          <div className="flex gap-1.5 overflow-x-auto pb-1">
-                            {galleryImages.slice(0, 12).map((img) => (
-                              <button
-                                key={img.id}
-                                onClick={() => updateFrame(idx, { endFrameUrl: img.image_url, showEndGallery: false })}
-                                className="flex-shrink-0 h-14 w-14 rounded-md overflow-hidden border border-white/[0.06] hover:border-primary/30 transition-colors"
-                              >
-                                <img src={img.image_url} alt="" className="h-full w-full object-cover" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      </>
-                    )}
+                {/* Gerakan / Action */}
+                <div>
+                  <label className="text-[10px] text-muted-foreground font-medium block mb-1">Gerakan:</label>
+                  <Textarea
+                    value={frame.action}
+                    onChange={(e) => updateFrame(idx, { action: e.target.value })}
+                    rows={2}
+                    placeholder="Deskripsi gerakan/aksi untuk frame ini..."
+                    className="bg-muted/30 border-border text-[11px] mb-2"
+                  />
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    {frame.actionChips.map((chip, ci) => (
+                      <button
+                        key={ci}
+                        onClick={() => updateFrame(idx, { action: chip })}
+                        className="text-[9px] px-2.5 py-1 rounded-full border border-primary/30 bg-primary/5 text-primary hover:bg-primary/15 transition-colors"
+                      >
+                        {chip}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => updateFrame(idx, { actionChips: getShuffledChips(beat.storyRole, productCategory) })}
+                      className="text-[9px] px-2 py-1 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors flex items-center gap-0.5"
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" /> Acak
+                    </button>
                   </div>
+                </div>
 
-                  <div>
-                    <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1">Gerakan:</label>
-                    <Textarea
-                      value={frame.action}
-                      onChange={(e) => updateFrame(idx, { action: e.target.value })}
-                      rows={2}
-                      placeholder="Deskripsi gerakan/aksi untuk frame ini..."
-                      className="bg-white/[0.02] border-white/[0.06] rounded-xl text-[11px] placeholder:text-muted-foreground/20 mb-2"
-                    />
-                    <div className="flex flex-wrap gap-1.5 items-center">
-                      {frame.actionChips.map((chip, ci) => (
+                {/* Dialog */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] text-muted-foreground font-medium">Dialog</label>
+                    <button
+                      onClick={() => generateFrameScript(idx)}
+                      disabled={frame.scriptGenerating || frame.dialogue === "..."}
+                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {frame.scriptGenerating ? (
+                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...</>
+                      ) : (
+                        <><Sparkles className="h-2.5 w-2.5" /> Generate Script AI</>
+                      )}
+                    </button>
+                  </div>
+                  <Textarea
+                    value={frame.dialogue}
+                    onChange={(e) => {
+                      updateFrame(idx, { dialogue: e.target.value });
+                      // Auto-switch model based on dialog
+                      if (e.target.value.trim() && frame.model === "grok") {
+                        updateFrame(idx, { model: "veo_fast" });
+                      } else if (!e.target.value.trim() && frame.model === "veo_fast") {
+                        updateFrame(idx, { model: "grok" });
+                      }
+                    }}
+                    rows={2}
+                    placeholder="Dialog untuk frame ini..."
+                    className="bg-muted/30 border-border text-[11px]"
+                  />
+                </div>
+
+                {/* Prompt */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] text-muted-foreground font-medium">Video Prompt</label>
+                    <button
+                      onClick={() => generateFramePrompt(idx)}
+                      disabled={frame.promptGenerating}
+                      className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {frame.promptGenerating ? (
+                        <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...</>
+                      ) : (
+                        <><Sparkles className="h-2.5 w-2.5" /> Generate Prompt</>
+                      )}
+                    </button>
+                  </div>
+                  <Textarea
+                    value={frame.prompt}
+                    onChange={(e) => updateFrame(idx, { prompt: e.target.value })}
+                    rows={3}
+                    placeholder="Auto-generate saat Generate Frame, atau tulis manual..."
+                    className="bg-muted/30 border-border text-[11px]"
+                  />
+                </div>
+
+                {/* Model selector */}
+                <div>
+                  <label className="text-[10px] text-muted-foreground font-medium block mb-1.5">Model</label>
+                  <div className="flex gap-2">
+                    {(["grok", "veo_fast", "veo_quality"] as VideoModel[]).map((m) => {
+                      const mi = MODEL_LABELS[m];
+                      const selected = frame.model === m;
+                      return (
                         <button
-                          key={ci}
-                          onClick={() => updateFrame(idx, { action: chip })}
-                          className={`text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${
-                            frame.action === chip
-                              ? "bg-primary/10 border-primary/20 text-primary"
-                              : "bg-white/[0.04] border-white/[0.06] text-muted-foreground hover:text-foreground"
+                          key={m}
+                          onClick={() => updateFrame(idx, { model: m })}
+                          className={`flex-1 text-left rounded-lg p-2 transition-all text-[10px] ${
+                            selected
+                              ? "border-2 border-primary bg-primary/5"
+                              : "border border-border hover:border-muted-foreground/30"
                           }`}
                         >
-                          {chip}
+                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${mi.badgeColor}`}>
+                            {mi.badge}
+                          </span>
+                          <p className="font-semibold text-foreground mt-1">{mi.label}</p>
+                          <p className="text-muted-foreground/60">
+                            {mi.audio ? "🔊 Audio + Lip Sync" : "🔇 No audio"} • {mi.cost}
+                          </p>
                         </button>
-                      ))}
-                      <button
-                        onClick={() => updateFrame(idx, { actionChips: getShuffledChips(beat.storyRole, productCategory) })}
-                        className="text-[10px] px-2.5 py-1.5 rounded-lg border border-white/[0.06] text-muted-foreground/30 hover:text-foreground transition-colors flex items-center gap-0.5"
-                      >
-                        <RefreshCw className="h-2.5 w-2.5" /> Acak
-                      </button>
-                    </div>
+                      );
+                    })}
                   </div>
+                </div>
 
-                  {/* Dialog */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[10px] text-muted-foreground/30 font-medium">Dialog</label>
-                      <button
-                        onClick={() => generateFrameScript(idx)}
-                        disabled={frame.scriptGenerating || frame.dialogue === "..."}
-                        className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
-                      >
-                        {frame.scriptGenerating ? (
-                          <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating script...</>
-                        ) : (
-                          <><Sparkles className="h-2.5 w-2.5" /> Generate Script AI</>
-                        )}
-                      </button>
-                    </div>
-                    <Textarea
-                      value={frame.dialogue}
-                      onChange={(e) => {
-                        updateFrame(idx, { dialogue: e.target.value });
-                        if (e.target.value.trim() && frame.model === "grok") {
-                          updateFrame(idx, { model: "veo_fast" });
-                        } else if (!e.target.value.trim() && frame.model === "veo_fast") {
-                          updateFrame(idx, { model: "grok" });
-                        }
-                      }}
-                      rows={2}
-                      placeholder="Dialog untuk frame ini..."
-                      className="bg-white/[0.02] border-white/[0.06] rounded-xl text-[11px] placeholder:text-muted-foreground/20"
+                {/* Generate / Result */}
+                {frame.status === "completed" && frame.videoUrl ? (
+                  <div className="space-y-2">
+                    <video
+                      src={frame.videoUrl}
+                      controls
+                      playsInline
+                      className={`w-full rounded-lg border border-border ${aspectRatio === "9:16" ? "aspect-[9/16] max-w-[200px] mx-auto" : "aspect-[16/9]"} object-cover`}
                     />
-                  </div>
-
-                  {/* Prompt */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-[10px] text-muted-foreground/30 font-medium">Video Prompt</label>
-                      <button
-                        onClick={() => generateFramePrompt(idx)}
-                        disabled={frame.promptGenerating}
-                        className="text-[9px] text-primary hover:underline flex items-center gap-1 disabled:opacity-50"
-                      >
-                        {frame.promptGenerating ? (
-                          <><Loader2 className="h-2.5 w-2.5 animate-spin" /> Generating prompt...</>
-                        ) : (
-                          <><Sparkles className="h-2.5 w-2.5" /> Generate Prompt</>
-                        )}
-                      </button>
-                    </div>
-                    <Textarea
-                      value={frame.prompt}
-                      onChange={(e) => updateFrame(idx, { prompt: e.target.value })}
-                      rows={3}
-                      placeholder="Auto-generate saat Generate Frame, atau tulis manual..."
-                      className="bg-white/[0.02] border-white/[0.06] rounded-xl text-[11px] placeholder:text-muted-foreground/20"
-                    />
-                  </div>
-
-                  {/* Model selector — inline radio pills */}
-                  <div>
-                    <label className="text-[10px] text-muted-foreground/30 font-medium block mb-1.5">Model</label>
                     <div className="flex gap-2">
-                      {(["grok", "veo_fast", "veo_quality"] as VideoModel[]).map((m) => {
-                        const mi = MODEL_LABELS[m];
-                        const selected = frame.model === m;
-                        return (
-                          <button
-                            key={m}
-                            onClick={() => updateFrame(idx, { model: m })}
-                            className={`flex-1 rounded-lg px-3 py-2 text-[11px] transition-all text-center ${
-                              selected
-                                ? "border border-primary/20 bg-primary/[0.04] text-primary font-semibold"
-                                : "border border-white/[0.06] bg-white/[0.03] text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            <span className="font-medium">{mi.label}</span>
-                            <span className="text-[9px] opacity-60 ml-1">{mi.cost}</span>
-                          </button>
-                        );
-                      })}
+                      <a
+                        href={frame.videoUrl}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 text-xs py-2 rounded-lg bg-primary text-primary-foreground flex items-center justify-center gap-1"
+                      >
+                        <Download className="h-3 w-3" /> Download
+                      </a>
+                      <button
+                        onClick={() => { updateFrame(idx, { status: "idle", videoUrl: null }); generateFrame(idx); }}
+                        className="text-xs py-2 px-3 rounded-lg border border-border text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      >
+                        <RefreshCw className="h-3 w-3" /> Retry
+                      </button>
                     </div>
                   </div>
-
-                  {/* Generate / Result */}
-                  {frame.status === "completed" && frame.videoUrl ? (
-                    <div className="space-y-2">
-                      <video
-                        src={frame.videoUrl}
-                        controls
-                        playsInline
-                        className={`w-full rounded-xl border border-white/[0.06] ${aspectRatio === "9:16" ? "aspect-[9/16] max-w-[200px] mx-auto" : "aspect-[16/9]"} object-cover`}
-                      />
-                      <div className="flex gap-2">
-                        <a
-                          href={frame.videoUrl}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 text-xs py-2 rounded-xl bg-primary text-primary-foreground flex items-center justify-center gap-1"
-                        >
-                          <Download className="h-3 w-3" /> Download
-                        </a>
-                        <button
-                          onClick={() => { updateFrame(idx, { status: "idle", videoUrl: null }); generateFrame(idx); }}
-                          className="text-xs py-2 px-3 rounded-xl border border-white/[0.06] text-muted-foreground hover:text-foreground flex items-center gap-1"
-                        >
-                          <RefreshCw className="h-3 w-3" /> Retry
-                        </button>
-                      </div>
+                ) : frame.status === "generating" ? (
+                  <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <div>
+                      <p className="text-xs text-foreground font-medium">Generating Frame {idx + 1}...</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">{formatTime(frame.elapsed)}</p>
                     </div>
-                  ) : frame.status === "generating" ? (
-                    <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04]">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                      <div>
-                        <p className="text-xs text-foreground font-medium">Generating Frame {idx + 1}...</p>
-                        <p className="text-[10px] text-muted-foreground/40 font-mono">{formatTime(frame.elapsed)}</p>
-                      </div>
+                  </div>
+                ) : frame.status === "failed" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 p-2 bg-destructive/5 border border-destructive/20 rounded-lg">
+                      <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                      <p className="text-[10px] text-destructive">{frame.errorMsg || "Gagal"}</p>
                     </div>
-                  ) : frame.status === "failed" ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 p-2 bg-red-500/5 border border-red-500/10 rounded-xl">
-                        <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                        <p className="text-[10px] text-red-400">{frame.errorMsg || "Gagal"}</p>
-                      </div>
-                      {anyGenerating ? (
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2">
-                          <Lock className="h-3 w-3" /> Tunggu frame lain selesai...
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => generateFrame(idx)}
-                          className="text-xs py-2 px-4 rounded-xl bg-primary text-primary-foreground"
-                        >
-                          Coba Lagi
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    anyGenerating ? (
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/30 p-2 rounded-xl bg-white/[0.02]">
-                        <Lock className="h-3 w-3" /> Tunggu frame sebelumnya selesai...
+                    {anyGenerating ? (
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground p-2">
+                        <Lock className="h-3 w-3" /> Tunggu frame lain selesai...
                       </div>
                     ) : (
                       <button
                         onClick={() => generateFrame(idx)}
-                        disabled={batchGenerating}
-                        className="w-full text-xs py-2.5 rounded-xl border border-primary/30 text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                        className="text-xs py-2 px-4 rounded-lg bg-primary text-primary-foreground"
                       >
-                        <Film className="h-3.5 w-3.5" />
-                        Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
+                        Coba Lagi
                       </button>
-                    )
-                  )}
-
-                  {/* Combine links */}
-                  {!isCombined && idx < frames.length - 1 && frames[idx + 1]?.mergedInto === null && !frames[idx + 1]?.mergedFrames.length && !frame.skipped && frame.status !== "generating" && (
+                    )}
+                  </div>
+                ) : (
+                  anyGenerating ? (
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground p-2 rounded-lg bg-muted/20">
+                      <Lock className="h-3 w-3" /> Tunggu frame sebelumnya selesai...
+                    </div>
+                  ) : (
                     <button
-                      onClick={() => combineWithNext(idx)}
-                      className="text-[10px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors mt-1"
+                      onClick={() => generateFrame(idx)}
+                      disabled={batchGenerating}
+                      className="w-full text-xs py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
                     >
-                      <Link2 className="h-3 w-3" /> Gabungkan dengan frame berikutnya ↓
+                      <Film className="h-3.5 w-3.5" />
+                      Generate Frame {idx + 1} ({MODEL_LABELS[frame.model].cost})
                     </button>
-                  )}
-                  {isCombined && canCombineMore && (() => {
-                    const lastMerged = frame.mergedFrames[frame.mergedFrames.length - 1];
-                    const nextAfterMerged = lastMerged + 1;
-                    if (nextAfterMerged < frames.length && frames[nextAfterMerged]?.mergedInto === null && !frames[nextAfterMerged]?.mergedFrames.length) {
-                      return (
-                        <button
-                          onClick={() => combineWithNext(idx)}
-                          className="text-[10px] text-muted-foreground/30 hover:text-primary flex items-center gap-1 transition-colors"
-                        >
-                          <Link2 className="h-3 w-3" /> Gabungkan frame berikutnya juga ↓
-                        </button>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                  )
+                )}
+
+                {/* Combine with next frame link */}
+                {!isCombined && idx < frames.length - 1 && frames[idx + 1]?.mergedInto === null && !frames[idx + 1]?.mergedFrames.length && !frame.skipped && frame.status !== "generating" && (
+                  <button
+                    onClick={() => combineWithNext(idx)}
+                    className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors mt-1"
+                  >
+                    <Link2 className="h-3 w-3" /> Gabungkan dengan frame berikutnya ↓
+                  </button>
+                )}
+                {isCombined && canCombineMore && (() => {
+                  const lastMerged = frame.mergedFrames[frame.mergedFrames.length - 1];
+                  const nextAfterMerged = lastMerged + 1;
+                  if (nextAfterMerged < frames.length && frames[nextAfterMerged]?.mergedInto === null && !frames[nextAfterMerged]?.mergedFrames.length) {
+                    return (
+                      <button
+                        onClick={() => combineWithNext(idx)}
+                        className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                      >
+                        <Link2 className="h-3 w-3" /> Gabungkan frame berikutnya juga ↓
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Batch Generate */}
+      <div className="border border-border rounded-xl p-4 bg-card space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-foreground">Generate Semua Frame</p>
+            <p className="text-[10px] text-muted-foreground">
+              {activeFrames.length} frame aktif • Total est. {formatRupiah(totalCost)}
+            </p>
+          </div>
+          {batchGenerating && (
+            <button onClick={cancelBatch} className="text-[10px] text-destructive hover:underline">Cancel</button>
+          )}
+        </div>
+
+        {batchGenerating && batchCurrentFrame >= 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[11px] text-muted-foreground">
+              Generating Frame {batchCurrentFrame + 1}/{activeFrames.length} — {beats[batchCurrentFrame]?.storyRole}... ({formatTime(frames[batchCurrentFrame]?.elapsed || 0)})
+            </p>
+            <Progress value={(completedFrames.length / activeFrames.length) * 100} className="h-1.5" />
+          </div>
+        )}
+
+        {!batchGenerating && completedFrames.length > 0 && (
+          <p className="text-[10px] text-muted-foreground">
+            {completedFrames.length}/{frames.length} selesai ✓
+            {skippedCount > 0 ? ` · ${skippedCount} di-skip` : ""}
+            {failedCount > 0 ? ` · ${failedCount} gagal` : ""}
+            {` · ${formatRupiah(actualCost)} total`}
+          </p>
+        )}
+
+        <button
+          onClick={generateAll}
+          disabled={batchGenerating || !kieApiKey || activeFrames.length === 0}
+          className="w-full bg-primary text-primary-foreground font-bold uppercase tracking-wider py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40"
+        >
+          {batchGenerating ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Film className="h-4 w-4" />
+          )}
+          GENERATE SEMUA FRAME
+        </button>
       </div>
 
       {/* Preview & Combine Section */}
       {allDone && completedVideos.length > 0 && (
-        <div className="border border-white/[0.06] rounded-xl p-5 bg-white/[0.02] space-y-4">
+        <div className="border border-primary/20 rounded-xl p-4 bg-primary/5 space-y-4">
           <div>
             <p className="text-sm font-bold text-foreground flex items-center gap-1.5"><Clapperboard className="h-4 w-4" /> Semua Frame Selesai!</p>
-            <p className="text-[11px] text-muted-foreground/40">
+            <p className="text-[11px] text-muted-foreground">
               Total: {totalDuration}s ({completedVideos.length} × {completedVideos.length > 0 ? (completedVideos[0].model === "grok" ? "10s" : "8s") : "8s"})
             </p>
           </div>
 
-          {/* Sequential player with filmstrip */}
+          {/* Sequential player */}
           {playingAll && completedVideos[playIndex] && (
-            <div className="space-y-3">
-              <p className="text-[10px] text-muted-foreground/40 text-center">
-                Frame {completedVideos[playIndex].idx + 1} — {completedVideos[playIndex].beat?.label} ({playIndex + 1}/{completedVideos.length})
+            <div className="space-y-2">
+              <p className="text-[10px] text-muted-foreground text-center">
+                Playing: Frame {completedVideos[playIndex].idx + 1} — {completedVideos[playIndex].beat?.label} ({playIndex + 1}/{completedVideos.length})
               </p>
               <video
                 ref={playerRef}
@@ -1710,78 +1604,31 @@ Content template: ${template?.label}`,
                 autoPlay
                 playsInline
                 onEnded={handleVideoEnded}
-                className={`w-full rounded-xl border border-white/[0.06] mx-auto ${aspectRatio === "9:16" ? "aspect-[9/16] max-w-[220px]" : "aspect-[16/9]"} object-cover`}
+                className={`w-full rounded-lg border border-border mx-auto ${aspectRatio === "9:16" ? "aspect-[9/16] max-w-[220px]" : "aspect-[16/9]"} object-cover`}
               />
-              {/* Filmstrip thumbnails */}
-              <div className="flex gap-1.5 justify-center">
-                {completedVideos.map((v, vi) => (
-                  <button
-                    key={vi}
-                    onClick={() => setPlayIndex(vi)}
-                    className={`h-12 w-9 rounded-md overflow-hidden border-2 transition-all ${
-                      vi === playIndex ? "ring-2 ring-primary border-primary" : "border-white/[0.06] opacity-60 hover:opacity-100"
-                    }`}
-                  >
-                    <video src={v.videoUrl!} muted className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={handlePlayAll}
-              className="flex-1 min-w-[140px] text-xs py-2.5 rounded-xl border border-primary/30 text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
+              className="flex-1 min-w-[140px] text-xs py-2.5 rounded-lg border border-primary text-primary font-bold hover:bg-primary hover:text-primary-foreground transition-colors flex items-center justify-center gap-2"
             >
               <Play className="h-3.5 w-3.5" /> Preview Full Video
             </button>
             <button
               onClick={downloadAll}
-              className="flex-1 min-w-[140px] text-xs py-2.5 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+              className="flex-1 min-w-[140px] text-xs py-2.5 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
             >
               <Download className="h-3.5 w-3.5" /> Download Semua
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground/20 text-center">
-            Edit dan gabungkan clip di CapCut atau InShot untuk hasil terbaik
+          <p className="text-[10px] text-muted-foreground/60 text-center">
+            Edit dan gabungkan clip di CapCut atau InShot untuk hasil terbaik. Trim bagian yang tidak diperlukan.
           </p>
         </div>
       )}
-
-      {/* Sticky Bottom Bar — Batch Controls */}
-      <div className="fixed bottom-0 left-0 right-0 lg:left-[232px] bg-background/80 backdrop-blur-xl border-t border-white/[0.04] px-6 py-3 z-30">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-[12px] text-muted-foreground/40">
-              {completedFrames.length}/{activeFrames.length} frames
-            </span>
-            <span className="bg-white/[0.04] text-muted-foreground/50 rounded-md px-2 py-0.5 text-[10px] font-medium">
-              Est. {formatRupiah(totalCost)}
-            </span>
-            {batchGenerating && batchCurrentFrame >= 0 && (
-              <span className="text-[10px] text-primary flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                F{batchCurrentFrame + 1} — {formatTime(frames[batchCurrentFrame]?.elapsed || 0)}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {batchGenerating && (
-              <button onClick={cancelBatch} className="text-[11px] text-red-400 hover:underline px-3 py-1.5">Cancel</button>
-            )}
-            <button
-              onClick={generateAll}
-              disabled={batchGenerating || !kieApiKey || activeFrames.length === 0}
-              className="bg-primary text-primary-foreground font-bold text-[12px] px-5 py-2 rounded-xl flex items-center gap-2 transition-all disabled:opacity-40 hover:shadow-[0_8px_30px_-6px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5"
-            >
-              {batchGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Film className="h-3.5 w-3.5" />}
-              {batchGenerating ? "Generating..." : "Generate all frames"}
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

@@ -11,13 +11,7 @@ export type ContentTemplateKey =
   | "daily_routine"
   | "quick_haul"
   | "asmr_aesthetic"
-  | "pov_style"
-  | "grwm"
-  | "tiga_alasan"
-  | "expectation_reality"
-  | "tutorial_singkat"
-  | "day_in_my_life"
-  | "first_impression";
+  | "pov_style";
 
 export interface TimingBeat {
   start: number;
@@ -113,14 +107,14 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
     fullDuration: 20,
     compressedDuration: 10,
     fullTiming: [
-      { start: 0, end: 3, action: "Close-up showing 'before' state clearly. Person looks frustrated/disappointed, touches problem area. Camera tight on affected zone. Slight sigh, furrowed brows. NO product visible yet." },
+      { start: 0, end: 3, action: "Close-up showing 'before' state clearly. Person looks frustrated/disappointed, touches problem area. Camera tight on affected zone. Slight sigh, furrowed brows" },
       { start: 3, end: 7, action: "Hand reaches for product with hopeful expression. Picks it up, reads label. Camera widens to medium shot. Eyebrows lift, nods slightly as if deciding to try" },
       { start: 7, end: 13, action: "Applies/uses product carefully with deliberate hand movements. Close-up on application area, then widens to show face concentration. Methodical, focused motion" },
       { start: 13, end: 17, action: "Time-skip feel — person touches result area with amazement. Eyes widen, jaw drops slightly. Camera pushes in on 'after' reveal. Genuine shock and delight on face" },
       { start: 17, end: 20, action: "Confident radiant smile at camera. Product held beside face at chest level. Slow nod of approval. Camera holds on the transformed look" },
     ],
     compressedTiming: [
-      { start: 0, end: 2, action: "Close-up before state, frustrated expression touching problem area. Tight camera. NO product visible." },
+      { start: 0, end: 2, action: "Close-up before state, frustrated expression touching problem area. Tight camera" },
       { start: 2, end: 4, action: "Reaches for product hopefully, picks it up. Camera widens" },
       { start: 4, end: 7, action: "Applies product with focused deliberate hands. Close-up on application" },
       { start: 7, end: 9, action: "After reveal — eyes widen, amazed expression. Camera pushes in on result" },
@@ -214,145 +208,6 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
       { start: 8, end: 10, action: "Pull back revealing face with product, satisfied smile. POV to third-person transition" },
     ],
     recommendedFor: ["electronics", "home"],
-  },
-  // ── NEW TEMPLATES ──
-  {
-    key: "grwm",
-    label: "GRWM",
-    desc: "Get Ready With Me — rutinitas pagi dengan integrasi produk natural.",
-    icon: "Sunrise",
-    fullDuration: 20,
-    compressedDuration: 10,
-    fullTiming: [
-      { start: 0, end: 3, action: "Morning establishing shot — person just woke up, slightly messy hair, stretching in bed or bathroom. Soft golden morning light from window. Authentic 'baru bangun' energy" },
-      { start: 3, end: 8, action: "Starts routine naturally — brushes face, looks in mirror. Reaches for product on vanity/counter among other daily items. Picks it up casually. Camera follows at comfortable pace" },
-      { start: 8, end: 13, action: "Uses product as natural step in morning routine — applying skincare, styling hair, adjusting outfit, taking supplement. Comfortable practiced movements, not a demo" },
-      { start: 13, end: 17, action: "Checks result in mirror with satisfied expression. Quick adjustment of hair or outfit. Confidence building moment. Product visible on counter nearby" },
-      { start: 17, end: 20, action: "Ready to go — final mirror check, warm smile at camera, grabs bag or phone. Product visible in routine lineup. Natural 'siap jalan' energy" },
-    ],
-    compressedTiming: [
-      { start: 0, end: 2, action: "Just woke up morning shot, messy hair, stretching. Soft golden light" },
-      { start: 2, end: 4, action: "Starts routine, reaches for product on vanity among daily items" },
-      { start: 4, end: 7, action: "Uses product naturally as part of morning routine, practiced movements" },
-      { start: 7, end: 9, action: "Mirror check, satisfied smile, confidence building" },
-      { start: 9, end: 10, action: "Ready to go, grabs bag, final smile at camera" },
-    ],
-    recommendedFor: ["skincare", "fashion", "health"],
-  },
-  {
-    key: "tiga_alasan",
-    label: "3 Alasan",
-    desc: "3 alasan kenapa produk ini bagus. Structured dan convincing.",
-    icon: "ListOrdered",
-    fullDuration: 20,
-    compressedDuration: 10,
-    fullTiming: [
-      { start: 0, end: 3, action: "Direct eye contact with camera, holds up product. Excited expression, slight lean forward. Like about to share a secret with followers. 'Aku mau kasih tau 3 alasan...' energy" },
-      { start: 3, end: 8, action: "ALASAN 1 — demonstrates first feature/benefit. Points at specific product detail, shows close-up. Animated explaining gesture, eyebrows raised. Genuine enthusiasm" },
-      { start: 8, end: 13, action: "ALASAN 2 — shows second benefit through use/application. Hands active on product, showing texture/result/feature. Impressed nodding, 'ini yang bikin beda' expression" },
-      { start: 13, end: 17, action: "ALASAN 3 — final most convincing reason. Shows result or comparison. Wide eyes, emphatic gesture. The 'killer reason' moment. Most animated expression" },
-      { start: 17, end: 20, action: "Summary — holds product to camera with confident smile. Slow nod, direct eye contact. 'Trust me on this' energy. Product label clearly visible" },
-    ],
-    compressedTiming: [
-      { start: 0, end: 2, action: "Holds up product, excited 'let me tell you' expression. Direct eye contact" },
-      { start: 2, end: 4, action: "Alasan 1 — points at product feature, animated explaining" },
-      { start: 4, end: 6, action: "Alasan 2 — demonstrates benefit, hands active, impressed nod" },
-      { start: 6, end: 8, action: "Alasan 3 — killer reason, most animated expression, wide eyes" },
-      { start: 8, end: 10, action: "Holds product to camera, confident summary smile, slow nod" },
-    ],
-    recommendedFor: ["skincare", "electronics", "health", "food"],
-  },
-  {
-    key: "expectation_reality",
-    label: "Expectation vs Reality",
-    desc: "Apa yang diharapkan vs kenyataan. Twist yang engaging.",
-    icon: "ArrowLeftRight",
-    fullDuration: 20,
-    compressedDuration: 10,
-    fullTiming: [
-      { start: 0, end: 3, action: "Skeptical expression, looking at product packaging or claims. Raised eyebrow, slight doubt. 'Hmm, beneran nih?' energy. Holding product at arm's length, examining" },
-      { start: 3, end: 7, action: "Shows 'expectation' — points at label claims or packaging promises. Slightly exaggerated doubtful expression. 'Let's see...' shrug. Product details clearly visible" },
-      { start: 7, end: 13, action: "Tries the product — applies/uses with curious expression. Mid-action, face begins shifting from doubt to surprise. Natural transition, not overacted. Camera stays steady" },
-      { start: 13, end: 17, action: "REALITY REVEAL — genuine surprised reaction, eyes widen, jaw drops slightly. 'Wait, this actually works?' expression. Touches result, looks at product with new respect" },
-      { start: 17, end: 20, action: "Converted believer smile at camera. Holds product proudly. 'Okay I was wrong' expression, slight laugh, warm direct eye contact. Product hero moment" },
-    ],
-    compressedTiming: [
-      { start: 0, end: 2, action: "Skeptical look at product, raised eyebrow, doubt expression" },
-      { start: 2, end: 4, action: "Points at label claims, 'let's see' shrug, doubtful" },
-      { start: 4, end: 7, action: "Tries product with curiosity, face shifts from doubt to surprise" },
-      { start: 7, end: 9, action: "Reality reveal — genuine surprised 'this actually works' expression" },
-      { start: 9, end: 10, action: "Converted believer smile, holds product proudly, warm eye contact" },
-    ],
-    recommendedFor: ["skincare", "electronics", "health", "home"],
-  },
-  {
-    key: "tutorial_singkat",
-    label: "Tutorial Singkat",
-    desc: "Quick how-to tutorial. Educational dan helpful.",
-    icon: "GraduationCap",
-    fullDuration: 20,
-    compressedDuration: 10,
-    fullTiming: [
-      { start: 0, end: 3, action: "Camera framed on hands and product on clean surface. Person enters frame, picks up product. Calm focused expression, tutorial-mode. 'Let me show you' body language" },
-      { start: 3, end: 8, action: "STEP 1 — shows preparation or first step clearly. Slow deliberate hand movements, product details visible. Slight glance at camera as if checking viewer follows along" },
-      { start: 8, end: 13, action: "STEP 2 — main application/usage step. Close-up on hands working. Turns product to show correct way to use. Teaching energy, controlled pace" },
-      { start: 13, end: 17, action: "STEP 3 — finishing step or showing result. Satisfied with the demonstration. Steps back slightly to show full result. Approving nod" },
-      { start: 17, end: 20, action: "Final result display — holds up or shows finished result. Warm smile at camera, product visible. 'See? Easy!' expression. Inviting, helpful energy" },
-    ],
-    compressedTiming: [
-      { start: 0, end: 2, action: "Hands and product on surface, picks up, tutorial-mode energy" },
-      { start: 2, end: 4, action: "Step 1 — slow deliberate first step, checking camera" },
-      { start: 4, end: 7, action: "Step 2 — main usage step, close-up hands, teaching energy" },
-      { start: 7, end: 9, action: "Step 3 — finishing step, shows result, approving nod" },
-      { start: 9, end: 10, action: "Final result, warm smile, 'easy!' expression" },
-    ],
-    recommendedFor: ["skincare", "electronics", "food", "home"],
-  },
-  {
-    key: "day_in_my_life",
-    label: "Day in My Life",
-    desc: "Produk sebagai bagian dari hari-hari. Relatable montage.",
-    icon: "Clock",
-    fullDuration: 20,
-    compressedDuration: 10,
-    fullTiming: [
-      { start: 0, end: 3, action: "Morning establishing — stretching in bed, soft light, peaceful start. Bedroom setting, messy but cozy. Authentic 'just another day' vibe" },
-      { start: 3, end: 8, action: "Midday activity — at desk working, at cafe, or running errands. Product appears naturally as part of the activity. Not staged, feels like it belongs in the scene" },
-      { start: 8, end: 13, action: "Product usage moment — the natural point in the day when they use the product. Could be lunch, afternoon routine, workout break. Casual integration, not a demo" },
-      { start: 13, end: 17, action: "Afternoon/evening — enjoying the product's benefit. Relaxed, content expression. Winding down energy. Product visible but not centered, it's part of life" },
-      { start: 17, end: 20, action: "End of day — cozy setting, soft warm light. Product on nightstand/table. Peaceful satisfied expression, looking at camera. Intimate closing moment" },
-    ],
-    compressedTiming: [
-      { start: 0, end: 2, action: "Morning stretch, soft light, peaceful bedroom. 'Just another day'" },
-      { start: 2, end: 4, action: "Midday activity with product appearing naturally in scene" },
-      { start: 4, end: 7, action: "Natural product usage moment during the day, casual integration" },
-      { start: 7, end: 9, action: "Enjoying product benefit, relaxed content expression" },
-      { start: 9, end: 10, action: "End of day, cozy setting, peaceful satisfied look at camera" },
-    ],
-    recommendedFor: ["skincare", "health", "food", "home"],
-  },
-  {
-    key: "first_impression",
-    label: "First Impression",
-    desc: "Reaksi pertama yang genuine. Authentic dan trust-building.",
-    icon: "Lightbulb",
-    fullDuration: 20,
-    compressedDuration: 10,
-    fullTiming: [
-      { start: 0, end: 3, action: "Holding sealed/new product for the first time. Curious expression, examining packaging. Turning it around, reading labels. Genuine 'never tried this before' energy" },
-      { start: 3, end: 8, action: "Opens product for the first time — careful unpeeling, cap twist, first reveal. Reaction to smell/texture/appearance. Authentic micro-expressions. 'Oh interesting...' moment" },
-      { start: 8, end: 13, action: "First use/application — tentative at first, then adjusting. Learning the product in real-time. Honest facial reactions — could be surprised, impressed, or thoughtful" },
-      { start: 13, end: 17, action: "Processing the result — touching, checking, comparing to expectations. Building genuine opinion. Mix of impressed and analytical expression. Real assessment moment" },
-      { start: 17, end: 20, action: "Final honest verdict — direct eye contact, sharing genuine opinion. Could be enthusiastic, could be measured. Authentic not forced. Product visible, natural close" },
-    ],
-    compressedTiming: [
-      { start: 0, end: 2, action: "Holding new product, curious, examining packaging. Never-tried-before energy" },
-      { start: 2, end: 4, action: "Opens for first time, reaction to first reveal. 'Oh interesting' moment" },
-      { start: 4, end: 7, action: "First use, tentative then adjusting. Honest real-time reactions" },
-      { start: 7, end: 9, action: "Processing result, genuine assessment, impressed and analytical" },
-      { start: 9, end: 10, action: "Honest verdict, direct eye contact, authentic opinion" },
-    ],
-    recommendedFor: ["skincare", "electronics", "food", "health"],
   },
 ];
 

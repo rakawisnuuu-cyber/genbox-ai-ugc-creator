@@ -1,7 +1,5 @@
-import { useEffect, useRef, lazy, Suspense } from "react";
-import { Link } from "react-router-dom";
-
-const DepthDeckCarousel = lazy(() => import("@/components/DepthDeckCarousel"));
+import { useEffect, useState } from "react";
+import DepthDeckCarousel from "@/components/DepthDeckCarousel";
 
 const particles = [
   { size: 5, top: "18%", left: "12%", delay: "0s" },
@@ -11,24 +9,12 @@ const particles = [
 ];
 
 const HeroSection = () => {
-  const scrollRef = useRef(0);
-  const gridRef = useRef<HTMLDivElement>(null);
+  const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
-    let rafId: number;
-    const onScroll = () => {
-      scrollRef.current = window.scrollY;
-      rafId = requestAnimationFrame(() => {
-        if (gridRef.current) {
-          gridRef.current.style.transform = `translateY(${scrollRef.current * 0.15}px)`;
-        }
-      });
-    };
+    const onScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      cancelAnimationFrame(rafId);
-    };
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
@@ -43,8 +29,8 @@ const HeroSection = () => {
 
       {/* Grid pattern with parallax */}
       <div
-        ref={gridRef}
         className="absolute inset-0 grid-pattern"
+        style={{ transform: `translateY(${scrollY * 0.15}px)` }}
       />
 
       {/* Ambient glow behind headline */}
@@ -111,12 +97,12 @@ const HeroSection = () => {
           className="animate-fade-up mt-8 flex flex-col items-center gap-4 sm:flex-row"
           style={{ animationDelay: "0.4s" }}
         >
-          <Link
-            to="/login"
+          <a
+            href="#harga"
             className="flex h-12 items-center rounded-lg bg-primary px-6 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] hover:bg-[hsl(var(--lime-hover))]"
           >
-            Cobain Sekarang <span className="ml-1.5">→</span>
-          </Link>
+            Beli Sekarang — Rp 149.000 <span className="ml-1.5">→</span>
+          </a>
           <button className="flex h-12 items-center gap-2 rounded-lg border border-foreground/20 bg-transparent px-6 text-sm font-bold tracking-wider text-foreground transition-colors hover:bg-foreground/5">
             Lihat Demo
           </button>
@@ -139,9 +125,7 @@ const HeroSection = () => {
         <p className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/40">
           Hasil generate dari GENBOX
         </p>
-        <Suspense fallback={<div className="h-[340px] flex items-center justify-center"><div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
-          <DepthDeckCarousel autoPlayInterval={3500} />
-        </Suspense>
+        <DepthDeckCarousel autoPlayInterval={3500} />
       </div>
     </section>
   );

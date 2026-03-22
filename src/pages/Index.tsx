@@ -30,9 +30,13 @@ const Index = () => {
       <SectionDivider />
       <CaraKerjaSection />
       <SectionDivider />
-      {/* HargaSection & FinalCTASection hidden during early access */}
+      <HargaSection />
+      <SectionDivider />
       <ApiCostSection />
-      {/* FAQSection hidden for now */}
+      <SectionDivider />
+      <FAQSection />
+      <FinalCTASection />
+      <TransactionPopup />
     </div>
   );
 };
