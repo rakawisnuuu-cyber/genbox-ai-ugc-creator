@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ImagePlus,
   Upload,
   X,
   Loader2,
   ChevronDown,
-  ChevronLeft,
   Camera,
   Smartphone,
   CameraIcon,
@@ -14,200 +14,171 @@ import {
   Film,
   Download,
   Save,
+  Expand,
   Plus,
-  Zap,
-  Star,
-  Search,
-  Hand,
-  Smile,
-  Coffee,
-  Eye,
   Check,
-  Settings,
-  PanelRightClose,
-  PanelRightOpen,
-  RotateCw,
-  MessageSquare,
+  Zap,
+  Gem,
+  Megaphone,
+  Grid3X3,
+  Aperture,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { usePromptModel } from "@/hooks/usePromptModel";
 import { useCustomCharacters } from "@/hooks/useCustomCharacters";
 import { useUpscale } from "@/hooks/useUpscale";
-import { useImageGeneration } from "@/hooks/useImageGeneration";
+import { useImageGeneration, type ImageProgress } from "@/hooks/useImageGeneration";
 import { PRESETS } from "@/lib/character-presets";
+import type { CharacterData } from "@/components/CharacterCard";
+import {
+  CONTENT_TEMPLATES,
+  type ContentTemplateKey,
+  isRecommendedForCategory,
+} from "@/lib/content-templates";
 import { getEnvironments, type RichOption } from "@/lib/category-options";
-import { detectProductDNA, type ProductDNA } from "@/lib/product-dna";
+import {
+  detectProductDNA,
+  type ProductDNA,
+  type ProductCategory,
+  ALL_CATEGORIES,
+} from "@/lib/product-dna";
+import { getStoryRoleColor } from "@/lib/storyboard-angles";
 import {
   planImageShots,
-  getImageCost,
+  estimateCost,
   formatRupiah,
-  SHOT_TYPES,
   type ContentMode,
-  type ImageModelType,
+  type ImageModel,
   type RealismLevel,
   type ImageShotPlan,
   type GenerationConfig,
-  type ShotTypeKey,
 } from "@/lib/image-generation-engine";
 import { supabase } from "@/integrations/supabase/client";
 import { fileToBase64 } from "@/lib/image-utils";
 import { generateVideoAndWait, type VideoModel } from "@/lib/kie-video-generation";
-import { getMotionPrompt, type MotionVideoModel } from "@/lib/image-to-video-prompts";
+import { getMotionPrompt, type VideoModelType } from "@/lib/image-to-video-prompts";
 
-/* ─── Icon Map ───────────────────────────────────────────────── */
-const SHOT_ICONS: Record<string, React.ComponentType<any>> = {
-  Star,
-  Search,
-  Hand,
-  Smile,
-  Coffee,
-  Eye,
+// ── Icon map for templates ──────────────────────────────────────
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  Gem, Megaphone, Grid3X3, Aperture, Zap,
 };
 
-/* ─── Constants ──────────────────────────────────────────────── */
-const MODEL_INFO: Record<ImageModelType, { label: string; desc: string }> = {
-  "nano-banana": { label: "Nano Banana (Cepat)", desc: "~Rp 310" },
-  "nano-banana-2": { label: "Nano Banana 2 (Seimbang)", desc: "~Rp 620" },
-  "nano-banana-pro": { label: "Nano Banana Pro (Terbaik)", desc: "~Rp 1.400" },
+// ── Cost per image model ────────────────────────────────────────
+const MODEL_INFO: Record<ImageModel, { label: string; cost: number; desc: string }> = {
+  "nano-banana": { label: "Nano Banana (Cepat)", cost: 310, desc: "~Rp 310/gambar" },
+  "nano-banana-2": { label: "Nano Banana 2 (Seimbang)", cost: 620, desc: "~Rp 620/gambar" },
+  "nano-banana-pro": { label: "Nano Banana Pro (Terbaik)", cost: 1400, desc: "~Rp 1,400/gambar" },
 };
-const ASPECT_RATIOS = ["9:16", "1:1", "4:5", "16:9"];
+
+const IMAGE_COUNTS = [3, 6, 9] as const;
+const ASPECT_RATIOS = ["9:16", "1:1", "4:5", "3:4", "16:9"];
 const RESOLUTIONS = ["1K", "2K", "4K"] as const;
-const VIDEO_MODELS: {
-  id: MotionVideoModel;
-  label: string;
-  cost: number;
-  minDur: number;
-  maxDur: number;
-  step: number;
-}[] = [
-  { id: "grok", label: "Grok (Cepat)", cost: 1240, minDur: 6, maxDur: 10, step: 4 },
-  { id: "kling_std", label: "Kling 3.0 Std", cost: 1860, minDur: 3, maxDur: 15, step: 1 },
-  { id: "kling_pro", label: "Kling 3.0 Pro", cost: 3560, minDur: 3, maxDur: 15, step: 1 },
-  { id: "veo_fast", label: "Veo 3.1 Fast", cost: 4960, minDur: 8, maxDur: 8, step: 1 },
-  { id: "veo_quality", label: "Veo 3.1 Quality", cost: 24800, minDur: 8, maxDur: 8, step: 1 },
-];
 
-/* ═══════════════════════════════════════════════════════════════ */
+// ── Video model cost ────────────────────────────────────────────
+const VIDEO_COST: Record<string, number> = {
+  grok: 1240,
+  kling_std: 1860,
+  kling_pro: 3560,
+  veo_fast: 4960,
+};
 
 const GeneratePage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { kieApiKey, geminiKey } = useApiKeys();
   const { model: promptModel } = usePromptModel();
   const { customChars } = useCustomCharacters();
   const { upscale, getState: getUpscaleState } = useUpscale();
+  const imgGen = useImageGeneration();
 
-  // ── Step ───────────────────────────────────────────────────
-  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
-
-  // ── Character ──────────────────────────────────────────────
-  const allChars = useMemo(() => [...(customChars || []), ...PRESETS], [customChars]);
+  // ── Character state ───────────────────────────────────────────
+  const allChars = useMemo(() => [...customChars, ...PRESETS], [customChars]);
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null);
-  const selectedChar = useMemo(() => allChars.find((c) => c.id === selectedCharId) || null, [allChars, selectedCharId]);
+  const selectedChar = useMemo(
+    () => allChars.find((c) => c.id === selectedCharId) || null,
+    [allChars, selectedCharId],
+  );
   const [ownPhotoUrl, setOwnPhotoUrl] = useState<string | null>(null);
   const [ownPhotoUploading, setOwnPhotoUploading] = useState(false);
 
-  // ── Product ────────────────────────────────────────────────
+  // ── Product state ─────────────────────────────────────────────
   const [productUrl, setProductUrl] = useState<string | null>(null);
   const [productPreview, setProductPreview] = useState<string | null>(null);
   const [productDNA, setProductDNA] = useState<ProductDNA | null>(null);
   const [detectingDNA, setDetectingDNA] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // ── Mode ───────────────────────────────────────────────────
+  // ── Content mode & template ───────────────────────────────────
   const [contentMode, setContentMode] = useState<ContentMode>("ugc");
+  const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplateKey>("problem_solution");
 
-  // ── Shot types ─────────────────────────────────────────────
-  const [selectedShots, setSelectedShots] = useState<ShotTypeKey[]>(["hero"]);
-
-  // ── Environment ────────────────────────────────────────────
-  const envOptions = useMemo(() => getEnvironments(productDNA?.category || "other"), [productDNA?.category]);
+  // ── Environment ───────────────────────────────────────────────
+  const envOptions = useMemo(
+    () => getEnvironments(productDNA?.category || "other"),
+    [productDNA?.category],
+  );
   const [selectedEnv, setSelectedEnv] = useState<RichOption>(envOptions[0]);
 
-  // ── Settings ───────────────────────────────────────────────
-  const [imageModel, setImageModel] = useState<ImageModelType>("nano-banana-pro");
+  // ── Generation settings ───────────────────────────────────────
+  const [imageCount, setImageCount] = useState<3 | 6 | 9>(6);
+  const [imageModel, setImageModel] = useState<ImageModel>("nano-banana-pro");
   const [resolution, setResolution] = useState<"1K" | "2K" | "4K">("2K");
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [realismLevel, setRealismLevel] = useState<RealismLevel>("standard");
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  // ── Generation ─────────────────────────────────────────────
+  // ── Shot plans (computed on generate) ─────────────────────────
   const [shotPlans, setShotPlans] = useState<ImageShotPlan[]>([]);
-  const imgGen = useImageGeneration({
-    shots: shotPlans,
-    imageModel,
-    resolution,
-    aspectRatio,
-    kieApiKey: kieApiKey || "",
-    characterImageUrl: selectedCharId === "own-photo" ? ownPhotoUrl || "" : selectedChar?.hero_image_url || "",
-    productImageUrl: productUrl || "",
-  });
 
-  // ── Video panel ────────────────────────────────────────────
-  const [videoPanelOpen, setVideoPanelOpen] = useState(false);
+  // ── Video panel state ─────────────────────────────────────────
   const [videoImageIdx, setVideoImageIdx] = useState<number | null>(null);
-  const [videoModel, setVideoModel] = useState<MotionVideoModel>("kling_std");
+  const [videoModel, setVideoModel] = useState<VideoModelType>("kling_std");
   const [videoDuration, setVideoDuration] = useState(6);
   const [videoPrompt, setVideoPrompt] = useState("");
-  const [videoScript, setVideoScript] = useState("");
   const [videoGenerating, setVideoGenerating] = useState(false);
   const [videoResult, setVideoResult] = useState<string | null>(null);
 
-  // ── Lightbox ───────────────────────────────────────────────
+  // ── Lightbox ──────────────────────────────────────────────────
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
-  // ── Refs ───────────────────────────────────────────────────
+  // ── File input refs ───────────────────────────────────────────
   const productInputRef = useRef<HTMLInputElement>(null);
   const ownPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // ── Computed ───────────────────────────────────────────────
-  const totalCost = getImageCost(imageModel, resolution) * selectedShots.length;
-  const canGenerate = !!selectedChar && !!productUrl && !!productDNA && !!kieApiKey && selectedShots.length > 0;
-  const canProceedStep1 = !!selectedChar && !!productUrl && !!productDNA;
+  // ── Computed ──────────────────────────────────────────────────
+  const totalCost = estimateCost(imageModel, imageCount);
+  const canGenerate = !!selectedChar && !!productUrl && !!productDNA && !!kieApiKey;
   const isGenerating = imgGen.progress.status === "generating";
   const isCompleted = imgGen.progress.status === "completed";
   const completedResults = imgGen.progress.results.filter(Boolean);
-  const currentVideoModelInfo = VIDEO_MODELS.find((m) => m.id === videoModel) || VIDEO_MODELS[1];
 
-  // ── Toggle shot type ───────────────────────────────────────
-  const toggleShot = (key: ShotTypeKey) => {
-    setSelectedShots((prev) => {
-      if (prev.includes(key)) {
-        if (prev.length <= 1) return prev;
-        return prev.filter((s) => s !== key);
-      }
-      if (prev.length >= 3) return prev;
-      return [...prev, key];
-    });
-  };
+  // ── Templates for current mode ────────────────────────────────
+  const visibleTemplates = useMemo(() => {
+    if (contentMode === "ugc") {
+      return CONTENT_TEMPLATES.filter(
+        (t) =>
+          !["hero_product", "brand_campaign", "katalog_produk", "studio_editorial"].includes(t.key),
+      );
+    }
+    return CONTENT_TEMPLATES.filter((t) =>
+      ["hero_product", "brand_campaign", "katalog_produk", "studio_editorial"].includes(t.key),
+    );
+  }, [contentMode]);
 
-  // ── Generate motion prompt ─────────────────────────────────
-  const generateMotionPrompt = useCallback(
-    (idx: number) => {
-      if (!shotPlans[idx]) return "";
-      return getMotionPrompt({
-        beat: "hook" as any,
-        model: videoModel,
-        character: selectedChar?.description || "",
-        product: productDNA?.product_description || "",
-        productColor: productDNA?.dominant_color || "",
-        productPackaging: productDNA?.packaging_type || "",
-        environment: selectedEnv.description,
-        skinTone: "sawo matang",
-        expression: "natural",
-        dialogue: videoScript || undefined,
-        productInteraction: "holding product naturally",
-      });
-    },
-    [shotPlans, videoModel, selectedChar, productDNA, selectedEnv, videoScript],
-  );
-
-  // ── Handlers ───────────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────────────────
   const handleProductUpload = useCallback(
     async (file: File) => {
       if (!user || !geminiKey) {
@@ -217,20 +188,29 @@ const GeneratePage = () => {
       setUploading(true);
       setProductDNA(null);
       try {
-        setProductPreview(URL.createObjectURL(file));
+        // Preview
+        const preview = URL.createObjectURL(file);
+        setProductPreview(preview);
+
+        // Upload to Supabase
         const path = `${user.id}/${Date.now()}.jpg`;
         const { error: upErr } = await supabase.storage
           .from("product-images")
           .upload(path, file, { contentType: file.type });
         if (upErr) throw upErr;
+
         const { data: pubData } = supabase.storage.from("product-images").getPublicUrl(path);
         setProductUrl(pubData.publicUrl);
         setUploading(false);
+
+        // Detect DNA
         setDetectingDNA(true);
         const base64 = await fileToBase64(file);
         const dna = await detectProductDNA(base64, promptModel, geminiKey);
         setProductDNA(dna);
-        setSelectedEnv(getEnvironments(dna.category)[0]);
+        // Auto-select env
+        const envs = getEnvironments(dna.category);
+        setSelectedEnv(envs[0]);
       } catch (e: any) {
         toast({ title: "Upload gagal", description: e.message, variant: "destructive" });
       } finally {
@@ -247,7 +227,9 @@ const GeneratePage = () => {
       setOwnPhotoUploading(true);
       try {
         const path = `${user.id}/own-photo-${Date.now()}.jpg`;
-        const { error } = await supabase.storage.from("character-packs").upload(path, file, { contentType: file.type });
+        const { error } = await supabase.storage
+          .from("character-packs")
+          .upload(path, file, { contentType: file.type });
         if (error) throw error;
         const { data } = supabase.storage.from("character-packs").getPublicUrl(path);
         setOwnPhotoUrl(data.publicUrl);
@@ -263,24 +245,39 @@ const GeneratePage = () => {
 
   const handleGenerate = useCallback(() => {
     if (!canGenerate || !selectedChar || !productDNA || !productUrl) return;
-    const charImageUrl = selectedCharId === "own-photo" ? ownPhotoUrl || "" : selectedChar.hero_image_url || "";
+
+    const charImageUrl =
+      selectedCharId === "own-photo"
+        ? ownPhotoUrl || ""
+        : selectedChar.hero_image_url || "";
+
     const config: GenerationConfig = {
       mode: contentMode,
-      selectedShots,
+      templateKey: selectedTemplate,
       productDNA,
       characterDescription: selectedChar.description,
       characterImageUrl: charImageUrl,
       productImageUrl: productUrl,
       environment: selectedEnv,
+      imageCount,
       realismLevel,
       aspectRatio,
       imageModel,
       resolution,
     };
+
     const plans = planImageShots(config);
     setShotPlans(plans);
-    setCurrentStep(2);
-    setTimeout(() => imgGen.start(), 50);
+
+    imgGen.start({
+      shots: plans,
+      imageModel,
+      resolution,
+      aspectRatio,
+      kieApiKey,
+      characterImageUrl: charImageUrl,
+      productImageUrl: productUrl,
+    });
   }, [
     canGenerate,
     selectedChar,
@@ -289,13 +286,15 @@ const GeneratePage = () => {
     productDNA,
     productUrl,
     contentMode,
-    selectedShots,
+    selectedTemplate,
     selectedEnv,
+    imageCount,
     realismLevel,
     aspectRatio,
     imageModel,
     resolution,
     kieApiKey,
+    imgGen,
   ]);
 
   const handleVideoGenerate = useCallback(async () => {
@@ -304,13 +303,15 @@ const GeneratePage = () => {
       toast({ title: "Kie AI API key belum di-setup", variant: "destructive" });
       return;
     }
+
     setVideoGenerating(true);
     setVideoResult(null);
     try {
+      const sourceUrl = completedResults[videoImageIdx]!.imageUrl;
       const result = await generateVideoAndWait({
         model: videoModel as VideoModel,
         prompt: videoPrompt,
-        imageUrls: [completedResults[videoImageIdx]!.imageUrl],
+        imageUrls: [sourceUrl],
         duration: videoDuration,
         aspectRatio,
         apiKey: kieApiKey,
@@ -328,88 +329,97 @@ const GeneratePage = () => {
     (idx: number) => {
       setVideoImageIdx(idx);
       setVideoResult(null);
-      setVideoPanelOpen(true);
-      // Auto-generate prompt
-      const prompt = generateMotionPrompt(idx);
-      setVideoPrompt(prompt);
+      // Auto-fill motion prompt
+      if (shotPlans[idx]) {
+        const beat = shotPlans[idx];
+        const prompt = getMotionPrompt({
+          beat: beat.storyRole.toLowerCase().replace(/\s+/g, "_"),
+          model: videoModel,
+          character: selectedChar?.description || "",
+          product: productDNA?.product_description || "",
+          productColor: productDNA?.dominant_color || "",
+          productPackaging: productDNA?.packaging_type || "",
+          environment: selectedEnv.description || selectedEnv.label,
+        });
+        setVideoPrompt(prompt);
+      }
     },
-    [generateMotionPrompt],
+    [shotPlans, videoModel, selectedChar, productDNA, selectedEnv],
   );
 
-  const handleRegeneratePrompt = useCallback(() => {
-    if (videoImageIdx === null) return;
-    const prompt = generateMotionPrompt(videoImageIdx);
-    setVideoPrompt(prompt);
-    toast({ title: "Prompt di-regenerate" });
-  }, [videoImageIdx, generateMotionPrompt]);
-
+  // ── Drag & Drop ───────────────────────────────────────────────
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       const file = e.dataTransfer.files[0];
-      if (file?.type.startsWith("image/")) handleProductUpload(file);
+      if (file && file.type.startsWith("image/")) handleProductUpload(file);
     },
     [handleProductUpload],
   );
 
-  /* ═══════════════════════════════════════════════════════════ */
-  /*  RENDER                                                    */
-  /* ═══════════════════════════════════════════════════════════ */
-
+  // ── RENDER ────────────────────────────────────────────────────
   return (
-    <div className="min-h-[calc(100vh-48px)] lg:min-h-screen -mx-4 -my-4 lg:-mx-6 lg:-my-8">
-      {/* ══════════════════════════════════════════════════════ */}
-      {/* ══ STEP 1: Setup ════════════════════════════════════ */}
-      {/* ══════════════════════════════════════════════════════ */}
-      {currentStep === 1 && (
-        <div className="max-w-2xl mx-auto px-5 py-8 space-y-8">
-          <div>
-            <h1 className="text-lg font-semibold">Image Studio</h1>
-            <p className="text-sm text-muted-foreground mt-1">Pilih karakter, upload produk, pilih jenis shot</p>
-          </div>
-
-          {/* A. Character */}
-          <Section label="Pilih Karakter">
-            <div className="grid grid-cols-5 sm:grid-cols-7 gap-3">
+    <div className="flex flex-col lg:flex-row gap-0 -mx-4 -my-4 lg:-mx-6 lg:-my-8 min-h-[calc(100vh-48px)]">
+      {/* ── LEFT PANEL: Setup ──────────────────────────────── */}
+      <div className="w-full lg:w-[380px] lg:min-w-[380px] border-r border-border/40 bg-card/30 overflow-y-auto lg:h-screen flex flex-col">
+        <div className="flex-1 p-4 space-y-5 pb-24">
+          {/* A. Character Selection */}
+          <Section label="Karakter">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {allChars.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedCharId(c.id)}
-                  className="flex flex-col items-center gap-1.5"
+                  className={`flex-shrink-0 flex flex-col items-center gap-1 group ${
+                    selectedCharId === c.id ? "opacity-100" : "opacity-60 hover:opacity-80"
+                  }`}
                 >
                   <div
-                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                    className={`w-[52px] h-[52px] rounded-xl overflow-hidden border-2 transition-all ${
                       selectedCharId === c.id
                         ? "border-primary ring-2 ring-primary/30"
-                        : "border-transparent opacity-60 hover:opacity-80"
+                        : "border-transparent"
                     }`}
                   >
                     {c.hero_image_url ? (
-                      <img src={c.hero_image_url} alt={c.name} className="w-full h-full object-cover" />
+                      <img
+                        src={c.hero_image_url}
+                        alt={c.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <Camera className="w-5 h-5 text-muted-foreground" />
+                        <Camera className="w-4 h-4 text-muted-foreground" />
                       </div>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground truncate max-w-[64px] text-center">{c.name}</span>
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[52px]">
+                    {c.name}
+                  </span>
                 </button>
               ))}
-              {/* Upload own */}
-              <button onClick={() => ownPhotoInputRef.current?.click()} className="flex flex-col items-center gap-1.5">
+              {/* Own photo upload */}
+              <button
+                onClick={() => ownPhotoInputRef.current?.click()}
+                className="flex-shrink-0 flex flex-col items-center gap-1"
+              >
                 <div
-                  className={`w-16 h-16 rounded-xl border-2 border-dashed flex items-center justify-center ${
+                  className={`w-[52px] h-[52px] rounded-xl border-2 border-dashed flex items-center justify-center transition-all ${
                     selectedCharId === "own-photo"
                       ? "border-primary bg-primary/5"
                       : "border-border/60 hover:border-border"
                   }`}
                 >
                   {ownPhotoUploading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                   ) : ownPhotoUrl ? (
-                    <img src={ownPhotoUrl} alt="Own" className="w-full h-full rounded-[10px] object-cover" />
+                    <img
+                      src={ownPhotoUrl}
+                      alt="Own"
+                      className="w-full h-full rounded-[10px] object-cover"
+                    />
                   ) : (
-                    <Plus className="w-5 h-5 text-muted-foreground" />
+                    <Plus className="w-4 h-4 text-muted-foreground" />
                   )}
                 </div>
                 <span className="text-[10px] text-muted-foreground">Upload</span>
@@ -427,28 +437,32 @@ const GeneratePage = () => {
             </div>
           </Section>
 
-          {/* B. Product */}
-          <Section label="Upload Produk">
+          {/* B. Product Upload */}
+          <Section label="Produk">
             {!productPreview ? (
               <div
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleDrop}
                 onClick={() => productInputRef.current?.click()}
-                className="h-[140px] border-2 border-dashed border-border/60 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-border transition-colors"
+                className="h-[100px] border-2 border-dashed border-border/60 rounded-xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-border transition-colors"
               >
                 {uploading ? (
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 ) : (
                   <>
-                    <Upload className="w-6 h-6 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Drop foto produk di sini</span>
+                    <Upload className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Drop foto produk</span>
                   </>
                 )}
               </div>
             ) : (
-              <div className="flex gap-4">
-                <div className="relative w-[120px] h-[120px] rounded-xl overflow-hidden border border-border/40 flex-shrink-0">
-                  <img src={productPreview} alt="Product" className="w-full h-full object-cover" />
+              <div className="space-y-2">
+                <div className="relative w-full h-[100px] rounded-xl overflow-hidden border border-border/40">
+                  <img
+                    src={productPreview}
+                    alt="Product"
+                    className="w-full h-full object-cover"
+                  />
                   <button
                     onClick={() => {
                       setProductPreview(null);
@@ -457,7 +471,7 @@ const GeneratePage = () => {
                     }}
                     className="absolute top-1.5 right-1.5 bg-black/60 rounded-lg p-1 hover:bg-black/80"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                   {detectingDNA && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -465,7 +479,9 @@ const GeneratePage = () => {
                     </div>
                   )}
                 </div>
-                {productDNA && <DNACard dna={productDNA} />}
+                {productDNA && (
+                  <DNACard dna={productDNA} />
+                )}
               </div>
             )}
             <input
@@ -482,69 +498,67 @@ const GeneratePage = () => {
 
           {/* C. Content Mode */}
           <Section label="Mode Konten">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                {
-                  mode: "ugc" as const,
-                  icon: Smartphone,
-                  title: "UGC / Affiliate",
-                  desc: "Smartphone-feel, authentic, TikTok-style",
-                },
-                {
-                  mode: "commercial" as const,
-                  icon: CameraIcon,
-                  title: "Commercial / Iklan",
-                  desc: "Editorial, cinematic, brand-quality",
-                },
-              ].map((opt) => (
+            <div className="grid grid-cols-2 gap-2">
+              {(["ugc", "commercial"] as const).map((mode) => (
                 <button
-                  key={opt.mode}
-                  onClick={() => setContentMode(opt.mode)}
-                  className={`p-4 rounded-xl border text-left transition-all ${
-                    contentMode === opt.mode
+                  key={mode}
+                  onClick={() => {
+                    setContentMode(mode);
+                    setSelectedTemplate(mode === "ugc" ? "problem_solution" : "hero_product");
+                  }}
+                  className={`p-3 rounded-xl border text-left transition-all ${
+                    contentMode === mode
                       ? "border-primary/30 bg-primary/5"
                       : "border-border/40 hover:border-border/60"
                   }`}
                 >
-                  <opt.icon
-                    className={`w-5 h-5 mb-2 ${contentMode === opt.mode ? "text-primary" : "text-muted-foreground"}`}
-                  />
-                  <p className="text-sm font-medium">{opt.title}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{opt.desc}</p>
+                  {mode === "ugc" ? (
+                    <Smartphone className="w-4 h-4 text-primary mb-1.5" />
+                  ) : (
+                    <CameraIcon className="w-4 h-4 text-primary mb-1.5" />
+                  )}
+                  <p className="text-xs font-medium">
+                    {mode === "ugc" ? "UGC / Affiliate" : "Commercial / Iklan"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {mode === "ugc"
+                      ? "Imperfect, relatable, authentic"
+                      : "Editorial, cinematic, controlled"}
+                  </p>
                 </button>
               ))}
             </div>
           </Section>
 
-          {/* D. Shot Types */}
-          <Section label="Pilih Jenis Shot (1-3)">
-            <div className="grid grid-cols-2 gap-2.5">
-              {SHOT_TYPES.map((shot) => {
-                const selected = selectedShots.includes(shot.key);
-                const Icon = SHOT_ICONS[shot.icon] || Star;
+          {/* D. Gaya Konten */}
+          <Section label="Gaya Konten">
+            <div className="grid grid-cols-2 gap-1.5">
+              {visibleTemplates.map((t) => {
+                const isRec =
+                  productDNA && isRecommendedForCategory(t, productDNA.category);
                 return (
                   <button
-                    key={shot.key}
-                    onClick={() => toggleShot(shot.key)}
-                    className={`p-3.5 rounded-xl border text-left transition-all relative ${
-                      selected ? "border-primary/30 bg-primary/5" : "border-border/30 hover:border-border/50"
+                    key={t.key}
+                    onClick={() => setSelectedTemplate(t.key)}
+                    className={`p-2.5 rounded-lg border text-left transition-all relative ${
+                      selectedTemplate === t.key
+                        ? "border-primary/30 bg-primary/5"
+                        : "border-border/30 hover:border-border/50"
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Icon className={`w-4 h-4 ${selected ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className="text-xs font-medium">{shot.name.id}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground line-clamp-2">{shot.purpose}</p>
-                    {selected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="w-3 h-3 text-primary-foreground" />
-                      </div>
+                    <p className="text-[11px] font-medium">{t.label}</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5 line-clamp-1">
+                      {t.desc}
+                    </p>
+                    {isRec && (
+                      <span className="absolute top-1 right-1 text-[8px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-md font-medium">
+                        Cocok
+                      </span>
                     )}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">{selectedShots.length}/3 shot dipilih</p>
           </Section>
 
           {/* E. Environment */}
@@ -552,82 +566,133 @@ const GeneratePage = () => {
             <Select
               value={selectedEnv.label}
               onValueChange={(val) => {
-                const f = envOptions.find((e) => e.label === val);
-                if (f) setSelectedEnv(f);
+                const found = envOptions.find((e) => e.label === val);
+                if (found) setSelectedEnv(found);
               }}
             >
-              <SelectTrigger className="bg-background/50 border-border/40 h-10 text-sm">
+              <SelectTrigger className="bg-background/50 border-border/40 h-9 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {envOptions.map((e) => (
                   <SelectItem key={e.label} value={e.label}>
-                    {e.label}
+                    <span className="text-xs">{e.label}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedEnv.description && (
+              <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">
+                {selectedEnv.description}
+              </p>
+            )}
           </Section>
 
-          {/* F. Advanced Settings */}
+          {/* F. Image Count */}
+          <Section label="Jumlah Gambar">
+            <div className="flex gap-2">
+              {IMAGE_COUNTS.map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setImageCount(n)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-all ${
+                    imageCount === n
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border/30 text-muted-foreground hover:border-border/50"
+                  }`}
+                >
+                  {n}
+                  <span className="block text-[9px] opacity-60 mt-0.5">
+                    {formatRupiah(estimateCost(imageModel, n))}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          {/* G. Advanced Settings */}
           <div>
             <button
               onClick={() => setAdvancedOpen(!advancedOpen)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
             >
-              <Settings className="w-3.5 h-3.5" />
-              <span>Pengaturan Lanjutan</span>
-              <ChevronDown className={`w-3 h-3 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+              />
+              Pengaturan Lanjutan
             </button>
             {advancedOpen && (
-              <div className="mt-4 space-y-4 p-4 rounded-xl border border-border/30 bg-white/[0.01]">
+              <div className="mt-3 space-y-3 pl-1">
+                {/* Image Model */}
                 <div>
-                  <label className="text-[11px] text-muted-foreground mb-1.5 block">Image Model</label>
-                  <Select value={imageModel} onValueChange={(v) => setImageModel(v as ImageModelType)}>
-                    <SelectTrigger className="h-9 text-sm">
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    Image Model
+                  </label>
+                  <Select
+                    value={imageModel}
+                    onValueChange={(v) => setImageModel(v as ImageModel)}
+                  >
+                    <SelectTrigger className="bg-background/50 border-border/40 h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(Object.entries(MODEL_INFO) as [ImageModelType, { label: string; desc: string }][]).map(
+                      {(Object.entries(MODEL_INFO) as [ImageModel, typeof MODEL_INFO[ImageModel]][]).map(
                         ([k, v]) => (
                           <SelectItem key={k} value={k}>
-                            {v.label} — {v.desc}
+                            <span className="text-xs">{v.label}</span>
+                            <span className="text-[10px] text-muted-foreground ml-2">
+                              {v.desc}
+                            </span>
                           </SelectItem>
                         ),
                       )}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Resolution */}
                 <div>
-                  <label className="text-[11px] text-muted-foreground mb-1.5 block">Resolution</label>
-                  <div className="flex gap-2">
-                    {RESOLUTIONS.map((r) => (
-                      <button
-                        key={r}
-                        disabled={r === "4K" && imageModel === "nano-banana"}
-                        onClick={() => setResolution(r)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium border ${
-                          resolution === r
-                            ? "border-primary/30 bg-primary/10 text-primary"
-                            : "border-border/30 text-muted-foreground hover:border-border/50"
-                        } ${r === "4K" && imageModel === "nano-banana" ? "opacity-30 cursor-not-allowed" : ""}`}
-                      >
-                        {r}
-                      </button>
-                    ))}
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    Resolution
+                  </label>
+                  <div className="flex gap-1.5">
+                    {RESOLUTIONS.map((r) => {
+                      const disabled =
+                        r === "4K" && imageModel === "nano-banana";
+                      return (
+                        <button
+                          key={r}
+                          disabled={disabled}
+                          onClick={() => setResolution(r)}
+                          className={`flex-1 py-1.5 rounded-md text-[11px] font-medium border transition-all ${
+                            resolution === r
+                              ? "border-primary/30 bg-primary/10 text-primary"
+                              : disabled
+                                ? "border-border/20 text-muted-foreground/30 cursor-not-allowed"
+                                : "border-border/30 text-muted-foreground hover:border-border/50"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+
+                {/* Aspect Ratio */}
                 <div>
-                  <label className="text-[11px] text-muted-foreground mb-1.5 block">Aspect Ratio</label>
-                  <div className="flex gap-2">
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    Aspect Ratio
+                  </label>
+                  <div className="flex gap-1.5 flex-wrap">
                     {ASPECT_RATIOS.map((ar) => (
                       <button
                         key={ar}
                         onClick={() => setAspectRatio(ar)}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium border ${
+                        className={`px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-all ${
                           aspectRatio === ar
                             ? "border-primary/30 bg-primary/10 text-primary"
-                            : "border-border/30 text-muted-foreground"
+                            : "border-border/30 text-muted-foreground hover:border-border/50"
                         }`}
                       >
                         {ar}
@@ -635,24 +700,52 @@ const GeneratePage = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* Realism Level */}
                 <div>
-                  <label className="text-[11px] text-muted-foreground mb-1.5 block">Realism</label>
-                  <div className="flex gap-2">
-                    {[
-                      { v: "standard" as const, l: "Standard" },
-                      { v: "ultra" as const, l: "Ultra" },
-                      ...(contentMode === "ugc" ? [{ v: "raw_phone" as const, l: "Raw Phone" }] : []),
-                    ].map((o) => (
+                  <label className="text-[10px] text-muted-foreground mb-1 block">
+                    Realism Level
+                  </label>
+                  <div className="space-y-1">
+                    {(
+                      [
+                        { value: "standard", label: "Standard", desc: "Balanced realism" },
+                        {
+                          value: "ultra",
+                          label: "Ultra-Realistic",
+                          desc: "Maximum skin detail",
+                        },
+                        ...(contentMode === "ugc"
+                          ? [
+                              {
+                                value: "raw_phone",
+                                label: "Raw Phone Camera",
+                                desc: "Smartphone capture feel",
+                              },
+                            ]
+                          : []),
+                      ] as { value: RealismLevel; label: string; desc: string }[]
+                    ).map((opt) => (
                       <button
-                        key={o.v}
-                        onClick={() => setRealismLevel(o.v)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium border ${
-                          realismLevel === o.v
-                            ? "border-primary/30 bg-primary/10 text-primary"
-                            : "border-border/30 text-muted-foreground"
+                        key={opt.value}
+                        onClick={() => setRealismLevel(opt.value)}
+                        className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-left transition-all ${
+                          realismLevel === opt.value
+                            ? "bg-primary/5 border border-primary/20"
+                            : "hover:bg-white/[0.02]"
                         }`}
                       >
-                        {o.l}
+                        <div
+                          className={`w-3 h-3 rounded-full border-2 ${
+                            realismLevel === opt.value
+                              ? "border-primary bg-primary"
+                              : "border-border"
+                          }`}
+                        />
+                        <div>
+                          <p className="text-[11px] font-medium">{opt.label}</p>
+                          <p className="text-[9px] text-muted-foreground">{opt.desc}</p>
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -660,389 +753,415 @@ const GeneratePage = () => {
               </div>
             )}
           </div>
+        </div>
 
-          {/* G. Generate */}
-          <div className="pt-2">
-            <Button
-              onClick={handleGenerate}
-              disabled={!canGenerate}
-              className="w-full h-12 text-sm font-semibold gap-2"
+        {/* H. Generate Button (pinned bottom) */}
+        <div className="sticky bottom-0 p-4 border-t border-border/30 bg-card/80 backdrop-blur-sm">
+          <Button
+            onClick={handleGenerate}
+            disabled={!canGenerate || isGenerating}
+            className="w-full h-10 text-sm font-semibold"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Generating...
+              </>
+            ) : (
+              <>Generate {imageCount} Gambar</>
+            )}
+          </Button>
+          <p className="text-[10px] text-muted-foreground text-center mt-1.5">
+            Estimasi: {formatRupiah(totalCost)}
+          </p>
+        </div>
+      </div>
+
+      {/* ── RIGHT PANEL: Output ────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto lg:h-screen relative">
+        {/* Empty State */}
+        {imgGen.progress.status === "idle" && (
+          <div className="flex items-center justify-center h-full p-8">
+            <div className="text-center space-y-4 max-w-xs">
+              <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mx-auto">
+                <ImagePlus className="h-6 w-6 text-white/15" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Upload karakter & produk, pilih gaya konten, lalu generate
+                </p>
+              </div>
+              {/* Faded grid skeleton */}
+              <div className="grid grid-cols-3 gap-2 opacity-20 mt-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="aspect-[9/16] rounded-lg bg-white/[0.03] border border-white/[0.04]"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Generating / Completed State */}
+        {(isGenerating || isCompleted || imgGen.progress.status === "cancelled") && (
+          <div className="p-4 lg:p-6 space-y-4">
+            {/* Progress bar */}
+            {isGenerating && (
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Membuat gambar {imgGen.progress.currentShot + 1} dari{" "}
+                  {imgGen.progress.totalShots}
+                  {shotPlans[imgGen.progress.currentShot] && (
+                    <> — {shotPlans[imgGen.progress.currentShot].shotLabel}</>
+                  )}
+                  <span className="ml-2 text-muted-foreground/60">
+                    {imgGen.progress.totalElapsed}s
+                  </span>
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={imgGen.cancel}
+                  className="text-xs h-7"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            {/* Grid */}
+            <div
+              className={`grid gap-3 ${
+                imageCount <= 3
+                  ? "grid-cols-3"
+                  : imageCount <= 6
+                    ? "grid-cols-3"
+                    : "grid-cols-3"
+              }`}
             >
-              <Zap className="w-4 h-4" />
-              Generate {selectedShots.length} Gambar
-            </Button>
-            <p className="text-[11px] text-muted-foreground text-center mt-2">Estimasi: {formatRupiah(totalCost)}</p>
-            {!canProceedStep1 && (
-              <p className="text-[10px] text-destructive/60 text-center mt-1">Pilih karakter dan upload produk dulu</p>
+              {Array.from({ length: imgGen.progress.totalShots || imageCount }).map((_, i) => {
+                const result = imgGen.progress.results[i];
+                const isCurrent = isGenerating && imgGen.progress.currentShot === i;
+                const isFailed = imgGen.progress.failedShots.includes(i);
+                const shot = shotPlans[i];
+                const upState = result ? getUpscaleState(`gen-${i}`) : null;
+
+                return (
+                  <div
+                    key={i}
+                    className={`relative rounded-xl overflow-hidden border transition-all group ${
+                      aspectRatio === "9:16"
+                        ? "aspect-[9/16]"
+                        : aspectRatio === "1:1"
+                          ? "aspect-square"
+                          : aspectRatio === "4:5"
+                            ? "aspect-[4/5]"
+                            : aspectRatio === "3:4"
+                              ? "aspect-[3/4]"
+                              : "aspect-video"
+                    } ${
+                      result
+                        ? "border-border/30"
+                        : isCurrent
+                          ? "border-primary/20"
+                          : "border-white/[0.04]"
+                    }`}
+                  >
+                    {result ? (
+                      <>
+                        <img
+                          src={upState?.resultUrl || result.imageUrl}
+                          alt={shot?.shotLabel || `Shot ${i + 1}`}
+                          className="absolute inset-0 w-full h-full object-cover animate-scale-in"
+                          onClick={() => setLightboxIdx(i)}
+                        />
+                        {/* Shot label badge */}
+                        {shot && (
+                          <span
+                            className={`absolute bottom-2 left-2 text-[9px] px-2 py-0.5 rounded-md font-medium ${getStoryRoleColor(shot.storyRole, i)}`}
+                          >
+                            {shot.shotLabel}
+                          </span>
+                        )}
+                        {/* Hover actions */}
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <ActionBtn
+                            icon={RefreshCw}
+                            label="Regenerate"
+                            onClick={() =>
+                              imgGen.retryShot({
+                                shotIndex: i,
+                                shot: shotPlans[i],
+                                imageModel,
+                                resolution,
+                                aspectRatio,
+                                kieApiKey,
+                                characterImageUrl:
+                                  selectedCharId === "own-photo"
+                                    ? ownPhotoUrl || ""
+                                    : selectedChar?.hero_image_url || "",
+                                productImageUrl: productUrl || "",
+                              })
+                            }
+                          />
+                          <ActionBtn
+                            icon={ArrowUpRight}
+                            label="Upscale"
+                            loading={upState?.loading}
+                            onClick={() =>
+                              upscale(`gen-${i}`, result.imageUrl, 2)
+                            }
+                          />
+                          <ActionBtn
+                            icon={Film}
+                            label="Video"
+                            onClick={() => openVideoPanel(i)}
+                          />
+                        </div>
+                      </>
+                    ) : isCurrent ? (
+                      <div className="absolute inset-0 bg-white/[0.02] flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-primary/60" />
+                        {shot && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {shot.shotLabel}
+                          </span>
+                        )}
+                      </div>
+                    ) : isFailed ? (
+                      <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center gap-1">
+                        <X className="w-4 h-4 text-destructive/60" />
+                        <span className="text-[10px] text-destructive/60">Gagal</span>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 bg-white/[0.02] animate-pulse" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom action bar */}
+            {isCompleted && completedResults.length > 0 && (
+              <div className="sticky bottom-0 flex items-center justify-between gap-3 py-3 px-4 -mx-4 lg:-mx-6 bg-card/80 backdrop-blur-sm border-t border-border/30">
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
+                    <Download className="w-3.5 h-3.5" />
+                    Download Semua
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
+                    <Save className="w-3.5 h-3.5" />
+                    Simpan ke Gallery
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8 gap-1.5"
+                    onClick={() => {
+                      imgGen.reset();
+                      setShotPlans([]);
+                    }}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Generate Ulang
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Total: {formatRupiah(totalCost)}
+                </p>
+              </div>
             )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ══════════════════════════════════════════════════════ */}
-      {/* ══ STEP 2: Output ═══════════════════════════════════ */}
-      {/* ══════════════════════════════════════════════════════ */}
-      {currentStep === 2 && (
-        <div className="flex h-[calc(100vh-48px)] lg:h-screen">
-          {/* Main output area */}
-          <div className={`flex-1 overflow-y-auto transition-all ${videoPanelOpen ? "lg:mr-[400px]" : ""}`}>
-            <div className="max-w-4xl mx-auto px-5 py-6 space-y-4">
-              {/* Header */}
+        {/* ── Video Side Panel ──────────────────────────────── */}
+        {videoImageIdx !== null && (
+          <div className="fixed inset-y-0 right-0 w-full lg:w-[400px] bg-card border-l border-border/40 z-50 overflow-y-auto animate-slide-up lg:animate-fade-slide-right">
+            <div className="p-4 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      setCurrentStep(1);
-                      imgGen.cancel();
-                    }}
-                    className="p-1.5 rounded-lg hover:bg-white/[0.05]"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <div>
-                    <h1 className="text-lg font-semibold">Hasil Generate</h1>
-                    <p className="text-xs text-muted-foreground">
-                      {contentMode === "ugc" ? "UGC" : "Commercial"} — {selectedShots.length} shot
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {isGenerating && (
-                    <Button variant="ghost" size="sm" onClick={imgGen.cancel} className="text-xs h-8">
-                      Cancel
-                    </Button>
-                  )}
-                  {videoPanelOpen && (
-                    <button
-                      onClick={() => setVideoPanelOpen(false)}
-                      className="p-1.5 rounded-lg hover:bg-white/[0.05]"
-                      title="Tutup panel video"
-                    >
-                      <PanelRightClose className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+                <h3 className="text-sm font-semibold">Generate Video</h3>
+                <button
+                  onClick={() => {
+                    setVideoImageIdx(null);
+                    setVideoResult(null);
+                  }}
+                  className="p-1 hover:bg-white/[0.05] rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              {/* Progress */}
-              {isGenerating && (
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                  <span>
-                    Membuat gambar {imgGen.progress.currentShot + 1} dari {imgGen.progress.totalShots}
-                    {shotPlans[imgGen.progress.currentShot] && (
-                      <> — {shotPlans[imgGen.progress.currentShot].shotLabel}</>
-                    )}
-                  </span>
-                  <span className="text-muted-foreground/40">{imgGen.progress.totalElapsed}s</span>
+              {/* Source image thumbnail */}
+              {completedResults[videoImageIdx] && (
+                <div className="relative aspect-[9/16] max-h-[200px] rounded-xl overflow-hidden border border-border/30 mx-auto w-fit">
+                  {videoResult ? (
+                    <video
+                      src={videoResult}
+                      controls
+                      className="h-full w-auto"
+                      autoPlay
+                    />
+                  ) : (
+                    <img
+                      src={completedResults[videoImageIdx]!.imageUrl}
+                      alt="Source"
+                      className="h-full w-auto object-cover"
+                    />
+                  )}
                 </div>
               )}
 
-              {/* Grid */}
-              <div
-                className={`grid gap-4 ${
-                  selectedShots.length === 1
-                    ? "grid-cols-1 max-w-md mx-auto"
-                    : selectedShots.length === 2
-                      ? "grid-cols-2 max-w-2xl mx-auto"
-                      : "grid-cols-3"
-                }`}
-              >
-                {Array.from({ length: imgGen.progress.totalShots || selectedShots.length }).map((_, i) => {
-                  const result = imgGen.progress.results[i];
-                  const isCurrent = isGenerating && imgGen.progress.currentShot === i;
-                  const isFailed = imgGen.progress.failedShots.includes(i);
-                  const shot = shotPlans[i];
-                  const upState = result ? getUpscaleState(`gen-${i}`) : null;
-                  const ar =
-                    aspectRatio === "9:16"
-                      ? "aspect-[9/16]"
-                      : aspectRatio === "1:1"
-                        ? "aspect-square"
-                        : aspectRatio === "4:5"
-                          ? "aspect-[4/5]"
-                          : "aspect-video";
-
-                  return (
-                    <div
-                      key={i}
-                      className={`relative rounded-xl overflow-hidden border transition-all group ${ar} ${
-                        result ? "border-border/30" : isCurrent ? "border-primary/20" : "border-white/[0.04]"
-                      }`}
-                    >
-                      {result ? (
-                        <>
-                          <img
-                            src={upState?.resultUrl || result.imageUrl}
-                            alt={shot?.shotLabel || `Shot ${i + 1}`}
-                            className="absolute inset-0 w-full h-full object-cover cursor-pointer"
-                            onClick={() => setLightboxIdx(i)}
-                          />
-                          {shot && (
-                            <span className="absolute bottom-2 left-2 text-[9px] px-2 py-0.5 rounded-md font-medium bg-black/50 text-white/80">
-                              {shot.shotLabel}
-                            </span>
-                          )}
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                            <ActionBtn icon={RefreshCw} label="Regenerate" onClick={() => imgGen.retryShot(i)} />
-                            <ActionBtn
-                              icon={ArrowUpRight}
-                              label="Upscale"
-                              loading={upState?.loading}
-                              onClick={() => upscale(`gen-${i}`, result.imageUrl, 2)}
-                            />
-                            <ActionBtn icon={Film} label="Video" onClick={() => openVideoPanel(i)} />
-                          </div>
-                        </>
-                      ) : isCurrent ? (
-                        <div className="absolute inset-0 bg-white/[0.02] flex flex-col items-center justify-center gap-2">
-                          <Loader2 className="w-5 h-5 animate-spin text-primary/60" />
-                          {shot && <span className="text-[10px] text-muted-foreground">{shot.shotLabel}</span>}
-                        </div>
-                      ) : isFailed ? (
-                        <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center gap-1">
-                          <X className="w-4 h-4 text-destructive/60" />
-                          <span className="text-[10px] text-destructive/60">Gagal</span>
-                        </div>
-                      ) : (
-                        <div className="absolute inset-0 bg-white/[0.02] animate-pulse" />
-                      )}
-                    </div>
-                  );
-                })}
+              {/* Model selector */}
+              <div>
+                <label className="text-[10px] text-muted-foreground mb-1 block">
+                  Video Model
+                </label>
+                <Select
+                  value={videoModel}
+                  onValueChange={(v) => setVideoModel(v as VideoModelType)}
+                >
+                  <SelectTrigger className="bg-background/50 border-border/40 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="grok">
+                      Grok (Cepat) — {formatRupiah(1240)}
+                    </SelectItem>
+                    <SelectItem value="kling_std">
+                      Kling 3.0 Std — {formatRupiah(1860)}
+                    </SelectItem>
+                    <SelectItem value="kling_pro">
+                      Kling 3.0 Pro — {formatRupiah(3560)}
+                    </SelectItem>
+                    <SelectItem value="veo_fast">
+                      Veo 3.1 Fast — {formatRupiah(4960)}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Bottom bar */}
-              {isCompleted && completedResults.length > 0 && (
-                <div className="flex items-center justify-between gap-3 py-3 mt-4 border-t border-border/30">
-                  <div className="flex gap-2 flex-wrap">
-                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
-                      <Download className="w-3.5 h-3.5" />
-                      Download Semua
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
-                      <Save className="w-3.5 h-3.5" />
-                      Simpan ke Gallery
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-8 gap-1.5"
-                      onClick={() => setCurrentStep(1)}
-                    >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      Buat Lagi
-                    </Button>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground whitespace-nowrap">
-                    Total: {formatRupiah(totalCost)}
-                  </p>
+              {/* Duration */}
+              <div>
+                <label className="text-[10px] text-muted-foreground mb-1 block">
+                  Duration: {videoDuration}s
+                </label>
+                <Slider
+                  value={[videoDuration]}
+                  onValueChange={([v]) => setVideoDuration(v)}
+                  min={videoModel === "grok" ? 6 : 3}
+                  max={
+                    videoModel === "grok"
+                      ? 10
+                      : videoModel === "veo_fast"
+                        ? 8
+                        : 15
+                  }
+                  step={1}
+                />
+              </div>
+
+              {/* Prompt */}
+              <div>
+                <label className="text-[10px] text-muted-foreground mb-1 block">
+                  Motion Prompt
+                </label>
+                <Textarea
+                  value={videoPrompt}
+                  onChange={(e) => setVideoPrompt(e.target.value)}
+                  className="text-xs min-h-[100px] bg-background/50 border-border/40"
+                  placeholder="Describe the motion..."
+                />
+              </div>
+
+              {/* Generate */}
+              <Button
+                onClick={handleVideoGenerate}
+                disabled={videoGenerating || !videoPrompt}
+                className="w-full h-9 text-xs"
+              >
+                {videoGenerating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    Generate Video — {formatRupiah(VIDEO_COST[videoModel] || 1860)}
+                  </>
+                )}
+              </Button>
+
+              {videoResult && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-xs h-8"
+                    asChild
+                  >
+                    <a href={videoResult} download target="_blank" rel="noreferrer">
+                      <Download className="w-3.5 h-3.5 mr-1" />
+                      Download
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs h-8"
+                    onClick={() => {
+                      setVideoResult(null);
+                      setVideoImageIdx(null);
+                    }}
+                  >
+                    Kembali
+                  </Button>
                 </div>
               )}
             </div>
           </div>
+        )}
 
-          {/* ══ Video Side Panel (collapsible) ═══════════════ */}
-          {videoPanelOpen && videoImageIdx !== null && (
-            <div className="fixed inset-y-0 right-0 w-full lg:w-[400px] bg-card border-l border-border/40 z-40 overflow-y-auto shadow-2xl">
-              <div className="p-5 space-y-5">
-                {/* Panel header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Film className="w-4 h-4 text-primary" />
-                    <h3 className="text-sm font-semibold">Generate Video</h3>
-                  </div>
-                  <button
-                    onClick={() => setVideoPanelOpen(false)}
-                    className="p-1.5 hover:bg-white/[0.05] rounded-lg"
-                    title="Tutup"
-                  >
-                    <PanelRightClose className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Source image */}
-                {completedResults[videoImageIdx] && (
-                  <div className="relative aspect-[9/16] max-h-[220px] rounded-xl overflow-hidden border border-border/30 mx-auto w-fit">
-                    {videoResult ? (
-                      <video src={videoResult} controls className="h-full w-auto" autoPlay />
-                    ) : (
-                      <img
-                        src={completedResults[videoImageIdx]!.imageUrl}
-                        alt="Source"
-                        className="h-full w-auto object-cover"
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* Video Model */}
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider font-semibold">
-                    Video Model
-                  </label>
-                  <Select
-                    value={videoModel}
-                    onValueChange={(v) => {
-                      setVideoModel(v as MotionVideoModel);
-                      const m = VIDEO_MODELS.find((x) => x.id === v);
-                      if (m) setVideoDuration(m.minDur);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VIDEO_MODELS.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>
-                          <span>{m.label}</span>
-                          <span className="text-muted-foreground ml-2">— {formatRupiah(m.cost)}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Duration */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                      Duration
-                    </label>
-                    <span className="text-xs text-foreground font-medium">{videoDuration}s</span>
-                  </div>
-                  {currentVideoModelInfo.minDur !== currentVideoModelInfo.maxDur ? (
-                    <Slider
-                      value={[videoDuration]}
-                      onValueChange={([v]) => setVideoDuration(v)}
-                      min={currentVideoModelInfo.minDur}
-                      max={currentVideoModelInfo.maxDur}
-                      step={currentVideoModelInfo.step}
-                    />
-                  ) : (
-                    <p className="text-[10px] text-muted-foreground">
-                      Fixed {currentVideoModelInfo.minDur}s untuk model ini
-                    </p>
-                  )}
-                </div>
-
-                {/* Script (dialogue) */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1">
-                      <MessageSquare className="w-3 h-3" />
-                      Script / Dialogue
-                    </label>
-                    <span className="text-[9px] text-muted-foreground/60">Opsional</span>
-                  </div>
-                  <Textarea
-                    value={videoScript}
-                    onChange={(e) => setVideoScript(e.target.value)}
-                    className="text-xs min-h-[60px] bg-background/50 border-border/40"
-                    placeholder="Contoh: Guys kalian harus coba ini, sumpah game changer banget..."
-                  />
-                  <p className="text-[9px] text-muted-foreground/50 mt-1">
-                    Untuk Veo 3.1: karakter akan "berbicara" teks ini
-                  </p>
-                </div>
-
-                {/* Motion Prompt */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                      Motion Prompt
-                    </label>
-                    <button
-                      onClick={handleRegeneratePrompt}
-                      className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors"
-                      title="Generate ulang prompt"
-                    >
-                      <RotateCw className="w-3 h-3" />
-                      Regenerate
-                    </button>
-                  </div>
-                  <Textarea
-                    value={videoPrompt}
-                    onChange={(e) => setVideoPrompt(e.target.value)}
-                    className="text-xs min-h-[120px] bg-background/50 border-border/40 font-mono text-[10px] leading-relaxed"
-                    placeholder="Motion prompt akan di-generate otomatis..."
-                  />
-                </div>
-
-                {/* Generate Video button */}
-                <Button
-                  onClick={handleVideoGenerate}
-                  disabled={videoGenerating || !videoPrompt}
-                  className="w-full h-10 text-xs font-semibold"
-                >
-                  {videoGenerating ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                      Generating Video...
-                    </>
-                  ) : (
-                    <>Generate Video — {formatRupiah(currentVideoModelInfo.cost)}</>
-                  )}
-                </Button>
-
-                {/* Video result actions */}
-                {videoResult && (
-                  <div className="flex gap-2 pt-1">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" asChild>
-                      <a href={videoResult} download target="_blank" rel="noreferrer">
-                        <Download className="w-3.5 h-3.5 mr-1" />
-                        Download
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setVideoResult(null)}>
-                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                      Buat Lagi
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ══ Lightbox ════════════════════════════════════════ */}
-      {lightboxIdx !== null && imgGen.progress.results[lightboxIdx] && (
-        <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
-          onClick={() => setLightboxIdx(null)}
-        >
-          <img
-            src={imgGen.progress.results[lightboxIdx]!.imageUrl}
-            alt="Full"
-            className="max-w-full max-h-full object-contain rounded-xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button
-            className="absolute top-4 right-4 p-2 bg-black/50 rounded-xl hover:bg-black/70"
+        {/* ── Lightbox Modal ───────────────────────────────── */}
+        {lightboxIdx !== null && imgGen.progress.results[lightboxIdx] && (
+          <div
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
             onClick={() => setLightboxIdx(null)}
           >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      )}
+            <img
+              src={imgGen.progress.results[lightboxIdx]!.imageUrl}
+              alt="Full"
+              className="max-w-full max-h-full object-contain rounded-xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              className="absolute top-4 right-4 p-2 bg-black/50 rounded-xl hover:bg-black/70"
+              onClick={() => setLightboxIdx(null)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-/* ─── Helper Components ──────────────────────────────────────── */
-
+// ── Helper Components ───────────────────────────────────────────
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">{label}</h3>
+      <h3 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+        {label}
+      </h3>
       {children}
     </div>
   );
 }
 
 function DNACard({ dna }: { dna: ProductDNA }) {
-  const colors: Record<string, string> = {
+  const categoryColors: Record<string, string> = {
     skincare: "bg-pink-500/15 text-pink-400",
     fashion: "bg-purple-500/15 text-purple-400",
     food: "bg-orange-500/15 text-orange-400",
@@ -1051,19 +1170,27 @@ function DNACard({ dna }: { dna: ProductDNA }) {
     home: "bg-amber-500/15 text-amber-400",
     other: "bg-gray-500/15 text-gray-400",
   };
+
   return (
-    <div className="flex-1 p-3 rounded-xl border border-border/30 bg-white/[0.02] space-y-1.5">
+    <div className="p-2.5 rounded-lg border border-border/30 bg-white/[0.02] space-y-1.5">
       <div className="flex items-center gap-2">
-        <span className={`text-[9px] px-2 py-0.5 rounded-md font-medium ${colors[dna.category] || colors.other}`}>
+        <span
+          className={`text-[9px] px-2 py-0.5 rounded-md font-medium ${categoryColors[dna.category] || categoryColors.other}`}
+        >
           {dna.category}
         </span>
         <span className="text-[10px] text-muted-foreground">{dna.sub_category}</span>
       </div>
       <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-sm border border-border/40" style={{ backgroundColor: dna.dominant_color }} />
+        <div
+          className="w-3 h-3 rounded-sm border border-border/40"
+          style={{ backgroundColor: dna.dominant_color }}
+        />
         <span className="text-[10px] text-muted-foreground">{dna.brand_name}</span>
       </div>
-      {dna.ugc_hook && <p className="text-[10px] text-muted-foreground/80 italic">"{dna.ugc_hook}"</p>}
+      {dna.ugc_hook && (
+        <p className="text-[10px] text-muted-foreground/80 italic">"{dna.ugc_hook}"</p>
+      )}
     </div>
   );
 }
@@ -1088,7 +1215,11 @@ function ActionBtn({
       className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-white/10 transition-colors"
       title={label}
     >
-      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+      {loading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <Icon className="w-4 h-4" />
+      )}
       <span className="text-[9px]">{label}</span>
     </button>
   );
