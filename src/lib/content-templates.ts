@@ -17,7 +17,11 @@ export type ContentTemplateKey =
   | "expectation_reality"
   | "tutorial_singkat"
   | "day_in_my_life"
-  | "first_impression";
+  | "first_impression"
+  | "hero_product"
+  | "brand_campaign"
+  | "katalog_produk"
+  | "studio_editorial";
 
 export interface TimingBeat {
   start: number;
