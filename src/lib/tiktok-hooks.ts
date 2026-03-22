@@ -265,6 +265,26 @@ export const BODY_SCRIPTS: Record<ContentTemplateKey, string[]> = {
     "Kita liat ya first impression aku gimana.",
     "Pertama kali pake dan ini reaksi jujur aku.",
   ],
+  hero_product: [
+    "Ini produk yang bener-bener premium banget.",
+    "Kualitasnya keliatan dari detail-detailnya.",
+    "Kalau mau yang terbaik, ini jawabannya.",
+  ],
+  brand_campaign: [
+    "Brand ini beda banget dari yang lain.",
+    "Ini bukan cuma produk, ini lifestyle.",
+    "Kalau kamu cari yang premium, ini dia.",
+  ],
+  katalog_produk: [
+    "Ini detail lengkap dari produknya.",
+    "Kita liat dari semua angle ya.",
+    "Biar kamu bisa liat sendiri kualitasnya.",
+  ],
+  studio_editorial: [
+    "Ini produk yang worth banget buat difotoin.",
+    "High-end vibes dari produk ini.",
+    "Editorial look buat produk yang premium.",
+  ],
 };
 
 /** Get random body scripts for a template */
