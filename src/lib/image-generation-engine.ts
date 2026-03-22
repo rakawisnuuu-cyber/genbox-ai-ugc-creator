@@ -512,6 +512,21 @@ const CATEGORY_SHOT_FRAGMENTS: Record<ProductCategory, CategoryFragments> = {
   },
 };
 
+// ── Shot-Specific AI Direction ─────────────────────────────────
+const SHOT_DIRECTION: Record<ShotTypeKey, string> = {
+  hero: "DIRECTION: Main hero shot. Character holding product confidently, product label clearly visible facing camera. Both character face and product must be prominent in frame.",
+  product_detail:
+    "DIRECTION: Creator showing product to camera close-up. Product fills 60-70% of frame, label and texture razor sharp. Creator's face and body visible BEHIND the product but naturally out of focus — shallow depth of field from phone focusing on the near object. Like a TikTok creator holding product toward the lens saying 'coba liat ini'. One hand holding product, other hand may point at label or feature. NOT a flat lay, NOT product-on-table — this is handheld toward camera.",
+  usage:
+    "DIRECTION: Natural usage moment. Character actively USING the product in its intended way — not just holding it. Show the ACTION of application/consumption/interaction. Hands and product interaction must be the focal point.",
+  reaction:
+    "DIRECTION: Post-use genuine reaction. Character's face and expression are the hero — product can be secondary or out of frame. Show authentic emotion: surprise, satisfaction, delight.",
+  lifestyle:
+    "DIRECTION: Environmental context shot. Wider framing showing product naturally placed in daily life setting. Character may or may not be in frame. Product should feel like part of the scene, not posed.",
+  face_closeup:
+    "DIRECTION: Extreme tight face crop. Only face fills the frame — chin to forehead or tighter. Show skin texture, pores, expression detail. Product should NOT be in frame. This is about intimacy and trust.",
+};
+
 // ── Helpers ─────────────────────────────────────────────────────
 
 /** Pick one random pose variant from a "|" separated string */
@@ -553,6 +568,7 @@ export function planImageShots(config: GenerationConfig): ImageShotPlan[] {
 
     // Category-aware scene direction (replaces generic promptFragment)
     parts.push(`SCENE: ${chosenPose}`);
+    parts.push(SHOT_DIRECTION[shotKey]);
 
     if (!style.expression.includes("N/A")) {
       parts.push(`CHARACTER: ${characterDescription}. Skin tone: ${skin}. Expression: ${style.expression}.`);
