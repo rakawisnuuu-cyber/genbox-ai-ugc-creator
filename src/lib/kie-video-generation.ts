@@ -398,3 +398,35 @@ export async function fetchHDVideo(
 
   return poll();
 }
+
+// ── Veo Extend (for Talking Head longer segments) ───────────────
+export async function extendVeoVideo(params: {
+  taskId: string;
+  prompt: string;
+  model?: "fast" | "quality";
+  apiKey: string;
+  isCancelled?: () => boolean;
+}): Promise<VideoResult> {
+  const { taskId, prompt, model = "quality", apiKey, isCancelled } = params;
+  const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
+
+  const veoModel = model === "fast" ? "veo3.1_fast" : "veo3.1";
+  console.log(`[kie] Extending Veo video. taskId=${taskId}, model=${veoModel}`);
+
+  const res = await fetch(`${KIE_BASE}/veo/extend`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ taskId, prompt, model: veoModel }),
+  });
+
+  const json = await res.json();
+  console.log("[kie] Veo extend response:", json);
+
+  const newTaskId = json.data?.taskId || json.taskId;
+  if (!newTaskId) {
+    throw new Error(extractError(json, "Failed to initiate Veo extend"));
+  }
+
+  const videoUrl = await pollTask(newTaskId, model === "fast" ? "veo_fast" : "veo_quality", apiKey, isCancelled);
+  return { videoUrl, taskId: newTaskId };
+}
