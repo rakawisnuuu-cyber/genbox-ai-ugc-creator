@@ -128,6 +128,10 @@ const TEMPLATE_HOOK_MAP: Record<ContentTemplateKey, HookCategory[]> = {
   tutorial_singkat: ["curiosity", "recommendation", "mini_story"],
   day_in_my_life: ["mini_story", "relatable_problem", "recommendation"],
   first_impression: ["honest_review", "surprise", "curiosity"],
+  hero_product: ["curiosity", "surprise", "recommendation"],
+  brand_campaign: ["mini_story", "curiosity", "pattern_interrupt"],
+  katalog_produk: ["curiosity", "recommendation"],
+  studio_editorial: ["pattern_interrupt", "curiosity", "surprise"],
 };
 
 /** Get the relevant hook categories for a template */
@@ -261,6 +265,26 @@ export const BODY_SCRIPTS: Record<ContentTemplateKey, string[]> = {
     "Belum pernah coba sama sekali, jadi ini honest reaction aku.",
     "Kita liat ya first impression aku gimana.",
     "Pertama kali pake dan ini reaksi jujur aku.",
+  ],
+  hero_product: [
+    "Ini produk yang bener-bener premium banget.",
+    "Kualitasnya keliatan dari detail-detailnya.",
+    "Kalau mau yang terbaik, ini jawabannya.",
+  ],
+  brand_campaign: [
+    "Brand ini beda banget dari yang lain.",
+    "Ini bukan cuma produk, ini lifestyle.",
+    "Kalau kamu cari yang premium, ini dia.",
+  ],
+  katalog_produk: [
+    "Ini detail lengkap dari produknya.",
+    "Kita liat dari semua angle ya.",
+    "Biar kamu bisa liat sendiri kualitasnya.",
+  ],
+  studio_editorial: [
+    "Ini produk yang worth banget buat difotoin.",
+    "High-end vibes dari produk ini.",
+    "Editorial look buat produk yang premium.",
   ],
 };
 

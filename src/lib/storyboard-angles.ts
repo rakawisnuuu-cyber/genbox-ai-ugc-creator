@@ -123,6 +123,35 @@ const STORYBOARDS: Record<ContentTemplateKey, StoryboardBeat[]> = {
     { label: "Assessment", beat: "6-8s", storyRole: "Assessment", description: "Processing the result — touching, checking, comparing to expectations. Building genuine opinion. Mix of impressed and analytical." },
     { label: "Honest Verdict", beat: "8-10s", storyRole: "Verdict", description: "Final honest verdict — direct eye contact, genuine opinion. Authentic not forced. Product visible, natural close." },
   ],
+  // ── COMMERCIAL TEMPLATES ──
+  hero_product: [
+    { label: "Hero Angle", beat: "0-2s", storyRole: "Hero", description: "Product held elegantly at eye level, clean studio lighting, confident neutral expression. Full product visibility with brand label facing camera." },
+    { label: "Detail Close-up", beat: "2-4s", storyRole: "Detail", description: "Macro close-up on product texture, finish, key design element. Shallow depth of field, product fills frame. No person needed." },
+    { label: "Lifestyle Context", beat: "4-6s", storyRole: "Lifestyle", description: "Product in curated environment, model interacting naturally. Medium shot, balanced composition, premium feel." },
+    { label: "Feature Highlight", beat: "6-8s", storyRole: "Feature", description: "Demonstrating key benefit or unique mechanism. Hands active, controlled lighting, functional beauty." },
+    { label: "Brand Statement", beat: "8-10s", storyRole: "Brand", description: "Product centered, clean background, logo visible. Aspirational packshot, memorable final frame." },
+  ],
+  brand_campaign: [
+    { label: "Brand Mood", beat: "0-2s", storyRole: "Mood", description: "Atmospheric establishing shot, cinematic lighting, model in aspirational setting. Emotion-first, product secondary." },
+    { label: "Identity Shot", beat: "2-4s", storyRole: "Identity", description: "Model embodies brand persona, confident editorial pose. Wardrobe and styling aligned with brand identity." },
+    { label: "Product Integration", beat: "4-6s", storyRole: "Integration", description: "Natural product use in elevated lifestyle context. Seamless integration, not forced placement." },
+    { label: "Aspirational Moment", beat: "6-8s", storyRole: "Aspiration", description: "The 'after' feeling — elevated confidence, glowing result, emotional peak of the narrative." },
+    { label: "Brand Lockup", beat: "8-10s", storyRole: "Lockup", description: "Product hero with brand elements, clean premium composition, memorable closing frame." },
+  ],
+  katalog_produk: [
+    { label: "Clean Product", beat: "0-2s", storyRole: "Clean Shot", description: "White or neutral background, product centered, even soft lighting. E-commerce hero angle, all details visible." },
+    { label: "Variant Display", beat: "2-4s", storyRole: "Variant", description: "Product from different angle or showing color variant. Clean consistent lighting maintained throughout." },
+    { label: "Scale / Size", beat: "4-6s", storyRole: "Scale", description: "Product held in hand or next to common object for size reference. Clean background, functional context." },
+    { label: "Texture Detail", beat: "6-8s", storyRole: "Texture", description: "Extreme close-up on material, finish, craftsmanship quality. Shallow DOF, tactile feel conveyed visually." },
+    { label: "Styled Flat Lay", beat: "8-10s", storyRole: "Flat Lay", description: "Product with complementary props, overhead angle, curated arrangement. Lifestyle-catalog hybrid." },
+  ],
+  studio_editorial: [
+    { label: "Editorial Pose", beat: "0-2s", storyRole: "Editorial", description: "Model in dramatic editorial pose with product, controlled studio lighting, fashion magazine framing." },
+    { label: "Fashion Detail", beat: "2-4s", storyRole: "Fashion Detail", description: "Close-up on styling detail, product as accessory or in active use. Dramatic shadow play, high contrast." },
+    { label: "Environment Mood", beat: "4-6s", storyRole: "Environment", description: "Model in curated set, atmospheric lighting, editorial color grading. Product integrated into the scene naturally." },
+    { label: "Dynamic Movement", beat: "6-8s", storyRole: "Dynamic", description: "Model mid-motion, hair flowing or fabric draping. Product visible, kinetic energy, editorial action shot." },
+    { label: "Magazine Cover", beat: "8-10s", storyRole: "Cover", description: "Final editorial pose, product prominent, aspirational composition. Print-ready, magazine cover quality framing." },
+  ],
 };
 
 /** Get storyboard beats for a content template */

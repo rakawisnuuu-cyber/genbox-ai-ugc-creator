@@ -17,7 +17,11 @@ export type ContentTemplateKey =
   | "expectation_reality"
   | "tutorial_singkat"
   | "day_in_my_life"
-  | "first_impression";
+  | "first_impression"
+  | "hero_product"
+  | "brand_campaign"
+  | "katalog_produk"
+  | "studio_editorial";
 
 export interface TimingBeat {
   start: number;
@@ -353,6 +357,99 @@ export const CONTENT_TEMPLATES: ContentTemplate[] = [
       { start: 9, end: 10, action: "Honest verdict, direct eye contact, authentic opinion" },
     ],
     recommendedFor: ["skincare", "electronics", "food", "health"],
+  },
+  // ── COMMERCIAL TEMPLATES ──
+  {
+    key: "hero_product",
+    label: "Hero Product",
+    desc: "Showcase produk premium dengan angle editorial dan lighting studio.",
+    icon: "Gem",
+    fullDuration: 15,
+    compressedDuration: 10,
+    fullTiming: [
+      { start: 0, end: 3, action: "Hero angle — product held elegantly at eye level, clean studio lighting, confident neutral expression. Full product visibility with brand label" },
+      { start: 3, end: 6, action: "Detail close-up — macro on texture, finish, key feature. Shallow depth of field, product fills frame" },
+      { start: 6, end: 9, action: "Lifestyle context — product in curated environment, model interacting naturally. Medium shot, balanced composition" },
+      { start: 9, end: 12, action: "Feature highlight — demonstrating key benefit or unique mechanism. Hands active, controlled lighting" },
+      { start: 12, end: 15, action: "Brand statement — product centered, clean background, logo visible. Aspirational final frame" },
+    ],
+    compressedTiming: [
+      { start: 0, end: 2, action: "Hero angle, product held elegantly, studio lighting" },
+      { start: 2, end: 4, action: "Detail macro close-up on texture and finish" },
+      { start: 4, end: 6, action: "Lifestyle context, natural interaction" },
+      { start: 6, end: 8, action: "Feature demonstration, key benefit" },
+      { start: 8, end: 10, action: "Brand statement, product centered, logo visible" },
+    ],
+    recommendedFor: ["skincare", "electronics", "fashion"],
+  },
+  {
+    key: "brand_campaign",
+    label: "Brand Campaign",
+    desc: "Konten brand aspirasional dengan storytelling visual premium.",
+    icon: "Megaphone",
+    fullDuration: 20,
+    compressedDuration: 10,
+    fullTiming: [
+      { start: 0, end: 4, action: "Brand mood — atmospheric establishing shot, cinematic lighting, model in aspirational setting. Emotion-first, product secondary" },
+      { start: 4, end: 8, action: "Identity shot — model embodies brand persona, confident pose, editorial framing. Wardrobe and styling on point" },
+      { start: 8, end: 12, action: "Product integration — natural product use in lifestyle context. Seamless, not forced. Medium shot" },
+      { start: 12, end: 16, action: "Aspirational moment — the 'after' feeling, elevated confidence, glowing result. Emotional peak" },
+      { start: 16, end: 20, action: "Brand lockup — product hero with brand elements, clean composition, memorable final frame" },
+    ],
+    compressedTiming: [
+      { start: 0, end: 2, action: "Atmospheric brand mood, cinematic lighting" },
+      { start: 2, end: 4, action: "Identity shot, model embodies brand persona" },
+      { start: 4, end: 6, action: "Product integration, natural lifestyle use" },
+      { start: 6, end: 8, action: "Aspirational moment, elevated confidence" },
+      { start: 8, end: 10, action: "Brand lockup, product hero, clean composition" },
+    ],
+    recommendedFor: ["fashion", "skincare", "health"],
+  },
+  {
+    key: "katalog_produk",
+    label: "Katalog Produk",
+    desc: "Multi-angle produk bersih untuk katalog dan e-commerce.",
+    icon: "Grid3X3",
+    fullDuration: 15,
+    compressedDuration: 10,
+    fullTiming: [
+      { start: 0, end: 3, action: "Clean product shot — white or neutral background, product centered, even soft lighting. E-commerce hero angle" },
+      { start: 3, end: 6, action: "Variant display — showing product from different angle, color variants if applicable. Clean consistent lighting" },
+      { start: 6, end: 9, action: "Scale reference — product held in hand or next to common object for size context. Clean background maintained" },
+      { start: 9, end: 12, action: "Texture detail — extreme close-up on material, finish, craftsmanship. Shallow DOF" },
+      { start: 12, end: 15, action: "Styled flat lay — product with complementary props, overhead angle, curated arrangement" },
+    ],
+    compressedTiming: [
+      { start: 0, end: 2, action: "Clean product shot, neutral background, hero angle" },
+      { start: 2, end: 4, action: "Variant display, different angle, consistent lighting" },
+      { start: 4, end: 6, action: "Scale reference, product in hand" },
+      { start: 6, end: 8, action: "Texture detail, macro close-up" },
+      { start: 8, end: 10, action: "Styled flat lay, overhead, curated props" },
+    ],
+    recommendedFor: ["fashion", "electronics", "home", "skincare"],
+  },
+  {
+    key: "studio_editorial",
+    label: "Studio Editorial",
+    desc: "High-fashion editorial style dengan pose dan lighting dramatis.",
+    icon: "Aperture",
+    fullDuration: 20,
+    compressedDuration: 10,
+    fullTiming: [
+      { start: 0, end: 4, action: "Editorial pose — model in dramatic pose with product, controlled studio lighting, fashion magazine framing. Strong composition" },
+      { start: 4, end: 8, action: "Fashion detail — close-up on styling detail, product as accessory or in-use. Dramatic shadow play" },
+      { start: 8, end: 12, action: "Environment mood — model in curated set, atmospheric lighting, editorial color grading. Product integrated naturally" },
+      { start: 12, end: 16, action: "Dynamic movement — model mid-motion, hair flowing, fabric draping. Product visible, kinetic energy" },
+      { start: 16, end: 20, action: "Magazine cover — final editorial pose, product prominent, aspirational composition. Print-ready framing" },
+    ],
+    compressedTiming: [
+      { start: 0, end: 2, action: "Editorial pose, dramatic lighting, fashion framing" },
+      { start: 2, end: 4, action: "Fashion detail close-up, shadow play" },
+      { start: 4, end: 6, action: "Environment mood, atmospheric editorial" },
+      { start: 6, end: 8, action: "Dynamic movement, kinetic energy" },
+      { start: 8, end: 10, action: "Magazine cover pose, aspirational composition" },
+    ],
+    recommendedFor: ["fashion", "skincare"],
   },
 ];
 
