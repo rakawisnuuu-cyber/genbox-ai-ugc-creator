@@ -163,7 +163,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   }
 
   // ── Veo Fast / Quality ──
-  const veoModel = model === "veo_fast" ? "veo3.1_fast" : "veo3.1";
+  const veoModel = model === "veo_fast" ? "veo3_fast" : "veo3";
   console.log(`[kie] Creating Veo task. Model: ${veoModel}`);
 
   const imageCount = imageUrls.filter(Boolean).length;
@@ -410,7 +410,7 @@ export async function extendVeoVideo(params: {
   const { taskId, prompt, model = "quality", apiKey, isCancelled } = params;
   const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 
-  const veoModel = model === "fast" ? "veo3.1_fast" : "veo3.1";
+  const veoModel = model === "fast" ? "veo3_fast" : "veo3";
   console.log(`[kie] Extending Veo video. taskId=${taskId}, model=${veoModel}`);
 
   const res = await fetch(`${KIE_BASE}/veo/extend`, {
