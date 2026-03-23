@@ -232,7 +232,7 @@ async function pollTask(taskId: string, model: string, apiKey: string, isCancell
     consecutive404s = 0;
 
     const j = await r.json();
-    console.log(`[kie] Poll response (${model}):`, j);
+    
 
     if (!isVeoModel) {
       // Grok & Kling use same response format
