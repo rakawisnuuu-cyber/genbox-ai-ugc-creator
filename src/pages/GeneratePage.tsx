@@ -60,6 +60,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { fileToBase64 } from "@/lib/image-utils";
 import { generateVideoAndWait, extendVeoVideo, type VideoModel } from "@/lib/kie-video-generation";
+import { geminiFetch } from "@/lib/gemini-fetch";
 import {
   getMotionPrompt,
   getTalkingHeadPrompts,
@@ -82,13 +83,6 @@ const MOTION_MODELS = [
   { id: "kling_pro", label: "Kling 3.0 Pro", cost: 3560, durations: [3, 5, 8, 10, 12, 15] },
   { id: "veo_fast", label: "Veo 3.1 Fast", cost: 4960, durations: [8] },
   { id: "veo_quality", label: "Veo 3.1 Quality", cost: 24800, durations: [8] },
-];
-
-const TALK_OPTIONS = [
-  { seconds: 8, label: "8s", cost: 24800, extends: 0, veoModel: "veo_quality" as const },
-  { seconds: 16, label: "16s", cost: 43400, extends: 1, veoModel: "veo_quality" as const },
-  { seconds: 24, label: "24s", cost: 62000, extends: 2, veoModel: "veo_quality" as const },
-  { seconds: 32, label: "32s", cost: 80600, extends: 3, veoModel: "veo_quality" as const },
 ];
 
 const TALK_VEO_MODELS = [
@@ -155,7 +149,7 @@ const GeneratePage = () => {
   const [tScript, setTScript] = useState("");
   const [tPrompt, setTPrompt] = useState("");
   const [vGen, setVGen] = useState(false);
-  const [vResult, setVResult] = useState<string | null>(null);
+  const [vResults, setVResults] = useState<string[]>([]);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
   const [sPerShotDur, setSPerShotDur] = useState<number[]>([]);
 
@@ -177,7 +171,6 @@ const GeneratePage = () => {
   const mModelInfo = MOTION_MODELS.find((m) => m.id === mModel) || MOTION_MODELS[1];
   const talkCost = getTalkCost(tVeo, tDur);
 
-  // Allow up to 6 shots
   const toggle = (k: ShotTypeKey) =>
     setSelShots((p) =>
       p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= 6 ? p : [...p, k],
@@ -221,7 +214,7 @@ const GeneratePage = () => {
     (idx: number) => {
       setVIdx(idx);
       setVMode("motion");
-      setVResult(null);
+      setVResults([]);
       setVpOpen(true);
       setActiveMotionPreset(null);
       setMPrompt(buildMotionPrompt(idx));
@@ -233,9 +226,8 @@ const GeneratePage = () => {
     (idx: number) => {
       setVIdx(idx);
       setVMode("talking");
-      setVResult(null);
+      setVResults([]);
       setVpOpen(true);
-      // Initialize beat dialogues with defaults
       const beats = getBeatsForDuration(tDur);
       const defaults: Record<string, string> = {};
       beats.forEach((bk) => {
@@ -251,10 +243,9 @@ const GeneratePage = () => {
   const openStory = useCallback(() => {
     setVIdx(0);
     setVMode("story");
-    setVResult(null);
+    setVResults([]);
     setVpOpen(true);
-    const durations = results.map(() => 5);
-    setSPerShotDur(durations);
+    setSPerShotDur(results.map(() => 5));
   }, [results]);
 
   // Auto-rebuild talking head prompt when beat dialogues or duration change
@@ -263,6 +254,44 @@ const GeneratePage = () => {
       setTPrompt(buildTalkPrompt());
     }
   }, [beatDialogues, tDur, vMode, vpOpen, buildTalkPrompt]);
+
+  // ── AI Script Generation ───────────────────────────────────
+  const generateBeatScript = useCallback(
+    async (beatKey: TalkingHeadBeatKey, beatIdx: number) => {
+      if (!geminiKey || !dna) {
+        toast({ title: "Setup Gemini API key dulu", variant: "destructive" });
+        return;
+      }
+      const beat = getBeatDefinition(beatKey);
+      const prevBeatKey = getBeatsForDuration(tDur)[beatIdx - 1];
+      const prevScript = prevBeatKey ? beatDialogues[prevBeatKey] || "" : "";
+      const productContext = dna.product_description
+        ? `Product: ${dna.product_description} (${dna.category}/${dna.sub_category}). Brand: ${dna.brand_name}. Key benefits: ${dna.key_benefits}. UGC hook: "${dna.ugc_hook}"`
+        : "";
+
+      setBeatDialogues((prev) => ({ ...prev, [beatKey]: "..." }));
+      try {
+        const systemText = `You are a TikTok content script writer specializing in Indonesian casual/gaul language.\n${productContext}\nWrite a short spoken dialog for the '${beat.name}' beat of a UGC product review video.\nBeat purpose: ${beat.description}\nEnergy: ${beat.energy}\nProduct visibility: ${beat.productVisibility}\n\nMaximum 20-25 words (about 8 seconds of natural speech). 2 sentences max. Do NOT write more.\n${prevScript ? `Previous beat's dialog was: '${prevScript}'. This should flow naturally as the next thing the person would say.` : "This is the opening line — make it attention-grabbing."}\nCasual Indonesian (gaul style, like real TikTok). Output ONLY the script text, no quotes.`;
+        const json = await geminiFetch(promptModel, geminiKey, {
+          systemInstruction: { parts: [{ text: systemText }] },
+          contents: [{ parts: [{ text: `Beat: ${beat.nameId} — ${beat.description}` }] }],
+        });
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        setBeatDialogues((prev) => ({ ...prev, [beatKey]: text || prev[beatKey] }));
+      } catch {
+        setBeatDialogues((prev) => ({ ...prev, [beatKey]: prev[beatKey] === "..." ? "" : prev[beatKey] }));
+        toast({ title: "Gagal generate script", variant: "destructive" });
+      }
+    },
+    [geminiKey, dna, tDur, beatDialogues, promptModel],
+  );
+
+  const generateAllScripts = useCallback(async () => {
+    const beats = getBeatsForDuration(tDur);
+    for (let i = 0; i < beats.length; i++) {
+      await generateBeatScript(beats[i], i);
+    }
+  }, [tDur, generateBeatScript]);
 
   // ── Upload handlers ────────────────────────────────────────
   const uploadProd = useCallback(
@@ -363,8 +392,7 @@ const GeneratePage = () => {
     [plans, imgModel, imgRes, ar, kieApiKey, charImg, prodUrl],
   );
 
-  // ── Download single image ──────────────────────────────────
-  const downloadImage = useCallback(async (url: string, filename: string) => {
+  const downloadFile = useCallback(async (url: string, filename: string) => {
     try {
       const resp = await fetch(url);
       const blob = await resp.blob();
@@ -381,23 +409,24 @@ const GeneratePage = () => {
     }
   }, []);
 
-  // ── Save all to gallery ────────────────────────────────────
   const saveToGallery = useCallback(async () => {
     if (!user) return;
     let saved = 0;
     for (const [i, r] of results.entries()) {
       if (!r) continue;
       try {
-        await supabase.from("generations").insert({
-          user_id: user.id,
-          image_url: r.imageUrl,
-          prompt: plans[i]?.prompt?.substring(0, 5000) || null,
-          type: "image",
-          model: imgModel,
-          provider: "kie_ai",
-          status: "completed",
-          character_id: charId !== "own-photo" ? charId : null,
-        });
+        await supabase
+          .from("generations")
+          .insert({
+            user_id: user.id,
+            image_url: r.imageUrl,
+            prompt: plans[i]?.prompt?.substring(0, 5000) || null,
+            type: "image",
+            model: imgModel,
+            provider: "kie_ai",
+            status: "completed",
+            character_id: charId !== "own-photo" ? charId : null,
+          });
         saved++;
       } catch (e: any) {
         console.error("Save failed:", e);
@@ -413,8 +442,7 @@ const GeneratePage = () => {
       return;
     }
     setVGen(true);
-    setVResult(null);
-
+    setVResults([]);
     try {
       if (vMode === "motion" && vIdx !== null && results[vIdx]) {
         const r = await generateVideoAndWait({
@@ -425,11 +453,10 @@ const GeneratePage = () => {
           aspectRatio: ar,
           apiKey: kieApiKey,
         });
-        setVResult(r.videoUrl);
+        setVResults([r.videoUrl]);
       } else if (vMode === "talking" && vIdx !== null && results[vIdx]) {
         const promptParts = tPrompt.split("\n\n---EXTEND---\n\n");
         const initialPrompt = promptParts[0] || tPrompt;
-
         const first = await generateVideoAndWait({
           model: tVeo as VideoModel,
           prompt: initialPrompt,
@@ -438,8 +465,7 @@ const GeneratePage = () => {
           aspectRatio: ar,
           apiKey: kieApiKey,
         });
-        let finalUrl = first.videoUrl;
-
+        const segments: string[] = [first.videoUrl];
         const extCount = Math.max(0, Math.floor((tDur - 8) / 8));
         for (let e = 0; e < extCount; e++) {
           const extPrompt =
@@ -452,15 +478,14 @@ const GeneratePage = () => {
             model: tVeo === "veo_fast" ? "fast" : "quality",
             apiKey: kieApiKey,
           });
-          finalUrl = ext.videoUrl;
+          segments.push(ext.videoUrl);
         }
-        setVResult(finalUrl);
+        setVResults(segments);
       } else if (vMode === "story" && results.length >= 2) {
         toast({ title: "Multi-shot story coming soon", description: "Fitur ini sedang dikembangkan" });
         setVGen(false);
         return;
       }
-
       toast({ title: "Video berhasil di-generate!" });
     } catch (e: any) {
       toast({ title: "Video gagal", description: e.message, variant: "destructive" });
@@ -479,11 +504,8 @@ const GeneratePage = () => {
   );
 
   /* ═══════════════════════════════════════════════════════════ */
-  /* RENDER                                                      */
-  /* ═══════════════════════════════════════════════════════════ */
   return (
     <div className="min-h-[calc(100vh-48px)] lg:min-h-screen -mx-4 -my-4 lg:-mx-6 lg:-my-8">
-      {/* ══ STEP 1: Setup ════════════════════════════════════ */}
       {step === 1 && (
         <div className="max-w-2xl mx-auto px-5 py-8 space-y-8">
           <div>
@@ -743,12 +765,11 @@ const GeneratePage = () => {
         </div>
       )}
 
-      {/* ══ STEP 2: Output ═══════════════════════════════════ */}
+      {/* ══ STEP 2 ═══════════════════════════════════════════ */}
       {step === 2 && (
         <div className="flex h-[calc(100vh-48px)] lg:h-screen">
           <div className={`flex-1 overflow-y-auto transition-all ${vpOpen ? "lg:mr-[400px]" : ""}`}>
             <div className="max-w-4xl mx-auto px-5 py-6 space-y-4">
-              {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <button
@@ -782,7 +803,6 @@ const GeneratePage = () => {
                 </div>
               </div>
 
-              {/* Progress */}
               {genning && (
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
@@ -792,15 +812,8 @@ const GeneratePage = () => {
                 </div>
               )}
 
-              {/* Image Grid */}
               <div
-                className={`grid gap-4 ${
-                  selShots.length === 1
-                    ? "grid-cols-1 max-w-md mx-auto"
-                    : selShots.length === 2
-                      ? "grid-cols-2 max-w-2xl mx-auto"
-                      : "grid-cols-2 lg:grid-cols-3"
-                }`}
+                className={`grid gap-4 ${selShots.length === 1 ? "grid-cols-1 max-w-md mx-auto" : selShots.length === 2 ? "grid-cols-2 max-w-2xl mx-auto" : "grid-cols-2 lg:grid-cols-3"}`}
               >
                 {Array.from({ length: imgGen.progress.totalShots || selShots.length }).map((_, i) => {
                   const r = imgGen.progress.results[i];
@@ -821,7 +834,6 @@ const GeneratePage = () => {
                             className="absolute inset-0 w-full h-full object-cover cursor-pointer"
                             onClick={() => setLbIdx(i)}
                           />
-                          {/* Shot label + prompt button */}
                           {s && (
                             <div className="absolute bottom-0 left-0 right-0 p-2">
                               <span className="text-[9px] px-2 py-0.5 rounded-md font-medium bg-black/50 text-white/80">
@@ -848,7 +860,6 @@ const GeneratePage = () => {
                               </button>
                             </div>
                           )}
-                          {/* Hover actions */}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                             <ActBtn icon={RefreshCw} label="Retry" onClick={() => retry(i)} />
                             <ActBtn
@@ -862,7 +873,7 @@ const GeneratePage = () => {
                             <ActBtn
                               icon={Download}
                               label="Save"
-                              onClick={() => downloadImage(r.imageUrl, `genbox-${s?.shotType || "shot"}-${i + 1}.png`)}
+                              onClick={() => downloadFile(r.imageUrl, `genbox-${s?.shotType || "shot"}-${i + 1}.png`)}
                             />
                           </div>
                         </>
@@ -890,8 +901,7 @@ const GeneratePage = () => {
                 })}
               </div>
 
-              {/* Prompt Preview Modal */}
-              {promptPreview !== null && plans[promptPreview] && (
+              {promptPreview !== null && promptPreview >= 0 && plans[promptPreview] && (
                 <div className="p-4 rounded-xl border border-border/30 bg-white/[0.02] space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold">{plans[promptPreview].shotLabel} — Full Prompt</span>
@@ -908,7 +918,6 @@ const GeneratePage = () => {
                 </div>
               )}
 
-              {/* Bottom bar */}
               {isDone && results.length > 0 && (
                 <div className="flex items-center justify-between gap-3 py-3 mt-4 border-t border-border/30">
                   <div className="flex gap-2 flex-wrap">
@@ -919,7 +928,7 @@ const GeneratePage = () => {
                       onClick={async () => {
                         for (const [i, r] of results.entries()) {
                           if (!r) continue;
-                          await downloadImage(r.imageUrl, `genbox-${plans[i]?.shotType || "shot"}-${i + 1}.png`);
+                          await downloadFile(r.imageUrl, `genbox-${plans[i]?.shotType || "shot"}-${i + 1}.png`);
                         }
                         toast({ title: `${results.filter(Boolean).length} gambar di-download` });
                       }}
@@ -954,7 +963,6 @@ const GeneratePage = () => {
           {vpOpen && (
             <div className="fixed inset-y-0 right-0 w-full lg:w-[400px] bg-card border-l border-border/40 z-40 overflow-y-auto shadow-2xl">
               <div className="p-5 space-y-5">
-                {/* Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {vMode === "motion" && <Play className="w-4 h-4 text-primary" />}
@@ -969,18 +977,17 @@ const GeneratePage = () => {
                   </button>
                 </div>
 
-                {/* Source image preview */}
                 {vIdx !== null && results[vIdx] && (
                   <div className="relative aspect-[9/16] max-h-[200px] rounded-xl overflow-hidden border border-border/30 mx-auto w-fit">
-                    {vResult ? (
-                      <video src={vResult} controls className="h-full w-auto" autoPlay />
+                    {vResults.length === 1 ? (
+                      <video src={vResults[0]} controls className="h-full w-auto" autoPlay />
                     ) : (
                       <img src={results[vIdx]!.imageUrl} alt="Src" className="h-full w-auto object-cover" />
                     )}
                   </div>
                 )}
 
-                {/* ── QUICK MOTION Panel ──────────────────────── */}
+                {/* QUICK MOTION */}
                 {vMode === "motion" && (
                   <>
                     <div>
@@ -1023,7 +1030,6 @@ const GeneratePage = () => {
                         ))}
                       </div>
                     </div>
-                    {/* Motion Style Presets */}
                     <div>
                       <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider font-semibold">
                         Motion Style
@@ -1100,7 +1106,7 @@ const GeneratePage = () => {
                   </>
                 )}
 
-                {/* ── TALKING HEAD Panel ─────────────────────── */}
+                {/* TALKING HEAD */}
                 {vMode === "talking" && (
                   <>
                     <div>
@@ -1129,7 +1135,6 @@ const GeneratePage = () => {
                             key={d}
                             onClick={() => {
                               setTDur(d);
-                              // Re-initialize beats for new duration
                               const beats = getBeatsForDuration(d);
                               const defaults: Record<string, string> = {};
                               beats.forEach((bk) => {
@@ -1160,15 +1165,25 @@ const GeneratePage = () => {
                       )}
                     </div>
 
-                    {/* Beat Cards */}
+                    {/* Beat Cards with AI Script */}
                     <div>
-                      <label className="text-[10px] text-muted-foreground mb-2 block uppercase tracking-wider font-semibold flex items-center gap-1">
-                        <MessageSquare className="w-3 h-3" />
-                        Story Beats & Dialogue
-                      </label>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1">
+                          <MessageSquare className="w-3 h-3" />
+                          Story Beats & Script
+                        </label>
+                        <button
+                          onClick={generateAllScripts}
+                          className="flex items-center gap-1 text-[9px] text-primary hover:text-primary/80 font-medium"
+                        >
+                          <Zap className="w-3 h-3" />
+                          Auto-Generate All
+                        </button>
+                      </div>
                       <div className="space-y-2.5">
                         {getBeatsForDuration(tDur).map((beatKey, idx) => {
                           const beat = getBeatDefinition(beatKey);
+                          const isLoading = beatDialogues[beatKey] === "...";
                           return (
                             <div
                               key={beatKey}
@@ -1199,16 +1214,31 @@ const GeneratePage = () => {
                                       : "visible"}
                                 </span>
                               </div>
+                              <div className="flex items-center justify-between mt-1.5">
+                                <span className="text-[9px] text-muted-foreground">Script</span>
+                                <button
+                                  onClick={() => generateBeatScript(beatKey, idx)}
+                                  disabled={isLoading}
+                                  className="flex items-center gap-1 text-[9px] text-primary hover:text-primary/80 disabled:opacity-50"
+                                >
+                                  {isLoading ? (
+                                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                                  ) : (
+                                    <Zap className="w-2.5 h-2.5" />
+                                  )}
+                                  AI Script
+                                </button>
+                              </div>
                               <Textarea
-                                value={beatDialogues[beatKey] || ""}
-                                onChange={(e) => {
-                                  setBeatDialogues((prev) => ({ ...prev, [beatKey]: e.target.value }));
-                                }}
-                                className="text-[10px] min-h-[50px] mt-1"
-                                placeholder={beat.defaultDialogueId(
-                                  dna?.product_description || "produk",
-                                  dna?.ugc_hook || "",
-                                )}
+                                value={isLoading ? "" : beatDialogues[beatKey] || ""}
+                                onChange={(e) => setBeatDialogues((prev) => ({ ...prev, [beatKey]: e.target.value }))}
+                                disabled={isLoading}
+                                className="text-[10px] min-h-[50px]"
+                                placeholder={
+                                  isLoading
+                                    ? "Generating..."
+                                    : beat.defaultDialogueId(dna?.product_description || "produk", dna?.ugc_hook || "")
+                                }
                               />
                             </div>
                           );
@@ -1216,7 +1246,6 @@ const GeneratePage = () => {
                       </div>
                     </div>
 
-                    {/* Video Prompt Preview */}
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
@@ -1253,7 +1282,7 @@ const GeneratePage = () => {
                   </>
                 )}
 
-                {/* ── FULL STORY Panel ───────────────────────── */}
+                {/* FULL STORY */}
                 {vMode === "story" && (
                   <>
                     <p className="text-xs text-muted-foreground">
@@ -1292,7 +1321,6 @@ const GeneratePage = () => {
                           ),
                       )}
                     </div>
-                    {/* Full Story prompt visibility */}
                     <div>
                       <button
                         onClick={() => setPromptPreview(promptPreview === -1 ? null : -1)}
@@ -1331,19 +1359,55 @@ const GeneratePage = () => {
                   </>
                 )}
 
-                {/* Download result */}
-                {vResult && (
-                  <div className="flex gap-2 pt-2 border-t border-border/30">
-                    <Button variant="outline" size="sm" className="flex-1 text-xs h-8" asChild>
-                      <a href={vResult} download target="_blank" rel="noreferrer">
+                {/* Video Results — multi-segment aware */}
+                {vResults.length > 0 && (
+                  <div className="space-y-3 pt-3 border-t border-border/30">
+                    {vResults.map((url, i) => {
+                      const beats = vMode === "talking" ? getBeatsForDuration(tDur) : [];
+                      const beatDef = beats[i] ? getBeatDefinition(beats[i]) : null;
+                      const label = beatDef ? `${beatDef.nameId} (${i * 8}–${(i + 1) * 8}s)` : `Clip ${i + 1}`;
+                      return (
+                        <div key={i} className="space-y-2">
+                          {vResults.length > 1 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-medium">{label}</span>
+                              <Button variant="ghost" size="sm" className="text-[10px] h-6 px-2" asChild>
+                                <a href={url} download target="_blank" rel="noreferrer">
+                                  <Download className="w-3 h-3 mr-1" />
+                                  Download
+                                </a>
+                              </Button>
+                            </div>
+                          )}
+                          <video src={url} controls className="w-full rounded-lg" />
+                        </div>
+                      );
+                    })}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs h-8"
+                        onClick={async () => {
+                          for (const [i, url] of vResults.entries()) {
+                            await downloadFile(url, `genbox-video-${i + 1}.mp4`);
+                          }
+                          toast({ title: `${vResults.length} video di-download` });
+                        }}
+                      >
                         <Download className="w-3.5 h-3.5 mr-1" />
-                        Download Video
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setVResult(null)}>
-                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                      Lagi
-                    </Button>
+                        {vResults.length > 1 ? `Download All (${vResults.length})` : "Download Video"}
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setVResults([])}>
+                        <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                        Lagi
+                      </Button>
+                    </div>
+                    {vResults.length > 1 && (
+                      <p className="text-[9px] text-muted-foreground/50 text-center">
+                        Gabungkan video di CapCut / VN untuk hasil final
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1352,7 +1416,6 @@ const GeneratePage = () => {
         </div>
       )}
 
-      {/* Lightbox */}
       {lbIdx !== null && imgGen.progress.results[lbIdx] && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
@@ -1373,7 +1436,6 @@ const GeneratePage = () => {
   );
 };
 
-/* ─── Helper Components ──────────────────────────────────────── */
 function Sec({ l, children }: { l: string; children: React.ReactNode }) {
   return (
     <div>

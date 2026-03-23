@@ -1,5 +1,6 @@
 /**
- * Video Prompt Engine v2 — Beat-Based Story System for Talking Head
+ * Video Prompt Engine v3 — Narrative-Style Prompts + Beat-Based Story System
+ * Outputs natural language prompts (not structured spec sheets) for better Veo results.
  * Motion prompts with category-aware presets.
  * Model-specific formats for Veo 3.1, Kling 3.0, and Grok.
  */
@@ -94,14 +95,14 @@ export function getMotionPrompt(params: MotionPromptParams): string {
   return getGrokPrompt(params);
 }
 
-// ── Motion Style Presets (NEW) ──────────────────────────────────
+// ── Motion Style Presets ──────────────────────────────────────
 export type MotionStyleKey = "natural_review" | "asmr_texture" | "reveal_drama" | "first_use" | "lifestyle_candid";
 
 export interface MotionStylePreset {
   key: MotionStyleKey;
   name: string;
   description: string;
-  categories: string[]; // which categories this fits best
+  categories: string[];
   buildPrompt: (p: MotionPromptParams) => string;
 }
 
@@ -159,7 +160,7 @@ export function getMotionPresetsForCategory(category: string): MotionStylePreset
   return MOTION_STYLE_PRESETS.filter((p) => p.categories.includes("all") || p.categories.includes(category));
 }
 
-// ── Talking Head Beat System (NEW) ──────────────────────────────
+// ── Talking Head Beat System ──────────────────────────────────
 
 export type TalkingHeadBeatKey = "hook" | "relatable" | "shift" | "product_reveal" | "social_proof" | "cta";
 
@@ -183,9 +184,8 @@ const TALKING_HEAD_BEATS: TalkingHeadBeat[] = [
     nameId: "Hook",
     description: "Call out a relatable problem or pain point to grab attention",
     energy: "frustrated, relatable, casual venting",
-    motion:
-      "hands gesturing empty (no product yet), touching problem area, expressive head movements, slight lean toward camera",
-    camera: "tight face close-up, slight handheld shake, 30cm distance, selfie angle",
+    motion: "hands gesturing empty, touching problem area, expressive head movements, slight lean toward camera",
+    camera: "tight face close-up, slight handheld shake, selfie angle",
     productVisibility: "NOT visible yet — or barely visible at edge of frame",
     dialogueTone: "Conversational complaint, rhetorical question",
     defaultDialogueId: (_p, _h) => "Guys, jujur ya... capek gak sih sama masalah ini?",
@@ -195,9 +195,9 @@ const TALKING_HEAD_BEATS: TalkingHeadBeat[] = [
     name: "Make It Relatable",
     nameId: "Relatable",
     description: "Escalate frustration — wasted money, failed attempts, shared experience",
-    energy: "escalating frustration, 'been there done that' vibe, knowing eye roll",
-    motion: "counting on fingers, shaking head, eye roll, hand waving dismissively, shifting posture",
-    camera: "pulls back slightly to medium-close, gentle handheld sway, more body visible",
+    energy: "escalating frustration, 'been there done that' vibe",
+    motion: "counting on fingers, shaking head, eye roll, hand waving dismissively",
+    camera: "pulls back slightly to medium-close, gentle handheld sway",
     productVisibility: "still hidden or in background, not the focus",
     dialogueTone: "Shared frustration, listing past failures",
     defaultDialogueId: (_p, _h) =>
@@ -208,9 +208,9 @@ const TALKING_HEAD_BEATS: TalkingHeadBeat[] = [
     name: "Emotional Shift",
     nameId: "Plot Twist",
     description: "The 'but then...' moment — pace slows, anticipation builds",
-    energy: "pause, soften, anticipation, 'but wait' moment",
-    motion: "slows down, leans in slightly, reaches toward something off-frame, finger up in 'wait' gesture",
-    camera: "holds steady, creates tension, slight push-in 0.2m",
+    energy: "pause, soften, anticipation",
+    motion: "slows down, leans in slightly, reaches toward something, finger up in 'wait' gesture",
+    camera: "holds steady, slight push-in",
     productVisibility: "hand reaches toward product but doesn't fully reveal yet",
     dialogueTone: "Transitional, building suspense",
     defaultDialogueId: (_p, _h) => "Sampe akhirnya temen gue rekomendasiin sesuatu... dan honestly, game changer sih",
@@ -221,10 +221,9 @@ const TALKING_HEAD_BEATS: TalkingHeadBeat[] = [
     nameId: "Reveal Produk",
     description: "Pick up product, show it to camera, mention one key feature",
     energy: "excited, confident, showing off with pride",
-    motion:
-      "picks up product with one hand, holds toward camera at chest level, points at specific feature with other hand, rotates to show label",
-    camera: "push-in on product, then back to face, medium shot, stable",
-    productVisibility: "HERO MOMENT — front and center, label visible, well-lit, dominant in frame",
+    motion: "picks up product, holds toward camera, points at specific feature, rotates to show label",
+    camera: "push-in on product, then back to face, medium shot",
+    productVisibility: "HERO MOMENT — front and center, label visible, dominant in frame",
     dialogueTone: "Enthusiastic feature callout",
     defaultDialogueId: (p, h) => h || `Ini nih, ${p}! Yang bikin beda tuh formulanya...`,
   },
@@ -233,10 +232,10 @@ const TALKING_HEAD_BEATS: TalkingHeadBeat[] = [
     name: "Social Proof / Urgency",
     nameId: "Social Proof",
     description: "Build trust — reviews, sold out history, visible results",
-    energy: "convincing, testimonial energy, nodding while talking",
-    motion: "nods while holding product, maybe shows result on face/skin/area, one hand gestures for emphasis",
-    camera: "medium shot, stable, trust-building framing, eye-level",
-    productVisibility: "still visible but secondary to face/result demonstration",
+    energy: "convincing, testimonial, nodding while talking",
+    motion: "nods while holding product, shows result on face/skin, one hand gestures for emphasis",
+    camera: "medium shot, stable, trust-building framing",
+    productVisibility: "still visible but secondary to face/result",
     dialogueTone: "Proof and credibility",
     defaultDialogueId: (p, _h) => `Review-nya udah 4.9 guys, ${p} ini sold out 3x bulan lalu... bukan kaleng-kaleng`,
   },
@@ -245,9 +244,9 @@ const TALKING_HEAD_BEATS: TalkingHeadBeat[] = [
     name: "Call to Action",
     nameId: "CTA",
     description: "Warm direct push — link in bio, limited stock, go get it",
-    energy: "warm, direct, friendly push, leaning in",
-    motion: "holds product toward camera with both hands, points at it, slight lean forward, nods encouragingly",
-    camera: "slow push-in 0.3m, intimate close-up, stable",
+    energy: "warm, direct, friendly push",
+    motion: "holds product toward camera, points at it, slight lean forward, nods encouragingly",
+    camera: "slow push-in, intimate close-up",
     productVisibility: "dominant in frame, held toward camera",
     dialogueTone: "Direct friendly recommendation",
     defaultDialogueId: (p, _h) => `Langsung cek link di bio ya! ${p} ini worth it banget, sebelum habis lagi!`,
@@ -267,7 +266,6 @@ const BEAT_CONFIGS: Record<number, TalkingHeadBeatKey[]> = {
 };
 
 export function getBeatsForDuration(seconds: number): TalkingHeadBeatKey[] {
-  // Find the closest config
   const keys = Object.keys(BEAT_CONFIGS)
     .map(Number)
     .sort((a, b) => a - b);
@@ -279,16 +277,46 @@ export function getBeatDefinition(key: TalkingHeadBeatKey): TalkingHeadBeat {
   return TALKING_HEAD_BEATS.find((b) => b.key === key)!;
 }
 
-// ── Talking Head Tech Specs (constant block) ───────────────────────
-const TALKING_HEAD_TECH_SPECS = `TECHNICAL SPECIFICATIONS:
-- Audio: direct casual talking to camera, natural conversational Indonesian
-- No text overlay, subtitles, logos, or watermarks anywhere in the video
-- Natural body motion — slight sway, hand gestures, head movement
-- Single continuous shot per segment
-- Same person, same environment, same lighting throughout
-- Product must remain physically consistent (same color, shape, label)`;
+// ── Narrative Prompt Builder (Veo-optimized) ──────────────────────
+// Converts beat metadata into natural flowing scene descriptions
+// instead of structured spec sheets
 
-// ── Build Talking Head Prompts (NEW API) ─────────────────────────
+function beatToNarrative(beat: TalkingHeadBeat, config: TalkingHeadConfig, dialogue: string, isFirst: boolean): string {
+  const skin = config.skinTone || "natural Indonesian";
+
+  // Build scene description naturally based on beat type
+  const sceneOpener = isFirst
+    ? `Scene opens identical to the reference image. A ${config.character} with ${skin} skin tone is in ${config.environment}, filmed in a vertical selfie-style handheld shot.`
+    : `Continuing seamlessly from the previous moment — same person, same outfit, same background, same lighting, same camera angle.`;
+
+  // Convert beat motion/energy into natural action description
+  const actionMap: Record<TalkingHeadBeatKey, string> = {
+    hook: `The character speaks directly to camera with a ${beat.energy} expression. ${beat.productVisibility.includes("NOT") ? "The product is not yet visible — hands gesture naturally while venting." : "The product sits nearby but isn't the focus yet."} The character's body language feels spontaneous, like someone casually venting to their followers.`,
+    relatable: `The character continues talking, getting more animated — ${beat.motion}. The energy escalates naturally as they share relatable frustrations. Still no focus on the product.`,
+    shift: `The pace slows. The character pauses briefly, leans in slightly toward the camera. There's a shift in energy — from frustration to anticipation. One hand reaches toward something nearby.`,
+    product_reveal: `The character picks up the ${config.productColor} ${config.productPackaging} of ${config.product} and holds it toward the camera with genuine excitement. The product label faces the camera clearly. The character points at a specific feature while explaining. This is the hero moment — the product is front and center, well-lit, dominant in frame.`,
+    social_proof: `The character holds the product casually while nodding convincingly. The energy is testimonial — sharing proof, not selling. One hand gestures for emphasis while the other keeps the product visible.`,
+    cta: `The character holds the ${config.product} toward the camera with both hands, making direct eye contact. Warm, encouraging expression. Slight lean forward. The product is prominent in frame as the character delivers the closing line.`,
+  };
+
+  const action = actionMap[beat.key] || actionMap.product_reveal;
+
+  // Embed dialogue naturally
+  const dialogueLine = dialogue
+    ? `The character says: "${dialogue}" — spoken in casual Indonesian, natural pacing with small pauses.`
+    : "";
+
+  // Stability rules (concise, not a checklist)
+  const stabilityNote = !isFirst
+    ? "The character's face, skin, hair, outfit, and the product must remain visually identical to the previous segment. No changes in lighting or environment."
+    : "";
+
+  return `${SAFETY_PREFIX}${sceneOpener} ${action} ${dialogueLine} The phone never appears in frame. No text overlay, subtitles, or watermarks. Natural handheld motion throughout. Duration ~8 seconds. ${stabilityNote}`
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// ── Build Talking Head Prompts (Main API) ─────────────────────────
 
 export interface TalkingHeadConfig {
   character: string;
@@ -297,8 +325,8 @@ export interface TalkingHeadConfig {
   productPackaging: string;
   environment: string;
   skinTone?: string;
-  duration: number; // total seconds
-  beatDialogues: Record<TalkingHeadBeatKey, string>; // user-editable dialogue per beat
+  duration: number;
+  beatDialogues: Record<TalkingHeadBeatKey, string>;
   productInteraction?: string;
 }
 
@@ -306,38 +334,14 @@ export function buildTalkingHeadPrompts(config: TalkingHeadConfig): {
   beats: TalkingHeadBeatKey[];
   prompts: string[];
 } {
-  const skin = config.skinTone || "natural Indonesian";
   const beats = getBeatsForDuration(config.duration);
-  const secondsPerBeat = 8; // each beat = 1 Veo segment
 
   const prompts = beats.map((beatKey, idx) => {
     const beat = getBeatDefinition(beatKey);
     const dialogue = config.beatDialogues[beatKey] || beat.defaultDialogueId(config.product, "");
+    const isFirst = idx === 0;
 
-    const isFirstBeat = idx === 0;
-    const continuity = !isFirstBeat
-      ? `CONTINUITY: Continue from previous segment. Same person, same environment, same lighting. The scene flows naturally.`
-      : "";
-
-    return `${SAFETY_PREFIX}
-
-BEAT: ${beat.name} (${beat.description})
-ENERGY: ${beat.energy}
-
-CHARACTER: ${config.character}, ${skin} skin tone.
-PRODUCT: ${config.product}, ${config.productColor} ${config.productPackaging}.
-ENVIRONMENT: ${config.environment}
-
-MOTION: ${beat.motion}
-CAMERA: ${beat.camera}
-PRODUCT VISIBILITY: ${beat.productVisibility}
-
-DIALOGUE (spoken in casual Indonesian):
-"${dialogue}"
-
-${TALKING_HEAD_TECH_SPECS}
-
-${continuity}`.trim();
+    return beatToNarrative(beat, config, dialogue, isFirst);
   });
 
   return { beats, prompts };
@@ -355,7 +359,6 @@ export function getTalkingHeadPrompts(params: {
   dialogueSegments: string[];
   productInteraction?: string;
 }): string[] {
-  // Map legacy dialogueSegments to beat dialogues
   const duration = params.dialogueSegments.length * 8;
   const beats = getBeatsForDuration(duration);
   const beatDialogues: Record<TalkingHeadBeatKey, string> = {} as any;
