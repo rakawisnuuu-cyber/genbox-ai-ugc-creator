@@ -136,7 +136,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   if (model === "sora2" || model === "sora2_pro") {
     const soraModel = model === "sora2" ? "sora-2-image-to-video" : "sora-2-pro-image-to-video";
     const soraAspect = aspectRatio === "9:16" ? "portrait" : aspectRatio === "16:9" ? "landscape" : "square";
-    console.log(`[kie] Creating Sora 2 task. Model: ${soraModel}, Aspect: ${soraAspect}`);
+    
 
     const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
       method: "POST",
