@@ -1214,7 +1214,7 @@ Content template: ${template?.label}`,
 
   // Main frame editor
   return (
-    <div className="space-y-3 max-w-2xl mx-auto pb-24">
+    <div className="space-y-3 max-w-2xl lg:max-w-5xl mx-auto pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
