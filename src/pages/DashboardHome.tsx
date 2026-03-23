@@ -204,13 +204,14 @@ const DashboardHome = () => {
             </p>
             <div className="rounded-2xl border border-border/60 bg-card/80 p-5">
               {loading ? (
-                <Skeleton className="h-[180px] w-full" />
+                <Skeleton className="h-[180px] lg:h-[260px] w-full" />
               ) : dailyData.every((d) => d.count === 0) ? (
-                <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground/50">
+                <div className="flex h-[180px] lg:h-[260px] items-center justify-center text-sm text-muted-foreground/50">
                   Belum ada aktivitas. Mulai generate untuk melihat statistik.
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={180}>
+                <div className="h-[180px] lg:h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={dailyData}>
                     <defs>
                       <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
@@ -227,6 +228,7 @@ const DashboardHome = () => {
                     <Area type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={1.5} fill="url(#areaFill)" />
                   </AreaChart>
                 </ResponsiveContainer>
+                </div>
               )}
             </div>
           </div>

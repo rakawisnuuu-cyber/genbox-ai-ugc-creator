@@ -57,7 +57,7 @@ const CharactersPage = () => {
 
       {/* Content */}
       {tab === "preset" && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-up" style={{ animationDelay: "200ms" }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 animate-fade-up" style={{ animationDelay: "200ms" }}>
           <button
             onClick={() => navigate("/characters/create")}
             className="group/create flex flex-col items-center justify-center gap-3 aspect-[3/4] rounded-2xl border-2 border-dashed border-border/60 hover:border-primary/50 bg-card/40 hover:bg-card/80 transition-all cursor-pointer"
@@ -99,7 +99,7 @@ const CharactersPage = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {customChars.map((c) => (
                 <CharacterCard
                   key={c.id}

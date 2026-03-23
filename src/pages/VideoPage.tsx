@@ -1214,7 +1214,7 @@ Content template: ${template?.label}`,
 
   // Main frame editor
   return (
-    <div className="space-y-3 max-w-2xl mx-auto pb-24">
+    <div className="space-y-3 max-w-2xl lg:max-w-5xl mx-auto pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -2150,7 +2150,7 @@ Content template: ${template?.label}`,
 
       {/* Sticky Bottom Bar — Batch Controls */}
       <div className="fixed bottom-0 left-0 right-0 lg:left-[232px] bg-background/80 backdrop-blur-xl border-t border-white/[0.04] px-6 py-3 z-30">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-2xl lg:max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="text-[12px] text-muted-foreground/40">
               {completedFrames.length}/{activeFrames.length} frames

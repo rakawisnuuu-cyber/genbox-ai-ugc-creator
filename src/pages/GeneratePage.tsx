@@ -507,14 +507,17 @@ const GeneratePage = () => {
   return (
     <div className="min-h-[calc(100vh-48px)] lg:min-h-screen -mx-4 -my-4 lg:-mx-6 lg:-my-8">
       {step === 1 && (
-        <div className="max-w-2xl mx-auto px-5 py-8 space-y-8">
-          <div>
+        <div className="max-w-2xl lg:max-w-6xl mx-auto px-5 py-8 lg:px-8">
+          <div className="mb-8">
             <h1 className="text-lg font-semibold">Image Studio</h1>
             <p className="text-sm text-muted-foreground mt-1">Pilih karakter, upload produk, pilih jenis shot</p>
           </div>
 
+          <div className="lg:grid lg:grid-cols-5 lg:gap-8">
+          <div className="lg:col-span-3 space-y-8">
+
           <Sec l="Pilih Karakter">
-            <div className="grid grid-cols-5 sm:grid-cols-7 gap-3">
+            <div className="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-8 gap-3">
               {allChars.map((c) => (
                 <button key={c.id} onClick={() => setCharId(c.id)} className="flex flex-col items-center gap-1.5">
                   <div
@@ -629,6 +632,9 @@ const GeneratePage = () => {
             </div>
           </Sec>
 
+          </div>{/* end left column */}
+
+          <div className="lg:col-span-2 space-y-8 lg:sticky lg:top-8 lg:self-start mt-8 lg:mt-0">
           <Sec l="Pilih Jenis Shot (1-6)">
             <div className="grid grid-cols-2 gap-2.5">
               {SHOT_TYPES.map((s) => {
@@ -762,6 +768,8 @@ const GeneratePage = () => {
             </Button>
             <p className="text-[11px] text-muted-foreground text-center mt-2">Estimasi: {formatRupiah(cost)}</p>
           </div>
+          </div>{/* end right column */}
+          </div>{/* end grid */}
         </div>
       )}
 
@@ -769,7 +777,7 @@ const GeneratePage = () => {
       {step === 2 && (
         <div className="flex h-[calc(100vh-48px)] lg:h-screen">
           <div className={`flex-1 overflow-y-auto transition-all ${vpOpen ? "lg:mr-[400px]" : ""}`}>
-            <div className="max-w-4xl mx-auto px-5 py-6 space-y-4">
+            <div className="max-w-4xl xl:max-w-6xl mx-auto px-5 py-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <button
@@ -813,7 +821,7 @@ const GeneratePage = () => {
               )}
 
               <div
-                className={`grid gap-4 ${selShots.length === 1 ? "grid-cols-1 max-w-md mx-auto" : selShots.length === 2 ? "grid-cols-2 max-w-2xl mx-auto" : "grid-cols-2 lg:grid-cols-3"}`}
+                className={`grid gap-4 ${selShots.length === 1 ? "grid-cols-1 max-w-md mx-auto" : selShots.length === 2 ? "grid-cols-2 max-w-2xl mx-auto" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
               >
                 {Array.from({ length: imgGen.progress.totalShots || selShots.length }).map((_, i) => {
                   const r = imgGen.progress.results[i];
