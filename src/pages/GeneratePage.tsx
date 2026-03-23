@@ -876,6 +876,17 @@ const GeneratePage = () => {
                               onClick={() => downloadFile(r.imageUrl, `genbox-${s?.shotType || "shot"}-${i + 1}.png`)}
                             />
                           </div>
+                          {promptPreview === i && s && (
+                            <div className="absolute inset-0 bg-black/85 z-10 p-3 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-semibold text-white/90">{s.shotLabel} — Prompt</span>
+                                <button onClick={() => setPromptPreview(null)} className="text-white/60 hover:text-white">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <pre className="text-[8px] text-white/70 font-mono leading-relaxed whitespace-pre-wrap">{s.prompt}</pre>
+                            </div>
+                          )}
                         </>
                       ) : cur ? (
                         <div className="absolute inset-0 bg-white/[0.02] flex flex-col items-center justify-center gap-2">
@@ -901,22 +912,6 @@ const GeneratePage = () => {
                 })}
               </div>
 
-              {promptPreview !== null && promptPreview >= 0 && plans[promptPreview] && (
-                <div className="p-4 rounded-xl border border-border/30 bg-white/[0.02] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold">{plans[promptPreview].shotLabel} — Full Prompt</span>
-                    <button
-                      onClick={() => setPromptPreview(null)}
-                      className="text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <pre className="text-[9px] text-muted-foreground font-mono leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto">
-                    {plans[promptPreview].prompt}
-                  </pre>
-                </div>
-              )}
 
               {isDone && results.length > 0 && (
                 <div className="flex items-center justify-between gap-3 py-3 mt-4 border-t border-border/30">
