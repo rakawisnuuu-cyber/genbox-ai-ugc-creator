@@ -357,7 +357,7 @@ export async function fetchHDVideo(
     body: JSON.stringify({ taskId, index: 0 }),
   });
   const initJson = await initRes.json();
-  console.log("[kie] 4K init response:", initJson);
+  
 
   if (initJson.code !== 200) {
     throw new Error(extractError(initJson, "Failed to initiate 4K upgrade"));
