@@ -102,7 +102,7 @@ const HeroSection = () => {
         </div>
 
         {/* Trust pills */}
-        <div className="animate-fade-up mt-8 flex flex-wrap justify-center gap-3" style={{ animationDelay: "0.5s" }}>
+        <div className="animate-fade-up mt-8 flex flex-wrap justify-center gap-3 lg:gap-8" style={{ animationDelay: "0.5s" }}>
           {trustPills.map((pill) => (
             <div
               key={pill.label}
