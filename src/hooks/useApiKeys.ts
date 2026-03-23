@@ -24,16 +24,19 @@ export function useApiKeys() {
   const fetchKeys = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
-    const { data } = await supabase.rpc("get_user_api_keys");
+    const { data } = await supabase
+      .from("user_api_keys")
+      .select("provider, encrypted_key")
+      .eq("user_id", user.id);
 
     const newKeys: Record<Provider, ApiKeyState> = {
       kie_ai: { key: "", status: "untested" },
       gemini: { key: "", status: "untested" },
     };
-    (data as any[])?.forEach((row: any) => {
+    data?.forEach((row: any) => {
       const p = row.provider as Provider;
       if (p in newKeys) {
-        newKeys[p] = { key: row.decrypted_key, status: "valid" };
+        newKeys[p] = { key: row.encrypted_key, status: "valid" };
       }
     });
     setKeys(newKeys);
@@ -48,13 +51,15 @@ export function useApiKeys() {
     if (!user) return;
     setSavingProvider(provider);
     try {
-      const { error } = await supabase.rpc("save_user_api_key", {
-        p_provider: provider,
-        p_plain_key: key,
-      });
+      const { error } = await supabase
+        .from("user_api_keys")
+        .upsert(
+          { user_id: user.id, provider, encrypted_key: key, updated_at: new Date().toISOString() },
+          { onConflict: "user_id,provider" }
+        );
       if (error) throw error;
       setKeys((prev) => ({ ...prev, [provider]: { key, status: "valid" } }));
-      toast({ title: "API key disimpan & dienkripsi", description: `Key ${provider === "kie_ai" ? "Kie AI" : "Gemini"} berhasil disimpan.` });
+      toast({ title: "API key tersimpan", description: `Key ${provider === "kie_ai" ? "Kie AI" : "Gemini"} berhasil disimpan.` });
     } catch (e: any) {
       toast({ title: "Gagal menyimpan", description: e.message, variant: "destructive" });
     } finally {

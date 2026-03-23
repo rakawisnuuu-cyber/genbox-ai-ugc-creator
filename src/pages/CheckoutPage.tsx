@@ -4,7 +4,6 @@ import { ArrowLeft, Check, Lock, Zap, Infinity, Shield, Mail } from "lucide-reac
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { PRICING } from "@/lib/pricing";
 
 const features = [
   "Generate gambar unlimited",
@@ -101,18 +100,18 @@ const CheckoutPage = () => {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="font-satoshi text-lg font-bold text-foreground">
-                    {PRICING.productName}
+                    GENBOX BYOK
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {PRICING.accessType}
+                    Lifetime Access
                   </p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm text-muted-foreground/60 line-through">
-                    {PRICING.originalPriceLabel}
+                    Rp 249.000
                   </p>
                   <p className="font-satoshi text-2xl font-bold text-foreground">
-                    {PRICING.priceLabel}
+                    Rp 149.000
                   </p>
                 </div>
               </div>
@@ -142,7 +141,7 @@ const CheckoutPage = () => {
               <div className="flex items-center justify-between">
                 <p className="font-satoshi font-bold text-foreground">Total</p>
                 <p className="font-satoshi text-xl font-bold text-foreground">
-                  {PRICING.priceLabel}
+                  Rp 149.000
                 </p>
               </div>
             </div>
@@ -183,7 +182,7 @@ const CheckoutPage = () => {
                 disabled={loading}
                 className="mt-8 h-14 w-full rounded-xl bg-primary text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)]"
               >
-                {loading ? "Memproses..." : PRICING.payText}
+                {loading ? "Memproses..." : "Bayar Sekarang — Rp 149.000"}
               </Button>
 
               {/* Trust badges */}
