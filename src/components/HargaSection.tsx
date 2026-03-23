@@ -63,8 +63,8 @@ const HargaSection = () => {
           <div className="rounded-3xl border-2 border-primary/50 bg-card/80 p-8 shadow-[0_0_48px_-12px_hsl(var(--primary)/0.15)] transition-shadow duration-300 hover:shadow-[0_0_60px_-8px_hsl(var(--primary)/0.25)]">
             <p className="font-satoshi text-lg font-bold tracking-tight text-foreground">GENBOX Lifetime</p>
 
-            <p className="mt-4 text-lg text-muted-foreground/60 line-through font-satoshi font-medium">Rp 249.000</p>
-            <p className="font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">Rp 129.000</p>
+            <p className="mt-4 text-lg text-muted-foreground/60 line-through font-satoshi font-medium">{PRICING.originalPriceLabel}</p>
+            <p className="font-satoshi text-[44px] sm:text-[56px] font-bold leading-none text-foreground">{PRICING.priceLabel}</p>
             <p className="mt-2 text-sm font-bold text-primary">sekali bayar · akses selamanya</p>
 
             {/* Features */}

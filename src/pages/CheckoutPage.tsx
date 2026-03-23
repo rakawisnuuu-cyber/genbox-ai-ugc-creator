@@ -183,7 +183,7 @@ const CheckoutPage = () => {
                 disabled={loading}
                 className="mt-8 h-14 w-full rounded-xl bg-primary text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)]"
               >
-                {loading ? "Memproses..." : "Bayar Sekarang — Rp 149.000"}
+                {loading ? "Memproses..." : PRICING.payText}
               </Button>
 
               {/* Trust badges */}

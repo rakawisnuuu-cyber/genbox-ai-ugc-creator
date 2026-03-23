@@ -48,15 +48,13 @@ export function useApiKeys() {
     if (!user) return;
     setSavingProvider(provider);
     try {
-      const { error } = await supabase
-        .from("user_api_keys")
-        .upsert(
-          { user_id: user.id, provider, encrypted_key: key, updated_at: new Date().toISOString() },
-          { onConflict: "user_id,provider" }
-        );
+      const { error } = await supabase.rpc("save_user_api_key", {
+        p_provider: provider,
+        p_plain_key: key,
+      });
       if (error) throw error;
       setKeys((prev) => ({ ...prev, [provider]: { key, status: "valid" } }));
-      toast({ title: "API key tersimpan", description: `Key ${provider === "kie_ai" ? "Kie AI" : "Gemini"} berhasil disimpan.` });
+      toast({ title: "API key disimpan & dienkripsi", description: `Key ${provider === "kie_ai" ? "Kie AI" : "Gemini"} berhasil disimpan.` });
     } catch (e: any) {
       toast({ title: "Gagal menyimpan", description: e.message, variant: "destructive" });
     } finally {
