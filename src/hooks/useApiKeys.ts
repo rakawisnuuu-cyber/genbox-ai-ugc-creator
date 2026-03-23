@@ -24,19 +24,16 @@ export function useApiKeys() {
   const fetchKeys = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
-    const { data } = await supabase
-      .from("user_api_keys")
-      .select("provider, encrypted_key")
-      .eq("user_id", user.id);
+    const { data } = await supabase.rpc("get_user_api_keys");
 
     const newKeys: Record<Provider, ApiKeyState> = {
       kie_ai: { key: "", status: "untested" },
       gemini: { key: "", status: "untested" },
     };
-    data?.forEach((row: any) => {
+    (data as any[])?.forEach((row: any) => {
       const p = row.provider as Provider;
       if (p in newKeys) {
-        newKeys[p] = { key: row.encrypted_key, status: "valid" };
+        newKeys[p] = { key: row.decrypted_key, status: "valid" };
       }
     });
     setKeys(newKeys);
