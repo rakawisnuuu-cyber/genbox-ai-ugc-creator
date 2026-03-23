@@ -118,6 +118,9 @@ const SettingsPage = () => {
         <p className="mt-1 text-sm text-muted-foreground/40">Pengaturan akun dan API key.</p>
       </div>
 
+      <div className="lg:grid lg:grid-cols-2 lg:gap-6">
+        <div className="space-y-4">
+
       {/* Profile */}
       <Section>
         <SectionHeader icon={User} title="Profil" />
