@@ -819,7 +819,7 @@ const GeneratePage = () => {
               )}
 
               <div
-                className={`grid gap-4 ${selShots.length === 1 ? "grid-cols-1 max-w-md mx-auto" : selShots.length === 2 ? "grid-cols-2 max-w-2xl mx-auto" : "grid-cols-2 lg:grid-cols-3"}`}
+                className={`grid gap-4 ${selShots.length === 1 ? "grid-cols-1 max-w-md mx-auto" : selShots.length === 2 ? "grid-cols-2 max-w-2xl mx-auto" : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
               >
                 {Array.from({ length: imgGen.progress.totalShots || selShots.length }).map((_, i) => {
                   const r = imgGen.progress.results[i];

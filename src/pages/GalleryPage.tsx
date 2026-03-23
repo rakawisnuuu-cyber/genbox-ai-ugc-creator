@@ -207,7 +207,7 @@ const GalleryPage = () => {
 
       {/* Grid */}
       {!loading && items.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-up" style={{ animationDelay: "100ms" }}>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 animate-fade-up" style={{ animationDelay: "100ms" }}>
           {items.map((item) => {
             if (item.type === "video") {
               return (

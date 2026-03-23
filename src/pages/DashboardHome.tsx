@@ -228,6 +228,7 @@ const DashboardHome = () => {
                     <Area type="monotone" dataKey="count" stroke="hsl(var(--primary))" strokeWidth={1.5} fill="url(#areaFill)" />
                   </AreaChart>
                 </ResponsiveContainer>
+                </div>
               )}
             </div>
           </div>
