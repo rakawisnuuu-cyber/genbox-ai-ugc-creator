@@ -434,7 +434,7 @@ const FiturSection = () => {
         </h2>
 
         {/* Module cards */}
-        <div className="mt-12 space-y-6">
+        <div className="mt-12 space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
           {features.map((f, i) => (
             <ModuleCard key={f.num} {...f} isVisible={isVisible} delay={0.3 + i * 0.15} />
           ))}
