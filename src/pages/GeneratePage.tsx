@@ -766,8 +766,8 @@ const GeneratePage = () => {
               <Zap className="w-4 h-4" />
               Generate {selShots.length} Gambar
             </Button>
-            <p className="text-[11px] text-muted-foreground text-center mt-2">Estimasi: {formatRupiah(cost)}</p>
-          </div>
+          </div>{/* end right column */}
+          </div>{/* end grid */}
         </div>
       )}
 
