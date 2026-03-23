@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { PRICING } from "@/lib/pricing";
 
 const FinalCTASection = () => {
   const { ref, isVisible } = useScrollReveal();
@@ -43,7 +44,7 @@ const FinalCTASection = () => {
           style={{ animationDelay: "0.3s" }}
         >
           <Link to="/checkout" className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
-            Beli Sekarang — Rp 149.000
+            {PRICING.ctaText}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
