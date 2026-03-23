@@ -411,7 +411,7 @@ export async function extendVeoVideo(params: {
   const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 
   const veoModel = model === "fast" ? "veo3_fast" : "veo3";
-  console.log(`[kie] Extending Veo video. taskId=${taskId}, model=${veoModel}`);
+  
 
   const res = await fetch(`${KIE_BASE}/veo/extend`, {
     method: "POST",
