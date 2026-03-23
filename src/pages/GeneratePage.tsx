@@ -441,7 +441,7 @@ const GeneratePage = () => {
             `Continue the scene naturally. The character keeps speaking and demonstrating the product.`;
           toast({ title: `Extending video... (${e + 1}/${extCount})` });
           const ext = await extendVeoVideo({
-            taskId: first.videoUrl.split("/").pop()?.split("?")[0] || "",
+            taskId: first.taskId,
             prompt: extPrompt,
             model: tVeo === "veo_fast" ? "fast" : "quality",
             apiKey: kieApiKey,
