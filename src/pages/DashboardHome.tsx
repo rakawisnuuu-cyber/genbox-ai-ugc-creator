@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight, LayoutGrid, BarChart3 } from "lucide-react";
+import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight, LayoutGrid, BarChart3, Mic, Workflow, Sparkles, ScanSearch, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
