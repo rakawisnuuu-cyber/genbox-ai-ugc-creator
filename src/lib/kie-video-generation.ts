@@ -208,7 +208,7 @@ async function pollTask(taskId: string, model: string, apiKey: string, isCancell
   const startTime = Date.now();
   let consecutive404s = 0;
 
-  console.log(`[kie] Polling started. Model=${model}, taskId=${taskId}, url=${pollUrl}`);
+  
 
   const isVeoModel = model === "veo_fast" || model === "veo_quality";
 
