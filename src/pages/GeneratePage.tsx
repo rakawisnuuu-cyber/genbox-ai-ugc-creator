@@ -30,8 +30,6 @@ import {
   Play,
   Mic,
   Layers,
-  ChevronUp,
-  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -70,7 +68,6 @@ import {
 /* ─── Constants ──────────────────────────────────────────────── */
 const SHOT_ICONS: Record<string, React.ComponentType<any>> = { Star, Search, Hand, Smile, Coffee, Eye };
 type VideoMode = "motion" | "talking" | "story";
-const MAX_SHOTS = 6;
 
 const MOTION_MODELS = [
   { id: "grok", label: "Grok (Cepat)", cost: 1240, durations: [6, 10] },
@@ -78,6 +75,13 @@ const MOTION_MODELS = [
   { id: "kling_pro", label: "Kling 3.0 Pro", cost: 3560, durations: [3, 5, 8, 10, 12, 15] },
   { id: "veo_fast", label: "Veo 3.1 Fast", cost: 4960, durations: [8] },
   { id: "veo_quality", label: "Veo 3.1 Quality", cost: 24800, durations: [8] },
+];
+
+const TALK_OPTIONS = [
+  { seconds: 8, label: "8s", cost: 24800, extends: 0, veoModel: "veo_quality" as const },
+  { seconds: 16, label: "16s", cost: 43400, extends: 1, veoModel: "veo_quality" as const },
+  { seconds: 24, label: "24s", cost: 62000, extends: 2, veoModel: "veo_quality" as const },
+  { seconds: 32, label: "32s", cost: 80600, extends: 3, veoModel: "veo_quality" as const },
 ];
 
 const TALK_VEO_MODELS = [
@@ -97,26 +101,6 @@ function getTalkCost(veoId: string, dur: number) {
   const m = TALK_VEO_MODELS.find((x) => x.id === veoId) || TALK_VEO_MODELS[1];
   const ext = Math.max(0, Math.floor((dur - 8) / 8));
   return m.costBase + ext * m.costExtend;
-}
-
-/* ─── Download helper ────────────────────────────────────────── */
-async function downloadImage(url: string, filename: string) {
-  try {
-    const res = await fetch(url, { mode: "cors" });
-    if (!res.ok) throw new Error("fetch failed");
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-  } catch {
-    // Fallback: open in new tab
-    window.open(url, "_blank");
-  }
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -150,8 +134,6 @@ const GeneratePage = () => {
   const [realism, setRealism] = useState<RealismLevel>("standard");
   const [advOpen, setAdvOpen] = useState(false);
   const [plans, setPlans] = useState<ImageShotPlan[]>([]);
-  const [promptViewIdx, setPromptViewIdx] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
 
   // Video panel state
   const [vpOpen, setVpOpen] = useState(false);
@@ -182,19 +164,10 @@ const GeneratePage = () => {
   const mModelInfo = MOTION_MODELS.find((m) => m.id === mModel) || MOTION_MODELS[1];
   const talkCost = getTalkCost(tVeo, tDur);
 
-  // Shot toggle — now supports up to MAX_SHOTS (6)
   const toggle = (k: ShotTypeKey) =>
     setSelShots((p) =>
-      p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= MAX_SHOTS ? p : [...p, k],
+      p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= 3 ? p : [...p, k],
     );
-
-  // Grid columns based on shot count
-  const getGridCols = (count: number) => {
-    if (count === 1) return "grid-cols-1 max-w-md mx-auto";
-    if (count === 2) return "grid-cols-2 max-w-2xl mx-auto";
-    if (count <= 4) return "grid-cols-2 lg:grid-cols-4";
-    return "grid-cols-2 lg:grid-cols-3";
-  };
 
   // ── Prompt builders ────────────────────────────────────────
   const buildMotionPrompt = useCallback(
@@ -242,6 +215,7 @@ const GeneratePage = () => {
     },
     [buildMotionPrompt],
   );
+
   const openTalking = useCallback(
     (idx: number) => {
       setVIdx(idx);
@@ -253,14 +227,17 @@ const GeneratePage = () => {
     },
     [buildTalkPrompt, dna],
   );
-  const [sPerShotDur, setSPerShotDur] = useState<number[]>([]);
+
   const openStory = useCallback(() => {
     setVIdx(0);
     setVMode("story");
     setVResult(null);
     setVpOpen(true);
-    setSPerShotDur(results.map(() => 5));
+    const durations = results.map(() => 5);
+    setSPerShotDur(durations);
   }, [results]);
+
+  const [sPerShotDur, setSPerShotDur] = useState<number[]>([]);
 
   // ── Upload handlers ────────────────────────────────────────
   const uploadProd = useCallback(
@@ -361,53 +338,6 @@ const GeneratePage = () => {
     [plans, imgModel, imgRes, ar, kieApiKey, charImg, prodUrl],
   );
 
-  // ── Download All ───────────────────────────────────────────
-  const downloadAll = useCallback(async () => {
-    const validResults = imgGen.progress.results.filter(Boolean);
-    for (let i = 0; i < validResults.length; i++) {
-      const r = validResults[i];
-      if (!r) continue;
-      const shotLabel = plans[i]?.shotType || `shot-${i + 1}`;
-      await downloadImage(r.imageUrl, `genbox-${shotLabel}-${i + 1}.png`);
-      // Small delay between downloads
-      if (i < validResults.length - 1) await new Promise((res) => setTimeout(res, 500));
-    }
-    toast({ title: `${validResults.length} gambar didownload` });
-  }, [imgGen.progress.results, plans]);
-
-  // ── Save to Gallery ────────────────────────────────────────
-  const saveToGallery = useCallback(async () => {
-    if (!user) return;
-    setSaving(true);
-    try {
-      const validResults = imgGen.progress.results.filter(Boolean);
-      const inserts = validResults.map((r, i) => ({
-        user_id: user.id,
-        type: "image",
-        image_url: r!.imageUrl,
-        prompt: plans[i]?.prompt || null,
-        model: imgModel,
-        provider: "kie",
-        status: "completed",
-        metadata: {
-          shot_type: plans[i]?.shotType,
-          shot_label: plans[i]?.shotLabel,
-          mode,
-          category: dna?.category,
-          product: dna?.product_description,
-        },
-      }));
-
-      const { error } = await supabase.from("generations").insert(inserts);
-      if (error) throw error;
-      toast({ title: `${inserts.length} gambar disimpan ke Gallery` });
-    } catch (e: any) {
-      toast({ title: "Gagal menyimpan", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  }, [user, imgGen.progress.results, plans, imgModel, mode, dna]);
-
   // ── Generate video ─────────────────────────────────────────
   const genVideo = useCallback(async () => {
     if (!kieApiKey) {
@@ -416,8 +346,10 @@ const GeneratePage = () => {
     }
     setVGen(true);
     setVResult(null);
+
     try {
       if (vMode === "motion" && vIdx !== null && results[vIdx]) {
+        // Quick Motion — single generation
         const r = await generateVideoAndWait({
           model: mModel as VideoModel,
           prompt: mPrompt,
@@ -428,21 +360,31 @@ const GeneratePage = () => {
         });
         setVResult(r.videoUrl);
       } else if (vMode === "talking" && vIdx !== null && results[vIdx]) {
+        // Talking Head — Veo generate + optional extends
         const promptParts = tPrompt.split("\n\n---EXTEND---\n\n");
+        const initialPrompt = promptParts[0] || tPrompt;
+
+        // First 8s generation
         const first = await generateVideoAndWait({
           model: tVeo as VideoModel,
-          prompt: promptParts[0] || tPrompt,
+          prompt: initialPrompt,
           imageUrls: [results[vIdx]!.imageUrl],
           duration: 8,
           aspectRatio: ar,
           apiKey: kieApiKey,
         });
         let finalUrl = first.videoUrl;
+        let lastTaskId = first.videoUrl; // We need taskId for extend
+
+        // Chain extends if duration > 8s
         const extCount = Math.max(0, Math.floor((tDur - 8) / 8));
         for (let e = 0; e < extCount; e++) {
           const extPrompt =
-            promptParts[e + 1] || `Continue the scene naturally. Character keeps speaking and demonstrating.`;
+            promptParts[e + 1] ||
+            `Continue the scene naturally. The character keeps speaking and demonstrating the product.`;
           toast({ title: `Extending video... (${e + 1}/${extCount})` });
+          // Note: extendVeoVideo needs the taskId from the previous generation
+          // Since generateVideoAndWait returns videoUrl not taskId, we pass the initial task
           const ext = await extendVeoVideo({
             taskId: first.videoUrl.split("/").pop()?.split("?")[0] || "",
             prompt: extPrompt,
@@ -453,10 +395,12 @@ const GeneratePage = () => {
         }
         setVResult(finalUrl);
       } else if (vMode === "story" && results.length >= 2) {
+        // Multi-shot Story — Kling multi-shot (future implementation)
         toast({ title: "Multi-shot story coming soon", description: "Fitur ini sedang dikembangkan" });
         setVGen(false);
         return;
       }
+
       toast({ title: "Video berhasil di-generate!" });
     } catch (e: any) {
       toast({ title: "Video gagal", description: e.message, variant: "destructive" });
@@ -603,7 +547,7 @@ const GeneratePage = () => {
             </div>
           </Sec>
 
-          <Sec l={`Pilih Jenis Shot (1-${MAX_SHOTS})`}>
+          <Sec l="Pilih Jenis Shot (1-3)">
             <div className="grid grid-cols-2 gap-2.5">
               {SHOT_TYPES.map((s) => {
                 const sel = selShots.includes(s.key);
@@ -628,9 +572,7 @@ const GeneratePage = () => {
                 );
               })}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">
-              {selShots.length}/{MAX_SHOTS} dipilih
-            </p>
+            <p className="text-[10px] text-muted-foreground mt-2">{selShots.length}/3 dipilih</p>
           </Sec>
 
           <Sec l="Environment">
@@ -659,7 +601,8 @@ const GeneratePage = () => {
               onClick={() => setAdvOpen(!advOpen)}
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
             >
-              <Settings className="w-3.5 h-3.5" /> Pengaturan Lanjutan
+              <Settings className="w-3.5 h-3.5" />
+              Pengaturan Lanjutan
               <ChevronDown className={`w-3 h-3 transition-transform ${advOpen ? "rotate-180" : ""}`} />
             </button>
             {advOpen && (
@@ -732,7 +675,8 @@ const GeneratePage = () => {
 
           <div className="pt-2">
             <Button onClick={generate} disabled={!canGen} className="w-full h-12 text-sm font-semibold gap-2">
-              <Zap className="w-4 h-4" /> Generate {selShots.length} Gambar
+              <Zap className="w-4 h-4" />
+              Generate {selShots.length} Gambar
             </Button>
             <p className="text-[11px] text-muted-foreground text-center mt-2">Estimasi: {formatRupiah(cost)}</p>
           </div>
@@ -771,7 +715,8 @@ const GeneratePage = () => {
                   )}
                   {isDone && results.length >= 2 && (
                     <Button variant="outline" size="sm" onClick={openStory} className="text-xs h-8 gap-1.5">
-                      <Layers className="w-3.5 h-3.5" /> Full Story Video
+                      <Layers className="w-3.5 h-3.5" />
+                      Full Story Video
                     </Button>
                   )}
                 </div>
@@ -788,7 +733,9 @@ const GeneratePage = () => {
               )}
 
               {/* Image Grid */}
-              <div className={`grid gap-4 ${getGridCols(imgGen.progress.totalShots || selShots.length)}`}>
+              <div
+                className={`grid gap-4 ${selShots.length === 1 ? "grid-cols-1 max-w-md mx-auto" : selShots.length === 2 ? "grid-cols-2 max-w-2xl mx-auto" : "grid-cols-3"}`}
+              >
                 {Array.from({ length: imgGen.progress.totalShots || selShots.length }).map((_, i) => {
                   const r = imgGen.progress.results[i];
                   const cur = genning && imgGen.progress.currentShot === i;
@@ -808,45 +755,12 @@ const GeneratePage = () => {
                             className="absolute inset-0 w-full h-full object-cover cursor-pointer"
                             onClick={() => setLbIdx(i)}
                           />
-                          {/* Shot label + prompt toggle */}
-                          <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                            {s && (
-                              <span className="text-[9px] px-2 py-0.5 rounded-md font-medium bg-black/50 text-white/80">
-                                {s.shotLabel}
-                              </span>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPromptViewIdx(promptViewIdx === i ? null : i);
-                              }}
-                              className="p-1 rounded-md bg-black/50 hover:bg-black/70 transition-colors"
-                              title="View Prompt"
-                            >
-                              <FileText className="w-3 h-3 text-white/70" />
-                            </button>
-                          </div>
-                          {/* Prompt viewer overlay */}
-                          {promptViewIdx === i && s && (
-                            <div
-                              className="absolute inset-0 bg-black/85 p-3 overflow-y-auto z-10"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-[10px] font-semibold text-white/90">Prompt — {s.shotLabel}</span>
-                                <button
-                                  onClick={() => setPromptViewIdx(null)}
-                                  className="p-0.5 rounded hover:bg-white/10"
-                                >
-                                  <X className="w-3 h-3 text-white/60" />
-                                </button>
-                              </div>
-                              <pre className="text-[8px] text-white/70 whitespace-pre-wrap font-mono leading-relaxed">
-                                {s.prompt}
-                              </pre>
-                            </div>
+                          {s && (
+                            <span className="absolute bottom-2 left-2 text-[9px] px-2 py-0.5 rounded-md font-medium bg-black/50 text-white/80">
+                              {s.shotLabel}
+                            </span>
                           )}
-                          {/* Hover actions */}
+                          {/* Hover actions — 4 buttons */}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                             <ActBtn icon={RefreshCw} label="Retry" onClick={() => retry(i)} />
                             <ActBtn
@@ -854,11 +768,6 @@ const GeneratePage = () => {
                               label="Upscale"
                               loading={up?.loading}
                               onClick={() => upscale(`gen-${i}`, r.imageUrl, 2)}
-                            />
-                            <ActBtn
-                              icon={Download}
-                              label="Download"
-                              onClick={() => downloadImage(r.imageUrl, `genbox-${s?.shotType || "shot"}-${i + 1}.png`)}
                             />
                             <ActBtn icon={Play} label="Motion" onClick={() => openMotion(i)} />
                             <ActBtn icon={Mic} label="Talk" onClick={() => openTalking(i)} />
@@ -870,12 +779,9 @@ const GeneratePage = () => {
                           {s && <span className="text-[10px] text-muted-foreground">{s.shotLabel}</span>}
                         </div>
                       ) : fail ? (
-                        <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center">
                           <X className="w-4 h-4 text-destructive/60" />
                           <span className="text-[10px] text-destructive/60">Gagal</span>
-                          <button onClick={() => retry(i)} className="text-[9px] text-primary hover:underline mt-1">
-                            Retry
-                          </button>
                         </div>
                       ) : (
                         <div className="absolute inset-0 bg-white/[0.02] animate-pulse" />
@@ -885,22 +791,17 @@ const GeneratePage = () => {
                 })}
               </div>
 
-              {/* Bottom bar — WORKING buttons */}
+              {/* Bottom bar */}
               {isDone && results.length > 0 && (
                 <div className="flex items-center justify-between gap-3 py-3 mt-4 border-t border-border/30">
                   <div className="flex gap-2 flex-wrap">
-                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5" onClick={downloadAll}>
-                      <Download className="w-3.5 h-3.5" /> Download All
+                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
+                      <Download className="w-3.5 h-3.5" />
+                      Download
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-8 gap-1.5"
-                      onClick={saveToGallery}
-                      disabled={saving}
-                    >
-                      {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                      {saving ? "Saving..." : "Gallery"}
+                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
+                      <Save className="w-3.5 h-3.5" />
+                      Gallery
                     </Button>
                     <Button
                       variant="outline"
@@ -911,7 +812,8 @@ const GeneratePage = () => {
                         setStep(1);
                       }}
                     >
-                      <RefreshCw className="w-3.5 h-3.5" /> Buat Lagi
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      Buat Lagi
                     </Button>
                   </div>
                   <p className="text-[11px] text-muted-foreground whitespace-nowrap">Total: {formatRupiah(cost)}</p>
@@ -924,6 +826,7 @@ const GeneratePage = () => {
           {vpOpen && (
             <div className="fixed inset-y-0 right-0 w-full lg:w-[400px] bg-card border-l border-border/40 z-40 overflow-y-auto shadow-2xl">
               <div className="p-5 space-y-5">
+                {/* Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {vMode === "motion" && <Play className="w-4 h-4 text-primary" />}
@@ -938,6 +841,7 @@ const GeneratePage = () => {
                   </button>
                 </div>
 
+                {/* Source image preview */}
                 {vIdx !== null && results[vIdx] && (
                   <div className="relative aspect-[9/16] max-h-[200px] rounded-xl overflow-hidden border border-border/30 mx-auto w-fit">
                     {vResult ? (
@@ -948,7 +852,7 @@ const GeneratePage = () => {
                   </div>
                 )}
 
-                {/* QUICK MOTION */}
+                {/* ── QUICK MOTION Panel ──────────────────────── */}
                 {vMode === "motion" && (
                   <>
                     <div>
@@ -1000,7 +904,8 @@ const GeneratePage = () => {
                           onClick={() => setMPrompt(buildMotionPrompt(vIdx || 0))}
                           className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80"
                         >
-                          <RotateCw className="w-3 h-3" /> Regenerate
+                          <RotateCw className="w-3 h-3" />
+                          Regenerate
                         </button>
                       </div>
                       <Textarea
@@ -1026,7 +931,7 @@ const GeneratePage = () => {
                   </>
                 )}
 
-                {/* TALKING HEAD */}
+                {/* ── TALKING HEAD Panel ─────────────────────── */}
                 {vMode === "talking" && (
                   <>
                     <div>
@@ -1074,15 +979,23 @@ const GeneratePage = () => {
                       )}
                     </div>
                     <div>
-                      <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider font-semibold flex items-center gap-1">
-                        <MessageSquare className="w-3 h-3" /> Script / Dialogue
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1">
+                          <MessageSquare className="w-3 h-3" />
+                          Script / Dialogue
+                        </label>
+                      </div>
                       <Textarea
                         value={tScript}
-                        onChange={(e) => setTScript(e.target.value)}
+                        onChange={(e) => {
+                          setTScript(e.target.value);
+                        }}
                         className="text-xs min-h-[80px]"
-                        placeholder={dna?.ugc_hook || "Tulis script..."}
+                        placeholder={dna?.ugc_hook || "Tulis script yang akan diucapkan karakter..."}
                       />
+                      <p className="text-[9px] text-muted-foreground/50 mt-1">
+                        Karakter akan "berbicara" teks ini di video
+                      </p>
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
@@ -1093,7 +1006,8 @@ const GeneratePage = () => {
                           onClick={() => setTPrompt(buildTalkPrompt())}
                           className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80"
                         >
-                          <RotateCw className="w-3 h-3" /> Regenerate
+                          <RotateCw className="w-3 h-3" />
+                          Regenerate
                         </button>
                       </div>
                       <Textarea
@@ -1119,7 +1033,7 @@ const GeneratePage = () => {
                   </>
                 )}
 
-                {/* FULL STORY */}
+                {/* ── FULL STORY Panel ───────────────────────── */}
                 {vMode === "story" && (
                   <>
                     <p className="text-xs text-muted-foreground">
@@ -1175,15 +1089,18 @@ const GeneratePage = () => {
                   </>
                 )}
 
+                {/* Download result */}
                 {vResult && (
                   <div className="flex gap-2 pt-2 border-t border-border/30">
                     <Button variant="outline" size="sm" className="flex-1 text-xs h-8" asChild>
                       <a href={vResult} download target="_blank" rel="noreferrer">
-                        <Download className="w-3.5 h-3.5 mr-1" /> Download Video
+                        <Download className="w-3.5 h-3.5 mr-1" />
+                        Download Video
                       </a>
                     </Button>
                     <Button variant="outline" size="sm" className="text-xs h-8" onClick={() => setVResult(null)}>
-                      <RefreshCw className="w-3.5 h-3.5 mr-1" /> Lagi
+                      <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                      Lagi
                     </Button>
                   </div>
                 )}
@@ -1193,37 +1110,18 @@ const GeneratePage = () => {
         </div>
       )}
 
-      {/* Lightbox — now shows prompt too */}
+      {/* Lightbox */}
       {lbIdx !== null && imgGen.progress.results[lbIdx] && (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           onClick={() => setLbIdx(null)}
         >
-          <div
-            className="relative max-w-full max-h-full flex flex-col items-center"
+          <img
+            src={imgGen.progress.results[lbIdx]!.imageUrl}
+            alt="Full"
+            className="max-w-full max-h-full object-contain rounded-xl"
             onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={imgGen.progress.results[lbIdx]!.imageUrl}
-              alt="Full"
-              className="max-w-full max-h-[80vh] object-contain rounded-xl"
-            />
-            {plans[lbIdx] && (
-              <div className="mt-3 max-w-lg w-full">
-                <button
-                  onClick={() => setPromptViewIdx(promptViewIdx === lbIdx ? null : lbIdx)}
-                  className="flex items-center gap-1.5 text-[10px] text-white/60 hover:text-white/80"
-                >
-                  <FileText className="w-3 h-3" /> {promptViewIdx === lbIdx ? "Hide" : "Show"} Prompt
-                </button>
-                {promptViewIdx === lbIdx && (
-                  <pre className="mt-2 text-[9px] text-white/50 whitespace-pre-wrap font-mono leading-relaxed max-h-[30vh] overflow-y-auto bg-black/40 rounded-lg p-3">
-                    {plans[lbIdx].prompt}
-                  </pre>
-                )}
-              </div>
-            )}
-          </div>
+          />
           <button className="absolute top-4 right-4 p-2 bg-black/50 rounded-xl" onClick={() => setLbIdx(null)}>
             <X className="w-5 h-5" />
           </button>
