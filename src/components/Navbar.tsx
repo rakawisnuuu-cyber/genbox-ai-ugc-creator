@@ -44,7 +44,7 @@ const Navbar = () => {
               <a
                 key={l.href}
                 href={l.href}
-                className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-cream"
               >
                 {l.label}
               </a>
@@ -54,7 +54,7 @@ const Navbar = () => {
           <div className="flex items-center gap-4">
             <Link
               to="/login"
-              className="hidden rounded-lg bg-primary px-5 py-2.5 text-xs font-bold tracking-wider text-primary-foreground transition-all hover:bg-[hsl(var(--lime-hover))] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] md:inline-block"
+              className="hidden rounded-full bg-cream px-6 py-2.5 text-xs font-bold tracking-wider text-cream-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--cream)/0.3)] md:inline-block"
             >
               Masuk
             </Link>
@@ -77,7 +77,7 @@ const Navbar = () => {
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="text-2xl font-satoshi font-bold tracking-tight text-foreground"
+              className="text-2xl font-serif tracking-tight text-cream"
             >
               {l.label}
             </a>
@@ -85,7 +85,7 @@ const Navbar = () => {
           <Link
             to="/login"
             onClick={() => setOpen(false)}
-            className="mt-4 rounded-lg bg-primary px-8 py-3 text-sm font-bold tracking-wider text-primary-foreground"
+            className="mt-4 rounded-full bg-cream px-8 py-3 text-sm font-bold tracking-wider text-cream-foreground"
           >
             Masuk
           </Link>
