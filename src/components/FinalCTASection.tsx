@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { PRICING } from "@/lib/pricing";
 
 const FinalCTASection = () => {
   const { ref, isVisible } = useScrollReveal();
