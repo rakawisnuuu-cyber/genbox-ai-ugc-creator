@@ -1176,7 +1176,7 @@ Content template: ${template?.label}`,
       setSourceUrl(url);
       setSourcePreview(url);
     };
-    const canStart = !!sourcePreview;
+    const canStart = !!sourceUrl && !uploading;
 
     // Load gallery on mount if not loaded
     if (!galleryLoaded && user) {
