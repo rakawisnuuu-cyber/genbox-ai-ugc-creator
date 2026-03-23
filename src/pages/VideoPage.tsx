@@ -538,7 +538,7 @@ const VideoPage = () => {
 
   // Auto-init from storyboard
   useEffect(() => {
-    if (fromStoryboard && !setupDone && sourceUrl) {
+    if (!setupDone && sourceUrl) {
       initializeFrames();
     }
   }, [fromStoryboard, setupDone, sourceUrl, initializeFrames]);
@@ -1176,7 +1176,7 @@ Content template: ${template?.label}`,
       setSourceUrl(url);
       setSourcePreview(url);
     };
-    const canStart = !!sourcePreview;
+    const canStart = !!sourceUrl && !uploading;
 
     // Load gallery on mount if not loaded
     if (!galleryLoaded && user) {
