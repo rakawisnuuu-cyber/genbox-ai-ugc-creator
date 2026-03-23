@@ -1,4 +1,6 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
 const faqs = [
@@ -16,14 +18,68 @@ const faqs = [
   },
 ];
 
+const FAQItem = ({
+  faq,
+  isOpen,
+  onToggle,
+  index,
+}: {
+  faq: { q: string; a: string };
+  isOpen: boolean;
+  onToggle: () => void;
+  index: number;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, delay: 0.1 + index * 0.06, ease: [0.16, 1, 0.3, 1] }}
+    className="rounded-xl border border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden transition-colors duration-200 hover:border-border/60"
+  >
+    <button
+      onClick={onToggle}
+      className="flex w-full items-center justify-between px-5 py-4 sm:px-6 sm:py-5 text-left"
+    >
+      <span className="font-satoshi text-[14px] sm:text-[15px] font-semibold text-foreground pr-4">
+        {faq.q}
+      </span>
+      <motion.div
+        animate={{ rotate: isOpen ? 45 : 0 }}
+        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+        className="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full border border-border/50 bg-secondary/50"
+      >
+        <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+      </motion.div>
+    </button>
+
+    <AnimatePresence initial={false}>
+      {isOpen && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="overflow-hidden"
+        >
+          <div className="px-5 pb-4 sm:px-6 sm:pb-5 pt-0">
+            <p className="text-[13px] sm:text-sm text-muted-foreground leading-relaxed">
+              {faq.a}
+            </p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </motion.div>
+);
+
 const FAQSection = () => {
   const { ref, isVisible } = useScrollReveal();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
     <section id="faq" ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-xl">
         <h2
-          className={`text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] mb-8 sm:mb-10 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{
             animationDelay: "0.1s",
             background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 56%) 100%)",
@@ -35,23 +91,19 @@ const FAQSection = () => {
           FAQ
         </h2>
 
-        <Accordion
-          type="single"
-          collapsible
-          className={`mt-8 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-          style={{ animationDelay: "0.2s" }}
-        >
-          {faqs.map((faq, i) => (
-            <AccordionItem key={i} value={`faq-${i}`} className="border-border/40">
-              <AccordionTrigger className="text-left font-satoshi text-[15px] font-bold text-foreground hover:text-primary transition-colors py-5">
-                {faq.q}
-              </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">
-                {faq.a}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        {isVisible && (
+          <div className="flex flex-col gap-3">
+            {faqs.map((faq, i) => (
+              <FAQItem
+                key={i}
+                faq={faq}
+                index={i}
+                isOpen={openIndex === i}
+                onToggle={() => setOpenIndex(openIndex === i ? null : i)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
