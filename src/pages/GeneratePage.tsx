@@ -507,14 +507,17 @@ const GeneratePage = () => {
   return (
     <div className="min-h-[calc(100vh-48px)] lg:min-h-screen -mx-4 -my-4 lg:-mx-6 lg:-my-8">
       {step === 1 && (
-        <div className="max-w-2xl mx-auto px-5 py-8 space-y-8">
-          <div>
+        <div className="max-w-2xl lg:max-w-6xl mx-auto px-5 py-8 lg:px-8">
+          <div className="mb-8">
             <h1 className="text-lg font-semibold">Image Studio</h1>
             <p className="text-sm text-muted-foreground mt-1">Pilih karakter, upload produk, pilih jenis shot</p>
           </div>
 
+          <div className="lg:grid lg:grid-cols-5 lg:gap-8">
+          <div className="lg:col-span-3 space-y-8">
+
           <Sec l="Pilih Karakter">
-            <div className="grid grid-cols-5 sm:grid-cols-7 gap-3">
+            <div className="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-8 gap-3">
               {allChars.map((c) => (
                 <button key={c.id} onClick={() => setCharId(c.id)} className="flex flex-col items-center gap-1.5">
                   <div
