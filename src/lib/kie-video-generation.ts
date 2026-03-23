@@ -375,7 +375,7 @@ export async function fetchHDVideo(
 
     const r = await fetch(pollUrl, { headers: { Authorization: `Bearer ${apiKey}` } });
     const j = await r.json();
-    console.log("[kie] 4K poll:", j);
+    
 
     const flag = j.data?.successFlag;
     if (flag === 1) {
