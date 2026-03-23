@@ -14,7 +14,6 @@ const showcaseCards: ShowcaseCard[] = [
   { id: 2, type: "video", url: `${STORAGE_BASE}/video-2.mp4` },
   { id: 3, type: "video", url: `${STORAGE_BASE}/video-3.mp4` },
   { id: 4, type: "video", url: `${STORAGE_BASE}/video-4.mp4` },
-  { id: 5, type: "video", url: `${STORAGE_BASE}/video-5.mp4` },
   { id: 6, type: "video", url: `${STORAGE_BASE}/video-6.mp4` },
 ];
 
