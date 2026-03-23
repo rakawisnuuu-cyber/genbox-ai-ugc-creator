@@ -75,7 +75,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   // ── Grok ──
   if (model === "grok") {
     const normalizedDuration = normalizeDurationForModel("grok", duration);
-    console.log(`[kie] Creating Grok task. Duration ${duration}→${normalizedDuration}`);
+    
 
     const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
       method: "POST",
