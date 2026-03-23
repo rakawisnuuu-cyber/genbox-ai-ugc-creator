@@ -1048,7 +1048,6 @@ function compilePrompt(opts: {
   p.push(isUGC ? UGC_REALISM : COMMERCIAL_REALISM);
   const boost = REALISM_BOOST[realismLevel];
   if (boost) p.push(boost);
-  p.push(ANTI_GRID);
 
   if (!isProdOnly && characterDescription) {
     p.push(
