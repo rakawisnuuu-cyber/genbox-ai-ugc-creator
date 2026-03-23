@@ -150,9 +150,6 @@ export function useMultiShotGeneration(options: UseMultiShotGenerationOptions) {
 
     const uniqueImages = [...new Set(imageInputs.filter(Boolean))];
 
-    console.log(`=== MULTI-SHOT: Generating shot ${shotIndex + 1} ===`);
-    console.log("Model:", model, "Duration:", mod.duration, "→", normalizeDurationForModel(model, mod.duration));
-    console.log("Images:", uniqueImages.length);
 
     const result = await generateVideoAndWait(
       {

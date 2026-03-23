@@ -66,7 +66,7 @@ const Login = () => {
         body: { code: inviteCode.trim(), email: signupEmail },
       });
 
-      console.log("Invite code validation:", { codeResult, codeError });
+      
 
       if (codeError) {
         setSignupLoading(false);

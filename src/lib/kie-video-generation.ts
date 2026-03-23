@@ -420,7 +420,7 @@ export async function extendVeoVideo(params: {
   });
 
   const json = await res.json();
-  console.log("[kie] Veo extend response:", json);
+  
 
   const newTaskId = json.data?.taskId || json.taskId;
   if (!newTaskId) {

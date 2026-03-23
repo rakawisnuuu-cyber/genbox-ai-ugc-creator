@@ -75,7 +75,7 @@ async function createImageTask(params: CreateImageParams): Promise<string> {
   });
 
   const json = await res.json();
-  console.log("[kie-img] Create response:", json);
+  
 
   if (json.code !== 200 || !json.data?.taskId) {
     throw new Error(extractError(json, "Failed to create image generation task"));
