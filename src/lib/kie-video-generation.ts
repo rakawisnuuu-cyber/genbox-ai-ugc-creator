@@ -75,7 +75,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   // ── Grok ──
   if (model === "grok") {
     const normalizedDuration = normalizeDurationForModel("grok", duration);
-    console.log(`[kie] Creating Grok task. Duration ${duration}→${normalizedDuration}`);
+    
 
     const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
       method: "POST",
@@ -93,7 +93,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
     });
 
     const json = await res.json();
-    console.log("[kie] Grok create response:", json);
+    
 
     if (json.code !== 200 || !json.data?.taskId) {
       throw new Error(extractError(json, "Failed to create Grok task"));
@@ -105,7 +105,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   if (model === "kling_std" || model === "kling_pro") {
     const normalizedDuration = normalizeDurationForModel(model, duration);
     const klingMode = model === "kling_pro" ? "pro" : "std";
-    console.log(`[kie] Creating Kling 3.0 task. Mode: ${klingMode}, Duration: ${normalizedDuration}s`);
+    
 
     const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
       method: "POST",
@@ -125,7 +125,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
     });
 
     const json = await res.json();
-    console.log("[kie] Kling create response:", json);
+    
     if (json.code !== 200 || !json.data?.taskId) {
       throw new Error(extractError(json, "Failed to create Kling task"));
     }
@@ -136,7 +136,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   if (model === "sora2" || model === "sora2_pro") {
     const soraModel = model === "sora2" ? "sora-2-image-to-video" : "sora-2-pro-image-to-video";
     const soraAspect = aspectRatio === "9:16" ? "portrait" : aspectRatio === "16:9" ? "landscape" : "square";
-    console.log(`[kie] Creating Sora 2 task. Model: ${soraModel}, Aspect: ${soraAspect}`);
+    
 
     const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
       method: "POST",
@@ -155,7 +155,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
     });
 
     const json = await res.json();
-    console.log("[kie] Sora 2 create response:", json);
+    
     if (json.code !== 200 || !json.data?.taskId) {
       throw new Error(extractError(json, "Failed to create Sora 2 task"));
     }
@@ -164,14 +164,14 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
 
   // ── Veo Fast / Quality ──
   const veoModel = model === "veo_fast" ? "veo3_fast" : "veo3";
-  console.log(`[kie] Creating Veo task. Model: ${veoModel}`);
+  
 
   const imageCount = imageUrls.filter(Boolean).length;
   let generationType = "TEXT_2_VIDEO";
   if (imageCount >= 1) {
     generationType = "FIRST_AND_LAST_FRAMES_2_VIDEO";
   }
-  console.log(`[kie] Veo generationType: ${generationType} (${imageCount} images, model=${model})`);
+  
 
   const res = await fetch(`${KIE_BASE}/veo/generate`, {
     method: "POST",
@@ -187,7 +187,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   });
 
   const json = await res.json();
-  console.log("[kie] Veo create response:", json);
+  
 
   const taskId = json.data?.taskId || json.taskId;
   if (!taskId) {
@@ -208,7 +208,7 @@ async function pollTask(taskId: string, model: string, apiKey: string, isCancell
   const startTime = Date.now();
   let consecutive404s = 0;
 
-  console.log(`[kie] Polling started. Model=${model}, taskId=${taskId}, url=${pollUrl}`);
+  
 
   const isVeoModel = model === "veo_fast" || model === "veo_quality";
 
@@ -232,7 +232,7 @@ async function pollTask(taskId: string, model: string, apiKey: string, isCancell
     consecutive404s = 0;
 
     const j = await r.json();
-    console.log(`[kie] Poll response (${model}):`, j);
+    
 
     if (!isVeoModel) {
       // Grok & Kling use same response format
@@ -281,7 +281,7 @@ async function pollTask(taskId: string, model: string, apiKey: string, isCancell
           url = out?.videoUrl || out?.video_url || out?.url || out?.resultUrls?.[0] || "";
         }
 
-        console.log("[kie] Veo success. Extracted URL:", url, "Full data:", JSON.stringify(j.data));
+        
         if (!url) throw new Error("No video URL in Veo result. Raw: " + JSON.stringify(j.data).slice(0, 300));
         return url;
       }
@@ -336,7 +336,7 @@ export async function fetchHDVideo(
 
       const r = await fetch(url, { headers: { Authorization: `Bearer ${apiKey}` } });
       const j = await r.json();
-      console.log("[kie] 1080p poll:", j);
+      
 
       if (j.code === 200 && j.data?.resultUrl) {
         return j.data.resultUrl;
@@ -350,14 +350,14 @@ export async function fetchHDVideo(
   }
 
   // 4K — initiate then poll
-  console.log("[kie] Requesting 4K upgrade for taskId:", taskId);
+  
   const initRes = await fetch(`${KIE_BASE}/veo/get-4k-video`, {
     method: "POST",
     headers,
     body: JSON.stringify({ taskId, index: 0 }),
   });
   const initJson = await initRes.json();
-  console.log("[kie] 4K init response:", initJson);
+  
 
   if (initJson.code !== 200) {
     throw new Error(extractError(initJson, "Failed to initiate 4K upgrade"));
@@ -375,7 +375,7 @@ export async function fetchHDVideo(
 
     const r = await fetch(pollUrl, { headers: { Authorization: `Bearer ${apiKey}` } });
     const j = await r.json();
-    console.log("[kie] 4K poll:", j);
+    
 
     const flag = j.data?.successFlag;
     if (flag === 1) {
@@ -411,7 +411,7 @@ export async function extendVeoVideo(params: {
   const headers = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
 
   const veoModel = model === "fast" ? "veo3_fast" : "veo3";
-  console.log(`[kie] Extending Veo video. taskId=${taskId}, model=${veoModel}`);
+  
 
   const res = await fetch(`${KIE_BASE}/veo/extend`, {
     method: "POST",
@@ -420,7 +420,7 @@ export async function extendVeoVideo(params: {
   });
 
   const json = await res.json();
-  console.log("[kie] Veo extend response:", json);
+  
 
   const newTaskId = json.data?.taskId || json.taskId;
   if (!newTaskId) {

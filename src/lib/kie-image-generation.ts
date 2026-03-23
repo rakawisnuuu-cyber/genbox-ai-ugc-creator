@@ -66,7 +66,7 @@ async function createImageTask(params: CreateImageParams): Promise<string> {
     },
   };
 
-  console.log(`[kie-img] Creating task. Model=${model}, resolution=${resolution}, images=${imageInputs.length}`);
+  
 
   const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
     method: "POST",
@@ -75,7 +75,7 @@ async function createImageTask(params: CreateImageParams): Promise<string> {
   });
 
   const json = await res.json();
-  console.log("[kie-img] Create response:", json);
+  
 
   if (json.code !== 200 || !json.data?.taskId) {
     throw new Error(extractError(json, "Failed to create image generation task"));
