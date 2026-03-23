@@ -182,6 +182,39 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_library: {
+        Row: {
+          created_at: string
+          id: string
+          input_data: Json | null
+          json_output: string | null
+          mode: string
+          natural_prompt: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          input_data?: Json | null
+          json_output?: string | null
+          mode: string
+          natural_prompt?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          input_data?: Json | null
+          json_output?: string | null
+          mode?: string
+          natural_prompt?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_api_keys: {
         Row: {
           created_at: string
