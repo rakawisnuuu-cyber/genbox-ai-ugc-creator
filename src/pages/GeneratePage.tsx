@@ -876,6 +876,17 @@ const GeneratePage = () => {
                               onClick={() => downloadFile(r.imageUrl, `genbox-${s?.shotType || "shot"}-${i + 1}.png`)}
                             />
                           </div>
+                          {promptPreview === i && s && (
+                            <div className="absolute inset-0 bg-black/85 z-10 p-3 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-semibold text-white/90">{s.shotLabel} — Prompt</span>
+                                <button onClick={() => setPromptPreview(null)} className="text-white/60 hover:text-white">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <pre className="text-[8px] text-white/70 font-mono leading-relaxed whitespace-pre-wrap">{s.prompt}</pre>
+                            </div>
+                          )}
                         </>
                       ) : cur ? (
                         <div className="absolute inset-0 bg-white/[0.02] flex flex-col items-center justify-center gap-2">
