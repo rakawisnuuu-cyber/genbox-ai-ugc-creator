@@ -127,7 +127,6 @@ const HargaSection = () => {
             </div>
           </div>
           </div>
-          </div>
         </div>
 
         {/* Trust row */}
