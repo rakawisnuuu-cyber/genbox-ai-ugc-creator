@@ -53,6 +53,9 @@
     --border-hover: 220 5% 22%;
     --success: 152 60% 42%;
     --processing: 217 80% 56%;
+
+    --cream: 42 80% 88%;
+    --cream-foreground: 220 10% 8%;
   }
 
   html {
