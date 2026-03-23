@@ -33,6 +33,8 @@ interface NavGroup {
   items: NavItem[];
 }
 
+const COMING_SOON_PREFIXES = ["/tools/", "/prompt/"];
+
 const navGroups: NavGroup[] = [
   {
     items: [{ title: "Dashboard", icon: LayoutDashboard, path: "/dashboard" }],
@@ -48,12 +50,21 @@ const navGroups: NavGroup[] = [
     label: "VIDEO",
     items: [{ title: "Buat Video", icon: Film, path: "/video" }],
   },
-  // {
-  //   label: "TOOLS",
-  //   items: [
-  //     // { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
-  //   ],
-  // },
+  {
+    label: "TOOLS",
+    items: [
+      { title: "Audio Voiceover", icon: Mic, path: "/tools/voiceover" },
+      { title: "n8n Blueprint", icon: Workflow, path: "/tools/blueprint" },
+    ],
+  },
+  {
+    label: "PROMPT ENGINE",
+    items: [
+      { title: "Campaign Concept", icon: Sparkles, path: "/prompt/campaign" },
+      { title: "Decode Visual", icon: ScanSearch, path: "/prompt/decode" },
+      { title: "Motion Prompt", icon: Wand2, path: "/prompt/motion" },
+    ],
+  },
   {
     label: "ADMIN",
     items: [{ title: "Admin", icon: Shield, path: "/admin" }],
