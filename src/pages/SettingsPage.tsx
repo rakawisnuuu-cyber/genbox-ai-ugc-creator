@@ -136,7 +136,20 @@ const SettingsPage = () => {
         </div>
       </Section>
 
-      {/* API Keys */}
+      {/* Account */}
+      <Section delay="240ms">
+        <SectionHeader icon={LogOut} title="Akun" />
+        <button
+          onClick={signOut}
+          className="text-muted-foreground/40 hover:text-foreground text-[13px] transition-colors inline-flex items-center gap-1.5"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          Keluar dari akun
+        </button>
+      </Section>
+        </div>{/* end left column */}
+
+        <div className="space-y-4 mt-4 lg:mt-0">
       <Section delay="80ms">
         <SectionHeader icon={Key} title="API Keys" />
         <p className="text-[12px] text-muted-foreground/40 mb-5 -mt-2">Masukkan API key kamu untuk menggunakan fitur generate</p>
