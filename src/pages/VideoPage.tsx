@@ -538,7 +538,7 @@ const VideoPage = () => {
 
   // Auto-init from storyboard
   useEffect(() => {
-    if (fromStoryboard && !setupDone && sourceUrl) {
+    if (!setupDone && sourceUrl) {
       initializeFrames();
     }
   }, [fromStoryboard, setupDone, sourceUrl, initializeFrames]);
