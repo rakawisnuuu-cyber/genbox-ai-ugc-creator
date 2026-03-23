@@ -77,7 +77,7 @@ const FAQSection = () => {
 
   return (
     <section id="faq" ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
-      <div className="mx-auto max-w-xl">
+      <div className="mx-auto max-w-xl lg:max-w-3xl">
         <h2
           className={`text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] mb-8 sm:mb-10 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{

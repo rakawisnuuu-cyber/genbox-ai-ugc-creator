@@ -23,7 +23,7 @@ const DibuatUntukSection = () => {
 
   return (
     <section ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-3xl lg:max-w-5xl">
         <h2
           className={`text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{
@@ -43,7 +43,7 @@ const DibuatUntukSection = () => {
           Dari affiliate marketer sampai brand lokal — GENBOX bikin konten UGC jadi gampang.
         </p>
 
-        <div className="mt-12 space-y-4">
+        <div className="mt-12 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-5">
           {cards.map((card, i) => (
             <div
               key={card.num}

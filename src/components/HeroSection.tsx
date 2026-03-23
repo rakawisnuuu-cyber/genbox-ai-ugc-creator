@@ -102,7 +102,7 @@ const HeroSection = () => {
         </div>
 
         {/* Trust pills */}
-        <div className="animate-fade-up mt-8 flex flex-wrap justify-center gap-3" style={{ animationDelay: "0.5s" }}>
+        <div className="animate-fade-up mt-8 flex flex-wrap justify-center gap-3 lg:gap-8" style={{ animationDelay: "0.5s" }}>
           {trustPills.map((pill) => (
             <div
               key={pill.label}
@@ -117,7 +117,7 @@ const HeroSection = () => {
 
       {/* Showcase section */}
       <div
-        className="animate-fade-up relative z-10 mt-16 w-full max-w-4xl mx-auto pb-12"
+        className="animate-fade-up relative z-10 mt-16 w-full max-w-4xl lg:max-w-6xl mx-auto pb-12"
         style={{ animationDelay: "0.6s" }}
       >
         <p className="mb-6 text-center text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground/40">
