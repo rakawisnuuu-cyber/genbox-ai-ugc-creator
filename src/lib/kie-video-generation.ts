@@ -171,7 +171,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   if (imageCount >= 1) {
     generationType = "FIRST_AND_LAST_FRAMES_2_VIDEO";
   }
-  console.log(`[kie] Veo generationType: ${generationType} (${imageCount} images, model=${model})`);
+  
 
   const res = await fetch(`${KIE_BASE}/veo/generate`, {
     method: "POST",
