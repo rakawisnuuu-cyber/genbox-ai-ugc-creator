@@ -93,6 +93,18 @@ const DashboardLayout = () => {
   }
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
+    const isComingSoon = COMING_SOON_PREFIXES.some((p) => item.path.startsWith(p));
+    if (isComingSoon) {
+      return (
+        <li key={item.path}>
+          <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium opacity-50 cursor-default">
+            <item.icon className="h-4 w-4" />
+            {item.title}
+            <span className="ml-auto text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary/60">SOON</span>
+          </div>
+        </li>
+      );
+    }
     const active = isActive(item.path);
     return (
       <li key={item.path}>
