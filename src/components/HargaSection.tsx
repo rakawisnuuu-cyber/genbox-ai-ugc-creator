@@ -50,31 +50,9 @@ const HargaSection = () => {
 
         {/* Pricing Card */}
         <div
-          className={`mx-auto mt-14 max-w-md lg:max-w-4xl lg:grid lg:grid-cols-2 lg:gap-10 lg:items-center ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          className={`mx-auto mt-14 max-w-md ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.4s" }}
         >
-          {/* Left: showcase images (desktop only) */}
-          <div className="hidden lg:flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg",
-                "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg",
-                "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Gen-Z%20Creator.jpeg",
-              ].map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt=""
-                  className={`rounded-2xl border border-border/40 object-cover object-top w-full ${i === 2 ? "col-span-2 h-[140px]" : "h-[180px]"}`}
-                  loading="lazy"
-                />
-              ))}
-            </div>
-            <p className="text-[11px] text-center text-muted-foreground/40">Contoh hasil generate GENBOX</p>
-          </div>
-
-          {/* Right: pricing card */}
-          <div>
           {/* Shimmer badge */}
           <div className="mb-4 flex justify-center">
             <span className="animate-shimmer rounded-full bg-clip-text px-5 py-1.5 text-[11px] font-bold uppercase tracking-[0.15em] text-transparent">
@@ -125,7 +103,6 @@ const HargaSection = () => {
               <Zap className="h-3 w-3 text-primary" />
               Biaya API kamu sendiri: cuma ~Rp 150-500/gambar
             </div>
-          </div>
           </div>
         </div>
 

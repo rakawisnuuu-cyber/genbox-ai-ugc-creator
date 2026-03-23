@@ -345,7 +345,7 @@ const ModuleCard = ({
   delay: number;
 }) => (
   <div
-    className={`rounded-3xl border border-border/60 bg-card/50 p-6 sm:p-8 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_48px_-12px_hsl(var(--primary)/0.1)] ${animation === "character-stack" ? "lg:col-span-2" : ""} ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+    className={`rounded-3xl border border-border/60 bg-card/50 p-6 sm:p-8 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_48px_-12px_hsl(var(--primary)/0.1)] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
     style={{ animationDelay: `${delay}s` }}
   >
     {/* Header */}
@@ -434,7 +434,7 @@ const FiturSection = () => {
         </h2>
 
         {/* Module cards */}
-        <div className="mt-12 space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
+        <div className="mt-12 space-y-6">
           {features.map((f, i) => (
             <ModuleCard key={f.num} {...f} isVisible={isVisible} delay={0.3 + i * 0.15} />
           ))}
