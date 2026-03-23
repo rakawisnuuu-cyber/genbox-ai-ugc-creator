@@ -281,7 +281,7 @@ async function pollTask(taskId: string, model: string, apiKey: string, isCancell
           url = out?.videoUrl || out?.video_url || out?.url || out?.resultUrls?.[0] || "";
         }
 
-        console.log("[kie] Veo success. Extracted URL:", url, "Full data:", JSON.stringify(j.data));
+        
         if (!url) throw new Error("No video URL in Veo result. Raw: " + JSON.stringify(j.data).slice(0, 300));
         return url;
       }
