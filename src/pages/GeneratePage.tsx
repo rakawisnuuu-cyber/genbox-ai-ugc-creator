@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import {
   Upload,
   X,
@@ -244,9 +244,8 @@ const GeneratePage = () => {
       });
       setBeatDialogues(defaults as Record<TalkingHeadBeatKey, string>);
       setTScript(dna?.ugc_hook || "");
-      setTPrompt(buildTalkPrompt());
     },
-    [buildTalkPrompt, dna, tDur],
+    [dna, tDur],
   );
 
   const openStory = useCallback(() => {
@@ -257,6 +256,13 @@ const GeneratePage = () => {
     const durations = results.map(() => 5);
     setSPerShotDur(durations);
   }, [results]);
+
+  // Auto-rebuild talking head prompt when beat dialogues or duration change
+  useEffect(() => {
+    if (vMode === "talking" && vpOpen) {
+      setTPrompt(buildTalkPrompt());
+    }
+  }, [beatDialogues, tDur, vMode, vpOpen, buildTalkPrompt]);
 
   // ── Upload handlers ────────────────────────────────────────
   const uploadProd = useCallback(
