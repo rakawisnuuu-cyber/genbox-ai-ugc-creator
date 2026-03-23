@@ -105,7 +105,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   if (model === "kling_std" || model === "kling_pro") {
     const normalizedDuration = normalizeDurationForModel(model, duration);
     const klingMode = model === "kling_pro" ? "pro" : "std";
-    console.log(`[kie] Creating Kling 3.0 task. Mode: ${klingMode}, Duration: ${normalizedDuration}s`);
+    
 
     const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
       method: "POST",
