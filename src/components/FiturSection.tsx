@@ -345,7 +345,7 @@ const ModuleCard = ({
   delay: number;
 }) => (
   <div
-    className={`rounded-3xl border border-border/60 bg-card/50 p-6 sm:p-8 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_48px_-12px_hsl(var(--primary)/0.1)] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+    className={`rounded-3xl border border-border/60 bg-card/50 p-6 sm:p-8 transition-all duration-500 hover:border-primary/20 hover:shadow-[0_0_48px_-12px_hsl(var(--primary)/0.1)] ${animation === "character-stack" ? "lg:col-span-2" : ""} ${isVisible ? "animate-fade-up" : "opacity-0"}`}
     style={{ animationDelay: `${delay}s` }}
   >
     {/* Header */}

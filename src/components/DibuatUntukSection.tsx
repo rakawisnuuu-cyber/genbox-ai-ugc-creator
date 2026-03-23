@@ -43,7 +43,7 @@ const DibuatUntukSection = () => {
           Dari affiliate marketer sampai brand lokal — GENBOX bikin konten UGC jadi gampang.
         </p>
 
-        <div className="mt-12 space-y-4">
+        <div className="mt-12 space-y-4 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-5">
           {cards.map((card, i) => (
             <div
               key={card.num}

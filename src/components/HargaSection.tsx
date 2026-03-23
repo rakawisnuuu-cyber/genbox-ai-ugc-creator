@@ -126,6 +126,8 @@ const HargaSection = () => {
               Biaya API kamu sendiri: cuma ~Rp 150-500/gambar
             </div>
           </div>
+          </div>
+          </div>
         </div>
 
         {/* Trust row */}
