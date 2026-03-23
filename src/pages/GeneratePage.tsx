@@ -775,7 +775,7 @@ const GeneratePage = () => {
       {step === 2 && (
         <div className="flex h-[calc(100vh-48px)] lg:h-screen">
           <div className={`flex-1 overflow-y-auto transition-all ${vpOpen ? "lg:mr-[400px]" : ""}`}>
-            <div className="max-w-4xl mx-auto px-5 py-6 space-y-4">
+            <div className="max-w-4xl xl:max-w-6xl mx-auto px-5 py-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <button
