@@ -238,6 +238,23 @@ button, a, [role="button"] {
   background-size: 60px 60px;
 }
 
+/* Hero orb */
+.hero-orb {
+  position: absolute;
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%,
+    hsl(75 70% 50% / 0.15) 0%,
+    hsl(160 60% 40% / 0.1) 30%,
+    hsl(210 50% 45% / 0.08) 60%,
+    transparent 80%
+  );
+  filter: blur(80px);
+  animation: bg-orb-float 12s ease-in-out infinite;
+  will-change: transform;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
