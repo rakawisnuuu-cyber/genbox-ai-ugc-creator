@@ -384,7 +384,7 @@ const ModuleCard = ({
             src={
               animation === "character-stack"
                 ? "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-01-karakter.png"
-                : "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-02-v2-generate.png"
+                : "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-02-generate-v2.png"
             }
             alt={screenshotLabel}
             className="w-full"
