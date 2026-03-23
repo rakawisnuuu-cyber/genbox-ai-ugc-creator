@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight, LayoutGrid, BarChart3 } from "lucide-react";
+import { ImagePlus, Film, Users, TrendingUp, TrendingDown, Coins, ArrowRight, LayoutGrid, BarChart3, Mic, Workflow, Sparkles, ScanSearch, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -248,6 +248,33 @@ const DashboardHome = () => {
                     Mulai <ArrowRight size={11} />
                   </span>
                 </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Coming Soon */}
+          <div>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/50">
+              Coming Soon
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { icon: Mic, title: "Audio Voiceover", desc: "Generate suara narasi AI untuk video UGC" },
+                { icon: Workflow, title: "n8n Blueprint", desc: "Template automasi siap pakai untuk workflow konten" },
+                { icon: Sparkles, title: "Campaign Concept", desc: "AI generate konsep campaign & style direction" },
+                { icon: ScanSearch, title: "Decode Visual", desc: "Extract prompt dari gambar atau video referensi" },
+                { icon: Wand2, title: "Motion Prompt", desc: "Generate prompt untuk animasi & video dari gambar" },
+              ].map((f) => (
+                <div key={f.title} className="rounded-2xl border border-border/40 border-dashed bg-card/40 p-5 opacity-60">
+                  <div className="mb-3 flex items-center gap-2">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.03]">
+                      <f.icon size={18} className="text-muted-foreground/40" />
+                    </div>
+                    <span className="text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary/60">SOON</span>
+                  </div>
+                  <h3 className="font-satoshi text-sm font-bold text-foreground/60">{f.title}</h3>
+                  <p className="mt-1 text-[12px] text-muted-foreground/40">{f.desc}</p>
+                </div>
               ))}
             </div>
           </div>
