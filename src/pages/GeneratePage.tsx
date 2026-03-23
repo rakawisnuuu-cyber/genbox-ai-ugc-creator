@@ -30,6 +30,7 @@ import {
   Play,
   Mic,
   Layers,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,7 +63,13 @@ import { generateVideoAndWait, extendVeoVideo, type VideoModel } from "@/lib/kie
 import {
   getMotionPrompt,
   getTalkingHeadPrompts,
+  buildTalkingHeadPrompts,
+  getBeatsForDuration,
+  getBeatDefinition,
+  getMotionPresetsForCategory,
   type VideoModelType as MotionVideoModel,
+  type TalkingHeadBeatKey,
+  type MotionStyleKey,
 } from "@/lib/image-to-video-prompts";
 
 /* ─── Constants ──────────────────────────────────────────────── */
@@ -134,6 +141,7 @@ const GeneratePage = () => {
   const [realism, setRealism] = useState<RealismLevel>("standard");
   const [advOpen, setAdvOpen] = useState(false);
   const [plans, setPlans] = useState<ImageShotPlan[]>([]);
+  const [promptPreview, setPromptPreview] = useState<number | null>(null);
 
   // Video panel state
   const [vpOpen, setVpOpen] = useState(false);
@@ -149,6 +157,11 @@ const GeneratePage = () => {
   const [vGen, setVGen] = useState(false);
   const [vResult, setVResult] = useState<string | null>(null);
   const [lbIdx, setLbIdx] = useState<number | null>(null);
+  const [sPerShotDur, setSPerShotDur] = useState<number[]>([]);
+
+  // Beat dialogue state for talking head
+  const [beatDialogues, setBeatDialogues] = useState<Record<TalkingHeadBeatKey, string>>({} as any);
+  const [activeMotionPreset, setActiveMotionPreset] = useState<MotionStyleKey | null>(null);
 
   const prodRef = useRef<HTMLInputElement>(null);
   const ownRef = useRef<HTMLInputElement>(null);
@@ -164,9 +177,10 @@ const GeneratePage = () => {
   const mModelInfo = MOTION_MODELS.find((m) => m.id === mModel) || MOTION_MODELS[1];
   const talkCost = getTalkCost(tVeo, tDur);
 
+  // Allow up to 6 shots
   const toggle = (k: ShotTypeKey) =>
     setSelShots((p) =>
-      p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= 3 ? p : [...p, k],
+      p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= 6 ? p : [...p, k],
     );
 
   // ── Prompt builders ────────────────────────────────────────
@@ -188,21 +202,19 @@ const GeneratePage = () => {
   );
 
   const buildTalkPrompt = useCallback(() => {
-    const prompts = getTalkingHeadPrompts({
+    const result = buildTalkingHeadPrompts({
       character: char?.description || "",
       product: dna?.product_description || "",
       productColor: dna?.dominant_color || "",
       productPackaging: dna?.packaging_type || "",
       environment: env.description,
       skinTone: "sawo matang",
-      expression: "natural, conversational",
+      duration: tDur,
+      beatDialogues,
       productInteraction: "holding product naturally",
-      dialogueSegments: tScript
-        ? tScript.split("\n").filter(Boolean)
-        : [dna?.ugc_hook || "Produk ini bagus banget guys"],
     });
-    return prompts.join("\n\n---EXTEND---\n\n");
-  }, [char, dna, env, tScript, tDur]);
+    return result.prompts.join("\n\n---EXTEND---\n\n");
+  }, [char, dna, env, tDur, beatDialogues]);
 
   // ── Open panel handlers ────────────────────────────────────
   const openMotion = useCallback(
@@ -211,6 +223,7 @@ const GeneratePage = () => {
       setVMode("motion");
       setVResult(null);
       setVpOpen(true);
+      setActiveMotionPreset(null);
       setMPrompt(buildMotionPrompt(idx));
     },
     [buildMotionPrompt],
@@ -222,10 +235,18 @@ const GeneratePage = () => {
       setVMode("talking");
       setVResult(null);
       setVpOpen(true);
+      // Initialize beat dialogues with defaults
+      const beats = getBeatsForDuration(tDur);
+      const defaults: Record<string, string> = {};
+      beats.forEach((bk) => {
+        const b = getBeatDefinition(bk);
+        defaults[bk] = b.defaultDialogueId(dna?.product_description || "produk ini", dna?.ugc_hook || "");
+      });
+      setBeatDialogues(defaults as Record<TalkingHeadBeatKey, string>);
       setTScript(dna?.ugc_hook || "");
       setTPrompt(buildTalkPrompt());
     },
-    [buildTalkPrompt, dna],
+    [buildTalkPrompt, dna, tDur],
   );
 
   const openStory = useCallback(() => {
@@ -236,8 +257,6 @@ const GeneratePage = () => {
     const durations = results.map(() => 5);
     setSPerShotDur(durations);
   }, [results]);
-
-  const [sPerShotDur, setSPerShotDur] = useState<number[]>([]);
 
   // ── Upload handlers ────────────────────────────────────────
   const uploadProd = useCallback(
@@ -338,6 +357,49 @@ const GeneratePage = () => {
     [plans, imgModel, imgRes, ar, kieApiKey, charImg, prodUrl],
   );
 
+  // ── Download single image ──────────────────────────────────
+  const downloadImage = useCallback(async (url: string, filename: string) => {
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      toast({ title: "Download gagal", variant: "destructive" });
+    }
+  }, []);
+
+  // ── Save all to gallery ────────────────────────────────────
+  const saveToGallery = useCallback(async () => {
+    if (!user) return;
+    let saved = 0;
+    for (const [i, r] of results.entries()) {
+      if (!r) continue;
+      try {
+        await supabase.from("generations").insert({
+          user_id: user.id,
+          image_url: r.imageUrl,
+          prompt: plans[i]?.prompt?.substring(0, 5000) || null,
+          type: "image",
+          model: imgModel,
+          provider: "kie_ai",
+          status: "completed",
+          character_id: charId !== "own-photo" ? charId : null,
+        });
+        saved++;
+      } catch (e: any) {
+        console.error("Save failed:", e);
+      }
+    }
+    toast({ title: `${saved} gambar disimpan ke Gallery` });
+  }, [user, results, plans, imgModel, charId]);
+
   // ── Generate video ─────────────────────────────────────────
   const genVideo = useCallback(async () => {
     if (!kieApiKey) {
@@ -349,7 +411,6 @@ const GeneratePage = () => {
 
     try {
       if (vMode === "motion" && vIdx !== null && results[vIdx]) {
-        // Quick Motion — single generation
         const r = await generateVideoAndWait({
           model: mModel as VideoModel,
           prompt: mPrompt,
@@ -360,11 +421,9 @@ const GeneratePage = () => {
         });
         setVResult(r.videoUrl);
       } else if (vMode === "talking" && vIdx !== null && results[vIdx]) {
-        // Talking Head — Veo generate + optional extends
         const promptParts = tPrompt.split("\n\n---EXTEND---\n\n");
         const initialPrompt = promptParts[0] || tPrompt;
 
-        // First 8s generation
         const first = await generateVideoAndWait({
           model: tVeo as VideoModel,
           prompt: initialPrompt,
@@ -374,17 +433,13 @@ const GeneratePage = () => {
           apiKey: kieApiKey,
         });
         let finalUrl = first.videoUrl;
-        let lastTaskId = first.videoUrl; // We need taskId for extend
 
-        // Chain extends if duration > 8s
         const extCount = Math.max(0, Math.floor((tDur - 8) / 8));
         for (let e = 0; e < extCount; e++) {
           const extPrompt =
             promptParts[e + 1] ||
             `Continue the scene naturally. The character keeps speaking and demonstrating the product.`;
           toast({ title: `Extending video... (${e + 1}/${extCount})` });
-          // Note: extendVeoVideo needs the taskId from the previous generation
-          // Since generateVideoAndWait returns videoUrl not taskId, we pass the initial task
           const ext = await extendVeoVideo({
             taskId: first.videoUrl.split("/").pop()?.split("?")[0] || "",
             prompt: extPrompt,
@@ -395,7 +450,6 @@ const GeneratePage = () => {
         }
         setVResult(finalUrl);
       } else if (vMode === "story" && results.length >= 2) {
-        // Multi-shot Story — Kling multi-shot (future implementation)
         toast({ title: "Multi-shot story coming soon", description: "Fitur ini sedang dikembangkan" });
         setVGen(false);
         return;
@@ -547,7 +601,7 @@ const GeneratePage = () => {
             </div>
           </Sec>
 
-          <Sec l="Pilih Jenis Shot (1-3)">
+          <Sec l="Pilih Jenis Shot (1-6)">
             <div className="grid grid-cols-2 gap-2.5">
               {SHOT_TYPES.map((s) => {
                 const sel = selShots.includes(s.key);
@@ -572,7 +626,7 @@ const GeneratePage = () => {
                 );
               })}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2">{selShots.length}/3 dipilih</p>
+            <p className="text-[10px] text-muted-foreground mt-2">{selShots.length}/6 dipilih</p>
           </Sec>
 
           <Sec l="Environment">
@@ -734,7 +788,13 @@ const GeneratePage = () => {
 
               {/* Image Grid */}
               <div
-                className={`grid gap-4 ${selShots.length === 1 ? "grid-cols-1 max-w-md mx-auto" : selShots.length === 2 ? "grid-cols-2 max-w-2xl mx-auto" : "grid-cols-3"}`}
+                className={`grid gap-4 ${
+                  selShots.length === 1
+                    ? "grid-cols-1 max-w-md mx-auto"
+                    : selShots.length === 2
+                      ? "grid-cols-2 max-w-2xl mx-auto"
+                      : "grid-cols-2 lg:grid-cols-3"
+                }`}
               >
                 {Array.from({ length: imgGen.progress.totalShots || selShots.length }).map((_, i) => {
                   const r = imgGen.progress.results[i];
@@ -755,12 +815,34 @@ const GeneratePage = () => {
                             className="absolute inset-0 w-full h-full object-cover cursor-pointer"
                             onClick={() => setLbIdx(i)}
                           />
+                          {/* Shot label + prompt button */}
                           {s && (
-                            <span className="absolute bottom-2 left-2 text-[9px] px-2 py-0.5 rounded-md font-medium bg-black/50 text-white/80">
-                              {s.shotLabel}
-                            </span>
+                            <div className="absolute bottom-0 left-0 right-0 p-2">
+                              <span className="text-[9px] px-2 py-0.5 rounded-md font-medium bg-black/50 text-white/80">
+                                {s.shotLabel}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPromptPreview(promptPreview === i ? null : i);
+                                }}
+                                className="ml-1.5 text-[8px] px-1.5 py-0.5 rounded bg-black/40 text-white/60 hover:text-white/90 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                Prompt
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigator.clipboard.writeText(s.prompt);
+                                  toast({ title: "Prompt di-copy!" });
+                                }}
+                                className="ml-1 text-[8px] px-1.5 py-0.5 rounded bg-black/40 text-white/60 hover:text-white/90 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Copy className="w-2.5 h-2.5 inline" />
+                              </button>
+                            </div>
                           )}
-                          {/* Hover actions — 4 buttons */}
+                          {/* Hover actions */}
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                             <ActBtn icon={RefreshCw} label="Retry" onClick={() => retry(i)} />
                             <ActBtn
@@ -771,6 +853,11 @@ const GeneratePage = () => {
                             />
                             <ActBtn icon={Play} label="Motion" onClick={() => openMotion(i)} />
                             <ActBtn icon={Mic} label="Talk" onClick={() => openTalking(i)} />
+                            <ActBtn
+                              icon={Download}
+                              label="Save"
+                              onClick={() => downloadImage(r.imageUrl, `genbox-${s?.shotType || "shot"}-${i + 1}.png`)}
+                            />
                           </div>
                         </>
                       ) : cur ? (
@@ -779,9 +866,15 @@ const GeneratePage = () => {
                           {s && <span className="text-[10px] text-muted-foreground">{s.shotLabel}</span>}
                         </div>
                       ) : fail ? (
-                        <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center">
+                        <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center gap-2">
                           <X className="w-4 h-4 text-destructive/60" />
                           <span className="text-[10px] text-destructive/60">Gagal</span>
+                          <button
+                            onClick={() => retry(i)}
+                            className="text-[9px] px-2 py-1 rounded bg-destructive/10 text-destructive hover:bg-destructive/20"
+                          >
+                            Retry
+                          </button>
                         </div>
                       ) : (
                         <div className="absolute inset-0 bg-white/[0.02] animate-pulse" />
@@ -791,17 +884,46 @@ const GeneratePage = () => {
                 })}
               </div>
 
+              {/* Prompt Preview Modal */}
+              {promptPreview !== null && plans[promptPreview] && (
+                <div className="p-4 rounded-xl border border-border/30 bg-white/[0.02] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold">{plans[promptPreview].shotLabel} — Full Prompt</span>
+                    <button
+                      onClick={() => setPromptPreview(null)}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <pre className="text-[9px] text-muted-foreground font-mono leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto">
+                    {plans[promptPreview].prompt}
+                  </pre>
+                </div>
+              )}
+
               {/* Bottom bar */}
               {isDone && results.length > 0 && (
                 <div className="flex items-center justify-between gap-3 py-3 mt-4 border-t border-border/30">
                   <div className="flex gap-2 flex-wrap">
-                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-8 gap-1.5"
+                      onClick={async () => {
+                        for (const [i, r] of results.entries()) {
+                          if (!r) continue;
+                          await downloadImage(r.imageUrl, `genbox-${plans[i]?.shotType || "shot"}-${i + 1}.png`);
+                        }
+                        toast({ title: `${results.filter(Boolean).length} gambar di-download` });
+                      }}
+                    >
                       <Download className="w-3.5 h-3.5" />
-                      Download
+                      Download All
                     </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5">
+                    <Button variant="outline" size="sm" className="text-xs h-8 gap-1.5" onClick={saveToGallery}>
                       <Save className="w-3.5 h-3.5" />
-                      Gallery
+                      Save to Gallery
                     </Button>
                     <Button
                       variant="outline"
@@ -895,6 +1017,47 @@ const GeneratePage = () => {
                         ))}
                       </div>
                     </div>
+                    {/* Motion Style Presets */}
+                    <div>
+                      <label className="text-[10px] text-muted-foreground mb-1.5 block uppercase tracking-wider font-semibold">
+                        Motion Style
+                      </label>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {getMotionPresetsForCategory(dna?.category || "other").map((preset) => (
+                          <button
+                            key={preset.key}
+                            onClick={() => {
+                              setActiveMotionPreset(preset.key);
+                              setMPrompt(
+                                preset.buildPrompt({
+                                  beat: "hook",
+                                  model: (mModel as any) || "kling_std",
+                                  character: char?.description || "",
+                                  product: dna?.product_description || "",
+                                  productColor: dna?.dominant_color || "",
+                                  productPackaging: dna?.packaging_type || "",
+                                  environment: env.description,
+                                  skinTone: "sawo matang",
+                                  expression: "natural",
+                                }),
+                              );
+                            }}
+                            className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium border ${activeMotionPreset === preset.key ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground hover:border-border/50"}`}
+                          >
+                            {preset.name}
+                          </button>
+                        ))}
+                      </div>
+                      {activeMotionPreset && (
+                        <p className="text-[8px] text-muted-foreground/50 mt-1">
+                          {
+                            getMotionPresetsForCategory(dna?.category || "other").find(
+                              (p) => p.key === activeMotionPreset,
+                            )?.description
+                          }
+                        </p>
+                      )}
+                    </div>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
@@ -958,7 +1121,19 @@ const GeneratePage = () => {
                         {([8, 16, 24, 32] as const).map((d) => (
                           <button
                             key={d}
-                            onClick={() => setTDur(d)}
+                            onClick={() => {
+                              setTDur(d);
+                              // Re-initialize beats for new duration
+                              const beats = getBeatsForDuration(d);
+                              const defaults: Record<string, string> = {};
+                              beats.forEach((bk) => {
+                                const b = getBeatDefinition(bk);
+                                defaults[bk] =
+                                  beatDialogues[bk as TalkingHeadBeatKey] ||
+                                  b.defaultDialogueId(dna?.product_description || "produk ini", dna?.ugc_hook || "");
+                              });
+                              setBeatDialogues(defaults as Record<TalkingHeadBeatKey, string>);
+                            }}
                             className={`py-2.5 rounded-lg border text-center ${tDur === d ? "border-primary/30 bg-primary/10" : "border-border/30 hover:border-border/50"}`}
                           >
                             <span
@@ -974,33 +1149,72 @@ const GeneratePage = () => {
                       </div>
                       {tDur > 8 && (
                         <p className="text-[9px] text-muted-foreground/50 mt-1.5">
-                          1x generate + {Math.floor((tDur - 8) / 8)}x extend otomatis
+                          {getBeatsForDuration(tDur).length} beat × 8s segment ({Math.floor((tDur - 8) / 8)}x extend)
                         </p>
                       )}
                     </div>
+
+                    {/* Beat Cards */}
                     <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold flex items-center gap-1">
-                          <MessageSquare className="w-3 h-3" />
-                          Script / Dialogue
-                        </label>
+                      <label className="text-[10px] text-muted-foreground mb-2 block uppercase tracking-wider font-semibold flex items-center gap-1">
+                        <MessageSquare className="w-3 h-3" />
+                        Story Beats & Dialogue
+                      </label>
+                      <div className="space-y-2.5">
+                        {getBeatsForDuration(tDur).map((beatKey, idx) => {
+                          const beat = getBeatDefinition(beatKey);
+                          return (
+                            <div
+                              key={beatKey}
+                              className="p-3 rounded-xl border border-border/30 bg-white/[0.02] space-y-2"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">
+                                    {idx + 1}
+                                  </span>
+                                  <span className="text-[11px] font-semibold">{beat.nameId}</span>
+                                </div>
+                                <span className="text-[9px] text-muted-foreground/60">
+                                  {idx * 8}s–{(idx + 1) * 8}s
+                                </span>
+                              </div>
+                              <p className="text-[9px] text-muted-foreground leading-relaxed">{beat.description}</p>
+                              <div className="flex gap-2 text-[8px]">
+                                <span className="px-1.5 py-0.5 rounded bg-primary/5 text-primary/70">
+                                  {beat.energy.split(",")[0]}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded bg-white/5 text-muted-foreground/70">
+                                  Produk:{" "}
+                                  {beat.productVisibility.includes("NOT")
+                                    ? "hidden"
+                                    : beat.productVisibility.includes("HERO")
+                                      ? "hero"
+                                      : "visible"}
+                                </span>
+                              </div>
+                              <Textarea
+                                value={beatDialogues[beatKey] || ""}
+                                onChange={(e) => {
+                                  setBeatDialogues((prev) => ({ ...prev, [beatKey]: e.target.value }));
+                                }}
+                                className="text-[10px] min-h-[50px] mt-1"
+                                placeholder={beat.defaultDialogueId(
+                                  dna?.product_description || "produk",
+                                  dna?.ugc_hook || "",
+                                )}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
-                      <Textarea
-                        value={tScript}
-                        onChange={(e) => {
-                          setTScript(e.target.value);
-                        }}
-                        className="text-xs min-h-[80px]"
-                        placeholder={dna?.ugc_hook || "Tulis script yang akan diucapkan karakter..."}
-                      />
-                      <p className="text-[9px] text-muted-foreground/50 mt-1">
-                        Karakter akan "berbicara" teks ini di video
-                      </p>
                     </div>
+
+                    {/* Video Prompt Preview */}
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                          Video Prompt
+                          Full Video Prompt
                         </label>
                         <button
                           onClick={() => setTPrompt(buildTalkPrompt())}
@@ -1070,6 +1284,28 @@ const GeneratePage = () => {
                               </div>
                             </div>
                           ),
+                      )}
+                    </div>
+                    {/* Full Story prompt visibility */}
+                    <div>
+                      <button
+                        onClick={() => setPromptPreview(promptPreview === -1 ? null : -1)}
+                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        {promptPreview === -1 ? "Hide" : "View"} Shot Prompts
+                      </button>
+                      {promptPreview === -1 && (
+                        <div className="mt-2 space-y-2">
+                          {plans.map((p, i) => (
+                            <div key={i} className="p-2 rounded-lg border border-border/20 bg-white/[0.01]">
+                              <p className="text-[9px] font-semibold text-muted-foreground mb-1">{p.shotLabel}</p>
+                              <pre className="text-[8px] text-muted-foreground/70 font-mono whitespace-pre-wrap max-h-[80px] overflow-y-auto">
+                                {p.prompt.substring(0, 300)}...
+                              </pre>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">

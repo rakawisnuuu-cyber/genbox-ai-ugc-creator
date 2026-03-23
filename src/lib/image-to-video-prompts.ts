@@ -1,9 +1,12 @@
 /**
- * Motion prompt templates for converting generated images to video.
+ * Video Prompt Engine v2 — Beat-Based Story System for Talking Head
+ * Motion prompts with category-aware presets.
  * Model-specific formats for Veo 3.1, Kling 3.0, and Grok.
  */
 
 export type VideoModelType = "grok" | "kling_std" | "kling_pro" | "veo_fast" | "veo_quality";
+
+// ── Motion Prompt (unchanged API) ─────────────────────────────────
 
 export interface MotionPromptParams {
   beat: string;
@@ -21,7 +24,6 @@ export interface MotionPromptParams {
 
 const SAFETY_PREFIX = "Casual product review video by a content creator for social media. ";
 
-// ── Veo 3.1 Templates ──────────────────────────────────────────
 function getVeoPrompt(p: MotionPromptParams): string {
   const skin = p.skinTone || "natural Indonesian";
   const expr = p.expression || "natural";
@@ -39,7 +41,6 @@ function getVeoPrompt(p: MotionPromptParams): string {
   return templates[p.beat] || templates.demo;
 }
 
-// ── Kling 3.0 Templates ────────────────────────────────────────
 function getKlingPrompt(p: MotionPromptParams): string {
   const skin = p.skinTone || "natural Indonesian";
   const expr = p.expression || "natural";
@@ -69,7 +70,6 @@ Timeline:
 Stability: Same person, same product, same environment.`;
 }
 
-// ── Grok Templates ──────────────────────────────────────────────
 function getGrokPrompt(p: MotionPromptParams): string {
   const skin = p.skinTone || "natural Indonesian";
   const expr = p.expression || "natural";
@@ -85,7 +85,6 @@ function getGrokPrompt(p: MotionPromptParams): string {
   return templates[p.beat] || templates.demo;
 }
 
-// ── Public API ──────────────────────────────────────────────────
 export function getMotionPrompt(params: MotionPromptParams): string {
   const isVeo = params.model === "veo_fast" || params.model === "veo_quality";
   const isKling = params.model === "kling_std" || params.model === "kling_pro";
@@ -95,7 +94,256 @@ export function getMotionPrompt(params: MotionPromptParams): string {
   return getGrokPrompt(params);
 }
 
-// ── Talking Head Extended Prompts (Veo 3.1 only) ────────────────
+// ── Motion Style Presets (NEW) ──────────────────────────────────
+export type MotionStyleKey = "natural_review" | "asmr_texture" | "reveal_drama" | "first_use" | "lifestyle_candid";
+
+export interface MotionStylePreset {
+  key: MotionStyleKey;
+  name: string;
+  description: string;
+  categories: string[]; // which categories this fits best
+  buildPrompt: (p: MotionPromptParams) => string;
+}
+
+export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
+  {
+    key: "natural_review",
+    name: "Natural Review",
+    description: "Casual pick-up and examine — classic TikTok review motion",
+    categories: ["all"],
+    buildPrompt: (p) => getMotionPrompt({ ...p, beat: "hook" }),
+  },
+  {
+    key: "asmr_texture",
+    name: "ASMR Texture",
+    description: "Slow close-up manipulation — opening, squeezing, pouring",
+    categories: ["skincare", "food", "health"],
+    buildPrompt: (p) => {
+      const skin = p.skinTone || "natural Indonesian";
+      return `${SAFETY_PREFIX}Extreme close-up shot. A ${p.character} with ${skin} skin slowly opens the ${p.productPackaging} of ${p.product}. Hands move deliberately and gently. Camera holds tight on the product as it's manipulated — ${p.productInteraction || "opening lid, revealing texture inside"}. Soft ambient sound emphasis. Minimal face visible, focus on hands and product. Slow, satisfying, ASMR energy.`;
+    },
+  },
+  {
+    key: "reveal_drama",
+    name: "Dramatic Reveal",
+    description: "Product rises into frame — low angle dramatic entrance",
+    categories: ["electronics", "fashion", "home"],
+    buildPrompt: (p) => {
+      const skin = p.skinTone || "natural Indonesian";
+      return `${SAFETY_PREFIX}Low angle shot from table height. A ${p.character} with ${skin} skin slowly lifts ${p.product} from below frame into the light. The ${p.productColor} ${p.productPackaging} catches the light as it rises. Camera stays low and steady, creating a dramatic reveal. Expression shifts from neutral to impressed as the product comes fully into view.`;
+    },
+  },
+  {
+    key: "first_use",
+    name: "First Use Reaction",
+    description: "Opening/using for first time — genuine discovery moment",
+    categories: ["skincare", "food", "electronics", "health"],
+    buildPrompt: (p) => {
+      const skin = p.skinTone || "natural Indonesian";
+      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} opens ${p.product} for the first time. Curious expression as they examine it. Then begins ${p.productInteraction || "using it carefully"}. Expression shifts from curiosity to pleasant surprise. Camera holds medium-close with gentle handheld drift. Natural, spontaneous energy.`;
+    },
+  },
+  {
+    key: "lifestyle_candid",
+    name: "Lifestyle Candid",
+    description: "Natural daily-life usage — caught in the moment",
+    categories: ["fashion", "food", "home"],
+    buildPrompt: (p) => {
+      const skin = p.skinTone || "natural Indonesian";
+      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin casually uses ${p.product} in ${p.environment}. Relaxed, natural movement — not performing for camera. Camera observes from medium distance with gentle drift. The moment feels caught, not staged. ${p.product} is naturally integrated into the scene.`;
+    },
+  },
+];
+
+export function getMotionPresetsForCategory(category: string): MotionStylePreset[] {
+  return MOTION_STYLE_PRESETS.filter((p) => p.categories.includes("all") || p.categories.includes(category));
+}
+
+// ── Talking Head Beat System (NEW) ──────────────────────────────
+
+export type TalkingHeadBeatKey = "hook" | "relatable" | "shift" | "product_reveal" | "social_proof" | "cta";
+
+export interface TalkingHeadBeat {
+  key: TalkingHeadBeatKey;
+  name: string;
+  nameId: string;
+  description: string;
+  energy: string;
+  motion: string;
+  camera: string;
+  productVisibility: string;
+  dialogueTone: string;
+  defaultDialogueId: (productName: string, hook: string) => string;
+}
+
+const TALKING_HEAD_BEATS: TalkingHeadBeat[] = [
+  {
+    key: "hook",
+    name: "Hook / Pain Point",
+    nameId: "Hook",
+    description: "Call out a relatable problem or pain point to grab attention",
+    energy: "frustrated, relatable, casual venting",
+    motion:
+      "hands gesturing empty (no product yet), touching problem area, expressive head movements, slight lean toward camera",
+    camera: "tight face close-up, slight handheld shake, 30cm distance, selfie angle",
+    productVisibility: "NOT visible yet — or barely visible at edge of frame",
+    dialogueTone: "Conversational complaint, rhetorical question",
+    defaultDialogueId: (_p, _h) => "Guys, jujur ya... capek gak sih sama masalah ini?",
+  },
+  {
+    key: "relatable",
+    name: "Make It Relatable",
+    nameId: "Relatable",
+    description: "Escalate frustration — wasted money, failed attempts, shared experience",
+    energy: "escalating frustration, 'been there done that' vibe, knowing eye roll",
+    motion: "counting on fingers, shaking head, eye roll, hand waving dismissively, shifting posture",
+    camera: "pulls back slightly to medium-close, gentle handheld sway, more body visible",
+    productVisibility: "still hidden or in background, not the focus",
+    dialogueTone: "Shared frustration, listing past failures",
+    defaultDialogueId: (_p, _h) =>
+      "Udah coba ini itu, buang duit... yang satu bikin breakout, yang satu gak ngefek sama sekali",
+  },
+  {
+    key: "shift",
+    name: "Emotional Shift",
+    nameId: "Plot Twist",
+    description: "The 'but then...' moment — pace slows, anticipation builds",
+    energy: "pause, soften, anticipation, 'but wait' moment",
+    motion: "slows down, leans in slightly, reaches toward something off-frame, finger up in 'wait' gesture",
+    camera: "holds steady, creates tension, slight push-in 0.2m",
+    productVisibility: "hand reaches toward product but doesn't fully reveal yet",
+    dialogueTone: "Transitional, building suspense",
+    defaultDialogueId: (_p, _h) => "Sampe akhirnya temen gue rekomendasiin sesuatu... dan honestly, game changer sih",
+  },
+  {
+    key: "product_reveal",
+    name: "Product Reveal + Feature",
+    nameId: "Reveal Produk",
+    description: "Pick up product, show it to camera, mention one key feature",
+    energy: "excited, confident, showing off with pride",
+    motion:
+      "picks up product with one hand, holds toward camera at chest level, points at specific feature with other hand, rotates to show label",
+    camera: "push-in on product, then back to face, medium shot, stable",
+    productVisibility: "HERO MOMENT — front and center, label visible, well-lit, dominant in frame",
+    dialogueTone: "Enthusiastic feature callout",
+    defaultDialogueId: (p, h) => h || `Ini nih, ${p}! Yang bikin beda tuh formulanya...`,
+  },
+  {
+    key: "social_proof",
+    name: "Social Proof / Urgency",
+    nameId: "Social Proof",
+    description: "Build trust — reviews, sold out history, visible results",
+    energy: "convincing, testimonial energy, nodding while talking",
+    motion: "nods while holding product, maybe shows result on face/skin/area, one hand gestures for emphasis",
+    camera: "medium shot, stable, trust-building framing, eye-level",
+    productVisibility: "still visible but secondary to face/result demonstration",
+    dialogueTone: "Proof and credibility",
+    defaultDialogueId: (p, _h) => `Review-nya udah 4.9 guys, ${p} ini sold out 3x bulan lalu... bukan kaleng-kaleng`,
+  },
+  {
+    key: "cta",
+    name: "Call to Action",
+    nameId: "CTA",
+    description: "Warm direct push — link in bio, limited stock, go get it",
+    energy: "warm, direct, friendly push, leaning in",
+    motion: "holds product toward camera with both hands, points at it, slight lean forward, nods encouragingly",
+    camera: "slow push-in 0.3m, intimate close-up, stable",
+    productVisibility: "dominant in frame, held toward camera",
+    dialogueTone: "Direct friendly recommendation",
+    defaultDialogueId: (p, _h) => `Langsung cek link di bio ya! ${p} ini worth it banget, sebelum habis lagi!`,
+  },
+];
+
+export { TALKING_HEAD_BEATS };
+
+// ── Beat Selection by Duration ────────────────────────────────────
+const BEAT_CONFIGS: Record<number, TalkingHeadBeatKey[]> = {
+  8: ["product_reveal"],
+  16: ["hook", "product_reveal"],
+  24: ["hook", "product_reveal", "cta"],
+  32: ["hook", "shift", "product_reveal", "cta"],
+  40: ["hook", "relatable", "shift", "product_reveal", "cta"],
+  48: ["hook", "relatable", "shift", "product_reveal", "social_proof", "cta"],
+};
+
+export function getBeatsForDuration(seconds: number): TalkingHeadBeatKey[] {
+  // Find the closest config
+  const keys = Object.keys(BEAT_CONFIGS)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const closest = keys.reduce((prev, curr) => (Math.abs(curr - seconds) < Math.abs(prev - seconds) ? curr : prev));
+  return BEAT_CONFIGS[closest] || BEAT_CONFIGS[8];
+}
+
+export function getBeatDefinition(key: TalkingHeadBeatKey): TalkingHeadBeat {
+  return TALKING_HEAD_BEATS.find((b) => b.key === key)!;
+}
+
+// ── Talking Head Tech Specs (constant block) ───────────────────────
+const TALKING_HEAD_TECH_SPECS = `TECHNICAL SPECIFICATIONS:
+- Audio: direct casual talking to camera, natural conversational Indonesian
+- No text overlay, subtitles, logos, or watermarks anywhere in the video
+- Natural body motion — slight sway, hand gestures, head movement
+- Single continuous shot per segment
+- Same person, same environment, same lighting throughout
+- Product must remain physically consistent (same color, shape, label)`;
+
+// ── Build Talking Head Prompts (NEW API) ─────────────────────────
+
+export interface TalkingHeadConfig {
+  character: string;
+  product: string;
+  productColor: string;
+  productPackaging: string;
+  environment: string;
+  skinTone?: string;
+  duration: number; // total seconds
+  beatDialogues: Record<TalkingHeadBeatKey, string>; // user-editable dialogue per beat
+  productInteraction?: string;
+}
+
+export function buildTalkingHeadPrompts(config: TalkingHeadConfig): {
+  beats: TalkingHeadBeatKey[];
+  prompts: string[];
+} {
+  const skin = config.skinTone || "natural Indonesian";
+  const beats = getBeatsForDuration(config.duration);
+  const secondsPerBeat = 8; // each beat = 1 Veo segment
+
+  const prompts = beats.map((beatKey, idx) => {
+    const beat = getBeatDefinition(beatKey);
+    const dialogue = config.beatDialogues[beatKey] || beat.defaultDialogueId(config.product, "");
+
+    const isFirstBeat = idx === 0;
+    const continuity = !isFirstBeat
+      ? `CONTINUITY: Continue from previous segment. Same person, same environment, same lighting. The scene flows naturally.`
+      : "";
+
+    return `${SAFETY_PREFIX}
+
+BEAT: ${beat.name} (${beat.description})
+ENERGY: ${beat.energy}
+
+CHARACTER: ${config.character}, ${skin} skin tone.
+PRODUCT: ${config.product}, ${config.productColor} ${config.productPackaging}.
+ENVIRONMENT: ${config.environment}
+
+MOTION: ${beat.motion}
+CAMERA: ${beat.camera}
+PRODUCT VISIBILITY: ${beat.productVisibility}
+
+DIALOGUE (spoken in casual Indonesian):
+"${dialogue}"
+
+${TALKING_HEAD_TECH_SPECS}
+
+${continuity}`.trim();
+  });
+
+  return { beats, prompts };
+}
+
+// ── Legacy API (backward compat) ──────────────────────────────────
 export function getTalkingHeadPrompts(params: {
   character: string;
   product: string;
@@ -104,22 +352,28 @@ export function getTalkingHeadPrompts(params: {
   environment: string;
   skinTone?: string;
   expression?: string;
-  dialogueSegments: string[]; // 1 per 8s segment
+  dialogueSegments: string[];
   productInteraction?: string;
 }): string[] {
-  const skin = params.skinTone || "natural Indonesian";
-  const expr = params.expression || "relaxed engaged";
+  // Map legacy dialogueSegments to beat dialogues
+  const duration = params.dialogueSegments.length * 8;
+  const beats = getBeatsForDuration(duration);
+  const beatDialogues: Record<TalkingHeadBeatKey, string> = {} as any;
+  beats.forEach((beat, i) => {
+    beatDialogues[beat] = params.dialogueSegments[i] || "";
+  });
 
-  const templates = [
-    // Initial (0-8s)
-    `${SAFETY_PREFIX}A ${params.character} with ${skin} skin sits naturally in ${params.environment}, holding ${params.product} and speaking directly to camera with a ${expr} expression. The camera is a medium close-up with a gentle handheld drift of about 0.2 meters. The creator gestures slightly with the product and says, "${params.dialogueSegments[0] || ""}" in a casual, relatable tone.`,
-    // Extend 1 (8-16s)
-    `${SAFETY_PREFIX}Continuing from the previous moment, the ${params.character} maintains eye contact and lightly rotates the ${params.productPackaging} to show details. The camera keeps a subtle handheld drift. The expression remains engaged as they continue speaking, "${params.dialogueSegments[1] || ""}".`,
-    // Extend 2 (16-24s)
-    `${SAFETY_PREFIX}The ${params.character} continues the explanation, briefly demonstrating ${params.productInteraction || "the product"} with controlled hand movement. The camera maintains the same framing and motion. Their tone stays natural as they say, "${params.dialogueSegments[2] || ""}".`,
-    // Extend 3 (24-32s)
-    `${SAFETY_PREFIX}The ${params.character} concludes while holding the ${params.product} steadily near chest level, giving a small nod and warm smile. The camera gently pushes in about 0.2 meters. They finish with, "${params.dialogueSegments[3] || ""}".`,
-  ];
+  const result = buildTalkingHeadPrompts({
+    character: params.character,
+    product: params.product,
+    productColor: params.productColor,
+    productPackaging: params.productPackaging,
+    environment: params.environment,
+    skinTone: params.skinTone,
+    duration,
+    beatDialogues,
+    productInteraction: params.productInteraction,
+  });
 
-  return templates.slice(0, Math.ceil(params.dialogueSegments.length));
+  return result.prompts;
 }
