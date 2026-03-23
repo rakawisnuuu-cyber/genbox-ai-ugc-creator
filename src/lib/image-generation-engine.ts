@@ -263,7 +263,7 @@ const CATEGORY_SHOT_ACTIONS: Record<ProductCategory, Record<ShotTypeKey, string>
   skincare: {
     hero: "FRAMING: Medium close-up, face and product both prominent, cover photo energy.\nCharacter holds serum/cream bottle near cheek with one hand, other hand lightly touching jawline. Product label clearly visible and facing camera. Mid-sentence expression like casually reviewing for TikTok. Slight head tilt. Both hands are free — no phone.",
     product_detail:
-      "FRAMING: Extreme close-up, product fills 70% of frame, minimal or no person visible.\nClose-up of hand squeezing serum drops onto open palm. Droplets catching light, product texture visible — gel/cream/liquid consistency. Product bottle stands upright nearby with label facing camera. Product only — no face.",
+      "FRAMING: First-person POV looking down — viewer sees character's hands holding/examining the product from their own perspective. No face visible.\nPOV shot looking down at hands holding the product. One hand holds the bottle/tube steady, other hand opens the cap or squeezes product onto fingertips. The product label faces up toward camera. Surface below (desk, palm, bed) visible. Character's lap or clothing edge visible at bottom of frame for context. Intimate, personal perspective.",
     usage:
       "FRAMING: Hands-focused medium shot, both hands actively doing something with the product.\nCharacter applying product to face with fingertips — dotting on cheeks and forehead, or spreading serum across skin. Both hands on face/product. Face and product both visible. Natural application motion captured from front.",
     reaction:
@@ -274,22 +274,22 @@ const CATEGORY_SHOT_ACTIONS: Record<ProductCategory, Record<ShotTypeKey, string>
       "FRAMING: Extreme tight crop on face, eyes-to-chin only, skin texture is the subject.\nExtreme close-up of face after product application. Visible skin texture — pores, slight dewiness from product. Natural, unretouched look. One hand gently touching product-applied area.",
   },
   fashion: {
-    hero: "FRAMING: Full body shot, head to toe visible, outfit is the hero — cover photo energy.\nFull OOTD pose — character wearing the fashion item, standing confidently. Full body visible head to toe. One hand on hip or adjusting clothing, other hand relaxed at side. The fashion item is clearly the star of the image. No phone or device visible.",
+    hero: "FRAMING: Full body shot, head to toe visible, outfit is the hero — 'This is the look.'\nFull OOTD pose — character wearing the fashion item, standing confidently. Full body visible head to toe. One hand on hip or adjusting clothing, other hand relaxed at side. The fashion item is clearly the star of the image. No phone or device visible.",
     product_detail:
-      "FRAMING: Extreme close-up, fabric/hardware fills 70% of frame, minimal person visible.\nClose-up of fabric texture, stitching detail, or hardware (zipper, button, strap). Character's hand touching/pinching the fabric to show quality. Natural light catching the material grain.",
+      "FRAMING: Extreme close-up on material — 'This is the material.'\nTight close-up of fabric texture, stitching detail, or hardware (zipper, button, strap). Character's hand touching/pinching the fabric to show quality and weight. Natural light catching the material grain. Focus on craftsmanship. No face visible.",
     usage:
-      "FRAMING: Hands-focused medium shot, character actively adjusting or styling the item.\nCharacter trying on the item — adjusting fit, pulling collar, rolling sleeves. Mid-motion styling shot. Shows how the item looks when actually being worn and moved in. Hands on clothing only.",
+      "FRAMING: Mid-body movement shot — 'This is how it moves on a body.'\nCharacter mid-motion — walking, turning, reaching, sitting down. The fashion item flows, stretches, or drapes naturally with the body movement. Shows how the fabric reacts to real movement. Not posed — caught in motion. Arms and legs active.",
     reaction:
-      "FRAMING: Face-dominant close-up, emotion is the subject, outfit visible but secondary.\nCharacter checking the outfit, head tilted with pleasantly surprised expression. Looking slightly off-camera as if at a reflection. Slight smile. The 'this actually looks good on me' moment. No device in hands.",
+      "FRAMING: Upper body emotional close-up — 'This is how it makes you feel.'\nCharacter looking at themselves with genuine confidence. Slight smile, shoulders back, chin slightly up. The outfit is visible but the emotion is the subject — self-assurance, pride, 'I look good' energy. Hands adjusting collar or sleeve as a confidence gesture.",
     lifestyle:
-      "FRAMING: Wide shot pulled back, character in real environment, outfit in context.\nWalking or seated in real environment (cafe, street, mall) wearing the item naturally. Product visible as part of complete outfit. Candid 'caught in daily life' energy.",
+      "FRAMING: Wide environmental shot — 'This is where you wear it.'\nCharacter in a real destination wearing the outfit naturally — cafe, street, mall, park, commute. The environment matches the outfit's vibe. Character mid-activity, not posing for camera. The outfit belongs in this scene.",
     face_closeup:
-      "FRAMING: Tight upper body crop, how the fashion item frames face/neck area.\nUpper body shot focusing on how the fashion item frames the face/neck area. Neckline, collar, or accessory detail near face. Character with relaxed confident expression.",
+      "FRAMING: Tight face + neckline crop — 'This is your identity wearing it.'\nCharacter's face and upper chest, showing how the neckline/collar/accessory frames their face. The fashion item creates a visual identity around the person. Confident, personal expression. The clothing becomes part of who they are.",
   },
   food: {
     hero: "FRAMING: Medium close-up, face and food product both prominent, appetizing energy.\nCharacter holding food/drink product with appetizing presentation. Product positioned between face and camera. Excited/hungry expression. Package or plate clearly visible and appealing. Both hands on food/drink — no device.",
     product_detail:
-      "FRAMING: Extreme close-up, food texture fills 70% of frame, no person visible.\nMacro shot of food texture — sauce drip, steam rising, condensation on cold drink, crumb detail, oil shine. Product packaging with brand visible nearby. ASMR-level detail. No person in frame.",
+      "FRAMING: First-person POV looking down — viewer sees hands interacting with food/packaging from their own perspective. No face visible.\nPOV shot looking down at food product on table or in hands. One hand opens packaging, other hand ready to eat/drink. Steam, texture, condensation visible up close. The table surface and other items visible around the edges. ASMR-level food detail from personal perspective.",
     usage:
       "FRAMING: Hands-focused medium shot, hands actively eating/drinking/preparing.\nCharacter taking first bite or first sip. Mouth approaching food, chopsticks/spoon lifting food, or tilting drink. The anticipation moment. Authentic eating/drinking action.",
     reaction:
@@ -302,7 +302,7 @@ const CATEGORY_SHOT_ACTIONS: Record<ProductCategory, Record<ShotTypeKey, string>
   electronics: {
     hero: "FRAMING: Medium close-up, character and device both prominent, unboxing/first-impression energy.\nCharacter holding device up to camera showing screen or main feature. Clean first-impression energy. Device angled so key features visible. Impressed/curious expression. Both hands on device — no other device visible.",
     product_detail:
-      "FRAMING: Extreme close-up, device hardware fills 70% of frame, hand for scale only.\nClose-up of ports, buttons, screen quality, build material. Character's hand for scale reference. Fingerprint on glass for realism. LED indicator or screen content visible. Device only — no face.",
+      "FRAMING: First-person POV looking down — viewer sees hands holding/examining device from their own perspective. No face visible.\nPOV shot looking down at device in hands. Fingers exploring buttons, ports, screen. Device fills most of the frame. Desk or lap visible below. Fingerprints on glass for realism. The 'just unboxed and inspecting' moment from personal perspective.",
     usage:
       "FRAMING: Hands-focused medium shot, hands actively operating the device.\nCharacter actively using device — typing on keyboard, wearing earbuds, using camera features. Real usage scenario showing the device integrated into workflow. Hands on the product only.",
     reaction:
@@ -315,7 +315,7 @@ const CATEGORY_SHOT_ACTIONS: Record<ProductCategory, Record<ShotTypeKey, string>
   health: {
     hero: "FRAMING: Medium close-up, character and supplement both prominent, morning energy.\nCharacter holding supplement bottle/pack with morning energy expression. Glass of water nearby. Fresh-faced, motivated vibe. Product label clearly readable. Both hands free to hold product.",
     product_detail:
-      "FRAMING: Extreme close-up, supplement/label fills 70% of frame, trust-building detail.\nClose-up of nutrition label, supplement texture, pill/capsule/powder detail. Character's hand pouring or displaying dosage. Clean, trust-building detail shot. Product only.",
+      "FRAMING: First-person POV looking down — viewer sees hands holding supplement/dosage from their own perspective. No face visible.\nPOV shot looking down at supplement in palm or being poured from bottle. One hand holds the bottle, other hand catches pills/powder. Label readable from this angle. Kitchen counter or desk visible below.",
     usage:
       "FRAMING: Hands-focused medium shot, hands actively taking/mixing supplement.\nCharacter taking supplement — swallowing with water, mixing powder into shaker, opening packet. Active consumption moment. Kitchen or gym context. Hands on product/glass only.",
     reaction:
@@ -328,7 +328,7 @@ const CATEGORY_SHOT_ACTIONS: Record<ProductCategory, Record<ShotTypeKey, string>
   home: {
     hero: "FRAMING: Medium-wide shot, character and home product both visible, presenter energy.\nCharacter standing next to home product in room setting — showing scale and placement. Proud presenter energy. Product is the focal point of the room/area. Hands free or gesturing toward product.",
     product_detail:
-      "FRAMING: Extreme close-up, material/craftsmanship fills 70% of frame.\nMaterial and craftsmanship close-up — wood grain, fabric weave, stitching, mechanism detail. Character's hand touching surface to show texture quality. Product only.",
+      "FRAMING: First-person POV looking down — viewer sees hands touching/examining the home product from their own perspective.\nPOV shot looking down at hands running across the product surface — feeling the wood grain, fabric texture, or mechanism. The product sits on its surface (table, shelf, floor). Fingers trace the material quality. No face visible. The 'inspecting the craftsmanship' moment from personal perspective.",
     usage:
       "FRAMING: Hands-focused medium shot, character actively interacting with home product.\nCharacter actively using the home product — sitting on furniture, adjusting organizer, lighting candle, arranging decor. Functional demonstration. Hands on product only.",
     reaction:
