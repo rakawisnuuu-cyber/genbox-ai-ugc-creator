@@ -348,12 +348,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      decrypt_api_key: { Args: { encrypted_key: string }; Returns: string }
+      encrypt_api_key: { Args: { plain_key: string }; Returns: string }
+      get_user_api_keys: {
+        Args: never
+        Returns: {
+          decrypted_key: string
+          provider: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      save_user_api_key: {
+        Args: { p_plain_key: string; p_provider: string }
+        Returns: undefined
       }
     }
     Enums: {
