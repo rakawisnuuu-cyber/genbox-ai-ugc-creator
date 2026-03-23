@@ -350,7 +350,7 @@ export async function fetchHDVideo(
   }
 
   // 4K — initiate then poll
-  console.log("[kie] Requesting 4K upgrade for taskId:", taskId);
+  
   const initRes = await fetch(`${KIE_BASE}/veo/get-4k-video`, {
     method: "POST",
     headers,
