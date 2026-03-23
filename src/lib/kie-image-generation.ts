@@ -66,7 +66,7 @@ async function createImageTask(params: CreateImageParams): Promise<string> {
     },
   };
 
-  console.log(`[kie-img] Creating task. Model=${model}, resolution=${resolution}, images=${imageInputs.length}`);
+  
 
   const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
     method: "POST",
