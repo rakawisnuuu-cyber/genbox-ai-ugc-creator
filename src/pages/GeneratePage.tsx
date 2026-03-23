@@ -632,6 +632,9 @@ const GeneratePage = () => {
             </div>
           </Sec>
 
+          </div>{/* end left column */}
+
+          <div className="lg:col-span-2 space-y-8 lg:sticky lg:top-8 lg:self-start mt-8 lg:mt-0">
           <Sec l="Pilih Jenis Shot (1-6)">
             <div className="grid grid-cols-2 gap-2.5">
               {SHOT_TYPES.map((s) => {
