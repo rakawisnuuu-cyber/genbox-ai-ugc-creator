@@ -125,7 +125,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
     });
 
     const json = await res.json();
-    console.log("[kie] Kling create response:", json);
+    
     if (json.code !== 200 || !json.data?.taskId) {
       throw new Error(extractError(json, "Failed to create Kling task"));
     }
