@@ -195,18 +195,8 @@ const SettingsPage = () => {
           ))}
         </div>
       </Section>
-
-      {/* Account */}
-      <Section delay="240ms">
-        <SectionHeader icon={LogOut} title="Akun" />
-        <button
-          onClick={signOut}
-          className="text-muted-foreground/40 hover:text-foreground text-[13px] transition-colors inline-flex items-center gap-1.5"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          Keluar dari akun
-        </button>
-      </Section>
+        </div>{/* end right column */}
+      </div>{/* end grid */}
     </div>
   );
 };
