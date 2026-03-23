@@ -101,18 +101,18 @@ const CheckoutPage = () => {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="font-satoshi text-lg font-bold text-foreground">
-                    GENBOX BYOK
+                    {PRICING.productName}
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Lifetime Access
+                    {PRICING.accessType}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-sm text-muted-foreground/60 line-through">
-                    Rp 249.000
+                    {PRICING.originalPriceLabel}
                   </p>
                   <p className="font-satoshi text-2xl font-bold text-foreground">
-                    Rp 149.000
+                    {PRICING.priceLabel}
                   </p>
                 </div>
               </div>
