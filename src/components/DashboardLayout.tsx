@@ -33,7 +33,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const COMING_SOON_PREFIXES = ["/tools/", "/prompt/"];
+const COMING_SOON_PREFIXES = ["/tools/"];
 
 const navGroups: NavGroup[] = [
   {

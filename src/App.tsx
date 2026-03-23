@@ -15,6 +15,7 @@ import GalleryPage from "./pages/GalleryPage";
 
 
 import SettingsPage from "./pages/SettingsPage";
+import PromptEnginePage from "./pages/PromptEnginePage";
 import CreateCharacterPage from "./pages/CreateCharacterPage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
