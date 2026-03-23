@@ -142,7 +142,7 @@ const CheckoutPage = () => {
               <div className="flex items-center justify-between">
                 <p className="font-satoshi font-bold text-foreground">Total</p>
                 <p className="font-satoshi text-xl font-bold text-foreground">
-                  Rp 149.000
+                  {PRICING.priceLabel}
                 </p>
               </div>
             </div>
