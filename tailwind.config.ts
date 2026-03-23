@@ -57,6 +57,10 @@ export default {
           DEFAULT: "hsl(var(--lime))",
           hover: "hsl(var(--lime-hover))",
         },
+        cream: {
+          DEFAULT: "hsl(var(--cream))",
+          foreground: "hsl(var(--cream-foreground))",
+        },
         success: "hsl(var(--success))",
         processing: "hsl(var(--processing))",
         sidebar: {
