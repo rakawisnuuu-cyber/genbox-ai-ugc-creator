@@ -164,7 +164,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
 
   // ── Veo Fast / Quality ──
   const veoModel = model === "veo_fast" ? "veo3_fast" : "veo3";
-  console.log(`[kie] Creating Veo task. Model: ${veoModel}`);
+  
 
   const imageCount = imageUrls.filter(Boolean).length;
   let generationType = "TEXT_2_VIDEO";
