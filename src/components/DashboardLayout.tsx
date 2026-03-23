@@ -13,7 +13,10 @@ import {
   Menu,
   X,
   LogOut,
-  
+  Mic,
+  Sparkles,
+  ScanSearch,
+  Wand2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
