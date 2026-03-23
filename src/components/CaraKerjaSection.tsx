@@ -19,7 +19,11 @@ const SHOWCASE_VIDEO = "/showcase/cara-kerja-video.mp4";
 
 const StepUpload = () => (
   <div className="relative aspect-[4/3] rounded-xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 overflow-hidden group">
-    <img src={caraKerjaProduct} alt="Produk" className="absolute inset-0 w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105" />
+    <img
+      src={caraKerjaProduct}
+      alt="Produk"
+      className="absolute inset-0 w-full h-full object-cover opacity-60 transition-transform duration-700 group-hover:scale-105"
+    />
     <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent" />
     <div className="relative flex flex-col items-center justify-center h-full p-4">
       <div className="animate-float rounded-xl bg-background/80 backdrop-blur-sm p-3 shadow-xl border border-border/40">
@@ -102,7 +106,11 @@ const StepStoryboard = () => {
 
 const StepGenerate = () => (
   <div className="relative aspect-[4/3] rounded-xl border border-border/40 bg-gradient-to-b from-card/90 to-card/50 overflow-hidden group">
-    <img src={caraKerjaUgc} alt="Hasil UGC" className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105" />
+    <img
+      src={caraKerjaUgc}
+      alt="Hasil UGC"
+      className="absolute inset-0 w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105"
+    />
     <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/20" />
     <div className="absolute inset-0 flex items-center justify-center">
       <div className="rounded-full bg-primary/20 backdrop-blur-sm p-2.5 animate-pulse-subtle">
@@ -118,28 +126,57 @@ const StepVideo = () => {
 
   const togglePlay = () => {
     if (!videoRef.current) return;
-    if (playing) { videoRef.current.pause(); } else { videoRef.current.play().catch(() => {}); }
+    if (playing) {
+      videoRef.current.pause();
+    } else {
+      videoRef.current.play().catch(() => {});
+    }
     setPlaying(!playing);
   };
 
   return (
     <div className="relative aspect-[4/3] rounded-xl border border-primary/30 bg-gradient-to-b from-primary/5 to-card/50 overflow-hidden group">
-      <video ref={videoRef} src={SHOWCASE_VIDEO} loop playsInline preload="metadata" className="absolute inset-0 w-full h-full object-cover" onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />
+      <video
+        ref={videoRef}
+        src={SHOWCASE_VIDEO}
+        loop
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+      />
       {!playing && <div className="absolute inset-0 bg-background/40" />}
       <div className="absolute inset-0 flex items-center justify-center">
         <button
           onClick={togglePlay}
           className={`rounded-full p-2.5 transition-all duration-300 ${
-            playing ? "bg-background/60 backdrop-blur-sm opacity-0 group-hover:opacity-100" : "bg-primary/90 shadow-xl shadow-primary/30 animate-pulse-subtle"
+            playing
+              ? "bg-background/60 backdrop-blur-sm opacity-0 group-hover:opacity-100"
+              : "bg-primary/90 shadow-xl shadow-primary/30 animate-pulse-subtle"
           }`}
         >
           {playing ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-foreground">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="text-foreground"
+            >
               <rect x="6" y="4" width="4" height="16" />
               <rect x="14" y="4" width="4" height="16" />
             </svg>
           ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-primary-foreground ml-0.5">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="text-primary-foreground ml-0.5"
+            >
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
           )}
@@ -151,11 +188,41 @@ const StepVideo = () => {
 
 /* ── Step data ── */
 const steps = [
-  { num: "01", icon: Upload, title: "Upload Produk", desc: "Drop foto produk. AI analisa jenis produk otomatis.", visual: <StepUpload /> },
-  { num: "02", icon: Users, title: "Pilih Karakter", desc: "10+ preset karakter Indonesia atau buat sendiri.", visual: <StepCharacter /> },
-  { num: "03", icon: Film, title: "Buat Storyboard", desc: "AI generate 5-frame storyboard: Hook → Build → Demo → Proof → CTA.", visual: <StepStoryboard /> },
-  { num: "04", icon: Sparkles, title: "Generate Gambar", desc: "Gambar UGC realistis per-frame. Konsisten di semua frame.", visual: <StepGenerate /> },
-  { num: "05", icon: Download, title: "Buat Video", desc: "Video UGC siap posting ke TikTok dan Instagram Reels.", visual: <StepVideo /> },
+  {
+    num: "01",
+    icon: Upload,
+    title: "Upload Produk",
+    desc: "Drop foto produk. AI analisa jenis produk otomatis.",
+    visual: <StepUpload />,
+  },
+  {
+    num: "02",
+    icon: Users,
+    title: "Pilih Karakter",
+    desc: "10+ preset karakter Indonesia atau buat sendiri.",
+    visual: <StepCharacter />,
+  },
+  {
+    num: "03",
+    icon: Film,
+    title: "Buat Storyboard",
+    desc: "AI generate 5-frame storyboard: Hook → Build → Demo → Proof → CTA.",
+    visual: <StepStoryboard />,
+  },
+  {
+    num: "04",
+    icon: Sparkles,
+    title: "Generate Gambar",
+    desc: "Gambar UGC realistis per-frame. Konsisten di semua frame.",
+    visual: <StepGenerate />,
+  },
+  {
+    num: "05",
+    icon: Download,
+    title: "Buat Video",
+    desc: "Video UGC siap posting ke TikTok dan Instagram Reels.",
+    visual: <StepVideo />,
+  },
 ];
 
 /* ── Main Section ── */
@@ -163,45 +230,52 @@ const CaraKerjaSection = () => {
   const { ref, isVisible } = useScrollReveal(0.1);
 
   return (
-    <section id="cara-kerja" ref={ref} className="relative z-10 px-4 py-20 sm:py-32">
+    <section id="cara-kerja" ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
       <div className="mx-auto max-w-5xl">
-        {/* Left-aligned header */}
-        <div className="max-w-2xl">
-          <span
-            className={`inline-block rounded-full border border-cream/15 bg-cream/5 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-cream/70 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+        {/* Badge */}
+        <div className="flex justify-center">
+          <div
+            className={`flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary ${isVisible ? "animate-fade-up" : "opacity-0"}`}
             style={{ animationDelay: "0.1s" }}
           >
             Cara Kerja
-          </span>
-
-          <h2
-            className={`mt-6 font-serif text-[32px] sm:text-[44px] lg:text-[52px] leading-[1.05] tracking-tight text-cream ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-            style={{ animationDelay: "0.2s" }}
-          >
-            Dari Foto Produk ke Video UGC
-          </h2>
-          <p
-            className={`mt-4 font-body text-base text-muted-foreground sm:text-lg ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-            style={{ animationDelay: "0.25s" }}
-          >
-            5 langkah — semua powered by AI, tanpa model, tanpa studio
-          </p>
+          </div>
         </div>
 
-        {/* Desktop: 5-column grid */}
-        <div className="mt-14 hidden md:grid md:grid-cols-5 gap-5">
+        {/* Heading */}
+        <h2
+          className={`mt-5 text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{
+            animationDelay: "0.2s",
+            background: "linear-gradient(180deg, hsl(60 10% 98%) 0%, hsl(220 5% 56%) 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          Dari Foto Produk ke Video UGC
+        </h2>
+        <p
+          className={`mt-3 text-center font-body text-base text-muted-foreground sm:text-lg ${isVisible ? "animate-fade-up" : "opacity-0"}`}
+          style={{ animationDelay: "0.25s" }}
+        >
+          5 langkah — semua powered by AI, tanpa model, tanpa studio
+        </p>
+
+        {/* Desktop: uniform 5-column grid */}
+        <div className="mt-12 hidden md:grid md:grid-cols-5 gap-4">
           {steps.map((step, i) => (
             <div
               key={step.num}
               className={`${isVisible ? "animate-fade-up" : "opacity-0"}`}
               style={{ animationDelay: `${0.35 + i * 0.08}s` }}
             >
-              <div className="flex items-center gap-1.5 mb-3">
-                <span className="font-mono text-[22px] font-bold leading-none text-cream/20">{step.num}</span>
-                <step.icon size={13} className="text-cream/30" />
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <span className="font-mono text-[20px] font-bold leading-none text-primary/30">{step.num}</span>
+                <step.icon size={13} className="text-primary/50" />
               </div>
               {step.visual}
-              <h3 className="mt-3 font-satoshi text-[13px] font-bold text-foreground">{step.title}</h3>
+              <h3 className="mt-2.5 font-satoshi text-[13px] font-bold text-foreground">{step.title}</h3>
               <p className="mt-1 text-[11px] text-muted-foreground leading-relaxed">{step.desc}</p>
             </div>
           ))}
@@ -216,13 +290,13 @@ const CaraKerjaSection = () => {
               style={{ animationDelay: `${0.3 + i * 0.1}s` }}
             >
               <div className="flex flex-col items-center shrink-0">
-                <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-cream/10 text-cream border border-cream/20">
+                <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/15 text-primary border border-primary/30">
                   <step.icon size={18} />
                 </div>
-                {i < 4 && <div className="w-px flex-1 mt-2 bg-cream/15" />}
+                {i < 4 && <div className="w-px flex-1 mt-2 bg-primary/20" />}
               </div>
               <div className="flex-1 pb-2">
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-cream/40">
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary/50">
                   Langkah {step.num}
                 </span>
                 <h3 className="mt-1 font-satoshi text-base font-bold text-foreground">{step.title}</h3>

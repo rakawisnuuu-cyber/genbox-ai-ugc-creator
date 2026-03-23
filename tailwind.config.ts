@@ -15,7 +15,6 @@ export default {
     extend: {
       fontFamily: {
         satoshi: ["General Sans", "DM Sans", "system-ui", "sans-serif"],
-        serif: ["Instrument Serif", "Playfair Display", "Georgia", "serif"],
         body: ["DM Sans", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
@@ -56,10 +55,6 @@ export default {
         lime: {
           DEFAULT: "hsl(var(--lime))",
           hover: "hsl(var(--lime-hover))",
-        },
-        cream: {
-          DEFAULT: "hsl(var(--cream))",
-          foreground: "hsl(var(--cream-foreground))",
         },
         success: "hsl(var(--success))",
         processing: "hsl(var(--processing))",
