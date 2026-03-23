@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         satoshi: ["General Sans", "DM Sans", "system-ui", "sans-serif"],
+        serif: ["Instrument Serif", "Playfair Display", "Georgia", "serif"],
         body: ["DM Sans", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
