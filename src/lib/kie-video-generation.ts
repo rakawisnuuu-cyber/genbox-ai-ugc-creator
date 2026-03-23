@@ -187,7 +187,7 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
   });
 
   const json = await res.json();
-  console.log("[kie] Veo create response:", json);
+  
 
   const taskId = json.data?.taskId || json.taskId;
   if (!taskId) {
