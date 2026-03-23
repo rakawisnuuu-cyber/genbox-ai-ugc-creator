@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Lock, Zap, Infinity, Shield, Mail } from "lucide-reac
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { PRICING } from "@/lib/pricing";
 
 const features = [
   "Generate gambar unlimited",
