@@ -1161,24 +1161,136 @@ Content template: ${template?.label}`,
   const formatRupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
-  // Show gate screen if no storyboard data
-  if (!fromStoryboard || !sourceUrl) {
+  // Show standalone setup screen if no source image yet
+  if (!setupDone && !sourceUrl) {
+    const handleSetupUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) await handleFileSelect(file);
+    };
+    const handleSetupDrop = async (e: React.DragEvent) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files?.[0];
+      if (file) await handleFileSelect(file);
+    };
+    const handleGallerySelect = (url: string) => {
+      setSourceUrl(url);
+      setSourcePreview(url);
+    };
+    const canStart = !!sourcePreview;
+
+    // Load gallery on mount if not loaded
+    if (!galleryLoaded && user) {
+      supabase
+        .from("generations")
+        .select("id, image_url")
+        .eq("user_id", user.id)
+        .not("image_url", "is", null)
+        .neq("type", "video")
+        .order("created_at", { ascending: false })
+        .limit(20)
+        .then(({ data }) => {
+          setGalleryImages((data || []).filter((d) => d.image_url) as GalleryImage[]);
+          setGalleryLoaded(true);
+        });
+    }
+
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-120px)] lg:min-h-[calc(100dvh-60px)] text-center px-6">
-        <Film className="h-14 w-14 text-muted-foreground/10 mb-6" />
-        <h2 className="text-[20px] font-satoshi font-bold text-foreground mb-3">Create a storyboard first</h2>
-        <p className="text-[14px] text-muted-foreground/40 max-w-[420px] leading-relaxed mb-6">
-          Generate your image storyboard in the Image Studio, then come back to turn frames into video.
-        </p>
-        <Link
-          to="/generate"
-          className="rounded-xl bg-primary text-primary-foreground px-6 py-3 text-[14px] font-semibold inline-flex items-center gap-2 hover:bg-primary/90 transition-colors"
+      <div className="max-w-2xl lg:max-w-3xl mx-auto px-5 py-8 space-y-8">
+        <div className="text-center">
+          <h1 className="text-xl font-bold font-satoshi tracking-wider uppercase text-foreground">Buat Video</h1>
+          <p className="text-sm text-muted-foreground/50 mt-1">Upload produk dan pilih gaya konten untuk mulai</p>
+        </div>
+
+        {/* Upload Product Image */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">Upload Produk</h3>
+          {sourcePreview ? (
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-border/30 bg-muted/10">
+              <img src={sourcePreview} alt="Product" className="w-full h-full object-contain" />
+              {uploading && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                </div>
+              )}
+              {detectingProduct && (
+                <div className="absolute bottom-2 left-2 bg-black/70 rounded-lg px-2 py-1 flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 text-primary animate-spin" />
+                  <span className="text-[10px] text-white/80">Detecting product...</span>
+                </div>
+              )}
+              <button
+                onClick={() => { setSourcePreview(null); setSourceUrl(null); setImageAsBase64(null); }}
+                className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 rounded-full p-1.5 transition-colors"
+              >
+                <X className="h-3.5 w-3.5 text-white" />
+              </button>
+            </div>
+          ) : (
+            <label
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleSetupDrop}
+              className="flex flex-col items-center justify-center w-full h-40 rounded-xl border-2 border-dashed border-border/30 hover:border-primary/40 bg-muted/5 hover:bg-muted/10 cursor-pointer transition-colors"
+            >
+              <Upload className="h-8 w-8 text-muted-foreground/30 mb-2" />
+              <span className="text-sm text-muted-foreground/50">Drag & drop atau klik untuk upload</span>
+              <span className="text-xs text-muted-foreground/30 mt-1">JPG, PNG, WebP • Max 10MB</span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleSetupUpload} />
+            </label>
+          )}
+        </div>
+
+        {/* Gallery Selection */}
+        {galleryImages.length > 0 && !sourcePreview && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">Atau Pilih dari Gallery</h3>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+              {galleryImages.map((img) => (
+                <button
+                  key={img.id}
+                  onClick={() => handleGallerySelect(img.image_url)}
+                  className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-transparent hover:border-primary/50 transition-colors"
+                >
+                  <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Content Template Selector */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">Gaya Konten</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {CONTENT_TEMPLATES.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setSelectedTemplate(t.key)}
+                className={`text-left p-3 rounded-xl border transition-all ${
+                  selectedTemplate === t.key
+                    ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+                    : "border-border/20 bg-muted/5 hover:border-border/40 hover:bg-muted/10"
+                }`}
+              >
+                <p className={`text-xs font-semibold ${selectedTemplate === t.key ? "text-primary" : "text-foreground"}`}>
+                  {t.label}
+                </p>
+                <p className="text-[10px] text-muted-foreground/50 mt-0.5 line-clamp-2">{t.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Start Button */}
+        <button
+          disabled={!canStart || uploading}
+          onClick={() => {
+            initializeFrames();
+          }}
+          className="w-full rounded-xl bg-primary text-primary-foreground py-3.5 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          Go to Image Studio <ArrowRight className="h-4 w-4" />
-        </Link>
-        <p className="text-[12px] text-muted-foreground/25 mt-4">
-          Storyboard images will flow into the video editor automatically
-        </p>
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clapperboard className="h-4 w-4" />}
+          Mulai Buat Video
+        </button>
       </div>
     );
   }
