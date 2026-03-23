@@ -1,6 +1,7 @@
 import { Check, ArrowRight, Gift, Lock, Zap, Infinity } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
+import { PRICING } from "@/lib/pricing";
 
 const features = [
   "Generate gambar unlimited",
