@@ -51,7 +51,9 @@ function parseAiResponse(raw: string): { json: string; natural: string } {
 export default function PromptEnginePage({ initialMode = "campaign" }: PromptEnginPageProps) {
   const { user } = useAuth();
   const { keys } = useApiKeys();
-  const openaiKey = keys.gemini.key; // We'll use the stored key, but openAiFetch needs OpenAI key
+  const { model: promptModel } = usePromptModel();
+  const apiKey = keys.gemini.key;
+  const apiKeyValid = keys.gemini.status === "valid";
 
   const [activeTab, setActiveTab] = useState<"engine" | "library">("engine");
   const [mode, setMode] = useState<Mode>(initialMode);
