@@ -290,6 +290,7 @@ Output ONLY the description. No commentary, no markdown, no bullet points. Conti
       beatDialogues,
       productInteraction: "holding product naturally",
       sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
+      productCategory: dna?.category,
     });
     return result.prompts.join("\n\n---EXTEND---\n\n");
   }, [char, dna, env, tDur, beatDialogues, vIdx, sceneDNACache]);
