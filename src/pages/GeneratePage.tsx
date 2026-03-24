@@ -173,6 +173,13 @@ const GeneratePage = () => {
   const charImg = charId === "own-photo" ? ownUrl || "" : char?.hero_image_url || "";
   const arClass =
     ar === "9:16" ? "aspect-[9/16]" : ar === "1:1" ? "aspect-square" : ar === "4:5" ? "aspect-[4/5]" : "aspect-video";
+
+  const shortProductName = useMemo(() => {
+    if (!dna) return "produk ini";
+    const brand = dna.brand_name && dna.brand_name !== "unknown" ? dna.brand_name : "";
+    const sub = (dna as any).sub_category || dna.category || "";
+    return brand ? `${brand} ${sub}`.trim() : sub || "produk ini";
+  }, [dna]);
   const mModelInfo = MOTION_MODELS.find((m) => m.id === mModel) || MOTION_MODELS[1];
   const talkCost = getTalkCost(tVeo, tDur);
 
@@ -194,6 +201,7 @@ const GeneratePage = () => {
         const b64 = await imageUrlToBase64WithMime(imageUrl);
         if (!b64) {
           setAnalyzingScene(false);
+          toast({ title: "Tidak bisa menganalisis gambar", description: "Menggunakan template standar untuk video prompt", variant: "destructive" });
           return "";
         }
 
@@ -221,7 +229,7 @@ const GeneratePage = () => {
         beat: "hook",
         model: (mModel as MotionVideoModel) || "kling_std",
         character: char?.description || "",
-        product: dna?.product_description || "",
+        product: shortProductName,
         productColor: dna?.dominant_color || "",
         productPackaging: dna?.packaging_type || "",
         environment: env.description,
@@ -236,7 +244,7 @@ const GeneratePage = () => {
   const buildTalkPrompt = useCallback(() => {
     const result = buildTalkingHeadPrompts({
       character: char?.description || "",
-      product: dna?.product_description || "",
+      product: shortProductName,
       productColor: dna?.dominant_color || "",
       productPackaging: dna?.packaging_type || "",
       environment: env.description,
@@ -265,7 +273,7 @@ const GeneratePage = () => {
           beat: "hook",
           model: (mModel as MotionVideoModel) || "kling_std",
           character: char?.description || "",
-          product: dna?.product_description || "",
+          product: shortProductName,
           productColor: dna?.dominant_color || "",
           productPackaging: dna?.packaging_type || "",
           environment: env.description,
@@ -1122,7 +1130,7 @@ const GeneratePage = () => {
                                   beat: "hook",
                                   model: (mModel as any) || "kling_std",
                                   character: char?.description || "",
-                                  product: dna?.product_description || "",
+                                  product: shortProductName,
                                   productColor: dna?.dominant_color || "",
                                   productPackaging: dna?.packaging_type || "",
                                   environment: env.description,
