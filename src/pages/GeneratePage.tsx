@@ -189,42 +189,6 @@ const GeneratePage = () => {
       p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= 6 ? p : [...p, k],
     );
 
-  // ── Helper: generate prompt via Gemini with loading state ──
-  const generateMotionViaGemini = useCallback(async (beatKey: string = "hook") => {
-    setGeneratingPrompt(true);
-    const intentFn = BEAT_INTENTS[beatKey] || BEAT_INTENTS.demo;
-    const intent = intentFn({
-      product: shortProductName,
-      productColor: dna?.dominant_color || "",
-      productPackaging: dna?.packaging_type || "",
-    } as MotionPromptParams);
-    const prompt = await generateVideoPrompt(intent, "", mModel as MotionVideoModel, mDur);
-    setGeneratingPrompt(false);
-    return prompt;
-  }, [generateVideoPrompt, mModel, mDur, dna, shortProductName]);
-
-  const generateTalkViaGemini = useCallback(async (dialogues: Record<string, string>, duration: number) => {
-    setGeneratingPrompt(true);
-    const beats = getBeatsForDuration(duration);
-    const intentMap: Record<string, string> = {
-      hook: "Calling out a common relatable frustration or pain point, speaking directly to camera in casual venting tone.",
-      relatable: "Making the frustration relatable — sharing failed attempts, wasted money, shared experience.",
-      shift: "The emotional shift moment — pace slows, transitioning from frustration toward discovering the solution.",
-      product_reveal: `Introducing ${shortProductName} as the solution, highlighting one key feature naturally. Hero moment — product front and center.`,
-      social_proof: "Adding soft social proof — hinting at satisfaction, credibility, or urgency.",
-      cta: "Delivering the closing recommendation with warm, direct energy. Ending with a clear call to action.",
-    };
-    const prompts: string[] = [];
-    for (const beatKey of beats) {
-      const intent = intentMap[beatKey] || intentMap.product_reveal;
-      const dialogue = dialogues[beatKey] || "";
-      const prompt = await generateVideoPrompt(intent, dialogue, tVeo as MotionVideoModel, 8);
-      prompts.push(prompt || `[Beat: ${beatKey}]`);
-    }
-    setGeneratingPrompt(false);
-    return prompts.join("\n\n---EXTEND---\n\n");
-  }, [generateVideoPrompt, tVeo, shortProductName]);
-
   // ── Gemini Video Director — generates clean creative prompts ──
   const generateVideoPrompt = useCallback(async (
     beatIntent: string,
@@ -275,6 +239,42 @@ Generate the video prompt now.`;
       return "";
     }
   }, [geminiKey, promptModel, char, env, dna, ar, shortProductName]);
+
+  // ── Helper: generate prompt via Gemini with loading state ──
+  const generateMotionViaGemini = useCallback(async (beatKey: string = "hook") => {
+    setGeneratingPrompt(true);
+    const intentFn = BEAT_INTENTS[beatKey] || BEAT_INTENTS.demo;
+    const intent = intentFn({
+      product: shortProductName,
+      productColor: dna?.dominant_color || "",
+      productPackaging: dna?.packaging_type || "",
+    } as MotionPromptParams);
+    const prompt = await generateVideoPrompt(intent, "", mModel as MotionVideoModel, mDur);
+    setGeneratingPrompt(false);
+    return prompt;
+  }, [generateVideoPrompt, mModel, mDur, dna, shortProductName]);
+
+  const generateTalkViaGemini = useCallback(async (dialogues: Record<string, string>, duration: number) => {
+    setGeneratingPrompt(true);
+    const beats = getBeatsForDuration(duration);
+    const intentMap: Record<string, string> = {
+      hook: "Calling out a common relatable frustration or pain point, speaking directly to camera in casual venting tone.",
+      relatable: "Making the frustration relatable — sharing failed attempts, wasted money, shared experience.",
+      shift: "The emotional shift moment — pace slows, transitioning from frustration toward discovering the solution.",
+      product_reveal: `Introducing ${shortProductName} as the solution, highlighting one key feature naturally. Hero moment — product front and center.`,
+      social_proof: "Adding soft social proof — hinting at satisfaction, credibility, or urgency.",
+      cta: "Delivering the closing recommendation with warm, direct energy. Ending with a clear call to action.",
+    };
+    const prompts: string[] = [];
+    for (const beatKey of beats) {
+      const intent = intentMap[beatKey] || intentMap.product_reveal;
+      const dialogue = dialogues[beatKey] || "";
+      const prompt = await generateVideoPrompt(intent, dialogue, tVeo as MotionVideoModel, 8);
+      prompts.push(prompt || `[Beat: ${beatKey}]`);
+    }
+    setGeneratingPrompt(false);
+    return prompts.join("\n\n---EXTEND---\n\n");
+  }, [generateVideoPrompt, tVeo, shortProductName]);
 
   // ── Static prompt builders (fallback when Gemini fails) ────
   const buildMotionPrompt = useCallback(
