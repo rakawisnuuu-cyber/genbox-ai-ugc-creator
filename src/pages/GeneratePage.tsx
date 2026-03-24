@@ -70,9 +70,11 @@ import {
   getBeatDefinition,
   getMotionPresetsForCategory,
   getVideoDirectorSystem,
+  BEAT_INTENTS,
   type VideoModelType as MotionVideoModel,
   type TalkingHeadBeatKey,
   type MotionStyleKey,
+  type MotionPromptParams,
 } from "@/lib/image-to-video-prompts";
 
 /* ─── Constants ──────────────────────────────────────────────── */
