@@ -14,7 +14,7 @@
  * 4. Talking Head prompts: rich scene anchor → beat intent → dialogue → rules
  */
 
-export type VideoModelType = "grok" | "kling_std" | "kling_pro" | "veo_fast" | "veo_quality";
+export type VideoModelType = "grok" | "kling_std" | "kling_pro" | "veo_fast" | "veo_quality" | "sora2" | "sora2_pro";
 
 // ══════════════════════════════════════════════════════════════════
 // MANDATORY RULES — appended to EVERY video prompt
