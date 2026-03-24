@@ -1,4 +1,4 @@
-project_id = "hgwojnluqkrypwttytxb"
+project_id = "uxrxrsdasgvygoeavozp"
 
 [functions.admin-users]
 verify_jwt = false
@@ -8,6 +8,3 @@ verify_jwt = false
 
 [functions.validate-invite-code]
 verify_jwt = false
-
-[auth]
-rate_limit_email_sent = 10
