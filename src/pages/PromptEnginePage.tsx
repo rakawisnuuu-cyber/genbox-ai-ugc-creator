@@ -598,7 +598,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
                   )}
                   <button
                     onClick={decodeImageAction}
-                    disabled={!decodeImage || !apiKey}
+                    disabled={!decodeImage || !apiKeyValid}
                     className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-[13px] disabled:opacity-40 hover:brightness-110 transition-all"
                   >
                     Decode Image
