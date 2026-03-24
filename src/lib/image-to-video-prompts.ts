@@ -55,6 +55,8 @@ export interface MotionPromptParams {
   productInteraction?: string;
   /** Rich scene description from SceneDNA — overrides generic template when provided */
   sceneDNA?: string;
+  /** Product category for fashion-aware suffix */
+  productCategory?: string;
 }
 
 // ── Beat Intents — WHAT should happen, not HOW ──
