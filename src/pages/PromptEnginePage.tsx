@@ -765,9 +765,9 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
           )}
 
           {/* No API key warning */}
-          {!apiKey && (
+          {!apiKeyValid && (
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center">
-              <p className="text-[12px] text-destructive/80">API Key diperlukan. Simpan OpenAI atau Gemini key di <span className="font-bold">Settings</span>.</p>
+              <p className="text-[12px] text-destructive/80">Gemini API Key diperlukan. Simpan key di <span className="font-bold">Settings</span>.</p>
             </div>
           )}
         </div>
