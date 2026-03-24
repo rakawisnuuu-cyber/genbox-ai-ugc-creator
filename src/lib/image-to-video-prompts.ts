@@ -428,7 +428,7 @@ ${dialogueLine}
 
 The character's body language, gestures, and expressions should feel natural and spontaneous — like a real person casually filming themselves. Let the movement emerge naturally from the intent above.
 
-Duration: ~8 seconds. ${MANDATORY_SUFFIX}`
+Duration: ~8 seconds. ${getMandatorySuffix(config.productCategory)}`
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
