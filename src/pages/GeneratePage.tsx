@@ -59,7 +59,7 @@ import {
 } from "@/lib/image-generation-engine";
 import { supabase } from "@/integrations/supabase/client";
 import { fileToBase64 } from "@/lib/image-utils";
-import { analyzeSceneForVideo } from "@/lib/scene-dna";
+
 import { generateVideoAndWait, extendVeoVideo, type VideoModel } from "@/lib/kie-video-generation";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import {
