@@ -272,6 +272,7 @@ Output ONLY the description. No commentary, no markdown, no bullet points. Conti
         skinTone: "sawo matang",
         expression: "natural",
         sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
+        productCategory: dna?.category,
       });
     },
     [mModel, char, dna, env, vIdx, sceneDNACache],
