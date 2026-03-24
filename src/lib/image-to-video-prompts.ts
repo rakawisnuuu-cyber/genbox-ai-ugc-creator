@@ -22,12 +22,20 @@ export type VideoModelType = "grok" | "kling_std" | "kling_pro" | "veo_fast" | "
 
 const SAFETY_PREFIX = "Casual product review video by a content creator for social media. ";
 
-const MANDATORY_SUFFIX = [
-  "Facial expressions must stay within natural conversational range — small smile, slight eyebrow raise at most. No wide-open mouth, no exaggerated surprise, no bug eyes, no dramatic gasps. Mouth opening during speech stays proportional and natural.",
-  "The product must remain visually identical throughout: same shape, color, proportions, logo orientation, material appearance. The product must NOT morph, stretch, shrink, change color, or lose detail during any movement.",
-  "Zero rendered text in the video. No text overlay, no captions, no subtitles, no watermarks, no brand text, no step numbers, no on-screen graphics. Product labels appear as visual shapes only — do NOT render readable text.",
-  "Shot type: handheld selfie. Camera: front-facing perspective with subtle natural shake. The phone/camera must NEVER appear in frame.",
-].join(" ");
+function getMandatorySuffix(category?: string): string {
+  const isFashion = category === "fashion";
+
+  const productInteraction = isFashion
+    ? "The product (clothing, bag, shoes, or accessories) is worn or carried naturally on the body. Show the fit, drape, texture, and movement authentically. The product must remain visually identical throughout — same color, fabric, design details, stitching, and accessories. It must NOT change shape, color, pattern, or fit during the video."
+    : "One hand holds or uses the product naturally. The product must remain visually identical throughout: same shape, color, proportions, logo orientation, material appearance. The product must NOT morph, stretch, shrink, change color, or lose detail during any movement.";
+
+  return [
+    "Facial expressions must stay within natural conversational range — small smile, slight eyebrow raise at most. No wide-open mouth, no exaggerated surprise, no bug eyes, no dramatic gasps. Mouth opening during speech stays proportional and natural.",
+    productInteraction,
+    "Zero rendered text in the video. No text overlay, no captions, no subtitles, no watermarks, no brand text, no step numbers, no on-screen graphics. Product labels appear as visual shapes only — do NOT render readable text.",
+    "Shot type: handheld selfie. Camera: front-facing perspective with subtle natural shake. The phone/camera must NEVER appear in frame.",
+  ].join(" ");
+}
 
 // ══════════════════════════════════════════════════════════════════
 // MOTION PROMPTS (Quick single-clip from generated image)
