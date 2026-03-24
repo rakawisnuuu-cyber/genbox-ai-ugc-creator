@@ -273,7 +273,7 @@ const GeneratePage = () => {
           beat: "hook",
           model: (mModel as MotionVideoModel) || "kling_std",
           character: char?.description || "",
-          product: dna?.product_description || "",
+          product: shortProductName,
           productColor: dna?.dominant_color || "",
           productPackaging: dna?.packaging_type || "",
           environment: env.description,
