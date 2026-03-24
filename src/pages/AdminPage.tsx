@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash2, RefreshCw, Shield, Plus, ToggleLeft, ToggleRight, Ticket, Clock, CalendarPlus } from "lucide-react";
@@ -113,18 +117,22 @@ const AdminPage = () => {
     } else {
       toast({ title: `Extended by ${days} days` });
       setTrialUsers((prev) =>
-        prev.map((u) => u.user_id === userId ? { ...u, trial_expires_at: newExpiry.toISOString() } : u)
+        prev.map((u) => (u.user_id === userId ? { ...u, trial_expires_at: newExpiry.toISOString() } : u)),
       );
     }
   };
 
-  useEffect(() => { fetchUsers(); fetchCodes(); fetchTrialUsers(); }, []);
+  useEffect(() => {
+    fetchUsers();
+    fetchCodes();
+    fetchTrialUsers();
+  }, []);
 
   const handleDelete = async (userId: string) => {
     setDeleting(userId);
     const { data, error } = await supabase.functions.invoke("admin-users", {
-      method: "DELETE",
-      body: { user_id: userId },
+      method: "POST",
+      body: { action: "delete", user_id: userId },
     });
     if (error || data?.error) {
       toast({ title: "Error", description: data?.error || error?.message, variant: "destructive" });
@@ -159,7 +167,7 @@ const AdminPage = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      setCodes((prev) => prev.map((c) => c.id === id ? { ...c, is_active: !currentActive } : c));
+      setCodes((prev) => prev.map((c) => (c.id === id ? { ...c, is_active: !currentActive } : c)));
     }
   };
 
@@ -173,7 +181,15 @@ const AdminPage = () => {
   };
 
   const fmt = (d: string | null) =>
-    d ? new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+    d
+      ? new Date(d).toLocaleDateString("id-ID", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—";
 
   return (
     <div>
@@ -222,7 +238,12 @@ const AdminPage = () => {
                       <TableCell className="text-muted-foreground text-xs">{fmt(u.created_at)}</TableCell>
                       <TableCell className="text-muted-foreground text-xs">{fmt(u.last_sign_in_at)}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setUserToDelete(u)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setUserToDelete(u)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -273,9 +294,11 @@ const AdminPage = () => {
                         <TableCell className="text-muted-foreground text-xs">{fmt(u.created_at)}</TableCell>
                         <TableCell className="text-muted-foreground text-xs">{fmt(u.trial_expires_at)}</TableCell>
                         <TableCell>
-                          <span className={`inline-flex items-center gap-1 text-xs font-medium ${
-                            expired ? "text-destructive" : "text-primary"
-                          }`}>
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs font-medium ${
+                              expired ? "text-destructive" : "text-primary"
+                            }`}
+                          >
                             <Clock className="h-3 w-3" />
                             {expired ? "Expired" : `${daysLeft}d left`}
                           </span>
@@ -316,8 +339,20 @@ const AdminPage = () => {
         {/* ─── INVITE CODES TAB ─── */}
         <TabsContent value="codes">
           <div className="flex items-center gap-2 mb-4">
-            <Input placeholder="NEW-CODE" value={newCode} onChange={(e) => setNewCode(e.target.value)} className="max-w-[200px]" />
-            <Input placeholder="Uses (∞)" type="number" min="1" value={newUses} onChange={(e) => setNewUses(e.target.value)} className="max-w-[100px]" />
+            <Input
+              placeholder="NEW-CODE"
+              value={newCode}
+              onChange={(e) => setNewCode(e.target.value)}
+              className="max-w-[200px]"
+            />
+            <Input
+              placeholder="Uses (∞)"
+              type="number"
+              min="1"
+              value={newUses}
+              onChange={(e) => setNewUses(e.target.value)}
+              className="max-w-[100px]"
+            />
             <Button size="sm" onClick={handleAddCode} disabled={!newCode.trim()}>
               <Plus className="h-4 w-4 mr-1" /> Add
             </Button>
@@ -351,7 +386,9 @@ const AdminPage = () => {
                     <TableRow key={c.id} className={!c.is_active ? "opacity-50" : ""}>
                       <TableCell className="font-mono font-medium">{c.code}</TableCell>
                       <TableCell>
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${c.is_active ? "text-green-500" : "text-muted-foreground"}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs font-medium ${c.is_active ? "text-green-500" : "text-muted-foreground"}`}
+                        >
                           <Ticket className="h-3 w-3" />
                           {c.is_active ? "Active" : "Disabled"}
                         </span>
@@ -362,10 +399,25 @@ const AdminPage = () => {
                       <TableCell className="text-muted-foreground text-xs">{fmt(c.created_at)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleCode(c.id, c.is_active)} title={c.is_active ? "Disable" : "Enable"}>
-                            {c.is_active ? <ToggleRight className="h-4 w-4 text-green-500" /> : <ToggleLeft className="h-4 w-4" />}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => toggleCode(c.id, c.is_active)}
+                            title={c.is_active ? "Disable" : "Enable"}
+                          >
+                            {c.is_active ? (
+                              <ToggleRight className="h-4 w-4 text-green-500" />
+                            ) : (
+                              <ToggleLeft className="h-4 w-4" />
+                            )}
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => deleteCode(c.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => deleteCode(c.id)}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -391,7 +443,12 @@ const AdminPage = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => { if (userToDelete) { handleDelete(userToDelete.id); setUserToDelete(null); } }}
+              onClick={() => {
+                if (userToDelete) {
+                  handleDelete(userToDelete.id);
+                  setUserToDelete(null);
+                }
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleting === userToDelete?.id}
             >
