@@ -164,7 +164,7 @@ function getGrokPrompt(p: MotionPromptParams): string {
   const skin = p.skinTone || "natural Indonesian";
   const intentFn = BEAT_INTENTS[p.beat] || BEAT_INTENTS.demo;
 
-  return `A ${p.character} with ${skin} skin in ${p.environment} with ${p.productColor} ${p.productPackaging} of ${p.product}. ${intentFn(p)} Natural spontaneous body language. ${MANDATORY_SUFFIX}`;
+  return `A ${p.character} with ${skin} skin in ${p.environment} with ${p.productColor} ${p.productPackaging} of ${p.product}. ${intentFn(p)} Natural spontaneous body language. ${getMandatorySuffix(p.productCategory)}`;
 }
 
 export function getMotionPrompt(params: MotionPromptParams): string {
