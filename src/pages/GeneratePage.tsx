@@ -1166,23 +1166,22 @@ Generate the video prompt now.`;
                         {getMotionPresetsForCategory(dna?.category || "other").map((preset) => (
                           <button
                             key={preset.key}
-                            onClick={() => {
+                            onClick={async () => {
                               setActiveMotionPreset(preset.key);
-                              setMPrompt(
-                                preset.buildPrompt({
-                                  beat: "hook",
-                                  model: (mModel as any) || "kling_std",
-                                  character: char?.description || "",
-                                  product: shortProductName,
-                                  productColor: dna?.dominant_color || "",
-                                  productPackaging: dna?.packaging_type || "",
-                                  environment: env.description,
-                                  skinTone: "sawo matang",
-                                  expression: "natural",
-                                  sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
-                                  productCategory: dna?.category,
-                                }),
-                              );
+                              setMPrompt("Generating prompt...");
+                              const prompt = await generateMotionViaGemini(preset.key === "product_showcase" ? "demo" : preset.key === "unboxing" ? "hook" : "demo");
+                              setMPrompt(prompt || preset.buildPrompt({
+                                beat: "hook",
+                                model: (mModel as any) || "kling_std",
+                                character: char?.description || "",
+                                product: shortProductName,
+                                productColor: dna?.dominant_color || "",
+                                productPackaging: dna?.packaging_type || "",
+                                environment: env.description,
+                                skinTone: "sawo matang",
+                                expression: "natural",
+                                productCategory: dna?.category,
+                              }));
                             }}
                             className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium border ${activeMotionPreset === preset.key ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground hover:border-border/50"}`}
                           >
