@@ -69,6 +69,7 @@ import {
   getBeatsForDuration,
   getBeatDefinition,
   getMotionPresetsForCategory,
+  getVideoDirectorSystem,
   type VideoModelType as MotionVideoModel,
   type TalkingHeadBeatKey,
   type MotionStyleKey,
