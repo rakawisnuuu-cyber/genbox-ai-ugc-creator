@@ -154,7 +154,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
     setStep(1);
     try {
       const userMsg = `PURPOSE: ${purpose}\nMOOD: ${moods.join(", ")}\nWORLD/SETTING: ${world}\n\nGenerate 5-8 distinct scene concepts for this campaign.`;
-      const raw = await openAiFetch(apiKey, CAMPAIGN_SYSTEM_PROMPT, userMsg);
+      const raw = await callGemini(CAMPAIGN_SYSTEM_PROMPT, userMsg);
       const parsed = parseConcepts(raw);
       setConcepts(parsed);
       setStep(2);
