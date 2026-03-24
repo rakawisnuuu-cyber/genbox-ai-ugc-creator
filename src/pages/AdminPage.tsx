@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Shield, Plus, ToggleLeft, ToggleRight, Ticket, Clock, CalendarPlus } from "lucide-react";
+import { Trash2, RefreshCw, Shield, Plus, ToggleLeft, ToggleRight, Ticket, Clock, CalendarPlus, CheckCircle2, CreditCard, XCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface AdminUser {
@@ -39,6 +39,14 @@ interface TrialUser {
   trial_expires_at: string | null;
 }
 
+interface PaymentUser {
+  user_id: string;
+  email: string;
+  created_at: string;
+  is_paid: boolean;
+  plan: string;
+}
+
 const AdminPage = () => {
   // Users state
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -56,6 +64,12 @@ const AdminPage = () => {
   const [trialUsers, setTrialUsers] = useState<TrialUser[]>([]);
   const [trialsLoading, setTrialsLoading] = useState(true);
   const [extendDays, setExtendDays] = useState<Record<string, string>>({});
+
+  // Payments state
+  const [paymentUsers, setPaymentUsers] = useState<PaymentUser[]>([]);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [activateUser, setActivateUser] = useState<PaymentUser | null>(null);
+  const [revokeUser, setRevokeUser] = useState<PaymentUser | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -81,7 +95,6 @@ const AdminPage = () => {
 
   const fetchTrialUsers = async () => {
     setTrialsLoading(true);
-    // Get users from edge function and profiles from DB
     const [usersRes, profilesRes] = await Promise.all([
       supabase.functions.invoke("admin-users", { method: "GET" }),
       supabase.from("profiles").select("user_id, trial_expires_at, created_at"),
@@ -100,6 +113,61 @@ const AdminPage = () => {
       setTrialUsers(merged);
     }
     setTrialsLoading(false);
+  };
+
+  const fetchPaymentUsers = async () => {
+    setPaymentsLoading(true);
+    const [usersRes, profilesRes] = await Promise.all([
+      supabase.functions.invoke("admin-users", { method: "GET" }),
+      supabase.from("profiles").select("user_id, is_paid, plan, created_at"),
+    ]);
+    if (usersRes.data?.users && profilesRes.data) {
+      const profileMap = new Map(profilesRes.data.map((p: any) => [p.user_id, p]));
+      const merged: PaymentUser[] = usersRes.data.users.map((u: AdminUser) => {
+        const profile = profileMap.get(u.id) as any;
+        return {
+          user_id: u.id,
+          email: u.email,
+          created_at: u.created_at,
+          is_paid: profile?.is_paid || false,
+          plan: profile?.plan || "trial",
+        };
+      });
+      setPaymentUsers(merged);
+    }
+    setPaymentsLoading(false);
+  };
+
+  const handleActivate = async (userId: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_paid: true, plan: "lifetime" } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "User activated as Lifetime" });
+      setPaymentUsers((prev) =>
+        prev.map((u) => (u.user_id === userId ? { ...u, is_paid: true, plan: "lifetime" } : u))
+      );
+    }
+    setActivateUser(null);
+  };
+
+  const handleRevoke = async (userId: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_paid: false, plan: "trial" } as any)
+      .eq("user_id", userId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Access revoked" });
+      setPaymentUsers((prev) =>
+        prev.map((u) => (u.user_id === userId ? { ...u, is_paid: false, plan: "trial" } : u))
+      );
+    }
+    setRevokeUser(null);
   };
 
   const handleExtendTrial = async (userId: string, days: number) => {
@@ -126,6 +194,7 @@ const AdminPage = () => {
     fetchUsers();
     fetchCodes();
     fetchTrialUsers();
+    fetchPaymentUsers();
   }, []);
 
   const handleDelete = async (userId: string) => {
@@ -198,12 +267,88 @@ const AdminPage = () => {
         <h1 className="text-xl font-semibold">Admin Panel</h1>
       </div>
 
-      <Tabs defaultValue="users">
+      <Tabs defaultValue="payments">
         <TabsList>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="trials">Trials</TabsTrigger>
           <TabsTrigger value="codes">Invite Codes</TabsTrigger>
         </TabsList>
+
+        {/* ─── PAYMENTS TAB ─── */}
+        <TabsContent value="payments">
+          <div className="flex justify-end mb-4">
+            <Button variant="outline" size="sm" onClick={fetchPaymentUsers} disabled={paymentsLoading}>
+              <RefreshCw className={`h-4 w-4 mr-1.5 ${paymentsLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+
+          {paymentsLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          ) : paymentUsers.length === 0 ? (
+            <p className="text-muted-foreground text-center py-20">No users found.</p>
+          ) : (
+            <div className="rounded-lg border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Signup</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[120px]">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paymentUsers.map((u) => (
+                    <TableRow key={u.user_id}>
+                      <TableCell className="font-medium">{u.email}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{fmt(u.created_at)}</TableCell>
+                      <TableCell className="text-xs capitalize text-muted-foreground">{u.plan}</TableCell>
+                      <TableCell>
+                        {u.is_paid ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-bold text-primary">
+                            <CheckCircle2 className="h-3 w-3" />
+                            LIFETIME
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
+                            TRIAL
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {u.is_paid ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                            onClick={() => setRevokeUser(u)}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Revoke
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs bg-primary text-primary-foreground"
+                            onClick={() => setActivateUser(u)}
+                          >
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Activate
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
 
         {/* ─── USERS TAB ─── */}
         <TabsContent value="users">
@@ -453,6 +598,45 @@ const AdminPage = () => {
               disabled={deleting === userToDelete?.id}
             >
               {deleting === userToDelete?.id ? "Menghapus..." : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Activate user dialog */}
+      <AlertDialog open={!!activateUser} onOpenChange={(open) => !open && setActivateUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Activate Lifetime?</AlertDialogTitle>
+            <AlertDialogDescription>
+              User <span className="font-medium text-foreground">{activateUser?.email}</span> akan mendapat akses Lifetime.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={() => activateUser && handleActivate(activateUser.user_id)}>
+              Activate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Revoke user dialog */}
+      <AlertDialog open={!!revokeUser} onOpenChange={(open) => !open && setRevokeUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke Access?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Akses Lifetime <span className="font-medium text-foreground">{revokeUser?.email}</span> akan dicabut.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => revokeUser && handleRevoke(revokeUser.user_id)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Revoke
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
