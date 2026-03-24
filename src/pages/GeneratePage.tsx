@@ -1170,6 +1170,7 @@ Generate the video prompt now.`;
                               setActiveMotionPreset(preset.key);
                               setMPrompt("Generating prompt...");
                               const beatKey = preset.key === "asmr_texture" ? "demo" : preset.key === "reveal_drama" ? "hook" : "demo";
+                              const prompt = await generateMotionViaGemini(beatKey);
                               setMPrompt(prompt || preset.buildPrompt({
                                 beat: "hook",
                                 model: (mModel as any) || "kling_std",
