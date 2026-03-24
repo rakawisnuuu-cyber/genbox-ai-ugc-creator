@@ -181,6 +181,36 @@ const GeneratePage = () => {
       p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= 6 ? p : [...p, k],
     );
 
+  // ── Scene DNA helper ────────────────────────────────────────
+  const getOrAnalyzeScene = useCallback(async (idx: number): Promise<string> => {
+    if (sceneDNACache[idx]) return sceneDNACache[idx];
+
+    const imageUrl = results[idx]?.imageUrl;
+    if (!imageUrl || !geminiKey) return "";
+
+    setAnalyzingScene(true);
+    try {
+      const b64 = await imageUrlToBase64WithMime(imageUrl);
+      if (!b64) {
+        setAnalyzingScene(false);
+        return "";
+      }
+
+      toast({ title: "Menganalisis gambar untuk video...", description: "Membuat scene description yang detail" });
+
+      const result = await analyzeSceneForVideo(b64.data, b64.mimeType, promptModel, geminiKey);
+      if (result.ok && result.description) {
+        setSceneDNACache(prev => ({ ...prev, [idx]: result.description }));
+        setAnalyzingScene(false);
+        return result.description;
+      }
+    } catch (e) {
+      console.error("Scene analysis failed:", e);
+    }
+    setAnalyzingScene(false);
+    return "";
+  }, [sceneDNACache, results, geminiKey, promptModel, toast]);
+
   // ── Prompt builders ────────────────────────────────────────
   const buildMotionPrompt = useCallback(
     (idx: number) => {
@@ -194,9 +224,10 @@ const GeneratePage = () => {
         environment: env.description,
         skinTone: "sawo matang",
         expression: "natural",
+        sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
       });
     },
-    [mModel, char, dna, env],
+    [mModel, char, dna, env, vIdx, sceneDNACache],
   );
 
   const buildTalkPrompt = useCallback(() => {
@@ -210,25 +241,40 @@ const GeneratePage = () => {
       duration: tDur,
       beatDialogues,
       productInteraction: "holding product naturally",
+      sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
     });
     return result.prompts.join("\n\n---EXTEND---\n\n");
-  }, [char, dna, env, tDur, beatDialogues]);
+  }, [char, dna, env, tDur, beatDialogues, vIdx, sceneDNACache]);
 
   // ── Open panel handlers ────────────────────────────────────
   const openMotion = useCallback(
-    (idx: number) => {
+    async (idx: number) => {
       setVIdx(idx);
       setVMode("motion");
       setVResults([]);
       setVpOpen(true);
       setActiveMotionPreset(null);
-      setMPrompt(buildMotionPrompt(idx));
+
+      const sceneDesc = await getOrAnalyzeScene(idx);
+
+      setMPrompt(getMotionPrompt({
+        beat: "hook",
+        model: (mModel as MotionVideoModel) || "kling_std",
+        character: char?.description || "",
+        product: dna?.product_description || "",
+        productColor: dna?.dominant_color || "",
+        productPackaging: dna?.packaging_type || "",
+        environment: env.description,
+        skinTone: "sawo matang",
+        expression: "natural",
+        sceneDNA: sceneDesc || undefined,
+      }));
     },
-    [buildMotionPrompt],
+    [getOrAnalyzeScene, mModel, char, dna, env],
   );
 
   const openTalking = useCallback(
-    (idx: number) => {
+    async (idx: number) => {
       setVIdx(idx);
       setVMode("talking");
       setVResults([]);
@@ -241,8 +287,10 @@ const GeneratePage = () => {
       });
       setBeatDialogues(defaults as Record<TalkingHeadBeatKey, string>);
       setTScript(dna?.ugc_hook || "");
+
+      await getOrAnalyzeScene(idx);
     },
-    [dna, tDur],
+    [getOrAnalyzeScene, dna, tDur],
   );
 
   const openStory = useCallback(() => {
