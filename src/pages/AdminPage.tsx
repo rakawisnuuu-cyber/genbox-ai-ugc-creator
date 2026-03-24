@@ -131,8 +131,8 @@ const AdminPage = () => {
   const handleDelete = async (userId: string) => {
     setDeleting(userId);
     const { data, error } = await supabase.functions.invoke("admin-users", {
-      method: "POST",
-      body: { action: "delete", user_id: userId },
+      method: "DELETE",
+      body: { user_id: userId },
     });
     if (error || data?.error) {
       toast({ title: "Error", description: data?.error || error?.message, variant: "destructive" });
