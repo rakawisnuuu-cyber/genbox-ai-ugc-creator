@@ -259,7 +259,7 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
         );
       }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin casually uses ${p.product} in ${p.environment}. Relaxed, natural movement — not performing for camera. The moment feels caught, not staged. ${MANDATORY_SUFFIX}`;
+      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin casually uses ${p.product} in ${p.environment}. Relaxed, natural movement — not performing for camera. The moment feels caught, not staged. ${getMandatorySuffix(p.productCategory)}`;
     },
   },
 ];
