@@ -1,5 +1,4 @@
 import { Check, ArrowRight, Gift, Lock, Zap, Infinity } from "lucide-react";
-import { Link } from "react-router-dom";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { PRICING } from "@/lib/pricing";
 
@@ -89,13 +88,15 @@ const HargaSection = () => {
             </div>
 
             {/* CTA */}
-            <Link
-              to="/checkout"
+            <a
+              href="https://clicky.id/payment/purchase/69c292304cd72de65651417b"
+              target="_blank"
+              rel="noopener noreferrer"
               className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow"
             >
               Beli Sekarang
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </a>
 
             <p className="mt-4 text-center text-[11px] text-muted-foreground">QRIS · GoPay · Virtual Account</p>
 
