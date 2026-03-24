@@ -244,8 +244,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
     try {
       const base64 = await fileToBase64(motionImage);
       const userMsg = `Duration: ${duration}\nCamera Movement: ${cameraMovement}\nMood: ${motionMoods.join(", ") || "cinematic"}\nTarget Platform: ${platform}\n\nGenerate a detailed motion prompt from this reference image.`;
-      const raw = await openAiFetch(
-        apiKey,
+      const raw = await callGemini(
         MOTION_SYSTEM_PROMPT,
         userMsg,
         { mimeType: motionImage.type || "image/jpeg", data: base64 }
