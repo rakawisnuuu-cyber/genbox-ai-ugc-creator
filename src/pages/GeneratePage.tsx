@@ -194,6 +194,7 @@ const GeneratePage = () => {
         const b64 = await imageUrlToBase64WithMime(imageUrl);
         if (!b64) {
           setAnalyzingScene(false);
+          toast({ title: "Tidak bisa menganalisis gambar", description: "Menggunakan template standar untuk video prompt", variant: "destructive" });
           return "";
         }
 
