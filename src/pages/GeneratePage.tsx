@@ -1032,6 +1032,12 @@ const GeneratePage = () => {
                     <PanelRightClose className="w-4 h-4" />
                   </button>
                 </div>
+                {analyzingScene && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                    <span className="text-[10px] text-primary/80">Analyzing scene...</span>
+                  </div>
+                )}
 
                 {vIdx !== null && results[vIdx] && (
                   <div className="relative aspect-[9/16] max-h-[200px] rounded-xl overflow-hidden border border-border/30 mx-auto w-fit">
