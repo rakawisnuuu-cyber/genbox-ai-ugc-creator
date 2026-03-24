@@ -227,7 +227,7 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
         );
       }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}Low angle shot from table height. A ${p.character} with ${skin} skin slowly lifts ${p.product} from below frame into the light. The ${p.productColor} ${p.productPackaging} catches the light as it rises. A dramatic reveal moment. ${MANDATORY_SUFFIX}`;
+      return `${SAFETY_PREFIX}Low angle shot from table height. A ${p.character} with ${skin} skin slowly lifts ${p.product} from below frame into the light. The ${p.productColor} ${p.productPackaging} catches the light as it rises. A dramatic reveal moment. ${getMandatorySuffix(p.productCategory)}`;
     },
   },
   {
