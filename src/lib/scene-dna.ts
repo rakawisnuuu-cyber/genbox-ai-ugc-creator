@@ -18,12 +18,24 @@ Describe the following elements with maximum precision:
 - Outfit: exact clothing items, colors, fabric texture, fit (loose/tight), wrinkles, sleeves position
 - Accessories: apron, jewelry, watch, hair ties, etc.
 
-2. PRODUCT IN HAND:
-- What product is being held
+2. PRODUCT PLACEMENT:
+If the product is HELD in hand:
 - Which hand holds it and how (grip style, finger placement)
 - Angle of the product relative to camera
 - Brand/logo visibility and position
 - Product color, material, size relative to the person
+
+If the product is WORN (clothing, shoes, accessories, bag):
+- How it fits the body (loose, snug, draped, structured)
+- Which body part it covers or attaches to
+- How it interacts with other clothing items
+- Visible details: stitching, zippers, buckles, straps, label placement
+- How fabric falls, wrinkles, or moves
+
+If the product is PLACED nearby (on table, shelf, counter):
+- Exact position relative to the subject
+- Orientation and angle
+- What surface it sits on
 
 3. ENVIRONMENT/BACKGROUND:
 - Setting type (kitchen, bedroom, bathroom, living room, outdoor)
@@ -63,10 +75,7 @@ export async function analyzeSceneForVideo(
     const json = await geminiFetch(model, apiKey, {
       contents: [
         {
-          parts: [
-            { inlineData: { mimeType, data: imageBase64 } },
-            { text: SCENE_ANALYSIS_PROMPT },
-          ],
+          parts: [{ inlineData: { mimeType, data: imageBase64 } }, { text: SCENE_ANALYSIS_PROMPT }],
         },
       ],
     });
