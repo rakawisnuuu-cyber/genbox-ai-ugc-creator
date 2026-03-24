@@ -158,6 +158,10 @@ const GeneratePage = () => {
   const [beatDialogues, setBeatDialogues] = useState<Record<TalkingHeadBeatKey, string>>({} as any);
   const [activeMotionPreset, setActiveMotionPreset] = useState<MotionStyleKey | null>(null);
 
+  // Scene DNA cache — keyed by image index to avoid re-analyzing
+  const [sceneDNACache, setSceneDNACache] = useState<Record<number, string>>({});
+  const [analyzingScene, setAnalyzingScene] = useState(false);
+
   const prodRef = useRef<HTMLInputElement>(null);
   const ownRef = useRef<HTMLInputElement>(null);
 
