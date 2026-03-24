@@ -214,8 +214,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
     setStep(1);
     try {
       const base64 = await fileToBase64(decodeImage);
-      const raw = await openAiFetch(
-        apiKey,
+      const raw = await callGemini(
         DECODE_SYSTEM_PROMPT,
         "Decode this image into a reusable production prompt.",
         { mimeType: decodeImage.type || "image/jpeg", data: base64 }
