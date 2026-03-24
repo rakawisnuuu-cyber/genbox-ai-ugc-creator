@@ -189,75 +189,41 @@ const GeneratePage = () => {
       p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= 6 ? p : [...p, k],
     );
 
-  // ── Scene DNA helper ────────────────────────────────────────
-  const getOrAnalyzeScene = useCallback(
-    async (idx: number): Promise<string> => {
-      if (sceneDNACache[idx]) return sceneDNACache[idx];
+  // ── Helper: generate prompt via Gemini with loading state ──
+  const generateMotionViaGemini = useCallback(async (beatKey: string = "hook") => {
+    setGeneratingPrompt(true);
+    const intentFn = BEAT_INTENTS[beatKey] || BEAT_INTENTS.demo;
+    const intent = intentFn({
+      product: shortProductName,
+      productColor: dna?.dominant_color || "",
+      productPackaging: dna?.packaging_type || "",
+    } as MotionPromptParams);
+    const prompt = await generateVideoPrompt(intent, "", mModel as MotionVideoModel, mDur);
+    setGeneratingPrompt(false);
+    return prompt;
+  }, [generateVideoPrompt, mModel, mDur, dna, shortProductName]);
 
-      if (!geminiKey || !dna || !char) return "";
-
-      setAnalyzingScene(true);
-      try {
-        toast({ title: "Membuat scene description...", description: "Generating creative scene via Gemini" });
-
-        const isFashion = dna.category === "fashion";
-        const productPlacementBlock = isFashion
-          ? "How the product is worn — fit, drape, how it interacts with the body and other clothing. Visible details like stitching, zippers, buckles, straps, fabric texture."
-          : "Which hand holds it and how (grip style, finger placement), angle relative to camera, brand/logo visibility, how it sits in the hand naturally.";
-
-        const prompt = `You are a visual scene director for TikTok UGC content. Based on the information below, write an EXTREMELY detailed visual description of a UGC-style photo — as if you are describing an existing photograph that needs to be recreated exactly in a video.
-
-CHARACTER: ${char.description || "young Indonesian content creator"}
-ENVIRONMENT: ${env.description || "clean modern room with natural lighting"}
-
-PRODUCT INFORMATION:
-- Product: ${dna.product_description || "consumer product"}
-- Category: ${dna.category || "other"} / ${(dna as any).sub_category || "general"}
-- Color: ${dna.dominant_color || "neutral"}
-- Material: ${dna.material || "standard"}
-- Packaging: ${dna.packaging_type || "standard"}
-- Brand: ${dna.brand_name || "unknown"}
-- Key Features: ${dna.key_features || "standard product"}
-
-Write continuous prose covering ALL of these with maximum precision:
-
-1. SUBJECT/CHARACTER: ethnicity, estimated age, gender, face shape, skin tone and texture (natural Indonesian skin with visible pores), hairstyle (color, length, how styled — casually groomed, not salon-perfect), facial expression (subtle, natural, mid-conversation), body pose and posture, outfit (exact items, colors, fabric texture, fit, wrinkles), accessories
-
-2. PRODUCT PLACEMENT: ${productPlacementBlock}
-
-3. ENVIRONMENT/BACKGROUND: real Indonesian living space — setting type, furniture, wall color/material, personal items visible, slight clutter for authenticity, depth of field
-
-4. LIGHTING: natural light source direction (window light), quality (soft, warm), shadow placement, color temperature (warm golden to neutral)
-
-5. CAMERA/FRAMING: selfie-style smartphone shot, shot type (close-up/medium), camera angle (slightly above or at eye level), subject position in frame, handheld feel with subtle shake, approximate camera distance
-
-6. COLOR PALETTE & MOOD: dominant colors, overall warm tone, casual authentic mood
-
-Make it feel like a REAL Indonesian TikTok creator filming in their actual living space. Natural, authentic, lived-in, not a studio. The person looks relatable, not a model.
-
-Output ONLY the description. No commentary, no markdown, no bullet points. Continuous detailed prose, paragraph by paragraph.`;
-
-        const json = await geminiFetch(promptModel, geminiKey, {
-          contents: [{ parts: [{ text: prompt }] }],
-        });
-
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-        if (text && text.length > 100) {
-          setSceneDNACache((prev) => ({ ...prev, [idx]: text }));
-          setAnalyzingScene(false);
-          return text;
-        }
-
-        toast({ title: "Scene generation gagal", description: "Menggunakan template standar", variant: "destructive" });
-      } catch (e) {
-        console.error("Scene generation failed:", e);
-        toast({ title: "Tidak bisa generate scene", description: "Menggunakan template standar", variant: "destructive" });
-      }
-      setAnalyzingScene(false);
-      return "";
-    },
-    [sceneDNACache, geminiKey, promptModel, dna, char, env, toast],
-  );
+  const generateTalkViaGemini = useCallback(async (dialogues: Record<string, string>, duration: number) => {
+    setGeneratingPrompt(true);
+    const beats = getBeatsForDuration(duration);
+    const intentMap: Record<string, string> = {
+      hook: "Calling out a common relatable frustration or pain point, speaking directly to camera in casual venting tone.",
+      relatable: "Making the frustration relatable — sharing failed attempts, wasted money, shared experience.",
+      shift: "The emotional shift moment — pace slows, transitioning from frustration toward discovering the solution.",
+      product_reveal: `Introducing ${shortProductName} as the solution, highlighting one key feature naturally. Hero moment — product front and center.`,
+      social_proof: "Adding soft social proof — hinting at satisfaction, credibility, or urgency.",
+      cta: "Delivering the closing recommendation with warm, direct energy. Ending with a clear call to action.",
+    };
+    const prompts: string[] = [];
+    for (const beatKey of beats) {
+      const intent = intentMap[beatKey] || intentMap.product_reveal;
+      const dialogue = dialogues[beatKey] || "";
+      const prompt = await generateVideoPrompt(intent, dialogue, tVeo as MotionVideoModel, 8);
+      prompts.push(prompt || `[Beat: ${beatKey}]`);
+    }
+    setGeneratingPrompt(false);
+    return prompts.join("\n\n---EXTEND---\n\n");
+  }, [generateVideoPrompt, tVeo, shortProductName]);
 
   // ── Gemini Video Director — generates clean creative prompts ──
   const generateVideoPrompt = useCallback(async (
