@@ -190,7 +190,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
         return `Scene: ${c.title}\n${c.desc}\nCustomizations: ${JSON.stringify(custom)}`;
       });
       const userMsg = `Generate complete production prompts for these selected concepts:\n\n${selected.join("\n\n---\n\n")}\n\nOriginal brief — Purpose: ${purpose}, Mood: ${moods.join(", ")}, World: ${world}`;
-      const raw = await openAiFetch(apiKey, CAMPAIGN_SYSTEM_PROMPT, userMsg);
+      const raw = await callGemini(CAMPAIGN_SYSTEM_PROMPT, userMsg);
       const { json, natural } = parseAiResponse(raw);
       setJsonOutput(json);
       setNaturalPrompt(natural);
