@@ -128,7 +128,7 @@ function getKlingPrompt(p: MotionPromptParams): string {
     const intentFn = BEAT_INTENTS[p.beat] || BEAT_INTENTS.demo;
     const dial = p.dialogue || "";
     const dialLine = dial ? `\nDialogue: "${dial}"` : "";
-    return `Scene Setup:\n${p.sceneDNA}\n\nCamera: Handheld selfie, slight natural shake, medium shot\n\nWhat happens:\n${intentFn(p)}${dialLine}\n\nThe character's body language should feel natural and spontaneous. Let the movement emerge naturally from the intent above.\n\nStability: Same person, same product, same environment, same lighting throughout. ${MANDATORY_SUFFIX}`;
+    return `Scene Setup:\n${p.sceneDNA}\n\nCamera: Handheld selfie, slight natural shake, medium shot\n\nWhat happens:\n${intentFn(p)}${dialLine}\n\nThe character's body language should feel natural and spontaneous. Let the movement emerge naturally from the intent above.\n\nStability: Same person, same product, same environment, same lighting throughout. ${getMandatorySuffix(p.productCategory)}`;
   }
 
   // Fallback
