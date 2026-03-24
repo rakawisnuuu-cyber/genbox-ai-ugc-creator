@@ -447,6 +447,8 @@ export interface TalkingHeadConfig {
   productInteraction?: string;
   /** Rich scene description from SceneDNA — overrides generic template when provided */
   sceneDNA?: string;
+  /** Product category for fashion-aware suffix */
+  productCategory?: string;
 }
 
 export function buildTalkingHeadPrompts(config: TalkingHeadConfig): {
