@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Clock } from "lucide-react";
+import { Clock, CheckCircle2 } from "lucide-react";
 
 const TrialBanner = () => {
   const { user } = useAuth();
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
   const [expiryDate, setExpiryDate] = useState<string>("");
+  const [isPaid, setIsPaid] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("trial_expires_at")
+        .select("trial_expires_at, is_paid")
         .eq("user_id", user.id)
         .single();
+      if (data?.is_paid) {
+        setIsPaid(true);
+        return;
+      }
       if (data?.trial_expires_at) {
         const exp = new Date(data.trial_expires_at);
         const diff = Math.ceil((exp.getTime() - Date.now()) / 86400000);
@@ -27,6 +32,15 @@ const TrialBanner = () => {
     };
     fetch();
   }, [user]);
+
+  if (isPaid) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-medium border border-primary/30 bg-primary/10 text-primary">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        <span>Lifetime Access ✓</span>
+      </div>
+    );
+  }
 
   if (daysLeft === null) return null;
 

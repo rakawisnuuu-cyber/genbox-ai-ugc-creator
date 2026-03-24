@@ -42,10 +42,10 @@ const FinalCTASection = () => {
           className={`mt-10 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.3s" }}
         >
-          <Link to="/checkout" className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
+          <a href="https://clicky.id/payment/purchase/69c292304cd72de65651417b" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
             {PRICING.ctaText}
             <ArrowRight className="h-4 w-4" />
-          </Link>
+          </a>
         </div>
 
         <p

@@ -1,6 +1,9 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Clock, Mail, MessageCircle } from "lucide-react";
+import { Clock, Mail, MessageCircle, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PRICING } from "@/lib/pricing";
+
+const CLICKY_URL = "https://clicky.id/payment/purchase/69c292304cd72de65651417b";
 
 const TrialExpiredPage = () => {
   const { user, signOut } = useAuth();
@@ -17,7 +20,7 @@ const TrialExpiredPage = () => {
             Trial Kamu Sudah Berakhir
           </h1>
           <p className="text-sm text-muted-foreground">
-            Akses early access kamu telah habis. Hubungi kami untuk memperpanjang akses.
+            Akses early access kamu telah habis. Upgrade ke Lifetime untuk akses selamanya.
           </p>
         </div>
 
@@ -28,6 +31,16 @@ const TrialExpiredPage = () => {
           </p>
           <div className="flex flex-col gap-2">
             <Button asChild variant="default" size="sm" className="w-full">
+              <a
+                href={CLICKY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ShoppingBag className="h-4 w-4 mr-2" />
+                Beli GENBOX Lifetime — {PRICING.priceLabel}
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="w-full">
               <a
                 href="https://wa.me/6281234567890?text=Halo%2C%20trial%20Genbox%20saya%20sudah%20habis.%20Bisa%20diperpanjang%3F"
                 target="_blank"
