@@ -59,7 +59,7 @@ import {
 } from "@/lib/image-generation-engine";
 import { supabase } from "@/integrations/supabase/client";
 import { fileToBase64 } from "@/lib/image-utils";
-import { analyzeSceneForVideo } from "@/lib/scene-dna";
+
 import { generateVideoAndWait, extendVeoVideo, type VideoModel } from "@/lib/kie-video-generation";
 import { geminiFetch } from "@/lib/gemini-fetch";
 import {
@@ -193,40 +193,69 @@ const GeneratePage = () => {
     async (idx: number): Promise<string> => {
       if (sceneDNACache[idx]) return sceneDNACache[idx];
 
-      const imageUrl = imgGen.progress.results[idx]?.imageUrl;
-      if (!imageUrl || !geminiKey) return "";
+      if (!geminiKey || !dna || !char) return "";
 
       setAnalyzingScene(true);
       try {
-        toast({ title: "Menganalisis gambar untuk video...", description: "Membuat scene description yang detail" });
+        toast({ title: "Membuat scene description...", description: "Generating creative scene via Gemini" });
 
-        // Fetch image as base64 via Edge Function (bypasses CORS)
-        const { data: proxyData, error: proxyError } = await supabase.functions.invoke("image-to-base64", {
-          body: { url: imageUrl },
+        const isFashion = dna.category === "fashion";
+        const productPlacementBlock = isFashion
+          ? "How the product is worn — fit, drape, how it interacts with the body and other clothing. Visible details like stitching, zippers, buckles, straps, fabric texture."
+          : "Which hand holds it and how (grip style, finger placement), angle relative to camera, brand/logo visibility, how it sits in the hand naturally.";
+
+        const prompt = `You are a visual scene director for TikTok UGC content. Based on the information below, write an EXTREMELY detailed visual description of a UGC-style photo — as if you are describing an existing photograph that needs to be recreated exactly in a video.
+
+CHARACTER: ${char.description || "young Indonesian content creator"}
+ENVIRONMENT: ${env.description || "clean modern room with natural lighting"}
+
+PRODUCT INFORMATION:
+- Product: ${dna.product_description || "consumer product"}
+- Category: ${dna.category || "other"} / ${(dna as any).sub_category || "general"}
+- Color: ${dna.dominant_color || "neutral"}
+- Material: ${dna.material || "standard"}
+- Packaging: ${dna.packaging_type || "standard"}
+- Brand: ${dna.brand_name || "unknown"}
+- Key Features: ${dna.key_features || "standard product"}
+
+Write continuous prose covering ALL of these with maximum precision:
+
+1. SUBJECT/CHARACTER: ethnicity, estimated age, gender, face shape, skin tone and texture (natural Indonesian skin with visible pores), hairstyle (color, length, how styled — casually groomed, not salon-perfect), facial expression (subtle, natural, mid-conversation), body pose and posture, outfit (exact items, colors, fabric texture, fit, wrinkles), accessories
+
+2. PRODUCT PLACEMENT: ${productPlacementBlock}
+
+3. ENVIRONMENT/BACKGROUND: real Indonesian living space — setting type, furniture, wall color/material, personal items visible, slight clutter for authenticity, depth of field
+
+4. LIGHTING: natural light source direction (window light), quality (soft, warm), shadow placement, color temperature (warm golden to neutral)
+
+5. CAMERA/FRAMING: selfie-style smartphone shot, shot type (close-up/medium), camera angle (slightly above or at eye level), subject position in frame, handheld feel with subtle shake, approximate camera distance
+
+6. COLOR PALETTE & MOOD: dominant colors, overall warm tone, casual authentic mood
+
+Make it feel like a REAL Indonesian TikTok creator filming in their actual living space. Natural, authentic, lived-in, not a studio. The person looks relatable, not a model.
+
+Output ONLY the description. No commentary, no markdown, no bullet points. Continuous detailed prose, paragraph by paragraph.`;
+
+        const json = await geminiFetch(promptModel, geminiKey, {
+          contents: [{ parts: [{ text: prompt }] }],
         });
 
-        if (proxyError || !proxyData?.data) {
-          toast({ title: "Tidak bisa menganalisis gambar", description: "Menggunakan template standar", variant: "destructive" });
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        if (text && text.length > 100) {
+          setSceneDNACache((prev) => ({ ...prev, [idx]: text }));
           setAnalyzingScene(false);
-          return "";
+          return text;
         }
 
-        const result = await analyzeSceneForVideo(proxyData.data, proxyData.mimeType || "image/jpeg", promptModel, geminiKey);
-        if (result.ok && result.description) {
-          setSceneDNACache((prev) => ({ ...prev, [idx]: result.description }));
-          setAnalyzingScene(false);
-          return result.description;
-        }
-
-        toast({ title: "Analisis gagal", description: "Menggunakan template standar", variant: "destructive" });
+        toast({ title: "Scene generation gagal", description: "Menggunakan template standar", variant: "destructive" });
       } catch (e) {
-        console.error("Scene analysis failed:", e);
-        toast({ title: "Tidak bisa menganalisis gambar", description: "Menggunakan template standar", variant: "destructive" });
+        console.error("Scene generation failed:", e);
+        toast({ title: "Tidak bisa generate scene", description: "Menggunakan template standar", variant: "destructive" });
       }
       setAnalyzingScene(false);
       return "";
     },
-    [sceneDNACache, imgGen.progress.results, geminiKey, promptModel, toast],
+    [sceneDNACache, geminiKey, promptModel, dna, char, env, toast],
   );
 
   // ── Prompt builders ────────────────────────────────────────
@@ -243,6 +272,7 @@ const GeneratePage = () => {
         skinTone: "sawo matang",
         expression: "natural",
         sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
+        productCategory: dna?.category,
       });
     },
     [mModel, char, dna, env, vIdx, sceneDNACache],
@@ -260,6 +290,7 @@ const GeneratePage = () => {
       beatDialogues,
       productInteraction: "holding product naturally",
       sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
+      productCategory: dna?.category,
     });
     return result.prompts.join("\n\n---EXTEND---\n\n");
   }, [char, dna, env, tDur, beatDialogues, vIdx, sceneDNACache]);
@@ -287,6 +318,7 @@ const GeneratePage = () => {
           skinTone: "sawo matang",
           expression: "natural",
           sceneDNA: sceneDesc || undefined,
+          productCategory: dna?.category,
         }),
       );
     },
@@ -1144,6 +1176,7 @@ const GeneratePage = () => {
                                   skinTone: "sawo matang",
                                   expression: "natural",
                                   sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
+                                  productCategory: dna?.category,
                                 }),
                               );
                             }}

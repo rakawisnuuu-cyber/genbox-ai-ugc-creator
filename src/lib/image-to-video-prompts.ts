@@ -22,12 +22,20 @@ export type VideoModelType = "grok" | "kling_std" | "kling_pro" | "veo_fast" | "
 
 const SAFETY_PREFIX = "Casual product review video by a content creator for social media. ";
 
-const MANDATORY_SUFFIX = [
-  "Facial expressions must stay within natural conversational range — small smile, slight eyebrow raise at most. No wide-open mouth, no exaggerated surprise, no bug eyes, no dramatic gasps. Mouth opening during speech stays proportional and natural.",
-  "The product must remain visually identical throughout: same shape, color, proportions, logo orientation, material appearance. The product must NOT morph, stretch, shrink, change color, or lose detail during any movement.",
-  "Zero rendered text in the video. No text overlay, no captions, no subtitles, no watermarks, no brand text, no step numbers, no on-screen graphics. Product labels appear as visual shapes only — do NOT render readable text.",
-  "Shot type: handheld selfie. Camera: front-facing perspective with subtle natural shake. The phone/camera must NEVER appear in frame.",
-].join(" ");
+function getMandatorySuffix(category?: string): string {
+  const isFashion = category === "fashion";
+
+  const productInteraction = isFashion
+    ? "The product (clothing, bag, shoes, or accessories) is worn or carried naturally on the body. Show the fit, drape, texture, and movement authentically. The product must remain visually identical throughout — same color, fabric, design details, stitching, and accessories. It must NOT change shape, color, pattern, or fit during the video."
+    : "One hand holds or uses the product naturally. The product must remain visually identical throughout: same shape, color, proportions, logo orientation, material appearance. The product must NOT morph, stretch, shrink, change color, or lose detail during any movement.";
+
+  return [
+    "Facial expressions must stay within natural conversational range — small smile, slight eyebrow raise at most. No wide-open mouth, no exaggerated surprise, no bug eyes, no dramatic gasps. Mouth opening during speech stays proportional and natural.",
+    productInteraction,
+    "Zero rendered text in the video. No text overlay, no captions, no subtitles, no watermarks, no brand text, no step numbers, no on-screen graphics. Product labels appear as visual shapes only — do NOT render readable text.",
+    "Shot type: handheld selfie. Camera: front-facing perspective with subtle natural shake. The phone/camera must NEVER appear in frame.",
+  ].join(" ");
+}
 
 // ══════════════════════════════════════════════════════════════════
 // MOTION PROMPTS (Quick single-clip from generated image)
@@ -47,6 +55,8 @@ export interface MotionPromptParams {
   productInteraction?: string;
   /** Rich scene description from SceneDNA — overrides generic template when provided */
   sceneDNA?: string;
+  /** Product category for fashion-aware suffix */
+  productCategory?: string;
 }
 
 // ── Beat Intents — WHAT should happen, not HOW ──
@@ -83,7 +93,7 @@ ${dialLine}
 
 The character's body language, gestures, and expressions should feel natural and spontaneous — like a real person casually filming themselves. Let the movement emerge naturally from the intent above.
 
-Duration: ${duration} seconds. ${MANDATORY_SUFFIX}`.trim();
+Duration: ${duration} seconds. ${getMandatorySuffix(p.productCategory)}`.trim();
 }
 
 // ── Veo ──
@@ -99,12 +109,13 @@ function getVeoPrompt(p: MotionPromptParams): string {
   const dial = p.dialogue || "";
   const dialSuffix = dial ? ` The creator says, "${dial}" in a natural conversational tone.` : "";
 
+  const suffix = getMandatorySuffix(p.productCategory);
   const templates: Record<string, string> = {
-    hook: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} holds a ${p.productColor} ${p.productPackaging} of ${p.product} naturally. The character begins speaking casually to camera, calling out a common relatable frustration.${dialSuffix} The character's body language should feel natural and spontaneous. Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
-    problem: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} speaks to camera expressing relatable frustration — failed attempts, wasted money. The ${p.product} remains visible nearby. Natural spontaneous body language.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
-    demo: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} demonstrates ${p.product} naturally, showing how it works or feels — ${p.productInteraction || "examining and using it"}. The product stays clearly visible throughout. Natural body language.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
-    result: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} reacts genuinely after using ${p.product} — subtle satisfaction, honest impression. Natural spontaneous body language.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
-    cta: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} delivers a warm friendly closing recommendation for ${p.product}, maintaining direct eye contact with camera. Natural spontaneous energy.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
+    hook: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} holds a ${p.productColor} ${p.productPackaging} of ${p.product} naturally. The character begins speaking casually to camera, calling out a common relatable frustration.${dialSuffix} The character's body language should feel natural and spontaneous. Duration ~8 seconds. ${suffix}`,
+    problem: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} speaks to camera expressing relatable frustration — failed attempts, wasted money. The ${p.product} remains visible nearby. Natural spontaneous body language.${dialSuffix} Duration ~8 seconds. ${suffix}`,
+    demo: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} demonstrates ${p.product} naturally, showing how it works or feels — ${p.productInteraction || "examining and using it"}. The product stays clearly visible throughout. Natural body language.${dialSuffix} Duration ~8 seconds. ${suffix}`,
+    result: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} reacts genuinely after using ${p.product} — subtle satisfaction, honest impression. Natural spontaneous body language.${dialSuffix} Duration ~8 seconds. ${suffix}`,
+    cta: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} delivers a warm friendly closing recommendation for ${p.product}, maintaining direct eye contact with camera. Natural spontaneous energy.${dialSuffix} Duration ~8 seconds. ${suffix}`,
   };
 
   return templates[p.beat] || templates.demo;
@@ -117,7 +128,7 @@ function getKlingPrompt(p: MotionPromptParams): string {
     const intentFn = BEAT_INTENTS[p.beat] || BEAT_INTENTS.demo;
     const dial = p.dialogue || "";
     const dialLine = dial ? `\nDialogue: "${dial}"` : "";
-    return `Scene Setup:\n${p.sceneDNA}\n\nCamera: Handheld selfie, slight natural shake, medium shot\n\nWhat happens:\n${intentFn(p)}${dialLine}\n\nThe character's body language should feel natural and spontaneous. Let the movement emerge naturally from the intent above.\n\nStability: Same person, same product, same environment, same lighting throughout. ${MANDATORY_SUFFIX}`;
+    return `Scene Setup:\n${p.sceneDNA}\n\nCamera: Handheld selfie, slight natural shake, medium shot\n\nWhat happens:\n${intentFn(p)}${dialLine}\n\nThe character's body language should feel natural and spontaneous. Let the movement emerge naturally from the intent above.\n\nStability: Same person, same product, same environment, same lighting throughout. ${getMandatorySuffix(p.productCategory)}`;
   }
 
   // Fallback
@@ -138,7 +149,7 @@ Product: ${p.product}, ${p.productColor}, ${p.productPackaging}
 Camera: ${cameraMap[p.beat] || cameraMap.demo}
 What happens: ${intentFn(p)}
 Body language should feel natural and spontaneous.
-Stability: Same person, same product, same environment. ${MANDATORY_SUFFIX}`;
+Stability: Same person, same product, same environment. ${getMandatorySuffix(p.productCategory)}`;
 }
 
 // ── Grok ──
@@ -146,14 +157,14 @@ Stability: Same person, same product, same environment. ${MANDATORY_SUFFIX}`;
 function getGrokPrompt(p: MotionPromptParams): string {
   if (p.sceneDNA) {
     const intentFn = BEAT_INTENTS[p.beat] || BEAT_INTENTS.demo;
-    return `${p.sceneDNA}\n\n${intentFn(p)} The character's body language should feel natural and spontaneous. ${MANDATORY_SUFFIX}`;
+    return `${p.sceneDNA}\n\n${intentFn(p)} The character's body language should feel natural and spontaneous. ${getMandatorySuffix(p.productCategory)}`;
   }
 
   // Fallback
   const skin = p.skinTone || "natural Indonesian";
   const intentFn = BEAT_INTENTS[p.beat] || BEAT_INTENTS.demo;
 
-  return `A ${p.character} with ${skin} skin in ${p.environment} with ${p.productColor} ${p.productPackaging} of ${p.product}. ${intentFn(p)} Natural spontaneous body language. ${MANDATORY_SUFFIX}`;
+  return `A ${p.character} with ${skin} skin in ${p.environment} with ${p.productColor} ${p.productPackaging} of ${p.product}. ${intentFn(p)} Natural spontaneous body language. ${getMandatorySuffix(p.productCategory)}`;
 }
 
 export function getMotionPrompt(params: MotionPromptParams): string {
@@ -200,7 +211,7 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
         );
       }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}Extreme close-up shot. A ${p.character} with ${skin} skin slowly interacts with the ${p.productPackaging} of ${p.product} — ${p.productInteraction || "opening lid, revealing texture inside"}. Slow, deliberate, satisfying ASMR energy. Focus on hands and product. ${MANDATORY_SUFFIX}`;
+      return `${SAFETY_PREFIX}Extreme close-up shot. A ${p.character} with ${skin} skin slowly interacts with the ${p.productPackaging} of ${p.product} — ${p.productInteraction || "opening lid, revealing texture inside"}. Slow, deliberate, satisfying ASMR energy. Focus on hands and product. ${getMandatorySuffix(p.productCategory)}`;
     },
   },
   {
@@ -216,7 +227,7 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
         );
       }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}Low angle shot from table height. A ${p.character} with ${skin} skin slowly lifts ${p.product} from below frame into the light. The ${p.productColor} ${p.productPackaging} catches the light as it rises. A dramatic reveal moment. ${MANDATORY_SUFFIX}`;
+      return `${SAFETY_PREFIX}Low angle shot from table height. A ${p.character} with ${skin} skin slowly lifts ${p.product} from below frame into the light. The ${p.productColor} ${p.productPackaging} catches the light as it rises. A dramatic reveal moment. ${getMandatorySuffix(p.productCategory)}`;
     },
   },
   {
@@ -232,7 +243,7 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
         );
       }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} opens ${p.product} for the first time. A genuine discovery moment — curiosity shifting to pleasant surprise. Natural, unscripted energy. ${MANDATORY_SUFFIX}`;
+      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} opens ${p.product} for the first time. A genuine discovery moment — curiosity shifting to pleasant surprise. Natural, unscripted energy. ${getMandatorySuffix(p.productCategory)}`;
     },
   },
   {
@@ -248,7 +259,7 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
         );
       }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin casually uses ${p.product} in ${p.environment}. Relaxed, natural movement — not performing for camera. The moment feels caught, not staged. ${MANDATORY_SUFFIX}`;
+      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin casually uses ${p.product} in ${p.environment}. Relaxed, natural movement — not performing for camera. The moment feels caught, not staged. ${getMandatorySuffix(p.productCategory)}`;
     },
   },
 ];
@@ -417,7 +428,7 @@ ${dialogueLine}
 
 The character's body language, gestures, and expressions should feel natural and spontaneous — like a real person casually filming themselves. Let the movement emerge naturally from the intent above.
 
-Duration: ~8 seconds. ${MANDATORY_SUFFIX}`
+Duration: ~8 seconds. ${getMandatorySuffix(config.productCategory)}`
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -436,6 +447,8 @@ export interface TalkingHeadConfig {
   productInteraction?: string;
   /** Rich scene description from SceneDNA — overrides generic template when provided */
   sceneDNA?: string;
+  /** Product category for fashion-aware suffix */
+  productCategory?: string;
 }
 
 export function buildTalkingHeadPrompts(config: TalkingHeadConfig): {
