@@ -1113,6 +1113,7 @@ const GeneratePage = () => {
                                   environment: env.description,
                                   skinTone: "sawo matang",
                                   expression: "natural",
+                                  sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
                                 }),
                               );
                             }}
