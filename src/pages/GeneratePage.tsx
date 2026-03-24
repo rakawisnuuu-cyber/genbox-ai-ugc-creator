@@ -58,7 +58,7 @@ import {
   type ShotTypeKey,
 } from "@/lib/image-generation-engine";
 import { supabase } from "@/integrations/supabase/client";
-import { fileToBase64, imageUrlToBase64WithMime } from "@/lib/image-utils";
+import { fileToBase64 } from "@/lib/image-utils";
 import { analyzeSceneForVideo } from "@/lib/scene-dna";
 import { generateVideoAndWait, extendVeoVideo, type VideoModel } from "@/lib/kie-video-generation";
 import { geminiFetch } from "@/lib/gemini-fetch";
@@ -198,23 +198,30 @@ const GeneratePage = () => {
 
       setAnalyzingScene(true);
       try {
-        const b64 = await imageUrlToBase64WithMime(imageUrl);
-        if (!b64) {
+        toast({ title: "Menganalisis gambar untuk video...", description: "Membuat scene description yang detail" });
+
+        // Fetch image as base64 via Edge Function (bypasses CORS)
+        const { data: proxyData, error: proxyError } = await supabase.functions.invoke("image-to-base64", {
+          body: { url: imageUrl },
+        });
+
+        if (proxyError || !proxyData?.data) {
+          toast({ title: "Tidak bisa menganalisis gambar", description: "Menggunakan template standar", variant: "destructive" });
           setAnalyzingScene(false);
-          toast({ title: "Tidak bisa menganalisis gambar", description: "Menggunakan template standar untuk video prompt", variant: "destructive" });
           return "";
         }
 
-        toast({ title: "Menganalisis gambar untuk video...", description: "Membuat scene description yang detail" });
-
-        const result = await analyzeSceneForVideo(b64.data, b64.mimeType, promptModel, geminiKey);
+        const result = await analyzeSceneForVideo(proxyData.data, proxyData.mimeType || "image/jpeg", promptModel, geminiKey);
         if (result.ok && result.description) {
           setSceneDNACache((prev) => ({ ...prev, [idx]: result.description }));
           setAnalyzingScene(false);
           return result.description;
         }
+
+        toast({ title: "Analisis gagal", description: "Menggunakan template standar", variant: "destructive" });
       } catch (e) {
         console.error("Scene analysis failed:", e);
+        toast({ title: "Tidak bisa menganalisis gambar", description: "Menggunakan template standar", variant: "destructive" });
       }
       setAnalyzingScene(false);
       return "";
