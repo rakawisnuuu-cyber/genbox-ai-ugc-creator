@@ -4,7 +4,8 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { supabase } from "@/integrations/supabase/client";
-import { openAiFetch } from "@/lib/openai-fetch";
+import { geminiFetch } from "@/lib/gemini-fetch";
+import { usePromptModel } from "@/hooks/usePromptModel";
 import { fileToBase64 } from "@/lib/image-utils";
 import {
   CAMPAIGN_SYSTEM_PROMPT,
