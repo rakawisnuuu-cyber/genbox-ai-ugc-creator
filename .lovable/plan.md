@@ -1,49 +1,67 @@
 
 
-## Plan: Update Price to 99.000 + Switch Prompt Engine from OpenAI to Gemini
+## Plan: Payment Flow to Clicky.id + Paid User System
 
-### Part 1: Price Update
-
-**File: `src/lib/pricing.ts`**
-- Change `price: 79_000` → `price: 99_000`
-
-That's it — all UI references use the `PRICING` constant, so the change propagates automatically.
-
-### Part 2: Prompt Engine — Replace OpenAI with Gemini
-
-**File: `src/pages/PromptEnginePage.tsx`**
-
-**Imports:**
-- Remove `import { openAiFetch } from "@/lib/openai-fetch"`
-- Add `import { geminiFetch } from "@/lib/gemini-fetch"` and `import { usePromptModel } from "@/hooks/usePromptModel"`
-
-**Hook & key setup:**
-- Add `const { model: promptModel } = usePromptModel()` near other hooks
-- Remove `openaiKey` alias (line 53), `openAiKey` state (line 92), the `useEffect` that fetches it (lines 94-105), and the `apiKey` fallback (line 108)
-- Replace with: `const apiKey = keys.gemini.key` and `const apiKeyValid = keys.gemini.status === "valid"`
-
-**Add `callGemini` helper:**
-A `useCallback` wrapper that translates the old `openAiFetch(key, system, user, image?)` interface to `geminiFetch(model, key, { systemInstruction, contents })` — supports optional image via `inlineData`.
-
-**Replace 4 call sites:**
-1. `generateConcepts` (line 155): `openAiFetch(apiKey, CAMPAIGN_SYSTEM_PROMPT, userMsg)` → `callGemini(CAMPAIGN_SYSTEM_PROMPT, userMsg)`
-2. `generateFinalPrompts` (line 191): same pattern
-3. `decodeImageAction` (line 215-220): pass image as `{ mimeType, data }` third arg to `callGemini`
-4. `generateMotionPrompt` (line 246-251): same with image
-
-**Update disabled conditions on 3 buttons:**
-- Campaign generate: `disabled={!purpose || moods.length === 0 || !world || !apiKeyValid}`
-- Decode: `disabled={!decodeImage || !apiKeyValid}`
-- Motion: `disabled={!motionImage || !apiKeyValid}`
-
-**Update warning text (line 768-771):**
-- Change condition to `!apiKeyValid`
-- Update text to mention Gemini only (remove "OpenAI")
-
-### Files Changed
+### A) Redirect CTAs to Clicky.id
 
 | File | Change |
 |------|--------|
-| `src/lib/pricing.ts` | Price 79000 → 99000 |
-| `src/pages/PromptEnginePage.tsx` | Replace openAiFetch with geminiFetch, clean up key logic, update disabled checks and warning |
+| `src/components/HargaSection.tsx` | Replace `<Link to="/checkout">` with `<a href="https://clicky.id/payment/purchase/69c292304cd72de65651417b" target="_blank" rel="noopener noreferrer">`. Remove `Link` import if unused. |
+| `src/components/FinalCTASection.tsx` | Same — replace `<Link to="/checkout">` with `<a>` to Clicky URL. Remove `Link` import if unused. |
+| `src/pages/CheckoutPage.tsx` | Replace entire page with a `useEffect` redirect + "Redirecting to payment..." loading spinner. |
+
+### B) Database Migration
+
+```sql
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_paid boolean DEFAULT false;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan text DEFAULT 'trial';
+```
+
+The admin UPDATE policy already exists (`"Admins can update profiles"`), so no new RLS needed.
+
+### C) Admin Panel — Payments Tab
+
+In `src/pages/AdminPage.tsx`:
+
+- Add `"payments"` as default tab, with columns: Email, Signup, Plan, Status badge, Action
+- Fetch same way as Trials tab — merge admin-users edge function data with profiles query (adding `is_paid, plan` to select)
+- **Activate button**: green with CheckCircle2 icon, AlertDialog confirmation, updates `is_paid=true, plan='lifetime'`
+- **Revoke button**: outline destructive, updates `is_paid=false, plan='trial'`
+- Import `CheckCircle2, CreditCard` from lucide-react
+
+### D) ProtectedRoute — Skip Trial for Paid Users
+
+In `src/components/ProtectedRoute.tsx`:
+
+- Query `trial_expires_at, is_paid` from profiles
+- If `is_paid === true`, skip trial expiry check entirely
+- Only check trial expiry when `is_paid` is false/null
+
+### E) TrialBanner — Lifetime Badge
+
+In `src/components/TrialBanner.tsx`:
+
+- Query `is_paid` alongside `trial_expires_at`
+- If `is_paid === true`, render green "Lifetime Access ✓" badge
+- Otherwise show existing trial countdown
+
+### F) TrialExpiredPage — Buy CTA
+
+In `src/pages/TrialExpiredPage.tsx`:
+
+- Add primary button "Beli GENBOX Lifetime — Rp 99.000" as `<a>` to Clicky URL, placed above WhatsApp button
+- Import `ShoppingBag` or use existing icon
+
+### Files Changed
+
+| File | Type |
+|------|------|
+| `src/components/HargaSection.tsx` | Link → `<a>` |
+| `src/components/FinalCTASection.tsx` | Link → `<a>` |
+| `src/pages/CheckoutPage.tsx` | Full rewrite to redirect |
+| DB migration | Add `is_paid`, `plan` columns |
+| `src/pages/AdminPage.tsx` | Add Payments tab |
+| `src/components/ProtectedRoute.tsx` | Check `is_paid` before trial |
+| `src/components/TrialBanner.tsx` | Lifetime badge |
+| `src/pages/TrialExpiredPage.tsx` | Add buy CTA |
 
