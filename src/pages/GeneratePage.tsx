@@ -1205,7 +1205,11 @@ Generate the video prompt now.`;
                           Motion Prompt
                         </label>
                         <button
-                          onClick={() => setMPrompt(buildMotionPrompt(vIdx || 0))}
+                          onClick={async () => {
+                            setMPrompt("Generating prompt...");
+                            const prompt = await generateMotionViaGemini("hook");
+                            setMPrompt(prompt || buildMotionPrompt(vIdx || 0));
+                          }}
                           className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80"
                         >
                           <RotateCw className="w-3 h-3" />
