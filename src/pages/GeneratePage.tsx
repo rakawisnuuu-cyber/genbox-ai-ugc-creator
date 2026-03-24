@@ -182,34 +182,37 @@ const GeneratePage = () => {
     );
 
   // ── Scene DNA helper ────────────────────────────────────────
-  const getOrAnalyzeScene = useCallback(async (idx: number): Promise<string> => {
-    if (sceneDNACache[idx]) return sceneDNACache[idx];
+  const getOrAnalyzeScene = useCallback(
+    async (idx: number): Promise<string> => {
+      if (sceneDNACache[idx]) return sceneDNACache[idx];
 
-    const imageUrl = results[idx]?.imageUrl;
-    if (!imageUrl || !geminiKey) return "";
+      const imageUrl = imgGen.progress.results[idx]?.imageUrl;
+      if (!imageUrl || !geminiKey) return "";
 
-    setAnalyzingScene(true);
-    try {
-      const b64 = await imageUrlToBase64WithMime(imageUrl);
-      if (!b64) {
-        setAnalyzingScene(false);
-        return "";
+      setAnalyzingScene(true);
+      try {
+        const b64 = await imageUrlToBase64WithMime(imageUrl);
+        if (!b64) {
+          setAnalyzingScene(false);
+          return "";
+        }
+
+        toast({ title: "Menganalisis gambar untuk video...", description: "Membuat scene description yang detail" });
+
+        const result = await analyzeSceneForVideo(b64.data, b64.mimeType, promptModel, geminiKey);
+        if (result.ok && result.description) {
+          setSceneDNACache((prev) => ({ ...prev, [idx]: result.description }));
+          setAnalyzingScene(false);
+          return result.description;
+        }
+      } catch (e) {
+        console.error("Scene analysis failed:", e);
       }
-
-      toast({ title: "Menganalisis gambar untuk video...", description: "Membuat scene description yang detail" });
-
-      const result = await analyzeSceneForVideo(b64.data, b64.mimeType, promptModel, geminiKey);
-      if (result.ok && result.description) {
-        setSceneDNACache(prev => ({ ...prev, [idx]: result.description }));
-        setAnalyzingScene(false);
-        return result.description;
-      }
-    } catch (e) {
-      console.error("Scene analysis failed:", e);
-    }
-    setAnalyzingScene(false);
-    return "";
-  }, [sceneDNACache, results, geminiKey, promptModel, toast]);
+      setAnalyzingScene(false);
+      return "";
+    },
+    [sceneDNACache, imgGen.progress.results, geminiKey, promptModel, toast],
+  );
 
   // ── Prompt builders ────────────────────────────────────────
   const buildMotionPrompt = useCallback(
@@ -257,18 +260,20 @@ const GeneratePage = () => {
 
       const sceneDesc = await getOrAnalyzeScene(idx);
 
-      setMPrompt(getMotionPrompt({
-        beat: "hook",
-        model: (mModel as MotionVideoModel) || "kling_std",
-        character: char?.description || "",
-        product: dna?.product_description || "",
-        productColor: dna?.dominant_color || "",
-        productPackaging: dna?.packaging_type || "",
-        environment: env.description,
-        skinTone: "sawo matang",
-        expression: "natural",
-        sceneDNA: sceneDesc || undefined,
-      }));
+      setMPrompt(
+        getMotionPrompt({
+          beat: "hook",
+          model: (mModel as MotionVideoModel) || "kling_std",
+          character: char?.description || "",
+          product: dna?.product_description || "",
+          productColor: dna?.dominant_color || "",
+          productPackaging: dna?.packaging_type || "",
+          environment: env.description,
+          skinTone: "sawo matang",
+          expression: "natural",
+          sceneDNA: sceneDesc || undefined,
+        }),
+      );
     },
     [getOrAnalyzeScene, mModel, char, dna, env],
   );
@@ -468,18 +473,16 @@ const GeneratePage = () => {
     for (const [i, r] of results.entries()) {
       if (!r) continue;
       try {
-        await supabase
-          .from("generations")
-          .insert({
-            user_id: user.id,
-            image_url: r.imageUrl,
-            prompt: plans[i]?.prompt?.substring(0, 5000) || null,
-            type: "image",
-            model: imgModel,
-            provider: "kie_ai",
-            status: "completed",
-            character_id: charId !== "own-photo" ? charId : null,
-          });
+        await supabase.from("generations").insert({
+          user_id: user.id,
+          image_url: r.imageUrl,
+          prompt: plans[i]?.prompt?.substring(0, 5000) || null,
+          type: "image",
+          model: imgModel,
+          provider: "kie_ai",
+          status: "completed",
+          character_id: charId !== "own-photo" ? charId : null,
+        });
         saved++;
       } catch (e: any) {
         console.error("Save failed:", e);
@@ -567,262 +570,267 @@ const GeneratePage = () => {
           </div>
 
           <div className="lg:grid lg:grid-cols-5 lg:gap-8">
-          <div className="lg:col-span-3 space-y-8">
-
-          <Sec l="Pilih Karakter">
-            <div className="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-8 gap-3">
-              {allChars.map((c) => (
-                <button key={c.id} onClick={() => setCharId(c.id)} className="flex flex-col items-center gap-1.5">
-                  <div
-                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 ${charId === c.id ? "border-primary ring-2 ring-primary/30" : "border-transparent opacity-60 hover:opacity-80"}`}
-                  >
-                    {c.hero_image_url ? (
-                      <img src={c.hero_image_url} alt={c.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center">
-                        <Camera className="w-5 h-5 text-muted-foreground" />
+            <div className="lg:col-span-3 space-y-8">
+              <Sec l="Pilih Karakter">
+                <div className="grid grid-cols-5 sm:grid-cols-7 lg:grid-cols-8 gap-3">
+                  {allChars.map((c) => (
+                    <button key={c.id} onClick={() => setCharId(c.id)} className="flex flex-col items-center gap-1.5">
+                      <div
+                        className={`w-16 h-16 rounded-xl overflow-hidden border-2 ${charId === c.id ? "border-primary ring-2 ring-primary/30" : "border-transparent opacity-60 hover:opacity-80"}`}
+                      >
+                        {c.hero_image_url ? (
+                          <img src={c.hero_image_url} alt={c.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                            <Camera className="w-5 h-5 text-muted-foreground" />
+                          </div>
+                        )}
                       </div>
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[64px] text-center">
+                        {c.name}
+                      </span>
+                    </button>
+                  ))}
+                  <button onClick={() => ownRef.current?.click()} className="flex flex-col items-center gap-1.5">
+                    <div
+                      className={`w-16 h-16 rounded-xl border-2 border-dashed flex items-center justify-center ${charId === "own-photo" ? "border-primary bg-primary/5" : "border-border/60 hover:border-border"}`}
+                    >
+                      {ownUploading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : ownUrl ? (
+                        <img src={ownUrl} alt="Own" className="w-full h-full rounded-[10px] object-cover" />
+                      ) : (
+                        <Plus className="w-5 h-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">Upload</span>
+                  </button>
+                  <input
+                    ref={ownRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) uploadOwn(f);
+                    }}
+                  />
+                </div>
+              </Sec>
+
+              <Sec l="Upload Produk">
+                {!prodPreview ? (
+                  <div
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={onDrop}
+                    onClick={() => prodRef.current?.click()}
+                    className="h-[140px] border-2 border-dashed border-border/60 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-border"
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Drop foto produk</span>
+                      </>
                     )}
                   </div>
-                  <span className="text-[10px] text-muted-foreground truncate max-w-[64px] text-center">{c.name}</span>
-                </button>
-              ))}
-              <button onClick={() => ownRef.current?.click()} className="flex flex-col items-center gap-1.5">
-                <div
-                  className={`w-16 h-16 rounded-xl border-2 border-dashed flex items-center justify-center ${charId === "own-photo" ? "border-primary bg-primary/5" : "border-border/60 hover:border-border"}`}
-                >
-                  {ownUploading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : ownUrl ? (
-                    <img src={ownUrl} alt="Own" className="w-full h-full rounded-[10px] object-cover" />
-                  ) : (
-                    <Plus className="w-5 h-5 text-muted-foreground" />
-                  )}
-                </div>
-                <span className="text-[10px] text-muted-foreground">Upload</span>
-              </button>
-              <input
-                ref={ownRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) uploadOwn(f);
-                }}
-              />
-            </div>
-          </Sec>
-
-          <Sec l="Upload Produk">
-            {!prodPreview ? (
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={onDrop}
-                onClick={() => prodRef.current?.click()}
-                className="h-[140px] border-2 border-dashed border-border/60 rounded-xl flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-border"
-              >
-                {uploading ? (
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 ) : (
-                  <>
-                    <Upload className="w-6 h-6 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Drop foto produk</span>
-                  </>
+                  <div className="flex gap-4">
+                    <div className="relative w-[120px] h-[120px] rounded-xl overflow-hidden border border-border/40 flex-shrink-0">
+                      <img src={prodPreview} alt="P" className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => {
+                          setProdPreview(null);
+                          setProdUrl(null);
+                          setDna(null);
+                        }}
+                        className="absolute top-1.5 right-1.5 bg-black/60 rounded-lg p-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      {detecting && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    {dna && <DnaC d={dna} />}
+                  </div>
+                )}
+                <input
+                  ref={prodRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadProd(f);
+                  }}
+                />
+              </Sec>
+
+              <Sec l="Mode Konten">
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { m: "ugc" as const, i: Smartphone, t: "UGC / Affiliate", d: "Smartphone, authentic" },
+                    { m: "commercial" as const, i: CameraIcon, t: "Commercial / Iklan", d: "Editorial, cinematic" },
+                  ].map((o) => (
+                    <button
+                      key={o.m}
+                      onClick={() => setMode(o.m)}
+                      className={`p-4 rounded-xl border text-left ${mode === o.m ? "border-primary/30 bg-primary/5" : "border-border/40 hover:border-border/60"}`}
+                    >
+                      <o.i className={`w-5 h-5 mb-2 ${mode === o.m ? "text-primary" : "text-muted-foreground"}`} />
+                      <p className="text-sm font-medium">{o.t}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1">{o.d}</p>
+                    </button>
+                  ))}
+                </div>
+              </Sec>
+            </div>
+            {/* end left column */}
+
+            <div className="lg:col-span-2 space-y-8 lg:sticky lg:top-8 lg:self-start mt-8 lg:mt-0">
+              <Sec l="Pilih Jenis Shot (1-6)">
+                <div className="grid grid-cols-2 gap-2.5">
+                  {SHOT_TYPES.map((s) => {
+                    const sel = selShots.includes(s.key);
+                    const Ic = SHOT_ICONS[s.icon] || Star;
+                    return (
+                      <button
+                        key={s.key}
+                        onClick={() => toggle(s.key)}
+                        className={`p-3.5 rounded-xl border text-left relative ${sel ? "border-primary/30 bg-primary/5" : "border-border/30 hover:border-border/50"}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <Ic className={`w-4 h-4 ${sel ? "text-primary" : "text-muted-foreground"}`} />
+                          <span className="text-xs font-medium">{s.name.id}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground line-clamp-2">{s.purpose}</p>
+                        {sel && (
+                          <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                            <Check className="w-3 h-3 text-primary-foreground" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-2">{selShots.length}/6 dipilih</p>
+              </Sec>
+
+              <Sec l="Environment">
+                <Select
+                  value={env.label}
+                  onValueChange={(v) => {
+                    const f = envOpts.find((e) => e.label === v);
+                    if (f) setEnv(f);
+                  }}
+                >
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {envOpts.map((e) => (
+                      <SelectItem key={e.label} value={e.label}>
+                        {e.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Sec>
+
+              <div>
+                <button
+                  onClick={() => setAdvOpen(!advOpen)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Settings className="w-3.5 h-3.5" />
+                  Pengaturan Lanjutan
+                  <ChevronDown className={`w-3 h-3 transition-transform ${advOpen ? "rotate-180" : ""}`} />
+                </button>
+                {advOpen && (
+                  <div className="mt-4 space-y-4 p-4 rounded-xl border border-border/30 bg-white/[0.01]">
+                    <div>
+                      <label className="text-[11px] text-muted-foreground mb-1.5 block">Image Model</label>
+                      <Select value={imgModel} onValueChange={(v) => setImgModel(v as ImageModel)}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(Object.entries(MODEL_INFO) as [ImageModel, { label: string; desc: string }][]).map(
+                            ([k, v]) => (
+                              <SelectItem key={k} value={k}>
+                                {v.label} — {v.desc}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-muted-foreground mb-1.5 block">Resolution</label>
+                      <div className="flex gap-2">
+                        {RESOLUTIONS.map((r) => (
+                          <button
+                            key={r}
+                            disabled={r === "4K" && imgModel === "nano-banana"}
+                            onClick={() => setImgRes(r)}
+                            className={`flex-1 py-2 rounded-lg text-xs font-medium border ${imgRes === r ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"} ${r === "4K" && imgModel === "nano-banana" ? "opacity-30 cursor-not-allowed" : ""}`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-muted-foreground mb-1.5 block">Aspect Ratio</label>
+                      <div className="flex gap-2">
+                        {ASPECT_RATIOS.map((a) => (
+                          <button
+                            key={a}
+                            onClick={() => setAr(a)}
+                            className={`px-3 py-2 rounded-lg text-xs font-medium border ${ar === a ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"}`}
+                          >
+                            {a}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-muted-foreground mb-1.5 block">Realism</label>
+                      <div className="flex gap-2">
+                        {[
+                          { v: "standard" as const, l: "Standard" },
+                          { v: "ultra" as const, l: "Ultra" },
+                          ...(mode === "ugc" ? [{ v: "raw_phone" as const, l: "Raw Phone" }] : []),
+                        ].map((o) => (
+                          <button
+                            key={o.v}
+                            onClick={() => setRealism(o.v)}
+                            className={`flex-1 py-2 rounded-lg text-xs font-medium border ${realism === o.v ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"}`}
+                          >
+                            {o.l}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="flex gap-4">
-                <div className="relative w-[120px] h-[120px] rounded-xl overflow-hidden border border-border/40 flex-shrink-0">
-                  <img src={prodPreview} alt="P" className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => {
-                      setProdPreview(null);
-                      setProdUrl(null);
-                      setDna(null);
-                    }}
-                    className="absolute top-1.5 right-1.5 bg-black/60 rounded-lg p-1"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                  {detecting && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    </div>
-                  )}
-                </div>
-                {dna && <DnaC d={dna} />}
+
+              <div className="pt-2">
+                <Button onClick={generate} disabled={!canGen} className="w-full h-12 text-sm font-semibold gap-2">
+                  <Zap className="w-4 h-4" />
+                  Generate {selShots.length} Gambar
+                </Button>
+                <p className="text-[11px] text-muted-foreground text-center mt-2">Estimasi: {formatRupiah(cost)}</p>
               </div>
-            )}
-            <input
-              ref={prodRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) uploadProd(f);
-              }}
-            />
-          </Sec>
-
-          <Sec l="Mode Konten">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { m: "ugc" as const, i: Smartphone, t: "UGC / Affiliate", d: "Smartphone, authentic" },
-                { m: "commercial" as const, i: CameraIcon, t: "Commercial / Iklan", d: "Editorial, cinematic" },
-              ].map((o) => (
-                <button
-                  key={o.m}
-                  onClick={() => setMode(o.m)}
-                  className={`p-4 rounded-xl border text-left ${mode === o.m ? "border-primary/30 bg-primary/5" : "border-border/40 hover:border-border/60"}`}
-                >
-                  <o.i className={`w-5 h-5 mb-2 ${mode === o.m ? "text-primary" : "text-muted-foreground"}`} />
-                  <p className="text-sm font-medium">{o.t}</p>
-                  <p className="text-[11px] text-muted-foreground mt-1">{o.d}</p>
-                </button>
-              ))}
             </div>
-          </Sec>
-
-          </div>{/* end left column */}
-
-          <div className="lg:col-span-2 space-y-8 lg:sticky lg:top-8 lg:self-start mt-8 lg:mt-0">
-          <Sec l="Pilih Jenis Shot (1-6)">
-            <div className="grid grid-cols-2 gap-2.5">
-              {SHOT_TYPES.map((s) => {
-                const sel = selShots.includes(s.key);
-                const Ic = SHOT_ICONS[s.icon] || Star;
-                return (
-                  <button
-                    key={s.key}
-                    onClick={() => toggle(s.key)}
-                    className={`p-3.5 rounded-xl border text-left relative ${sel ? "border-primary/30 bg-primary/5" : "border-border/30 hover:border-border/50"}`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <Ic className={`w-4 h-4 ${sel ? "text-primary" : "text-muted-foreground"}`} />
-                      <span className="text-xs font-medium">{s.name.id}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground line-clamp-2">{s.purpose}</p>
-                    {sel && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="w-3 h-3 text-primary-foreground" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-2">{selShots.length}/6 dipilih</p>
-          </Sec>
-
-          <Sec l="Environment">
-            <Select
-              value={env.label}
-              onValueChange={(v) => {
-                const f = envOpts.find((e) => e.label === v);
-                if (f) setEnv(f);
-              }}
-            >
-              <SelectTrigger className="h-10 text-sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {envOpts.map((e) => (
-                  <SelectItem key={e.label} value={e.label}>
-                    {e.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Sec>
-
-          <div>
-            <button
-              onClick={() => setAdvOpen(!advOpen)}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              Pengaturan Lanjutan
-              <ChevronDown className={`w-3 h-3 transition-transform ${advOpen ? "rotate-180" : ""}`} />
-            </button>
-            {advOpen && (
-              <div className="mt-4 space-y-4 p-4 rounded-xl border border-border/30 bg-white/[0.01]">
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1.5 block">Image Model</label>
-                  <Select value={imgModel} onValueChange={(v) => setImgModel(v as ImageModel)}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.entries(MODEL_INFO) as [ImageModel, { label: string; desc: string }][]).map(([k, v]) => (
-                        <SelectItem key={k} value={k}>
-                          {v.label} — {v.desc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1.5 block">Resolution</label>
-                  <div className="flex gap-2">
-                    {RESOLUTIONS.map((r) => (
-                      <button
-                        key={r}
-                        disabled={r === "4K" && imgModel === "nano-banana"}
-                        onClick={() => setImgRes(r)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium border ${imgRes === r ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"} ${r === "4K" && imgModel === "nano-banana" ? "opacity-30 cursor-not-allowed" : ""}`}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1.5 block">Aspect Ratio</label>
-                  <div className="flex gap-2">
-                    {ASPECT_RATIOS.map((a) => (
-                      <button
-                        key={a}
-                        onClick={() => setAr(a)}
-                        className={`px-3 py-2 rounded-lg text-xs font-medium border ${ar === a ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"}`}
-                      >
-                        {a}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[11px] text-muted-foreground mb-1.5 block">Realism</label>
-                  <div className="flex gap-2">
-                    {[
-                      { v: "standard" as const, l: "Standard" },
-                      { v: "ultra" as const, l: "Ultra" },
-                      ...(mode === "ugc" ? [{ v: "raw_phone" as const, l: "Raw Phone" }] : []),
-                    ].map((o) => (
-                      <button
-                        key={o.v}
-                        onClick={() => setRealism(o.v)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium border ${realism === o.v ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground"}`}
-                      >
-                        {o.l}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* end right column */}
           </div>
-
-          <div className="pt-2">
-            <Button onClick={generate} disabled={!canGen} className="w-full h-12 text-sm font-semibold gap-2">
-              <Zap className="w-4 h-4" />
-              Generate {selShots.length} Gambar
-            </Button>
-            <p className="text-[11px] text-muted-foreground text-center mt-2">Estimasi: {formatRupiah(cost)}</p>
-          </div>
-          </div>{/* end right column */}
-          </div>{/* end grid */}
+          {/* end grid */}
         </div>
       )}
 
@@ -938,14 +946,22 @@ const GeneratePage = () => {
                             />
                           </div>
                           {promptPreview === i && s && (
-                            <div className="absolute inset-0 bg-black/85 z-10 p-3 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            <div
+                              className="absolute inset-0 bg-black/85 z-10 p-3 overflow-y-auto"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <div className="flex items-center justify-between mb-2">
                                 <span className="text-[10px] font-semibold text-white/90">{s.shotLabel} — Prompt</span>
-                                <button onClick={() => setPromptPreview(null)} className="text-white/60 hover:text-white">
+                                <button
+                                  onClick={() => setPromptPreview(null)}
+                                  className="text-white/60 hover:text-white"
+                                >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               </div>
-                              <pre className="text-[8px] text-white/70 font-mono leading-relaxed whitespace-pre-wrap">{s.prompt}</pre>
+                              <pre className="text-[8px] text-white/70 font-mono leading-relaxed whitespace-pre-wrap">
+                                {s.prompt}
+                              </pre>
                             </div>
                           )}
                         </>
@@ -972,7 +988,6 @@ const GeneratePage = () => {
                   );
                 })}
               </div>
-
 
               {isDone && results.length > 0 && (
                 <div className="flex items-center justify-between gap-3 py-3 mt-4 border-t border-border/30">
