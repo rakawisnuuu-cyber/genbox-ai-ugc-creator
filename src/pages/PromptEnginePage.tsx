@@ -470,7 +470,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
                   </div>
                   <button
                     onClick={generateConcepts}
-                    disabled={!purpose || moods.length === 0 || !world || !apiKey}
+                    disabled={!purpose || moods.length === 0 || !world || !apiKeyValid}
                     className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-[13px] disabled:opacity-40 hover:brightness-110 transition-all"
                   >
                     Generate Concepts
