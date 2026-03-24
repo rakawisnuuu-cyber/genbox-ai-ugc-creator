@@ -93,7 +93,7 @@ ${dialLine}
 
 The character's body language, gestures, and expressions should feel natural and spontaneous — like a real person casually filming themselves. Let the movement emerge naturally from the intent above.
 
-Duration: ${duration} seconds. ${MANDATORY_SUFFIX}`.trim();
+Duration: ${duration} seconds. ${getMandatorySuffix(p.productCategory)}`.trim();
 }
 
 // ── Veo ──
