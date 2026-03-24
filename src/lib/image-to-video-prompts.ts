@@ -157,7 +157,7 @@ Stability: Same person, same product, same environment. ${getMandatorySuffix(p.p
 function getGrokPrompt(p: MotionPromptParams): string {
   if (p.sceneDNA) {
     const intentFn = BEAT_INTENTS[p.beat] || BEAT_INTENTS.demo;
-    return `${p.sceneDNA}\n\n${intentFn(p)} The character's body language should feel natural and spontaneous. ${MANDATORY_SUFFIX}`;
+    return `${p.sceneDNA}\n\n${intentFn(p)} The character's body language should feel natural and spontaneous. ${getMandatorySuffix(p.productCategory)}`;
   }
 
   // Fallback
