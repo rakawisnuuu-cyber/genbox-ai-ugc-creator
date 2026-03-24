@@ -91,24 +91,23 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [viewingItem, setViewingItem] = useState<LibraryItem | null>(null);
 
-  // Get OpenAI key from user_api_keys - we need to check for an openai provider
-  const [openAiKey, setOpenAiKey] = useState("");
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("user_api_keys")
-      .select("provider, encrypted_key")
-      .eq("user_id", user.id)
-      .eq("provider", "gemini")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setOpenAiKey(data.encrypted_key);
-      });
-  }, [user]);
-
-  // Use gemini key as fallback (the stored key)
-  const apiKey = openAiKey || keys.gemini.key;
+  const callGemini = useCallback(async (
+    systemPrompt: string,
+    userMessage: string,
+    imageBase64?: { mimeType: string; data: string },
+  ): Promise<string> => {
+    if (!apiKey) throw new Error("Gemini API key belum di-setup");
+    const contentParts: any[] = [];
+    if (imageBase64) {
+      contentParts.push({ inlineData: { mimeType: imageBase64.mimeType, data: imageBase64.data } });
+    }
+    contentParts.push({ text: userMessage });
+    const json = await geminiFetch(promptModel, apiKey, {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ parts: contentParts }],
+    });
+    return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  }, [apiKey, promptModel]);
 
   const fetchLibrary = useCallback(async () => {
     if (!user) return;

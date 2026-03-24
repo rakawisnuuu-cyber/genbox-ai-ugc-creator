@@ -1,5 +1,5 @@
 export const PRICING = {
-  price: 79_000,
+  price: 99_000,
   originalPrice: 249_000,
   productName: "GENBOX BYOK",
   accessType: "Lifetime Access",
