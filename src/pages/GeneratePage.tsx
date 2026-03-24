@@ -259,6 +259,57 @@ Output ONLY the description. No commentary, no markdown, no bullet points. Conti
     [sceneDNACache, geminiKey, promptModel, dna, char, env, toast],
   );
 
+  // ── Gemini Video Director — generates clean creative prompts ──
+  const generateVideoPrompt = useCallback(async (
+    beatIntent: string,
+    dialogue: string,
+    model: MotionVideoModel,
+    duration: number,
+  ): Promise<string> => {
+    if (!geminiKey) return "";
+
+    const characterDesc = char?.description || "young Indonesian content creator";
+    const environmentDesc = env.description || "clean modern room with natural lighting";
+    const productDesc = dna?.product_description || "consumer product";
+    const category = dna?.category || "other";
+
+    const systemPrompt = getVideoDirectorSystem({
+      model,
+      category,
+      duration,
+      aspectRatio: ar,
+    });
+
+    const userPrompt = `PRODUCT INFORMATION:
+- Product: ${shortProductName}
+- Full description: ${productDesc}
+- Color: ${dna?.dominant_color || "neutral"}
+- Packaging: ${dna?.packaging_type || "standard"}
+- Key features: ${(dna as any)?.key_features || "standard product"}
+- Key benefits: ${(dna as any)?.key_benefits || ""}
+
+CHARACTER: ${characterDesc}
+ENVIRONMENT: ${environmentDesc}
+
+WHAT SHOULD HAPPEN IN THIS VIDEO:
+${beatIntent}
+
+${dialogue ? `DIALOGUE (spoken in casual Indonesian):\n"${dialogue}"` : "No dialogue — ambient/visual only."}
+
+Generate the video prompt now.`;
+
+    try {
+      const json = await geminiFetch(promptModel, geminiKey, {
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ parts: [{ text: userPrompt }] }],
+      });
+      return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    } catch (e) {
+      console.error("Video prompt generation failed:", e);
+      return "";
+    }
+  }, [geminiKey, promptModel, char, env, dna, ar, shortProductName]);
+
   // ── Prompt builders ────────────────────────────────────────
   const buildMotionPrompt = useCallback(
     (idx: number) => {
