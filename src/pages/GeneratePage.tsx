@@ -1386,7 +1386,11 @@ Generate the video prompt now.`;
                           Full Video Prompt
                         </label>
                         <button
-                          onClick={() => setTPrompt(buildTalkPrompt())}
+                          onClick={async () => {
+                            setTPrompt("Generating prompt...");
+                            const prompt = await generateTalkViaGemini(beatDialogues, tDur);
+                            setTPrompt(prompt || buildTalkPrompt());
+                          }}
                           className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80"
                         >
                           <RotateCw className="w-3 h-3" />
