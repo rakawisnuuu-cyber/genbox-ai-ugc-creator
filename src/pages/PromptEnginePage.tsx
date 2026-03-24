@@ -4,7 +4,8 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import { supabase } from "@/integrations/supabase/client";
-import { openAiFetch } from "@/lib/openai-fetch";
+import { geminiFetch } from "@/lib/gemini-fetch";
+import { usePromptModel } from "@/hooks/usePromptModel";
 import { fileToBase64 } from "@/lib/image-utils";
 import {
   CAMPAIGN_SYSTEM_PROMPT,
@@ -50,7 +51,9 @@ function parseAiResponse(raw: string): { json: string; natural: string } {
 export default function PromptEnginePage({ initialMode = "campaign" }: PromptEnginPageProps) {
   const { user } = useAuth();
   const { keys } = useApiKeys();
-  const openaiKey = keys.gemini.key; // We'll use the stored key, but openAiFetch needs OpenAI key
+  const { model: promptModel } = usePromptModel();
+  const apiKey = keys.gemini.key;
+  const apiKeyValid = keys.gemini.status === "valid";
 
   const [activeTab, setActiveTab] = useState<"engine" | "library">("engine");
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -88,24 +91,23 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
   const [libraryLoading, setLibraryLoading] = useState(false);
   const [viewingItem, setViewingItem] = useState<LibraryItem | null>(null);
 
-  // Get OpenAI key from user_api_keys - we need to check for an openai provider
-  const [openAiKey, setOpenAiKey] = useState("");
-
-  useEffect(() => {
-    if (!user) return;
-    supabase
-      .from("user_api_keys")
-      .select("provider, encrypted_key")
-      .eq("user_id", user.id)
-      .eq("provider", "gemini")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setOpenAiKey(data.encrypted_key);
-      });
-  }, [user]);
-
-  // Use gemini key as fallback (the stored key)
-  const apiKey = openAiKey || keys.gemini.key;
+  const callGemini = useCallback(async (
+    systemPrompt: string,
+    userMessage: string,
+    imageBase64?: { mimeType: string; data: string },
+  ): Promise<string> => {
+    if (!apiKey) throw new Error("Gemini API key belum di-setup");
+    const contentParts: any[] = [];
+    if (imageBase64) {
+      contentParts.push({ inlineData: { mimeType: imageBase64.mimeType, data: imageBase64.data } });
+    }
+    contentParts.push({ text: userMessage });
+    const json = await geminiFetch(promptModel, apiKey, {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ parts: contentParts }],
+    });
+    return json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+  }, [apiKey, promptModel]);
 
   const fetchLibrary = useCallback(async () => {
     if (!user) return;
@@ -152,7 +154,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
     setStep(1);
     try {
       const userMsg = `PURPOSE: ${purpose}\nMOOD: ${moods.join(", ")}\nWORLD/SETTING: ${world}\n\nGenerate 5-8 distinct scene concepts for this campaign.`;
-      const raw = await openAiFetch(apiKey, CAMPAIGN_SYSTEM_PROMPT, userMsg);
+      const raw = await callGemini(CAMPAIGN_SYSTEM_PROMPT, userMsg);
       const parsed = parseConcepts(raw);
       setConcepts(parsed);
       setStep(2);
@@ -188,7 +190,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
         return `Scene: ${c.title}\n${c.desc}\nCustomizations: ${JSON.stringify(custom)}`;
       });
       const userMsg = `Generate complete production prompts for these selected concepts:\n\n${selected.join("\n\n---\n\n")}\n\nOriginal brief — Purpose: ${purpose}, Mood: ${moods.join(", ")}, World: ${world}`;
-      const raw = await openAiFetch(apiKey, CAMPAIGN_SYSTEM_PROMPT, userMsg);
+      const raw = await callGemini(CAMPAIGN_SYSTEM_PROMPT, userMsg);
       const { json, natural } = parseAiResponse(raw);
       setJsonOutput(json);
       setNaturalPrompt(natural);
@@ -212,8 +214,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
     setStep(1);
     try {
       const base64 = await fileToBase64(decodeImage);
-      const raw = await openAiFetch(
-        apiKey,
+      const raw = await callGemini(
         DECODE_SYSTEM_PROMPT,
         "Decode this image into a reusable production prompt.",
         { mimeType: decodeImage.type || "image/jpeg", data: base64 }
@@ -243,8 +244,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
     try {
       const base64 = await fileToBase64(motionImage);
       const userMsg = `Duration: ${duration}\nCamera Movement: ${cameraMovement}\nMood: ${motionMoods.join(", ") || "cinematic"}\nTarget Platform: ${platform}\n\nGenerate a detailed motion prompt from this reference image.`;
-      const raw = await openAiFetch(
-        apiKey,
+      const raw = await callGemini(
         MOTION_SYSTEM_PROMPT,
         userMsg,
         { mimeType: motionImage.type || "image/jpeg", data: base64 }
@@ -470,7 +470,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
                   </div>
                   <button
                     onClick={generateConcepts}
-                    disabled={!purpose || moods.length === 0 || !world || !apiKey}
+                    disabled={!purpose || moods.length === 0 || !world || !apiKeyValid}
                     className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-[13px] disabled:opacity-40 hover:brightness-110 transition-all"
                   >
                     Generate Concepts
@@ -598,7 +598,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
                   )}
                   <button
                     onClick={decodeImageAction}
-                    disabled={!decodeImage || !apiKey}
+                    disabled={!decodeImage || !apiKeyValid}
                     className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-[13px] disabled:opacity-40 hover:brightness-110 transition-all"
                   >
                     Decode Image
@@ -735,7 +735,7 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
 
                   <button
                     onClick={generateMotionPrompt}
-                    disabled={!motionImage || !apiKey}
+                    disabled={!motionImage || !apiKeyValid}
                     className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-[13px] disabled:opacity-40 hover:brightness-110 transition-all"
                   >
                     Generate Motion Prompt
@@ -765,9 +765,9 @@ export default function PromptEnginePage({ initialMode = "campaign" }: PromptEng
           )}
 
           {/* No API key warning */}
-          {!apiKey && (
+          {!apiKeyValid && (
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center">
-              <p className="text-[12px] text-destructive/80">API Key diperlukan. Simpan OpenAI atau Gemini key di <span className="font-bold">Settings</span>.</p>
+              <p className="text-[12px] text-destructive/80">Gemini API Key diperlukan. Simpan key di <span className="font-bold">Settings</span>.</p>
             </div>
           )}
         </div>
