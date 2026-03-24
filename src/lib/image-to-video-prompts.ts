@@ -211,7 +211,7 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
         );
       }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}Extreme close-up shot. A ${p.character} with ${skin} skin slowly interacts with the ${p.productPackaging} of ${p.product} — ${p.productInteraction || "opening lid, revealing texture inside"}. Slow, deliberate, satisfying ASMR energy. Focus on hands and product. ${MANDATORY_SUFFIX}`;
+      return `${SAFETY_PREFIX}Extreme close-up shot. A ${p.character} with ${skin} skin slowly interacts with the ${p.productPackaging} of ${p.product} — ${p.productInteraction || "opening lid, revealing texture inside"}. Slow, deliberate, satisfying ASMR energy. Focus on hands and product. ${getMandatorySuffix(p.productCategory)}`;
     },
   },
   {
