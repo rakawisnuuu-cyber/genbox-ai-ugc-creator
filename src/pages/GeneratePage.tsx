@@ -276,7 +276,7 @@ Generate the video prompt now.`;
     }
   }, [geminiKey, promptModel, char, env, dna, ar, shortProductName]);
 
-  // ── Prompt builders ────────────────────────────────────────
+  // ── Static prompt builders (fallback when Gemini fails) ────
   const buildMotionPrompt = useCallback(
     (idx: number) => {
       return getMotionPrompt({
@@ -289,11 +289,10 @@ Generate the video prompt now.`;
         environment: env.description,
         skinTone: "sawo matang",
         expression: "natural",
-        sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
         productCategory: dna?.category,
       });
     },
-    [mModel, char, dna, env, vIdx, sceneDNACache],
+    [mModel, char, dna, env],
   );
 
   const buildTalkPrompt = useCallback(() => {
@@ -307,11 +306,10 @@ Generate the video prompt now.`;
       duration: tDur,
       beatDialogues,
       productInteraction: "holding product naturally",
-      sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
       productCategory: dna?.category,
     });
     return result.prompts.join("\n\n---EXTEND---\n\n");
-  }, [char, dna, env, tDur, beatDialogues, vIdx, sceneDNACache]);
+  }, [char, dna, env, tDur, beatDialogues]);
 
   // ── Open panel handlers ────────────────────────────────────
   const openMotion = useCallback(
