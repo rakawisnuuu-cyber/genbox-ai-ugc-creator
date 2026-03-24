@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.validate-invite-code]
 verify_jwt = false
+
+[auth]
+rate_limit_email_sent = 10
