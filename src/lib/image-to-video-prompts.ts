@@ -7,7 +7,18 @@
 
 export type VideoModelType = "grok" | "kling_std" | "kling_pro" | "veo_fast" | "veo_quality";
 
-// ── Motion Prompt (unchanged API) ─────────────────────────────────
+// ── Safety & Suffix Constants ─────────────────────────────────────
+
+const SAFETY_PREFIX = "Casual product review video by a content creator for social media. ";
+
+const MANDATORY_SUFFIX = [
+  "Facial expressions must stay within natural conversational range — small smile, slight eyebrow raise at most. No wide-open mouth, no exaggerated surprise, no bug eyes, no dramatic gasps. Mouth opening during speech stays proportional and natural.",
+  "The product must remain visually identical throughout: same shape, color, proportions, logo orientation, material appearance. The product must NOT morph, stretch, shrink, change color, or lose detail during any movement.",
+  "Zero rendered text in the video. No text overlay, no captions, no subtitles, no watermarks, no brand text, no step numbers, no on-screen graphics. Product labels appear as visual shapes only — do NOT render readable text.",
+  "Shot type: handheld selfie. Camera: front-facing perspective with subtle natural shake. The phone/camera must NEVER appear in frame.",
+].join(" ");
+
+// ── Motion Prompt Types ───────────────────────────────────────────
 
 export interface MotionPromptParams {
   beat: string;
@@ -21,28 +32,77 @@ export interface MotionPromptParams {
   expression?: string;
   dialogue?: string;
   productInteraction?: string;
+  /** Rich scene description from SceneDNA — overrides generic template when provided */
+  sceneDNA?: string;
 }
 
-const SAFETY_PREFIX = "Casual product review video by a content creator for social media. ";
+// ── SceneDNA Helper ───────────────────────────────────────────────
+
+function buildSceneDNAMotionPrompt(p: MotionPromptParams, action: string): string {
+  const dial = p.dialogue || "";
+  const dialLine = dial ? `\nDialogue (spoken in casual Indonesian): "${dial}"` : "";
+  const duration = p.model === "grok" ? "6-10" : "8";
+
+  return `${SAFETY_PREFIX}
+
+REFERENCE IMAGE DESCRIPTION (the video MUST look exactly like this):
+${p.sceneDNA}
+
+The video is this exact image coming to life. The FIRST FRAME must visually match the reference image with zero deviation — same character, same outfit, same environment, same lighting, same product position, same camera angle.
+
+PRIMARY ACTION (only this, nothing else):
+${action}
+${dialLine}
+
+Duration: ${duration} seconds. ${MANDATORY_SUFFIX}`.trim();
+}
+
+// ── Beat Actions (single-action per beat) ─────────────────────────
+
+const BEAT_ACTIONS: Record<string, (p: MotionPromptParams) => string> = {
+  hook: (p) =>
+    `The character begins speaking casually to camera while holding the ${p.productColor} ${p.productPackaging} of ${p.product} in the same position as the reference image. Subtle head movement only.`,
+  problem: (p) =>
+    `The character speaks to camera with a mild frustrated expression, gesturing lightly with the free hand. The ${p.product} remains in the same position as the reference image.`,
+  demo: (p) =>
+    `The character demonstrates the ${p.product} with one slow deliberate movement — ${p.productInteraction || "examining it closely"}. The product stays clearly visible throughout.`,
+  result: (p) =>
+    `The character nods slowly with a gentle satisfied smile while holding the ${p.product} steady. Minimal movement — the reaction is subtle and genuine.`,
+  cta: (p) =>
+    `The character holds the ${p.product} slightly toward the camera with a warm expression, maintaining direct eye contact. Minimal movement.`,
+};
+
+// ── Model-Specific Prompt Builders ────────────────────────────────
 
 function getVeoPrompt(p: MotionPromptParams): string {
+  if (p.sceneDNA) {
+    const actionFn = BEAT_ACTIONS[p.beat] || BEAT_ACTIONS.demo;
+    return buildSceneDNAMotionPrompt(p, actionFn(p));
+  }
+
   const skin = p.skinTone || "natural Indonesian";
-  const expr = p.expression || "natural";
   const dial = p.dialogue || "";
   const dialSuffix = dial ? ` The creator says, "${dial}" in a natural tone.` : "";
 
   const templates: Record<string, string> = {
-    hook: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} reacts with ${expr} while picking up a ${p.productColor} ${p.productPackaging} of ${p.product}. The camera starts close on the face and slowly pulls back about 0.3 meters, revealing the product in hand. The expression shifts gradually from curiosity to surprise.${dialSuffix}`,
-    problem: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} shows a ${expr} while examining a problem area and lightly touching it. The ${p.product} remains nearby in frame. The camera uses a gentle handheld drift with about 0.2 meters of movement.${dialSuffix}`,
-    demo: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} demonstrates ${p.product} by ${p.productInteraction || "opening and applying it carefully"}, opening the ${p.productPackaging} and applying it carefully. The camera holds a medium shot and slowly pushes in about 0.4 meters, capturing both face and hands. The expression becomes ${expr}.${dialSuffix}`,
-    result: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} reacts with ${expr} after using ${p.product}, gently touching the result area and giving a slow approving nod. The camera moves into a close-up with a subtle push-in of about 0.3 meters.${dialSuffix}`,
-    cta: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} faces the camera with a warm ${expr}, holding a ${p.productColor} ${p.productPackaging} of ${p.product} toward the lens. The camera performs a slow push-in of about 0.3 meters. The creator maintains eye contact.${dialSuffix}`,
+    hook: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} holds a ${p.productColor} ${p.productPackaging} of ${p.product} naturally. The character begins speaking casually to camera with a relaxed expression.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
+    problem: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} speaks to camera with mild frustration, gesturing lightly with one hand. The ${p.product} remains visible nearby.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
+    demo: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} demonstrates ${p.product} with one slow deliberate movement — ${p.productInteraction || "examining it closely"}. Camera holds medium shot, steady.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
+    result: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} nods gently with a satisfied expression while holding ${p.product} steady. Minimal movement.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
+    cta: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} holds ${p.productColor} ${p.productPackaging} of ${p.product} slightly toward camera with warm expression and direct eye contact.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
   };
 
   return templates[p.beat] || templates.demo;
 }
 
 function getKlingPrompt(p: MotionPromptParams): string {
+  if (p.sceneDNA) {
+    const actionFn = BEAT_ACTIONS[p.beat] || BEAT_ACTIONS.demo;
+    const dial = p.dialogue || "";
+    const dialLine = dial ? `\nDialogue: "${dial}"` : "";
+    return `Scene Setup:\n${p.sceneDNA}\n\nCamera: Handheld selfie, slight natural shake, medium shot\n\nAction:\n${actionFn(p)}${dialLine}\n\nStability: Same person, same product, same environment, same lighting throughout. ${MANDATORY_SUFFIX}`;
+  }
+
   const skin = p.skinTone || "natural Indonesian";
   const expr = p.expression || "natural";
 
@@ -68,19 +128,24 @@ Product: ${p.product}, ${p.productColor}, ${p.productPackaging}
 Camera: ${cameraMap[p.beat] || cameraMap.demo}
 Timeline:
   ${timelineMap[p.beat] || timelineMap.demo}
-Stability: Same person, same product, same environment.`;
+Stability: Same person, same product, same environment. ${MANDATORY_SUFFIX}`;
 }
 
 function getGrokPrompt(p: MotionPromptParams): string {
+  if (p.sceneDNA) {
+    const actionFn = BEAT_ACTIONS[p.beat] || BEAT_ACTIONS.demo;
+    return `${p.sceneDNA}\n\n${actionFn(p)} ${MANDATORY_SUFFIX}`;
+  }
+
   const skin = p.skinTone || "natural Indonesian";
   const expr = p.expression || "natural";
 
   const templates: Record<string, string> = {
-    hook: `A ${p.character} with ${skin} skin picks up a ${p.productColor} ${p.productPackaging} of ${p.product} in ${p.environment}. Expression shifts from curiosity to surprise as they examine it. Camera slowly pulls back revealing the product in hand.`,
-    problem: `A ${p.character} with ${skin} skin in ${p.environment} looks ${expr} while touching a problem area. The ${p.product} sits nearby on a surface. Gentle camera drift captures the frustrated moment.`,
-    demo: `A ${p.character} with ${skin} skin in ${p.environment} opens and applies ${p.product} with focused ${expr}. Hands move deliberately, camera stays steady on the demonstration.`,
-    result: `A ${p.character} with ${skin} skin in ${p.environment} reacts with ${expr} after using ${p.product}. Touches result area approvingly, slow satisfied nod. Camera pushes in slightly.`,
-    cta: `A ${p.character} with ${skin} skin in ${p.environment} holds ${p.product} toward camera with ${expr}. Confident eye contact, warm smile, slight lean forward.`,
+    hook: `A ${p.character} with ${skin} skin picks up a ${p.productColor} ${p.productPackaging} of ${p.product} in ${p.environment}. Expression shifts from curiosity to surprise as they examine it. Camera slowly pulls back revealing the product in hand. ${MANDATORY_SUFFIX}`,
+    problem: `A ${p.character} with ${skin} skin in ${p.environment} looks ${expr} while touching a problem area. The ${p.product} sits nearby on a surface. Gentle camera drift captures the frustrated moment. ${MANDATORY_SUFFIX}`,
+    demo: `A ${p.character} with ${skin} skin in ${p.environment} opens and applies ${p.product} with focused ${expr}. Hands move deliberately, camera stays steady on the demonstration. ${MANDATORY_SUFFIX}`,
+    result: `A ${p.character} with ${skin} skin in ${p.environment} reacts with ${expr} after using ${p.product}. Touches result area approvingly, slow satisfied nod. Camera pushes in slightly. ${MANDATORY_SUFFIX}`,
+    cta: `A ${p.character} with ${skin} skin in ${p.environment} holds ${p.product} toward camera with ${expr}. Confident eye contact, warm smile, slight lean forward. ${MANDATORY_SUFFIX}`,
   };
 
   return templates[p.beat] || templates.demo;
@@ -95,7 +160,8 @@ export function getMotionPrompt(params: MotionPromptParams): string {
   return getGrokPrompt(params);
 }
 
-// ── Motion Style Presets ──────────────────────────────────────
+// ── Motion Style Presets ──────────────────────────────────────────
+
 export type MotionStyleKey = "natural_review" | "asmr_texture" | "reveal_drama" | "first_use" | "lifestyle_candid";
 
 export interface MotionStylePreset {
@@ -120,8 +186,11 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
     description: "Slow close-up manipulation — opening, squeezing, pouring",
     categories: ["skincare", "food", "health"],
     buildPrompt: (p) => {
+      if (p.sceneDNA) {
+        return buildSceneDNAMotionPrompt(p, `Extreme close-up on hands slowly manipulating the ${p.productPackaging} of ${p.product} — ${p.productInteraction || "opening lid, revealing texture inside"}. Slow, satisfying, ASMR energy. Minimal face visible, focus on hands and product.`);
+      }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}Extreme close-up shot. A ${p.character} with ${skin} skin slowly opens the ${p.productPackaging} of ${p.product}. Hands move deliberately and gently. Camera holds tight on the product as it's manipulated — ${p.productInteraction || "opening lid, revealing texture inside"}. Soft ambient sound emphasis. Minimal face visible, focus on hands and product. Slow, satisfying, ASMR energy.`;
+      return `${SAFETY_PREFIX}Extreme close-up shot. A ${p.character} with ${skin} skin slowly opens the ${p.productPackaging} of ${p.product}. Hands move deliberately and gently. Camera holds tight on the product as it's manipulated — ${p.productInteraction || "opening lid, revealing texture inside"}. Soft ambient sound emphasis. Minimal face visible, focus on hands and product. Slow, satisfying, ASMR energy. ${MANDATORY_SUFFIX}`;
     },
   },
   {
@@ -130,8 +199,11 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
     description: "Product rises into frame — low angle dramatic entrance",
     categories: ["electronics", "fashion", "home"],
     buildPrompt: (p) => {
+      if (p.sceneDNA) {
+        return buildSceneDNAMotionPrompt(p, `The character slowly lifts the ${p.product} from below frame into the light. The ${p.productColor} ${p.productPackaging} catches the light as it rises. One smooth upward movement. Expression shifts subtly from neutral to impressed.`);
+      }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}Low angle shot from table height. A ${p.character} with ${skin} skin slowly lifts ${p.product} from below frame into the light. The ${p.productColor} ${p.productPackaging} catches the light as it rises. Camera stays low and steady, creating a dramatic reveal. Expression shifts from neutral to impressed as the product comes fully into view.`;
+      return `${SAFETY_PREFIX}Low angle shot from table height. A ${p.character} with ${skin} skin slowly lifts ${p.product} from below frame into the light. The ${p.productColor} ${p.productPackaging} catches the light as it rises. Camera stays low and steady, creating a dramatic reveal. Expression shifts from neutral to impressed as the product comes fully into view. ${MANDATORY_SUFFIX}`;
     },
   },
   {
@@ -140,8 +212,11 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
     description: "Opening/using for first time — genuine discovery moment",
     categories: ["skincare", "food", "electronics", "health"],
     buildPrompt: (p) => {
+      if (p.sceneDNA) {
+        return buildSceneDNAMotionPrompt(p, `The character opens ${p.product} for the first time with curious expression. Then begins ${p.productInteraction || "using it carefully"} with one slow deliberate movement. Expression shifts subtly from curiosity to pleasant surprise.`);
+      }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} opens ${p.product} for the first time. Curious expression as they examine it. Then begins ${p.productInteraction || "using it carefully"}. Expression shifts from curiosity to pleasant surprise. Camera holds medium-close with gentle handheld drift. Natural, spontaneous energy.`;
+      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} opens ${p.product} for the first time. Curious expression as they examine it. Then begins ${p.productInteraction || "using it carefully"}. Expression shifts from curiosity to pleasant surprise. Camera holds medium-close with gentle handheld drift. Natural, spontaneous energy. ${MANDATORY_SUFFIX}`;
     },
   },
   {
@@ -150,8 +225,11 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
     description: "Natural daily-life usage — caught in the moment",
     categories: ["fashion", "food", "home"],
     buildPrompt: (p) => {
+      if (p.sceneDNA) {
+        return buildSceneDNAMotionPrompt(p, `The character casually uses ${p.product} with relaxed, natural movement — not performing for camera. The moment feels caught, not staged.`);
+      }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin casually uses ${p.product} in ${p.environment}. Relaxed, natural movement — not performing for camera. Camera observes from medium distance with gentle drift. The moment feels caught, not staged. ${p.product} is naturally integrated into the scene.`;
+      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin casually uses ${p.product} in ${p.environment}. Relaxed, natural movement — not performing for camera. Camera observes from medium distance with gentle drift. The moment feels caught, not staged. ${p.product} is naturally integrated into the scene. ${MANDATORY_SUFFIX}`;
     },
   },
 ];
@@ -160,7 +238,7 @@ export function getMotionPresetsForCategory(category: string): MotionStylePreset
   return MOTION_STYLE_PRESETS.filter((p) => p.categories.includes("all") || p.categories.includes(category));
 }
 
-// ── Talking Head Beat System ──────────────────────────────────
+// ── Talking Head Beat System ──────────────────────────────────────
 
 export type TalkingHeadBeatKey = "hook" | "relatable" | "shift" | "product_reveal" | "social_proof" | "cta";
 
@@ -278,41 +356,40 @@ export function getBeatDefinition(key: TalkingHeadBeatKey): TalkingHeadBeat {
 }
 
 // ── Narrative Prompt Builder (Veo-optimized) ──────────────────────
-// Converts beat metadata into natural flowing scene descriptions
-// instead of structured spec sheets
 
 function beatToNarrative(beat: TalkingHeadBeat, config: TalkingHeadConfig, dialogue: string, isFirst: boolean): string {
   const skin = config.skinTone || "natural Indonesian";
 
-  // Build scene description naturally based on beat type
-  const sceneOpener = isFirst
-    ? `Scene opens identical to the reference image. A ${config.character} with ${skin} skin tone is in ${config.environment}, filmed in a vertical selfie-style handheld shot.`
-    : `Continuing seamlessly from the previous moment — same person, same outfit, same background, same lighting, same camera angle.`;
+  // ── Scene description: rich (SceneDNA) or generic ──
+  let sceneAnchor: string;
+  if (config.sceneDNA) {
+    sceneAnchor = isFirst
+      ? `REFERENCE IMAGE DESCRIPTION (the video MUST look exactly like this):\n${config.sceneDNA}\n\nThe video is this exact image coming to life. The FIRST FRAME must visually match the reference image with zero deviation.`
+      : `Continuing seamlessly from the previous moment. SAME character, SAME outfit, SAME background, SAME lighting, SAME camera angle, SAME product appearance — absolutely no visual changes from the reference image.`;
+  } else {
+    sceneAnchor = isFirst
+      ? `Scene opens identical to the reference image. A ${config.character} with ${skin} skin tone is in ${config.environment}, filmed in a vertical selfie-style handheld shot.`
+      : `Continuing seamlessly from the previous moment — same person, same outfit, same background, same lighting, same camera angle.`;
+  }
 
-  // Convert beat motion/energy into natural action description
+  // ── ONE action per beat (reduced from 2-4) ──
   const actionMap: Record<TalkingHeadBeatKey, string> = {
-    hook: `The character speaks directly to camera with a ${beat.energy} expression. ${beat.productVisibility.includes("NOT") ? "The product is not yet visible — hands gesture naturally while venting." : "The product sits nearby but isn't the focus yet."} The character's body language feels spontaneous, like someone casually venting to their followers.`,
-    relatable: `The character continues talking, getting more animated — ${beat.motion}. The energy escalates naturally as they share relatable frustrations. Still no focus on the product.`,
-    shift: `The pace slows. The character pauses briefly, leans in slightly toward the camera. There's a shift in energy — from frustration to anticipation. One hand reaches toward something nearby.`,
-    product_reveal: `The character picks up the ${config.productColor} ${config.productPackaging} of ${config.product} and holds it toward the camera with genuine excitement. The product label faces the camera clearly. The character points at a specific feature while explaining. This is the hero moment — the product is front and center, well-lit, dominant in frame.`,
-    social_proof: `The character holds the product casually while nodding convincingly. The energy is testimonial — sharing proof, not selling. One hand gestures for emphasis while the other keeps the product visible.`,
-    cta: `The character holds the ${config.product} toward the camera with both hands, making direct eye contact. Warm, encouraging expression. Slight lean forward. The product is prominent in frame as the character delivers the closing line.`,
+    hook: `The character speaks directly to camera with a casual, conversational expression. ${beat.productVisibility.includes("NOT") ? "Hands gesture naturally — the product is not the focus yet." : "The product remains visible but is not the focus."} Subtle head movement only.`,
+    relatable: `The character continues speaking, gesturing lightly with one hand for emphasis. Energy is conversational — sharing a relatable frustration. Minimal body movement.`,
+    shift: `The pace slows slightly. The character pauses briefly, then reaches toward the product nearby. One deliberate movement.`,
+    product_reveal: `The character holds the ${config.productColor} ${config.productPackaging} of ${config.product} toward camera steadily. The product is clearly visible, front and center. The character speaks while keeping the product stable — no pointing, no rotating, just holding it naturally.`,
+    social_proof: `The character holds the product casually while speaking with a convincing, testimonial tone. One hand may gesture lightly for emphasis. Product stays visible.`,
+    cta: `The character holds the ${config.product} toward camera with a warm expression and direct eye contact. Minimal movement — just steady, confident product presentation.`,
   };
 
   const action = actionMap[beat.key] || actionMap.product_reveal;
 
-  // Embed dialogue naturally
   const dialogueLine = dialogue
-    ? `The character says: "${dialogue}" — spoken in casual Indonesian, natural pacing with small pauses.`
+    ? `\nDialogue (spoken in casual Indonesian, natural pacing): "${dialogue}"`
     : "";
 
-  // Stability rules (concise, not a checklist)
-  const stabilityNote = !isFirst
-    ? "The character's face, skin, hair, outfit, and the product must remain visually identical to the previous segment. No changes in lighting or environment."
-    : "";
-
-  return `${SAFETY_PREFIX}${sceneOpener} ${action} ${dialogueLine} The phone never appears in frame. No text overlay, subtitles, or watermarks. Natural handheld motion throughout. Duration ~8 seconds. ${stabilityNote}`
-    .replace(/\s+/g, " ")
+  return `${SAFETY_PREFIX}${sceneAnchor}\n\nPRIMARY ACTION (only this, nothing else):\n${action}${dialogueLine}\n\nDuration: ~8 seconds. ${MANDATORY_SUFFIX}`
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -328,6 +405,7 @@ export interface TalkingHeadConfig {
   duration: number;
   beatDialogues: Record<TalkingHeadBeatKey, string>;
   productInteraction?: string;
+  sceneDNA?: string;
 }
 
 export function buildTalkingHeadPrompts(config: TalkingHeadConfig): {
@@ -361,7 +439,7 @@ export function getTalkingHeadPrompts(params: {
 }): string[] {
   const duration = params.dialogueSegments.length * 8;
   const beats = getBeatsForDuration(duration);
-  const beatDialogues: Record<TalkingHeadBeatKey, string> = {} as any;
+  const beatDialogues: Record<TalkingHeadBeatKey, string> = {} as Record<TalkingHeadBeatKey, string>;
   beats.forEach((beat, i) => {
     beatDialogues[beat] = params.dialogueSegments[i] || "";
   });
