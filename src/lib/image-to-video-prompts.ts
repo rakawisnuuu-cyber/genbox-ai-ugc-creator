@@ -191,7 +191,7 @@ export interface MotionPromptParams {
 
 // ── Beat Intents — WHAT should happen, not HOW ──
 
-const BEAT_INTENTS: Record<string, (p: MotionPromptParams) => string> = {
+export const BEAT_INTENTS: Record<string, (p: MotionPromptParams) => string> = {
   hook: (p) =>
     `Calling out a common relatable frustration about ${p.product || "the product category"}, speaking directly to camera in a casual venting tone.`,
   problem: (p) =>

@@ -70,9 +70,11 @@ import {
   getBeatDefinition,
   getMotionPresetsForCategory,
   getVideoDirectorSystem,
+  BEAT_INTENTS,
   type VideoModelType as MotionVideoModel,
   type TalkingHeadBeatKey,
   type MotionStyleKey,
+  type MotionPromptParams,
 } from "@/lib/image-to-video-prompts";
 
 /* ─── Constants ──────────────────────────────────────────────── */
@@ -159,9 +161,7 @@ const GeneratePage = () => {
   const [beatDialogues, setBeatDialogues] = useState<Record<TalkingHeadBeatKey, string>>({} as any);
   const [activeMotionPreset, setActiveMotionPreset] = useState<MotionStyleKey | null>(null);
 
-  // Scene DNA cache — keyed by image index to avoid re-analyzing
-  const [sceneDNACache, setSceneDNACache] = useState<Record<number, string>>({});
-  const [analyzingScene, setAnalyzingScene] = useState(false);
+  const [generatingPrompt, setGeneratingPrompt] = useState(false);
 
   const prodRef = useRef<HTMLInputElement>(null);
   const ownRef = useRef<HTMLInputElement>(null);
@@ -188,76 +188,6 @@ const GeneratePage = () => {
     setSelShots((p) =>
       p.includes(k) ? (p.length <= 1 ? p : p.filter((s) => s !== k)) : p.length >= 6 ? p : [...p, k],
     );
-
-  // ── Scene DNA helper ────────────────────────────────────────
-  const getOrAnalyzeScene = useCallback(
-    async (idx: number): Promise<string> => {
-      if (sceneDNACache[idx]) return sceneDNACache[idx];
-
-      if (!geminiKey || !dna || !char) return "";
-
-      setAnalyzingScene(true);
-      try {
-        toast({ title: "Membuat scene description...", description: "Generating creative scene via Gemini" });
-
-        const isFashion = dna.category === "fashion";
-        const productPlacementBlock = isFashion
-          ? "How the product is worn — fit, drape, how it interacts with the body and other clothing. Visible details like stitching, zippers, buckles, straps, fabric texture."
-          : "Which hand holds it and how (grip style, finger placement), angle relative to camera, brand/logo visibility, how it sits in the hand naturally.";
-
-        const prompt = `You are a visual scene director for TikTok UGC content. Based on the information below, write an EXTREMELY detailed visual description of a UGC-style photo — as if you are describing an existing photograph that needs to be recreated exactly in a video.
-
-CHARACTER: ${char.description || "young Indonesian content creator"}
-ENVIRONMENT: ${env.description || "clean modern room with natural lighting"}
-
-PRODUCT INFORMATION:
-- Product: ${dna.product_description || "consumer product"}
-- Category: ${dna.category || "other"} / ${(dna as any).sub_category || "general"}
-- Color: ${dna.dominant_color || "neutral"}
-- Material: ${dna.material || "standard"}
-- Packaging: ${dna.packaging_type || "standard"}
-- Brand: ${dna.brand_name || "unknown"}
-- Key Features: ${dna.key_features || "standard product"}
-
-Write continuous prose covering ALL of these with maximum precision:
-
-1. SUBJECT/CHARACTER: ethnicity, estimated age, gender, face shape, skin tone and texture (natural Indonesian skin with visible pores), hairstyle (color, length, how styled — casually groomed, not salon-perfect), facial expression (subtle, natural, mid-conversation), body pose and posture, outfit (exact items, colors, fabric texture, fit, wrinkles), accessories
-
-2. PRODUCT PLACEMENT: ${productPlacementBlock}
-
-3. ENVIRONMENT/BACKGROUND: real Indonesian living space — setting type, furniture, wall color/material, personal items visible, slight clutter for authenticity, depth of field
-
-4. LIGHTING: natural light source direction (window light), quality (soft, warm), shadow placement, color temperature (warm golden to neutral)
-
-5. CAMERA/FRAMING: selfie-style smartphone shot, shot type (close-up/medium), camera angle (slightly above or at eye level), subject position in frame, handheld feel with subtle shake, approximate camera distance
-
-6. COLOR PALETTE & MOOD: dominant colors, overall warm tone, casual authentic mood
-
-Make it feel like a REAL Indonesian TikTok creator filming in their actual living space. Natural, authentic, lived-in, not a studio. The person looks relatable, not a model.
-
-Output ONLY the description. No commentary, no markdown, no bullet points. Continuous detailed prose, paragraph by paragraph.`;
-
-        const json = await geminiFetch(promptModel, geminiKey, {
-          contents: [{ parts: [{ text: prompt }] }],
-        });
-
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
-        if (text && text.length > 100) {
-          setSceneDNACache((prev) => ({ ...prev, [idx]: text }));
-          setAnalyzingScene(false);
-          return text;
-        }
-
-        toast({ title: "Scene generation gagal", description: "Menggunakan template standar", variant: "destructive" });
-      } catch (e) {
-        console.error("Scene generation failed:", e);
-        toast({ title: "Tidak bisa generate scene", description: "Menggunakan template standar", variant: "destructive" });
-      }
-      setAnalyzingScene(false);
-      return "";
-    },
-    [sceneDNACache, geminiKey, promptModel, dna, char, env, toast],
-  );
 
   // ── Gemini Video Director — generates clean creative prompts ──
   const generateVideoPrompt = useCallback(async (
@@ -310,7 +240,43 @@ Generate the video prompt now.`;
     }
   }, [geminiKey, promptModel, char, env, dna, ar, shortProductName]);
 
-  // ── Prompt builders ────────────────────────────────────────
+  // ── Helper: generate prompt via Gemini with loading state ──
+  const generateMotionViaGemini = useCallback(async (beatKey: string = "hook") => {
+    setGeneratingPrompt(true);
+    const intentFn = BEAT_INTENTS[beatKey] || BEAT_INTENTS.demo;
+    const intent = intentFn({
+      product: shortProductName,
+      productColor: dna?.dominant_color || "",
+      productPackaging: dna?.packaging_type || "",
+    } as MotionPromptParams);
+    const prompt = await generateVideoPrompt(intent, "", mModel as MotionVideoModel, mDur);
+    setGeneratingPrompt(false);
+    return prompt;
+  }, [generateVideoPrompt, mModel, mDur, dna, shortProductName]);
+
+  const generateTalkViaGemini = useCallback(async (dialogues: Record<string, string>, duration: number) => {
+    setGeneratingPrompt(true);
+    const beats = getBeatsForDuration(duration);
+    const intentMap: Record<string, string> = {
+      hook: "Calling out a common relatable frustration or pain point, speaking directly to camera in casual venting tone.",
+      relatable: "Making the frustration relatable — sharing failed attempts, wasted money, shared experience.",
+      shift: "The emotional shift moment — pace slows, transitioning from frustration toward discovering the solution.",
+      product_reveal: `Introducing ${shortProductName} as the solution, highlighting one key feature naturally. Hero moment — product front and center.`,
+      social_proof: "Adding soft social proof — hinting at satisfaction, credibility, or urgency.",
+      cta: "Delivering the closing recommendation with warm, direct energy. Ending with a clear call to action.",
+    };
+    const prompts: string[] = [];
+    for (const beatKey of beats) {
+      const intent = intentMap[beatKey] || intentMap.product_reveal;
+      const dialogue = dialogues[beatKey] || "";
+      const prompt = await generateVideoPrompt(intent, dialogue, tVeo as MotionVideoModel, 8);
+      prompts.push(prompt || `[Beat: ${beatKey}]`);
+    }
+    setGeneratingPrompt(false);
+    return prompts.join("\n\n---EXTEND---\n\n");
+  }, [generateVideoPrompt, tVeo, shortProductName]);
+
+  // ── Static prompt builders (fallback when Gemini fails) ────
   const buildMotionPrompt = useCallback(
     (idx: number) => {
       return getMotionPrompt({
@@ -323,11 +289,10 @@ Generate the video prompt now.`;
         environment: env.description,
         skinTone: "sawo matang",
         expression: "natural",
-        sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
         productCategory: dna?.category,
       });
     },
-    [mModel, char, dna, env, vIdx, sceneDNACache],
+    [mModel, char, dna, env],
   );
 
   const buildTalkPrompt = useCallback(() => {
@@ -341,11 +306,10 @@ Generate the video prompt now.`;
       duration: tDur,
       beatDialogues,
       productInteraction: "holding product naturally",
-      sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
       productCategory: dna?.category,
     });
     return result.prompts.join("\n\n---EXTEND---\n\n");
-  }, [char, dna, env, tDur, beatDialogues, vIdx, sceneDNACache]);
+  }, [char, dna, env, tDur, beatDialogues]);
 
   // ── Open panel handlers ────────────────────────────────────
   const openMotion = useCallback(
@@ -355,26 +319,12 @@ Generate the video prompt now.`;
       setVResults([]);
       setVpOpen(true);
       setActiveMotionPreset(null);
+      setMPrompt("Generating prompt...");
 
-      const sceneDesc = await getOrAnalyzeScene(idx);
-
-      setMPrompt(
-        getMotionPrompt({
-          beat: "hook",
-          model: (mModel as MotionVideoModel) || "kling_std",
-          character: char?.description || "",
-          product: shortProductName,
-          productColor: dna?.dominant_color || "",
-          productPackaging: dna?.packaging_type || "",
-          environment: env.description,
-          skinTone: "sawo matang",
-          expression: "natural",
-          sceneDNA: sceneDesc || undefined,
-          productCategory: dna?.category,
-        }),
-      );
+      const prompt = await generateMotionViaGemini("hook");
+      setMPrompt(prompt || buildMotionPrompt(idx)); // fallback to static if Gemini fails
     },
-    [getOrAnalyzeScene, mModel, char, dna, env],
+    [generateMotionViaGemini, buildMotionPrompt],
   );
 
   const openTalking = useCallback(
@@ -391,10 +341,12 @@ Generate the video prompt now.`;
       });
       setBeatDialogues(defaults as Record<TalkingHeadBeatKey, string>);
       setTScript(dna?.ugc_hook || "");
+      setTPrompt("Generating prompt...");
 
-      await getOrAnalyzeScene(idx);
+      const prompt = await generateTalkViaGemini(defaults, tDur);
+      setTPrompt(prompt || buildTalkPrompt());
     },
-    [getOrAnalyzeScene, dna, tDur],
+    [generateTalkViaGemini, buildTalkPrompt, dna, tDur],
   );
 
   const openStory = useCallback(() => {
@@ -1146,10 +1098,10 @@ Generate the video prompt now.`;
                     <PanelRightClose className="w-4 h-4" />
                   </button>
                 </div>
-                {analyzingScene && (
+                {generatingPrompt && (
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/10">
                     <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                    <span className="text-[10px] text-primary/80">Analyzing scene...</span>
+                    <span className="text-[10px] text-primary/80">Generating prompt...</span>
                   </div>
                 )}
 
@@ -1214,23 +1166,23 @@ Generate the video prompt now.`;
                         {getMotionPresetsForCategory(dna?.category || "other").map((preset) => (
                           <button
                             key={preset.key}
-                            onClick={() => {
+                            onClick={async () => {
                               setActiveMotionPreset(preset.key);
-                              setMPrompt(
-                                preset.buildPrompt({
-                                  beat: "hook",
-                                  model: (mModel as any) || "kling_std",
-                                  character: char?.description || "",
-                                  product: shortProductName,
-                                  productColor: dna?.dominant_color || "",
-                                  productPackaging: dna?.packaging_type || "",
-                                  environment: env.description,
-                                  skinTone: "sawo matang",
-                                  expression: "natural",
-                                  sceneDNA: (vIdx !== null ? sceneDNACache[vIdx] : undefined) || undefined,
-                                  productCategory: dna?.category,
-                                }),
-                              );
+                              setMPrompt("Generating prompt...");
+                              const beatKey = preset.key === "asmr_texture" ? "demo" : preset.key === "reveal_drama" ? "hook" : "demo";
+                              const prompt = await generateMotionViaGemini(beatKey);
+                              setMPrompt(prompt || preset.buildPrompt({
+                                beat: "hook",
+                                model: (mModel as any) || "kling_std",
+                                character: char?.description || "",
+                                product: shortProductName,
+                                productColor: dna?.dominant_color || "",
+                                productPackaging: dna?.packaging_type || "",
+                                environment: env.description,
+                                skinTone: "sawo matang",
+                                expression: "natural",
+                                productCategory: dna?.category,
+                              }));
                             }}
                             className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium border ${activeMotionPreset === preset.key ? "border-primary/30 bg-primary/10 text-primary" : "border-border/30 text-muted-foreground hover:border-border/50"}`}
                           >
@@ -1254,7 +1206,11 @@ Generate the video prompt now.`;
                           Motion Prompt
                         </label>
                         <button
-                          onClick={() => setMPrompt(buildMotionPrompt(vIdx || 0))}
+                          onClick={async () => {
+                            setMPrompt("Generating prompt...");
+                            const prompt = await generateMotionViaGemini("hook");
+                            setMPrompt(prompt || buildMotionPrompt(vIdx || 0));
+                          }}
                           className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80"
                         >
                           <RotateCw className="w-3 h-3" />
@@ -1430,7 +1386,11 @@ Generate the video prompt now.`;
                           Full Video Prompt
                         </label>
                         <button
-                          onClick={() => setTPrompt(buildTalkPrompt())}
+                          onClick={async () => {
+                            setTPrompt("Generating prompt...");
+                            const prompt = await generateTalkViaGemini(beatDialogues, tDur);
+                            setTPrompt(prompt || buildTalkPrompt());
+                          }}
                           className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80"
                         >
                           <RotateCw className="w-3 h-3" />
