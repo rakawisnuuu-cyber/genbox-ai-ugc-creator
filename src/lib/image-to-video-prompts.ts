@@ -149,7 +149,7 @@ Product: ${p.product}, ${p.productColor}, ${p.productPackaging}
 Camera: ${cameraMap[p.beat] || cameraMap.demo}
 What happens: ${intentFn(p)}
 Body language should feel natural and spontaneous.
-Stability: Same person, same product, same environment. ${MANDATORY_SUFFIX}`;
+Stability: Same person, same product, same environment. ${getMandatorySuffix(p.productCategory)}`;
 }
 
 // ── Grok ──
