@@ -109,12 +109,13 @@ function getVeoPrompt(p: MotionPromptParams): string {
   const dial = p.dialogue || "";
   const dialSuffix = dial ? ` The creator says, "${dial}" in a natural conversational tone.` : "";
 
+  const suffix = getMandatorySuffix(p.productCategory);
   const templates: Record<string, string> = {
-    hook: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} holds a ${p.productColor} ${p.productPackaging} of ${p.product} naturally. The character begins speaking casually to camera, calling out a common relatable frustration.${dialSuffix} The character's body language should feel natural and spontaneous. Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
-    problem: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} speaks to camera expressing relatable frustration — failed attempts, wasted money. The ${p.product} remains visible nearby. Natural spontaneous body language.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
-    demo: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} demonstrates ${p.product} naturally, showing how it works or feels — ${p.productInteraction || "examining and using it"}. The product stays clearly visible throughout. Natural body language.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
-    result: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} reacts genuinely after using ${p.product} — subtle satisfaction, honest impression. Natural spontaneous body language.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
-    cta: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} delivers a warm friendly closing recommendation for ${p.product}, maintaining direct eye contact with camera. Natural spontaneous energy.${dialSuffix} Duration ~8 seconds. ${MANDATORY_SUFFIX}`,
+    hook: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} holds a ${p.productColor} ${p.productPackaging} of ${p.product} naturally. The character begins speaking casually to camera, calling out a common relatable frustration.${dialSuffix} The character's body language should feel natural and spontaneous. Duration ~8 seconds. ${suffix}`,
+    problem: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} speaks to camera expressing relatable frustration — failed attempts, wasted money. The ${p.product} remains visible nearby. Natural spontaneous body language.${dialSuffix} Duration ~8 seconds. ${suffix}`,
+    demo: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} demonstrates ${p.product} naturally, showing how it works or feels — ${p.productInteraction || "examining and using it"}. The product stays clearly visible throughout. Natural body language.${dialSuffix} Duration ~8 seconds. ${suffix}`,
+    result: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} reacts genuinely after using ${p.product} — subtle satisfaction, honest impression. Natural spontaneous body language.${dialSuffix} Duration ~8 seconds. ${suffix}`,
+    cta: `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} delivers a warm friendly closing recommendation for ${p.product}, maintaining direct eye contact with camera. Natural spontaneous energy.${dialSuffix} Duration ~8 seconds. ${suffix}`,
   };
 
   return templates[p.beat] || templates.demo;
