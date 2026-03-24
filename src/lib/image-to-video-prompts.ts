@@ -243,7 +243,7 @@ export const MOTION_STYLE_PRESETS: MotionStylePreset[] = [
         );
       }
       const skin = p.skinTone || "natural Indonesian";
-      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} opens ${p.product} for the first time. A genuine discovery moment — curiosity shifting to pleasant surprise. Natural, unscripted energy. ${MANDATORY_SUFFIX}`;
+      return `${SAFETY_PREFIX}A ${p.character} with ${skin} skin in ${p.environment} opens ${p.product} for the first time. A genuine discovery moment — curiosity shifting to pleasant surprise. Natural, unscripted energy. ${getMandatorySuffix(p.productCategory)}`;
     },
   },
   {
