@@ -319,26 +319,12 @@ Generate the video prompt now.`;
       setVResults([]);
       setVpOpen(true);
       setActiveMotionPreset(null);
+      setMPrompt("Generating prompt...");
 
-      const sceneDesc = await getOrAnalyzeScene(idx);
-
-      setMPrompt(
-        getMotionPrompt({
-          beat: "hook",
-          model: (mModel as MotionVideoModel) || "kling_std",
-          character: char?.description || "",
-          product: shortProductName,
-          productColor: dna?.dominant_color || "",
-          productPackaging: dna?.packaging_type || "",
-          environment: env.description,
-          skinTone: "sawo matang",
-          expression: "natural",
-          sceneDNA: sceneDesc || undefined,
-          productCategory: dna?.category,
-        }),
-      );
+      const prompt = await generateMotionViaGemini("hook");
+      setMPrompt(prompt || buildMotionPrompt(idx)); // fallback to static if Gemini fails
     },
-    [getOrAnalyzeScene, mModel, char, dna, env],
+    [generateMotionViaGemini, buildMotionPrompt],
   );
 
   const openTalking = useCallback(
@@ -355,10 +341,12 @@ Generate the video prompt now.`;
       });
       setBeatDialogues(defaults as Record<TalkingHeadBeatKey, string>);
       setTScript(dna?.ugc_hook || "");
+      setTPrompt("Generating prompt...");
 
-      await getOrAnalyzeScene(idx);
+      const prompt = await generateTalkViaGemini(defaults, tDur);
+      setTPrompt(prompt || buildTalkPrompt());
     },
-    [getOrAnalyzeScene, dna, tDur],
+    [generateTalkViaGemini, buildTalkPrompt, dna, tDur],
   );
 
   const openStory = useCallback(() => {
