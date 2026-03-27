@@ -1,5 +1,8 @@
 project_id = "uxrxrsdasgvygoeavozp"
 
+[auth]
+rate_limit.email_sent = 100
+
 [functions.admin-users]
 verify_jwt = false
 
