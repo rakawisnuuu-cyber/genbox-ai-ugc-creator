@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Loader2, Sparkles, Mail, CheckCircle2, ArrowRight, RefreshCw } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
@@ -19,7 +20,40 @@ const Login = () => {
   const [inviteCode, setInviteCode] = useState("");
   const [signupLoading, setSignupLoading] = useState(false);
 
+  // Verification modal state
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   const { toast } = useToast();
+
+  // Cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResendVerification = useCallback(async () => {
+    if (resendCooldown > 0 || !registeredEmail) return;
+    try {
+      const { error } = await supabase.auth.resend({ type: "signup", email: registeredEmail });
+      if (error) {
+        toast({ title: "Gagal mengirim ulang", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Email terkirim!", description: "Cek inbox kamu." });
+        setResendCooldown(60);
+      }
+    } catch {
+      toast({ title: "Error", description: "Gagal mengirim ulang email.", variant: "destructive" });
+    }
+  }, [resendCooldown, registeredEmail, toast]);
+
+  const handleProceedToLogin = () => {
+    setShowVerifyModal(false);
+    setActiveTab("login");
+    setEmail(registeredEmail);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,11 +100,8 @@ const Login = () => {
         body: { code: inviteCode.trim(), email: signupEmail },
       });
 
-      
-
       if (codeError) {
         setSignupLoading(false);
-        // Distinguish network/CORS errors from business errors
         const isNetworkError =
           codeError.message?.includes("Failed to send") ||
           codeError.message?.includes("fetch") ||
@@ -114,11 +145,13 @@ const Login = () => {
       return;
     }
 
-    toast({ title: "Berhasil!", description: "Akun berhasil dibuat! Silakan login." });
+    // Show verification modal instead of toast
+    setRegisteredEmail(normalizedSignupEmail);
+    setShowVerifyModal(true);
+    setResendCooldown(60);
     setSignupEmail("");
     setSignupPassword("");
     setInviteCode("");
-    setActiveTab("login");
   };
 
   const inputClass =
@@ -302,6 +335,71 @@ const Login = () => {
           </>
         )}
       </div>
+
+      {/* ─── EMAIL VERIFICATION MODAL ─── */}
+      <Dialog open={showVerifyModal} onOpenChange={setShowVerifyModal}>
+        <DialogContent className="max-w-sm border-border/60 bg-card p-0 gap-0">
+          <div className="flex flex-col items-center px-6 pt-8 pb-2">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10">
+              <CheckCircle2 className="h-7 w-7 text-green-500" />
+            </div>
+            <h2 className="mt-4 font-satoshi text-xl font-bold text-foreground">Akun Berhasil Dibuat!</h2>
+            <p className="mt-1.5 text-center text-sm text-muted-foreground">
+              Satu langkah lagi sebelum kamu bisa masuk
+            </p>
+          </div>
+
+          <div className="mx-6 mt-4 rounded-lg border border-border/40 bg-secondary/30 p-4">
+            <div className="flex items-start gap-3">
+              <Mail className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <div className="text-sm">
+                <p className="text-foreground">
+                  Kami telah mengirim link verifikasi ke
+                </p>
+                <p className="mt-1 font-semibold text-foreground">{registeredEmail}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mx-6 mt-4 space-y-2.5 text-sm text-muted-foreground">
+            <div className="flex items-start gap-2.5">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">1</span>
+              <span>Buka inbox email kamu</span>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">2</span>
+              <span>Klik link verifikasi di email</span>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">3</span>
+              <span>Kembali ke sini dan login</span>
+            </div>
+          </div>
+
+          <p className="mx-6 mt-3 text-xs text-muted-foreground/70">
+            💡 Cek folder <strong>spam</strong> jika tidak menemukan email verifikasi.
+          </p>
+
+          <div className="flex flex-col gap-2 px-6 pt-5 pb-6">
+            <button
+              onClick={handleProceedToLogin}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-semibold tracking-wider text-primary-foreground transition-all hover:brightness-110 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)]"
+            >
+              Masuk Sekarang
+              <ArrowRight className="h-4 w-4" />
+            </button>
+
+            <button
+              onClick={handleResendVerification}
+              disabled={resendCooldown > 0}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-border/60 bg-secondary/50 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground hover:bg-secondary disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              {resendCooldown > 0 ? `Kirim ulang (${resendCooldown}s)` : "Kirim Ulang Email"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
