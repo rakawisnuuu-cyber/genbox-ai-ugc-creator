@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const CLICKY_URL = "https://clicky.id/payment/purchase/69c292304cd72de65651417b";
+const CLICKY_URL = "https://clicky.id/rkaaw/link/ugc-genboxid";
 
 const CheckoutPage = () => {
   useEffect(() => {
