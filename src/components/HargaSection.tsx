@@ -89,7 +89,7 @@ const HargaSection = () => {
 
             {/* CTA */}
             <a
-              href="https://clicky.id/payment/purchase/69c292304cd72de65651417b"
+              href="https://clicky.id/rkaaw/link/ugc-genboxid"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow"

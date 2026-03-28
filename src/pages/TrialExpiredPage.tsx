@@ -3,7 +3,7 @@ import { Clock, Mail, MessageCircle, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PRICING } from "@/lib/pricing";
 
-const CLICKY_URL = "https://clicky.id/payment/purchase/69c292304cd72de65651417b";
+const CLICKY_URL = "https://clicky.id/rkaaw/link/ugc-genboxid";
 
 const TrialExpiredPage = () => {
   const { user, signOut } = useAuth();
