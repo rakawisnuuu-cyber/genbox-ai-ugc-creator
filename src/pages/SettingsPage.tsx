@@ -6,63 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  User,
-  Key,
-  Eye,
-  EyeOff,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Cpu,
-  LogOut,
-  ChevronDown,
-  Shield,
-  Trash2,
+  User, Key, Eye, EyeOff, Loader2,
+  CheckCircle2, XCircle, Clock, Cpu, LogOut,
 } from "lucide-react";
 
-/* ── Status Badge ── */
+/* ── Status Badge (inline) ── */
 const StatusBadge = ({ status }: { status: string }) => {
   if (status === "valid")
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-        <CheckCircle2 className="w-3 h-3" /> Valid
-      </span>
-    );
+    return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md"><CheckCircle2 className="w-3 h-3" /> Valid</span>;
   if (status === "testing")
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-white/[0.04] px-2 py-0.5 rounded-md">
-        <Clock className="w-3 h-3 animate-spin" /> Verifying...
-      </span>
-    );
+    return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-white/[0.04] px-2 py-0.5 rounded-md"><Clock className="w-3 h-3 animate-spin" /> Verifying...</span>;
   if (status === "invalid")
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-400 bg-red-500/10 px-2 py-0.5 rounded-md">
-        <XCircle className="w-3 h-3" /> Invalid
-      </span>
-    );
+    return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-red-400 bg-red-500/10 px-2 py-0.5 rounded-md"><XCircle className="w-3 h-3" /> Invalid</span>;
   return null;
 };
 
-/* ── API Key Row ── */
+/* ── API Key Row (merged save+test) ── */
 const ApiKeyRow = ({
-  label,
-  keyValue,
-  status,
-  onKeyChange,
-  onSaveAndTest,
-  saving,
-  onDelete,
-  deletable,
+  label, keyValue, status, onKeyChange, onSaveAndTest, saving,
 }: {
-  label: string;
-  keyValue: string;
-  status: string;
-  onKeyChange: (v: string) => void;
-  onSaveAndTest: () => void;
+  label: string; keyValue: string; status: string;
+  onKeyChange: (v: string) => void; onSaveAndTest: () => void;
   saving: boolean;
-  onDelete?: () => void;
-  deletable?: boolean;
 }) => {
   const [show, setShow] = useState(false);
   return (
@@ -93,57 +58,24 @@ const ApiKeyRow = ({
           )}
         </button>
       </div>
-      <div className="flex gap-2">
-        <Button
-          onClick={onSaveAndTest}
-          disabled={saving || !keyValue}
-          size="sm"
-          className="text-[11px] font-bold px-5 rounded-lg"
-        >
-          {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-          Save & verify
-        </Button>
-        {deletable && keyValue && onDelete && (
-          <Button
-            onClick={onDelete}
-            variant="ghost"
-            size="sm"
-            className="text-[11px] text-muted-foreground/40 hover:text-red-400 px-2 rounded-lg"
-          >
-            <Trash2 className="w-3 h-3" />
-          </Button>
-        )}
-      </div>
+      <Button
+        onClick={onSaveAndTest}
+        disabled={saving || !keyValue}
+        size="sm"
+        className="text-[11px] font-bold px-5 rounded-lg"
+      >
+        {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+        Save & verify
+      </Button>
     </div>
   );
 };
 
 /* ── Model options ── */
 const MODEL_OPTIONS = [
-  {
-    value: "gemini-2.5-flash",
-    label: "Gemini 2.5 Flash",
-    desc: "Cepat, cocok untuk kebanyakan kasus",
-    badge: "GRATIS",
-    badgeClass: "bg-primary/10 text-primary",
-    dots: 1,
-  },
-  {
-    value: "gemini-3.1-pro-preview",
-    label: "Gemini 3.1 Pro",
-    desc: "Reasoning terbaik, JSON precision",
-    badge: "TERBARU",
-    badgeClass: "bg-primary/10 text-primary",
-    dots: 2,
-  },
-  {
-    value: "gemini-2.5-pro",
-    label: "Gemini 2.5 Pro",
-    desc: "Kreativitas tinggi, multimodal vision",
-    badge: "PREMIUM",
-    badgeClass: "bg-amber-500/10 text-amber-400",
-    dots: 3,
-  },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", desc: "Cepat, cocok untuk kebanyakan kasus", badge: "GRATIS", badgeClass: "bg-primary/10 text-primary", dots: 1 },
+  { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", desc: "Reasoning terbaik, JSON precision", badge: "TERBARU", badgeClass: "bg-primary/10 text-primary", dots: 2 },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", desc: "Kreativitas tinggi, multimodal vision", badge: "PREMIUM", badgeClass: "bg-amber-500/10 text-amber-400", dots: 3 },
 ];
 
 const SpeedDots = ({ count }: { count: number }) => (
@@ -156,22 +88,18 @@ const SpeedDots = ({ count }: { count: number }) => (
 
 const SettingsPage = () => {
   const { user, signOut } = useAuth();
-  const { keys, savingProvider, testingProvider, saveKey, testKey, deleteKey, setLocalKey } = useApiKeys();
+  const { keys, savingProvider, testingProvider, saveKey, testKey, setLocalKey } = useApiKeys();
   const { model: promptModel, setPromptModel } = usePromptModel();
-  const [showFallback, setShowFallback] = useState(false);
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "User";
 
-  const handleSaveAndTest = async (provider: "kie_ai" | "google" | "openrouter") => {
+  const handleSaveAndTest = async (provider: "kie_ai" | "gemini") => {
     await saveKey(provider, keys[provider].key);
     await testKey(provider);
   };
 
   const Section = ({ children, delay = "0ms" }: { children: React.ReactNode; delay?: string }) => (
-    <section
-      className="animate-fade-up rounded-2xl border border-white/[0.06] bg-card/40 backdrop-blur-sm p-6"
-      style={{ animationDelay: delay }}
-    >
+    <section className="animate-fade-up rounded-2xl border border-white/[0.06] bg-card/40 backdrop-blur-sm p-6" style={{ animationDelay: delay }}>
       {children}
     </section>
   );
@@ -192,131 +120,83 @@ const SettingsPage = () => {
 
       <div className="lg:grid lg:grid-cols-2 lg:gap-6">
         <div className="space-y-4">
-          {/* Profile */}
-          <Section>
-            <SectionHeader icon={User} title="Profil" />
-            <div className="space-y-3">
-              <div>
-                <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Nama</Label>
-                <p className="text-sm text-foreground mt-0.5">{firstName}</p>
-              </div>
-              <div>
-                <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Email</Label>
-                <p className="text-sm text-muted-foreground mt-0.5">{user?.email || "—"}</p>
-              </div>
-            </div>
-          </Section>
 
-          {/* Account */}
-          <Section delay="240ms">
-            <SectionHeader icon={LogOut} title="Akun" />
-            <button
-              onClick={signOut}
-              className="text-muted-foreground/40 hover:text-foreground text-[13px] transition-colors inline-flex items-center gap-1.5"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Keluar dari akun
-            </button>
-          </Section>
+      {/* Profile */}
+      <Section>
+        <SectionHeader icon={User} title="Profil" />
+        <div className="space-y-3">
+          <div>
+            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Nama</Label>
+            <p className="text-sm text-foreground mt-0.5">{firstName}</p>
+          </div>
+          <div>
+            <Label className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Email</Label>
+            <p className="text-sm text-muted-foreground mt-0.5">{user?.email || "—"}</p>
+          </div>
         </div>
-        {/* end left column */}
+      </Section>
+
+      {/* Account */}
+      <Section delay="240ms">
+        <SectionHeader icon={LogOut} title="Akun" />
+        <button
+          onClick={signOut}
+          className="text-muted-foreground/40 hover:text-foreground text-[13px] transition-colors inline-flex items-center gap-1.5"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          Keluar dari akun
+        </button>
+      </Section>
+        </div>{/* end left column */}
 
         <div className="space-y-4 mt-4 lg:mt-0">
-          {/* API Keys — Primary */}
-          <Section delay="80ms">
-            <SectionHeader icon={Key} title="API Key" />
-            <p className="text-[12px] text-muted-foreground/40 mb-5 -mt-2">
-              Satu key Kie AI untuk semua fitur: gambar, video, dan prompt AI
-            </p>
-            <div className="space-y-6">
-              <ApiKeyRow
-                label="Kie AI"
-                keyValue={keys.kie_ai.key}
-                status={keys.kie_ai.status}
-                onKeyChange={(v) => setLocalKey("kie_ai", v)}
-                onSaveAndTest={() => handleSaveAndTest("kie_ai")}
-                saving={savingProvider === "kie_ai" || testingProvider === "kie_ai"}
-              />
-            </div>
-
-            {/* Fallback Providers (collapsible) */}
-            <div className="mt-6 pt-4 border-t border-white/[0.06]">
-              <button
-                onClick={() => setShowFallback(!showFallback)}
-                className="flex items-center gap-2 text-[12px] text-muted-foreground/40 hover:text-muted-foreground transition-colors w-full"
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Fallback Providers (Opsional)</span>
-                <ChevronDown
-                  className={`w-3.5 h-3.5 ml-auto transition-transform ${showFallback ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {showFallback && (
-                <div className="mt-4 space-y-5">
-                  <p className="text-[11px] text-muted-foreground/30">
-                    Otomatis digunakan ketika Kie AI error atau down. Tidak wajib diisi.
-                  </p>
-
-                  <ApiKeyRow
-                    label="Google AI Studio"
-                    keyValue={keys.google.key}
-                    status={keys.google.status}
-                    onKeyChange={(v) => setLocalKey("google", v)}
-                    onSaveAndTest={() => handleSaveAndTest("google")}
-                    saving={savingProvider === "google" || testingProvider === "google"}
-                    onDelete={() => deleteKey("google")}
-                    deletable
-                  />
-
-                  <div className="border-t border-white/[0.04]" />
-
-                  <ApiKeyRow
-                    label="OpenRouter"
-                    keyValue={keys.openrouter.key}
-                    status={keys.openrouter.status}
-                    onKeyChange={(v) => setLocalKey("openrouter", v)}
-                    onSaveAndTest={() => handleSaveAndTest("openrouter")}
-                    saving={savingProvider === "openrouter" || testingProvider === "openrouter"}
-                    onDelete={() => deleteKey("openrouter")}
-                    deletable
-                  />
-                </div>
-              )}
-            </div>
-          </Section>
-
-          {/* Prompt Model */}
-          <Section delay="160ms">
-            <SectionHeader icon={Cpu} title="Model Prompt" />
-            <p className="text-[12px] text-muted-foreground/40 mb-4 -mt-2">Model yang dipakai untuk generate prompt.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {MODEL_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setPromptModel(opt.value)}
-                  className={`text-left rounded-xl p-3.5 transition-all duration-200 ${
-                    promptModel === opt.value
-                      ? "border-2 border-primary/20 bg-primary/[0.04]"
-                      : "border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="font-semibold text-[13px] text-foreground">{opt.label}</span>
-                    <span className={`${opt.badgeClass} text-[9px] font-bold rounded-md px-1.5 py-0.5`}>
-                      {opt.badge}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground/40 mb-2">{opt.desc}</p>
-                  <SpeedDots count={opt.dots} />
-                </button>
-              ))}
-            </div>
-          </Section>
+      <Section delay="80ms">
+        <SectionHeader icon={Key} title="API Keys" />
+        <p className="text-[12px] text-muted-foreground/40 mb-5 -mt-2">Masukkan API key kamu untuk menggunakan fitur generate</p>
+        <div className="space-y-6">
+          <ApiKeyRow
+            label="Kie AI" keyValue={keys.kie_ai.key} status={keys.kie_ai.status}
+            onKeyChange={(v) => setLocalKey("kie_ai", v)}
+            onSaveAndTest={() => handleSaveAndTest("kie_ai")}
+            saving={savingProvider === "kie_ai" || testingProvider === "kie_ai"}
+          />
+          <div className="border-t border-white/[0.06]" />
+          <ApiKeyRow
+            label="Gemini" keyValue={keys.gemini.key} status={keys.gemini.status}
+            onKeyChange={(v) => setLocalKey("gemini", v)}
+            onSaveAndTest={() => handleSaveAndTest("gemini")}
+            saving={savingProvider === "gemini" || testingProvider === "gemini"}
+          />
         </div>
-        {/* end right column */}
-      </div>
-      {/* end grid */}
+      </Section>
+
+      {/* Prompt Model */}
+      <Section delay="160ms">
+        <SectionHeader icon={Cpu} title="Model Prompt" />
+        <p className="text-[12px] text-muted-foreground/40 mb-4 -mt-2">Model yang dipakai untuk generate prompt.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          {MODEL_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setPromptModel(opt.value)}
+              className={`text-left rounded-xl p-3.5 transition-all duration-200 ${
+                promptModel === opt.value
+                  ? "border-2 border-primary/20 bg-primary/[0.04]"
+                  : "border border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="font-semibold text-[13px] text-foreground">{opt.label}</span>
+                <span className={`${opt.badgeClass} text-[9px] font-bold rounded-md px-1.5 py-0.5`}>{opt.badge}</span>
+              </div>
+              <p className="text-[11px] text-muted-foreground/40 mb-2">{opt.desc}</p>
+              <SpeedDots count={opt.dots} />
+            </button>
+          ))}
+        </div>
+      </Section>
+        </div>{/* end right column */}
+      </div>{/* end grid */}
     </div>
   );
 };
