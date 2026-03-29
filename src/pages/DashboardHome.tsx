@@ -137,7 +137,7 @@ const DashboardHome = () => {
     <div className="space-y-6">
       {/* API Key Setup Modal */}
       <ApiKeySetupModal open={showApiSetup} onClose={() => setShowApiSetup(false)} />
-      <TrialBanner />
+      
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
         <div>
           <h1 className="font-satoshi text-2xl font-bold text-foreground">
