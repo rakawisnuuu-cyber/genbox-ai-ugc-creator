@@ -58,6 +58,7 @@ const FinalCTASection = () => {
           Lifetime access · Setup 2 menit · Akses selamanya
         </p>
       </div>
+      <BYOKDisclaimerModal open={showDisclaimer} onOpenChange={setShowDisclaimer} />
     </section>
   );
 };

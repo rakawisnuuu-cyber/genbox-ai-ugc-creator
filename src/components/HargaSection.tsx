@@ -121,6 +121,7 @@ const HargaSection = () => {
           ))}
         </div>
       </div>
+      <BYOKDisclaimerModal open={showDisclaimer} onOpenChange={setShowDisclaimer} />
     </section>
   );
 };
