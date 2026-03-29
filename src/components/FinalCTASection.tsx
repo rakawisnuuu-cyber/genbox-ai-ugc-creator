@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { PRICING } from "@/lib/pricing";
+import BYOKDisclaimerModal from "@/components/BYOKDisclaimerModal";
 
 const FinalCTASection = () => {
   const { ref, isVisible } = useScrollReveal();
