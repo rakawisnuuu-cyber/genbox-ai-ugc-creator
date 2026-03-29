@@ -1,31 +1,51 @@
 
 
-## Plan: Email Verification Modal + Rate Limit Fix
+## Bug Found: Product DNA & All Vision Features Broken
 
-### 1. Increase email rate limit
+### Root Cause
 
-**File: `supabase/config.toml`**
-- Add `[auth]` section with `rate_limit.email_sent = 100` to prevent "email limit exceeded" errors during active signups.
+In `src/lib/gemini-fetch.ts`, the `geminiBodyToOpenAI` converter (used for Kie AI primary provider) checks for **`inline_data`** (snake_case) on lines 45 and 54. But every caller in the codebase uses **`inlineData`** (camelCase) — the native Gemini format.
 
-### 2. Add verification guidance modal in Login.tsx
+This means when requests go through Kie AI (the primary/first provider), **all image data is silently dropped**. The LLM receives text-only messages, causing Product DNA analysis, Scene DNA, and all vision features to fail or return garbage.
 
-**File: `src/pages/Login.tsx`**
+### Affected Features
 
-- Import `Dialog, DialogContent` from ui/dialog and `Mail, CheckCircle2, ArrowRight, RefreshCw` from lucide-react
-- Add state: `showVerifyModal` (boolean), `registeredEmail` (string), `resendCooldown` (number)
-- After successful signup (line 117): instead of toast + tab switch, set `registeredEmail` and `showVerifyModal = true`, clear form fields
-- Add a Dialog modal containing:
-  - Green checkmark icon + title "Akun Berhasil Dibuat!"
-  - Mail icon + text: "Kami telah mengirim link verifikasi ke **{registeredEmail}**"
-  - Step-by-step instructions: 1) Buka email, 2) Klik link verifikasi, 3) Kembali ke sini dan login
-  - Tip: "Cek folder spam jika tidak menemukan email"
-  - "Kirim Ulang Email" button with 60s cooldown timer — calls `supabase.auth.resend({ type: 'signup', email: registeredEmail })`
-  - "Masuk Sekarang" button that closes modal, switches to login tab, pre-fills email field
+| Feature | File | Impact |
+|---------|------|--------|
+| Product DNA analysis | `src/lib/product-dna.ts` | Image dropped → empty/wrong analysis |
+| Scene DNA for video | `src/lib/scene-dna.ts` | Image dropped → fails |
+| Character creation (ref images) | `src/pages/CreateCharacterPage.tsx` | Ref images not sent to LLM |
+| Video shot generation | `src/pages/VideoPage.tsx` | Product/scene images dropped |
+| Multi-shot environment detect | `src/components/video/MultiShotCreator.tsx` | Image dropped |
+| Prompt Engine (Decode Visual) | `src/pages/PromptEnginePage.tsx` | Image dropped |
+
+### Fix
+
+**File: `src/lib/gemini-fetch.ts`** — Update `geminiBodyToOpenAI` to check for **both** `inline_data` and `inlineData`:
+
+- Line 45: `parts.some((p: any) => p.inline_data || p.inlineData)`
+- Line 54: `if (part.inline_data || part.inlineData)` then use whichever is present
+- Line 58: Access `(part.inline_data || part.inlineData).mime_type` or `.mimeType` (handle both casing conventions)
+
+Specifically, the image extraction block becomes:
+```typescript
+const imgData = part.inline_data || part.inlineData;
+if (imgData) {
+  const mime = imgData.mime_type || imgData.mimeType;
+  multiParts.push({
+    type: "image_url",
+    image_url: {
+      url: `data:${mime};base64,${imgData.data}`,
+    },
+  });
+}
+```
+
+This is a **one-file, ~6-line fix** that restores all vision/multimodal features across the entire app.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/config.toml` | Add `[auth]` rate limit config |
-| `src/pages/Login.tsx` | Add email verification modal with resend + guided steps |
+| `src/lib/gemini-fetch.ts` | Handle both `inlineData` and `inline_data` casing in converter |
 
