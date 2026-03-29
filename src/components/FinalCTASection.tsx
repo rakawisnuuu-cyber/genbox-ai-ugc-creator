@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { PRICING } from "@/lib/pricing";
+import BYOKDisclaimerModal from "@/components/BYOKDisclaimerModal";
 
 const FinalCTASection = () => {
   const { ref, isVisible } = useScrollReveal();
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   return (
     <section className="relative py-16 sm:py-24 overflow-hidden">
@@ -42,10 +45,10 @@ const FinalCTASection = () => {
           className={`mt-10 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{ animationDelay: "0.3s" }}
         >
-          <a href="https://clicky.id/rkaaw/link/ugc-genboxid" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
+          <button onClick={() => setShowDisclaimer(true)} className="inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow">
             {PRICING.ctaText}
             <ArrowRight className="h-4 w-4" />
-          </a>
+          </button>
         </div>
 
         <p
@@ -55,6 +58,7 @@ const FinalCTASection = () => {
           Lifetime access · Setup 2 menit · Akses selamanya
         </p>
       </div>
+      <BYOKDisclaimerModal open={showDisclaimer} onOpenChange={setShowDisclaimer} />
     </section>
   );
 };
