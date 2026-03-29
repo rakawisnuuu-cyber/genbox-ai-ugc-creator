@@ -21,6 +21,7 @@ const trustItems = [
 
 const HargaSection = () => {
   const { ref, isVisible } = useScrollReveal();
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   return (
     <section id="harga" className="relative py-16 sm:py-24 overflow-hidden">
