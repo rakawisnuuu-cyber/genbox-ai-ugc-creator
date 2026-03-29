@@ -91,15 +91,13 @@ const HargaSection = () => {
             </div>
 
             {/* CTA */}
-            <a
-              href="https://clicky.id/rkaaw/link/ugc-genboxid"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => setShowDisclaimer(true)}
               className="mt-8 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-4 text-sm font-bold tracking-wider text-primary-foreground transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.4)] animate-cta-glow"
             >
               Beli Sekarang
               <ArrowRight className="h-4 w-4" />
-            </a>
+            </button>
 
             <p className="mt-4 text-center text-[11px] text-muted-foreground">QRIS · GoPay · Virtual Account</p>
 
