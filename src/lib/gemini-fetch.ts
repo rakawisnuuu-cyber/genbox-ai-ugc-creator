@@ -42,7 +42,7 @@ function geminiBodyToOpenAI(model: string, body: Record<string, any>): Record<st
   for (const content of contents) {
     const parts: any[] = content.parts || [];
     const role = content.role === "model" ? "assistant" : "user";
-    const hasImages = parts.some((p: any) => p.inline_data);
+    const hasImages = parts.some((p: any) => p.inline_data || p.inlineData);
 
     if (hasImages) {
       // Multimodal message (text + images)
@@ -51,11 +51,13 @@ function geminiBodyToOpenAI(model: string, body: Record<string, any>): Record<st
         if (part.text) {
           multiParts.push({ type: "text", text: part.text });
         }
-        if (part.inline_data) {
+        const imgData = part.inline_data || part.inlineData;
+        if (imgData) {
+          const mime = imgData.mime_type || imgData.mimeType;
           multiParts.push({
             type: "image_url",
             image_url: {
-              url: `data:${part.inline_data.mime_type};base64,${part.inline_data.data}`,
+              url: `data:${mime};base64,${imgData.data}`,
             },
           });
         }
