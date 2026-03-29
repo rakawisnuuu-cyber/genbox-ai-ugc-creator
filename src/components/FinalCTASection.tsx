@@ -6,6 +6,7 @@ import BYOKDisclaimerModal from "@/components/BYOKDisclaimerModal";
 
 const FinalCTASection = () => {
   const { ref, isVisible } = useScrollReveal();
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   return (
     <section className="relative py-16 sm:py-24 overflow-hidden">
