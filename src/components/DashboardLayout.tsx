@@ -42,7 +42,7 @@ const navGroups: NavGroup[] = [
   {
     label: "GAMBAR & KARAKTER",
     items: [
-      { title: "Generate Image", icon: ImagePlus, path: "/generate" },
+      { title: "Generate Image + Video", icon: ImagePlus, path: "/generate" },
       { title: "Create Avatar", icon: Users, path: "/characters" },
     ],
   },
