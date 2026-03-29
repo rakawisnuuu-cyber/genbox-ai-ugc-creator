@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Check, ArrowRight, Gift, Lock, Zap, Infinity } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { PRICING } from "@/lib/pricing";
+import BYOKDisclaimerModal from "@/components/BYOKDisclaimerModal";
 
 const features = [
   "Generate gambar unlimited",
