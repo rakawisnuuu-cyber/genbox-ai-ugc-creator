@@ -9,7 +9,7 @@ import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import GalleryContent from "@/components/GalleryContent";
 import { useApiKeys } from "@/hooks/useApiKeys";
 import ApiKeySetupModal from "@/components/ApiKeySetupModal";
-import TrialBanner from "@/components/TrialBanner";
+
 
 const MODEL_COST: Record<string, number> = {
   "nano-banana-pro": 1440, nano: 960, seedream: 440, grok: 1600, veo3_fast: 6400, veo3: 32000,
@@ -137,7 +137,7 @@ const DashboardHome = () => {
     <div className="space-y-6">
       {/* API Key Setup Modal */}
       <ApiKeySetupModal open={showApiSetup} onClose={() => setShowApiSetup(false)} />
-      <TrialBanner />
+      
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between animate-fade-up">
         <div>
           <h1 className="font-satoshi text-2xl font-bold text-foreground">
