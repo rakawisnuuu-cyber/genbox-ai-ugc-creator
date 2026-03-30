@@ -143,7 +143,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
                     muted
                     loop
                     playsInline
-                    preload="metadata"
+                    preload="none"
                     draggable={false}
                     onError={() => handleMediaError(card.id)}
                   />
