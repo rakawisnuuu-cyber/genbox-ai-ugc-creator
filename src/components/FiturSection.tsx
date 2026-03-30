@@ -167,6 +167,41 @@ function BeforeAfterReveal() {
   );
 }
 
+/* ── Lazy Video (IntersectionObserver) ─────────────── */
+
+function LazyVideo({ src, className }: { src: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <video
+      ref={videoRef}
+      src={src}
+      className={className}
+      muted
+      loop
+      playsInline
+      preload="none"
+    />
+  );
+}
+
 /* ── Video Preview ────────────────────────────────── */
 
 function VideoPreview() {
@@ -180,6 +215,23 @@ function VideoPreview() {
     }
   };
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="relative mx-auto w-full max-w-[280px] overflow-hidden rounded-2xl border border-border/60 bg-card/80">
       <div className="relative aspect-[9/16] w-full">
@@ -187,10 +239,10 @@ function VideoPreview() {
           ref={videoRef}
           src="/assets/videos/fitur-video.mov"
           className="h-full w-full object-cover"
-          autoPlay
           loop
           muted
           playsInline
+          preload="none"
         />
         <span className="absolute right-3 top-3 rounded-lg bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur-sm">
           Siap Reels
