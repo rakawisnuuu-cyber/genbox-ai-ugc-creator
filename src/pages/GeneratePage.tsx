@@ -496,8 +496,8 @@ Generate the video prompt now.`;
         resolution: imgRes,
         aspectRatio: ar,
         kieApiKey: kieApiKey!,
-        characterImageUrl: charImg,
-        productImageUrl: prodUrl || "",
+        characterImageUrl: fullCharImg,
+        productImageUrl: fullProdUrl || "",
       });
     },
     [plans, imgModel, imgRes, ar, kieApiKey, charImg, prodUrl],
