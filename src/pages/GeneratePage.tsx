@@ -172,6 +172,8 @@ const GeneratePage = () => {
   const isDone = imgGen.progress.status === "completed";
   const results = imgGen.progress.results.filter(Boolean);
   const charImg = charId === "own-photo" ? ownUrl || "" : char?.hero_image_url || "";
+  const fullCharImg = charImg.startsWith("/") ? `${window.location.origin}${charImg}` : charImg;
+  const fullProdUrl = prodUrl?.startsWith("/") ? `${window.location.origin}${prodUrl}` : prodUrl;
   const arClass =
     ar === "9:16" ? "aspect-[9/16]" : ar === "1:1" ? "aspect-square" : ar === "4:5" ? "aspect-[4/5]" : "aspect-video";
 
@@ -462,8 +464,8 @@ Generate the video prompt now.`;
       selectedShots: selShots,
       productDNA: dna,
       characterDescription: char.description,
-      characterImageUrl: charImg,
-      productImageUrl: prodUrl,
+      characterImageUrl: fullCharImg,
+      productImageUrl: fullProdUrl,
       environment: env,
       realismLevel: realism,
       aspectRatio: ar,
@@ -479,10 +481,10 @@ Generate the video prompt now.`;
       resolution: imgRes,
       aspectRatio: ar,
       kieApiKey: kieApiKey!,
-      characterImageUrl: charImg,
-      productImageUrl: prodUrl,
+      characterImageUrl: fullCharImg,
+      productImageUrl: fullProdUrl,
     });
-  }, [canGen, char, dna, prodUrl, mode, selShots, env, realism, ar, imgModel, imgRes, kieApiKey, charImg]);
+  }, [canGen, char, dna, prodUrl, mode, selShots, env, realism, ar, imgModel, imgRes, kieApiKey, fullCharImg, fullProdUrl]);
 
   const retry = useCallback(
     (i: number) => {
@@ -494,8 +496,8 @@ Generate the video prompt now.`;
         resolution: imgRes,
         aspectRatio: ar,
         kieApiKey: kieApiKey!,
-        characterImageUrl: charImg,
-        productImageUrl: prodUrl || "",
+        characterImageUrl: fullCharImg,
+        productImageUrl: fullProdUrl || "",
       });
     },
     [plans, imgModel, imgRes, ar, kieApiKey, charImg, prodUrl],
