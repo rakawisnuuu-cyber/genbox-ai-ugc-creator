@@ -5,12 +5,12 @@ import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
 import caraKerjaUgc from "@/assets/cara-kerja-ugc-new.jpeg";
 
 const characterImages = [
-  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg",
-  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg",
-  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20Muda.jpeg",
-  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Gen-Z%20Creator.jpeg",
-  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Beauty%20Enthusiast.jpeg",
-  "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Bapak%20UMKM.jpeg",
+  "/assets/characters/hijab-casual.jpeg",
+  "/assets/characters/urban-trendy.jpeg",
+  "/assets/characters/ibu-muda.jpeg",
+  "/assets/characters/gen-z-creator.jpeg",
+  "/assets/characters/beauty-enthusiast.jpeg",
+  "/assets/characters/bapak-umkm.jpeg",
 ];
 
 const SHOWCASE_VIDEO = "/showcase/cara-kerja-video.mp4";

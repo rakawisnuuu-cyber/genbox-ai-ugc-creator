@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     }
 
     return json({ valid: true });
-  } catch (err) {
-    return json({ error: err.message }, 500);
+  } catch (err: unknown) {
+    return json({ error: err instanceof Error ? err.message : String(err) }, 500);
   }
 });

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, useMotionValue } from "framer-motion";
 
-const STORAGE_BASE = "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos";
+const STORAGE_BASE = "/assets/videos";
 
 interface ShowcaseCard {
   id: number;

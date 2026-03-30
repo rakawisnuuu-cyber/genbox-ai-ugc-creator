@@ -8,47 +8,16 @@ import afterUgcImg from "@/assets/after-ugc.jpeg";
 /* ── Character Stack Animation ────────────────────── */
 
 const characters = [
-  {
-    name: "Hijab Casual",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Hijab%20Casual.jpeg",
-  },
-  {
-    name: "Urban Trendy",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Urban%20Trendy.jpeg",
-  },
-  {
-    name: "Ibu Muda",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20Muda.jpeg",
-  },
-  {
-    name: "Gen-Z Creator",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Gen-Z%20Creator.jpeg",
-  },
-  {
-    name: "Beauty Enthusiast",
-    image:
-      "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Beauty%20Enthusiast.jpeg",
-  },
-  {
-    name: "Bapak UMKM",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Bapak%20UMKM.jpeg",
-  },
-  {
-    name: "Mahasiswa",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Mahasiswa.jpeg",
-  },
-  {
-    name: "Office Worker",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Office%20Worker.jpeg",
-  },
-  {
-    name: "Ibu PKK",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Ibu%20PKK.jpeg",
-  },
-  {
-    name: "Cowok Gym",
-    image: "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters/Cowok%20Gym.jpeg",
-  },
+  { name: "Hijab Casual", image: "/assets/characters/hijab-casual.jpeg" },
+  { name: "Urban Trendy", image: "/assets/characters/urban-trendy.jpeg" },
+  { name: "Ibu Muda", image: "/assets/characters/ibu-muda.jpeg" },
+  { name: "Gen-Z Creator", image: "/assets/characters/gen-z-creator.jpeg" },
+  { name: "Beauty Enthusiast", image: "/assets/characters/beauty-enthusiast.jpeg" },
+  { name: "Bapak UMKM", image: "/assets/characters/bapak-umkm.jpeg" },
+  { name: "Mahasiswa", image: "/assets/characters/mahasiswa.jpeg" },
+  { name: "Office Worker", image: "/assets/characters/office-worker.jpeg" },
+  { name: "Ibu PKK", image: "/assets/characters/ibu-pkk.jpeg" },
+  { name: "Cowok Gym", image: "/assets/characters/cowok-gym.jpeg" },
 ];
 
 function CharacterStack() {
@@ -216,7 +185,7 @@ function VideoPreview() {
       <div className="relative aspect-[9/16] w-full">
         <video
           ref={videoRef}
-          src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-video.mov"
+          src="/assets/videos/fitur-video.mov"
           className="h-full w-full object-cover"
           autoPlay
           loop
@@ -363,7 +332,7 @@ const ModuleCard = ({
     <div className="mt-6">
       {animation === "video" ? (
         <video
-          src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-03-video.mp4"
+          src="/assets/videos/fitur-03-video.mp4"
           autoPlay
           loop
           muted
@@ -383,8 +352,8 @@ const ModuleCard = ({
           <img
             src={
               animation === "character-stack"
-                ? "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-01-karakter.png"
-                : "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-02-generate-v2.png"
+                ? "/assets/images/fitur-01-karakter.png"
+                : "/assets/images/fitur-02-generate-v2.png"
             }
             alt={screenshotLabel}
             className="w-full"
