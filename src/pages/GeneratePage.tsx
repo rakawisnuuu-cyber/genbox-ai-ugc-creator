@@ -172,6 +172,8 @@ const GeneratePage = () => {
   const isDone = imgGen.progress.status === "completed";
   const results = imgGen.progress.results.filter(Boolean);
   const charImg = charId === "own-photo" ? ownUrl || "" : char?.hero_image_url || "";
+  const fullCharImg = charImg.startsWith("/") ? `${window.location.origin}${charImg}` : charImg;
+  const fullProdUrl = prodUrl?.startsWith("/") ? `${window.location.origin}${prodUrl}` : prodUrl;
   const arClass =
     ar === "9:16" ? "aspect-[9/16]" : ar === "1:1" ? "aspect-square" : ar === "4:5" ? "aspect-[4/5]" : "aspect-video";
 
