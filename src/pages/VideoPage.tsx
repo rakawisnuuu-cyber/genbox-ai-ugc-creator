@@ -1239,23 +1239,7 @@ Content template: ${template?.label}`,
           )}
         </div>
 
-        {/* Gallery Selection */}
-        {galleryImages.length > 0 && !sourcePreview && (
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">Atau Pilih dari Gallery</h3>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-              {galleryImages.map((img) => (
-                <button
-                  key={img.id}
-                  onClick={() => handleGallerySelect(img.image_url)}
-                  className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-transparent hover:border-primary/50 transition-colors"
-                >
-                  <img src={img.image_url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Gallery Selection - hidden */}
 
         {/* Content Template Selector */}
         <div className="space-y-3">
