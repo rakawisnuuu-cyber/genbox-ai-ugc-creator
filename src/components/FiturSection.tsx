@@ -332,7 +332,7 @@ const ModuleCard = ({
     <div className="mt-6">
       {animation === "video" ? (
         <video
-          src="https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-03-video.mp4"
+          src="/assets/videos/fitur-03-video.mp4"
           autoPlay
           loop
           muted
@@ -352,8 +352,8 @@ const ModuleCard = ({
           <img
             src={
               animation === "character-stack"
-                ? "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-01-karakter.png"
-                : "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos/fitur-02-generate-v2.png"
+                ? "/assets/images/fitur-01-karakter.png"
+                : "/assets/images/fitur-02-generate-v2.png"
             }
             alt={screenshotLabel}
             className="w-full"

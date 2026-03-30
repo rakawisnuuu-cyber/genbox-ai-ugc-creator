@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const mimeType = res.headers.get("content-type") || "image/jpeg";
 
     return json({ data: base64, mimeType });
-  } catch (err) {
-    return json({ error: err.message }, 500);
+  } catch (err: unknown) {
+    return json({ error: err instanceof Error ? err.message : String(err) }, 500);
   }
 });
