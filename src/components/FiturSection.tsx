@@ -383,12 +383,8 @@ const ModuleCard = ({
     {/* Full-width Screenshot/Video */}
     <div className="mt-6">
       {animation === "video" ? (
-        <video
+        <LazyVideo
           src="/assets/videos/fitur-03-video.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
           className="w-full rounded-xl border border-border/40 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4)]"
         />
       ) : (
