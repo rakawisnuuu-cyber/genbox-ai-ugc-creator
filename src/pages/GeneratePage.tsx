@@ -481,10 +481,10 @@ Generate the video prompt now.`;
       resolution: imgRes,
       aspectRatio: ar,
       kieApiKey: kieApiKey!,
-      characterImageUrl: charImg,
-      productImageUrl: prodUrl,
+      characterImageUrl: fullCharImg,
+      productImageUrl: fullProdUrl,
     });
-  }, [canGen, char, dna, prodUrl, mode, selShots, env, realism, ar, imgModel, imgRes, kieApiKey, charImg]);
+  }, [canGen, char, dna, prodUrl, mode, selShots, env, realism, ar, imgModel, imgRes, kieApiKey, fullCharImg, fullProdUrl]);
 
   const retry = useCallback(
     (i: number) => {
