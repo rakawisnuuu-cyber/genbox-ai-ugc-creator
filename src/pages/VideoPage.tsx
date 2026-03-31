@@ -60,7 +60,7 @@ import {
 import UpscaleButton from "@/components/UpscaleButton";
 import { useUpscale } from "@/hooks/useUpscale";
 
-type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
+type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 type FrameStatus = "idle" | "generating" | "completed" | "failed";
 
 interface FrameState {
