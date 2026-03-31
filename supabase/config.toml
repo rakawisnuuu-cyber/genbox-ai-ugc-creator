@@ -9,5 +9,11 @@ verify_jwt = false
 [functions.image-to-base64]
 verify_jwt = false
 
+[functions.save-api-key]
+verify_jwt = false
+
+[functions.get-api-key]
+verify_jwt = false
+
 [functions.validate-invite-code]
 verify_jwt = false
