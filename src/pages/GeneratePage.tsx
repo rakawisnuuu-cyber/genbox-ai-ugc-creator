@@ -95,9 +95,9 @@ const TALK_VEO_MODELS = [
 ];
 
 const MODEL_INFO: Record<ImageModel, { label: string; desc: string }> = {
-  "nano-banana": { label: "Nano Banana (Cepat)", desc: "~Rp 310" },
-  "nano-banana-2": { label: "Nano Banana 2", desc: "~Rp 620" },
-  "nano-banana-pro": { label: "Nano Banana Pro", desc: "~Rp 1.400" },
+  "nano-banana": { label: "Nano Banana (Cepat)", desc: "~Rp 640" },
+  "nano-banana-2": { label: "Nano Banana 2", desc: "~Rp 640" },
+  "nano-banana-pro": { label: "Nano Banana Pro", desc: "~Rp 1.440" },
 };
 const ASPECT_RATIOS = ["9:16", "1:1", "4:5", "16:9"];
 const RESOLUTIONS = ["1K", "2K", "4K"] as const;
