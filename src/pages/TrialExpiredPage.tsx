@@ -42,7 +42,7 @@ const TrialExpiredPage = () => {
             </Button>
             <Button asChild variant="outline" size="sm" className="w-full">
               <a
-                href="https://wa.me/6281234567890?text=Halo%2C%20trial%20Genbox%20saya%20sudah%20habis.%20Bisa%20diperpanjang%3F"
+                href="https://wa.me/6287775788034?text=Halo%2C%20trial%20Genbox%20saya%20sudah%20habis.%20Bisa%20diperpanjang%3F"
                 target="_blank"
                 rel="noopener noreferrer"
               >

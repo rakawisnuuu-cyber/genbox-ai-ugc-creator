@@ -130,6 +130,7 @@ const GalleryPage = () => {
       } else {
         setLoading(true);
         setHasMore(true);
+        cursorRef.current = null;
       }
 
       let query = supabase
@@ -142,9 +143,8 @@ const GalleryPage = () => {
       if (tab === "gambar") query = query.neq("type", "video");
       else if (tab === "video") query = query.eq("type", "video");
 
-      if (loadMore && items.length > 0) {
-        const lastItem = items[items.length - 1];
-        query = query.lt("created_at", lastItem.created_at);
+      if (loadMore && cursorRef.current) {
+        query = query.lt("created_at", cursorRef.current);
       }
 
       const { data } = await query;
@@ -152,6 +152,10 @@ const GalleryPage = () => {
 
       if (newItems.length < PAGE_SIZE) {
         setHasMore(false);
+      }
+
+      if (newItems.length > 0) {
+        cursorRef.current = newItems[newItems.length - 1].created_at;
       }
 
       if (loadMore) {
@@ -162,7 +166,7 @@ const GalleryPage = () => {
         setLoading(false);
       }
     },
-    [user, tab, items],
+    [user, tab],
   );
 
   useEffect(() => {

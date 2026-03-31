@@ -12,8 +12,12 @@ import ApiKeySetupModal from "@/components/ApiKeySetupModal";
 
 
 const MODEL_COST: Record<string, number> = {
-  "nano-banana-pro": 1440, nano: 960, seedream: 440, grok: 1600, veo3_fast: 6400, veo3: 32000,
-  "sora-2": 3200, "sora-2-pro": 6400, sora2: 3200, sora2_pro: 6400,
+  "nano-banana": 640, "nano-banana-2": 640, "nano-banana-pro": 1440,
+  nano: 640, seedream: 440,
+  grok: 320, "grok-imagine": 320,
+  veo3_fast: 4800, veo3: 20000,
+  "kling-3.0-std": 8000, "kling-3.0-pro": 10800,
+  kling_std: 8000, kling_pro: 10800,
 };
 
 function estimateCost(model: string): number {

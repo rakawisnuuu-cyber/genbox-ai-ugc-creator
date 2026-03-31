@@ -128,36 +128,6 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
     return { taskId: json.data.taskId, model };
   }
 
-  // ── Sora 2 ──
-  if (model === "sora2" || model === "sora2_pro") {
-    const soraModel = model === "sora2" ? "sora-2-image-to-video" : "sora-2-pro-image-to-video";
-    const soraAspect = aspectRatio === "9:16" ? "portrait" : aspectRatio === "16:9" ? "landscape" : "square";
-    
-
-    const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: soraModel,
-        input: {
-          prompt,
-          image_urls: imageUrls.length > 0 ? imageUrls : undefined,
-          aspect_ratio: soraAspect,
-          n_frames: "10",
-          remove_watermark: true,
-          upload_method: "s3",
-        },
-      }),
-    });
-
-    const json = await res.json();
-    
-    if (json.code !== 200 || !json.data?.taskId) {
-      throw new Error(extractError(json, "Failed to create Sora 2 task"));
-    }
-    return { taskId: json.data.taskId, model };
-  }
-
   // ── Veo Fast / Quality ──
   const veoModel = model === "veo_fast" ? "veo3_fast" : "veo3";
   

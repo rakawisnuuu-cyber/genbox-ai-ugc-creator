@@ -772,6 +772,7 @@ Rules:
       toast({ title: "File terlalu besar", description: "Maksimal 10MB", variant: "destructive" });
       return;
     }
+    if (sourcePreview && sourcePreview.startsWith("blob:")) URL.revokeObjectURL(sourcePreview);
     setSourcePreview(URL.createObjectURL(file));
     setUploading(true);
 

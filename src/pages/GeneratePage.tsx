@@ -414,6 +414,7 @@ Generate the video prompt now.`;
       setUploading(true);
       setDna(null);
       try {
+        if (prodPreview && prodPreview.startsWith("blob:")) URL.revokeObjectURL(prodPreview);
         setProdPreview(URL.createObjectURL(f));
         const path = `${user.id}/${Date.now()}.jpg`;
         const { error } = await supabase.storage.from("product-images").upload(path, f, { contentType: f.type });
