@@ -1,20 +1,19 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, useMotionValue } from "framer-motion";
 
-const STORAGE_BASE = "/assets/videos";
+const STORAGE_BASE = "/assets/images/showcase";
 
 interface ShowcaseCard {
   id: number;
-  type: "image" | "video";
   url: string;
 }
 
 const showcaseCards: ShowcaseCard[] = [
-  { id: 1, type: "video", url: `${STORAGE_BASE}/video-1.mp4` },
-  { id: 2, type: "video", url: `${STORAGE_BASE}/video-2.mp4` },
-  { id: 3, type: "video", url: `${STORAGE_BASE}/video-3.mp4` },
-  { id: 4, type: "video", url: `${STORAGE_BASE}/video-4.mp4` },
-  { id: 6, type: "video", url: `${STORAGE_BASE}/video-6.mp4` },
+  { id: 1, url: `${STORAGE_BASE}/video-1.webp` },
+  { id: 2, url: `${STORAGE_BASE}/video-2.webp` },
+  { id: 3, url: `${STORAGE_BASE}/video-3.webp` },
+  { id: 4, url: `${STORAGE_BASE}/video-4.webp` },
+  { id: 6, url: `${STORAGE_BASE}/video-6.webp` },
 ];
 
 interface DepthDeckCarouselProps {
@@ -26,7 +25,6 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
   const [isDragging, setIsDragging] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [mediaErrors, setMediaErrors] = useState<Record<number, boolean>>({});
-  const videoRefs = useRef<Record<number, HTMLVideoElement | null>>({});
   const dragX = useMotionValue(0);
 
   const total = showcaseCards.length;
@@ -44,19 +42,6 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
     const timer = setInterval(next, autoPlayInterval);
     return () => clearInterval(timer);
   }, [isPaused, isDragging, next, autoPlayInterval]);
-
-  useEffect(() => {
-    showcaseCards.forEach((card, index) => {
-      const video = videoRefs.current[card.id];
-      if (!video) return;
-      if (index === activeIndex) {
-        video.play().catch(() => {});
-      } else {
-        video.pause();
-        video.currentTime = 0;
-      }
-    });
-  }, [activeIndex]);
 
   const handleDragEnd = (_: any, info: { offset: { x: number }; velocity: { x: number } }) => {
     setIsDragging(false);
@@ -133,29 +118,14 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
               }}
             >
               {!mediaErrors[card.id] ? (
-                card.type === "video" ? (
-                  <video
-                    ref={(el) => {
-                      videoRefs.current[card.id] = el;
-                    }}
-                    src={card.url}
-                    className="absolute inset-0 h-full w-full object-cover"
-                    muted
-                    loop
-                    playsInline
-                    preload="none"
-                    draggable={false}
-                    onError={() => handleMediaError(card.id)}
-                  />
-                ) : (
-                  <img
-                    src={card.url}
-                    alt="UGC showcase"
-                    className="absolute inset-0 h-full w-full object-cover"
-                    draggable={false}
-                    onError={() => handleMediaError(card.id)}
-                  />
-                )
+                <img
+                  src={card.url}
+                  alt="UGC showcase"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  draggable={false}
+                  loading="lazy"
+                  onError={() => handleMediaError(card.id)}
+                />
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900/40 to-primary/10">
                   <div className="text-center">

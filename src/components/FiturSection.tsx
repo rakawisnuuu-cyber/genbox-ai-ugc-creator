@@ -427,7 +427,21 @@ const ModuleCard = ({
     <div className="mt-6 flex justify-center">
       {animation === "character-stack" && <CharacterStack />}
       {animation === "before-after" && <BeforeAfterReveal />}
-      {animation === "video" && <VideoPreview />}
+      {animation === "video" && (
+        <div className="relative mx-auto w-full max-w-[280px] overflow-hidden rounded-2xl border border-border/60 bg-card/80">
+          <div className="relative aspect-[9/16] w-full">
+            <img
+              src="/assets/images/showcase/fitur-video.webp"
+              alt="Video UGC preview"
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+            <span className="absolute right-3 top-3 rounded-lg bg-primary/20 px-2.5 py-1 text-[10px] font-semibold text-primary backdrop-blur-sm">
+              Siap Reels
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   </div>
 );
