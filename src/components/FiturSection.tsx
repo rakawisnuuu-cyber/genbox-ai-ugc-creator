@@ -383,10 +383,22 @@ const ModuleCard = ({
     {/* Full-width Screenshot/Video */}
     <div className="mt-6">
       {animation === "video" ? (
-        <LazyVideo
-          src="/assets/videos/fitur-03-video.mp4"
-          className="w-full rounded-xl border border-border/40 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4)]"
-        />
+        <div className="relative w-full overflow-hidden rounded-xl border border-border/40 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4)]">
+          <div className="flex items-center gap-1.5 border-b border-border/30 bg-secondary/40 px-3 py-2">
+            <div className="h-2 w-2 rounded-full bg-red-500/30" />
+            <div className="h-2 w-2 rounded-full bg-yellow-500/30" />
+            <div className="h-2 w-2 rounded-full bg-green-500/30" />
+            <div className="ml-2 flex-1 rounded bg-background/40 px-2 py-0.5 text-[8px] text-muted-foreground/30 font-mono">
+              genbox.app
+            </div>
+          </div>
+          <img
+            src="/assets/images/showcase/fitur-03-video.webp"
+            alt={screenshotLabel}
+            className="w-full"
+            loading="lazy"
+          />
+        </div>
       ) : (
         <div className="relative w-full overflow-hidden rounded-xl border border-border/40 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.4)]">
           <div className="flex items-center gap-1.5 border-b border-border/30 bg-secondary/40 px-3 py-2">
