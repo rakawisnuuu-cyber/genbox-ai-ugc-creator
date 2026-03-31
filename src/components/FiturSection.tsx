@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Users, Sparkles, Film, ImageIcon, Monitor } from "lucide-react";
+import { Users, Sparkles, Film } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import beforeProductImg from "@/assets/before-product.jpg";
 import afterUgcImg from "@/assets/after-ugc.jpeg";
