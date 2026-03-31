@@ -145,15 +145,6 @@ const Login = () => {
       return;
     }
 
-    // Consume invite code AFTER successful signup
-    try {
-      await supabase.functions.invoke("consume-invite-code", {
-        body: { code: inviteCode.trim() },
-      });
-    } catch (consumeErr) {
-      console.warn("Failed to consume invite code (user already signed up):", consumeErr);
-    }
-
     // Show verification modal instead of toast
     setRegisteredEmail(normalizedSignupEmail);
     setShowVerifyModal(true);
