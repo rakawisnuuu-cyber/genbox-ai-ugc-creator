@@ -7,7 +7,7 @@
 const KIE_BASE = "https://api.kie.ai/api/v1";
 
 // ── Model type ──────────────────────────────────────────────────────
-export type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
+export type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 
 // ── Duration normalization ──────────────────────────────────────────
 export function normalizeDurationForModel(model: string, duration: number): number {
