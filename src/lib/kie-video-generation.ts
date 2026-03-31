@@ -7,7 +7,7 @@
 const KIE_BASE = "https://api.kie.ai/api/v1";
 
 // ── Model type ──────────────────────────────────────────────────────
-export type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
+export type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
 
 // ── Duration normalization ──────────────────────────────────────────
 export function normalizeDurationForModel(model: string, duration: number): number {
@@ -40,8 +40,6 @@ const POLL_TIMEOUT: Record<string, number> = {
   veo_quality: 600_000,
   kling_std: 300_000,
   kling_pro: 600_000,
-  sora2: 300_000,
-  sora2_pro: 600_000,
 };
 
 const POLL_INTERVAL: Record<string, number> = {
@@ -50,8 +48,6 @@ const POLL_INTERVAL: Record<string, number> = {
   veo_quality: 5_000,
   kling_std: 5_000,
   kling_pro: 5_000,
-  sora2: 5_000,
-  sora2_pro: 5_000,
 };
 
 const MAX_404_RETRIES = 5;
@@ -128,36 +124,6 @@ async function createTask(params: CreateVideoParams): Promise<{ taskId: string; 
     
     if (json.code !== 200 || !json.data?.taskId) {
       throw new Error(extractError(json, "Failed to create Kling task"));
-    }
-    return { taskId: json.data.taskId, model };
-  }
-
-  // ── Sora 2 ──
-  if (model === "sora2" || model === "sora2_pro") {
-    const soraModel = model === "sora2" ? "sora-2-image-to-video" : "sora-2-pro-image-to-video";
-    const soraAspect = aspectRatio === "9:16" ? "portrait" : aspectRatio === "16:9" ? "landscape" : "square";
-    
-
-    const res = await fetch(`${KIE_BASE}/jobs/createTask`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: soraModel,
-        input: {
-          prompt,
-          image_urls: imageUrls.length > 0 ? imageUrls : undefined,
-          aspect_ratio: soraAspect,
-          n_frames: "10",
-          remove_watermark: true,
-          upload_method: "s3",
-        },
-      }),
-    });
-
-    const json = await res.json();
-    
-    if (json.code !== 200 || !json.data?.taskId) {
-      throw new Error(extractError(json, "Failed to create Sora 2 task"));
     }
     return { taskId: json.data.taskId, model };
   }
