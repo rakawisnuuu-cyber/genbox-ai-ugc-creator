@@ -40,8 +40,6 @@ const POLL_TIMEOUT: Record<string, number> = {
   veo_quality: 600_000,
   kling_std: 300_000,
   kling_pro: 600_000,
-  sora2: 300_000,
-  sora2_pro: 600_000,
 };
 
 const POLL_INTERVAL: Record<string, number> = {
@@ -50,8 +48,6 @@ const POLL_INTERVAL: Record<string, number> = {
   veo_quality: 5_000,
   kling_std: 5_000,
   kling_pro: 5_000,
-  sora2: 5_000,
-  sora2_pro: 5_000,
 };
 
 const MAX_404_RETRIES = 5;
