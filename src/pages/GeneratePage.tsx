@@ -90,8 +90,8 @@ const MOTION_MODELS = [
 ];
 
 const TALK_VEO_MODELS = [
-  { id: "veo_fast", label: "Veo 3.1 Fast", costBase: 4960, costExtend: 3720 },
-  { id: "veo_quality", label: "Veo 3.1 Quality", costBase: 24800, costExtend: 18600 },
+  { id: "veo_fast", label: "Veo 3.1 Fast", costBase: 4800, costExtend: 3600 },
+  { id: "veo_quality", label: "Veo 3.1 Quality", costBase: 20000, costExtend: 15000 },
 ];
 
 const MODEL_INFO: Record<ImageModel, { label: string; desc: string }> = {
