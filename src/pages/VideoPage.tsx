@@ -99,13 +99,11 @@ interface GalleryImage {
 }
 
 const MODEL_COSTS: Record<VideoModel, number> = {
-  grok: 1600,
-  kling_std: 2300,
-  kling_pro: 4600,
-  veo_fast: 6400,
-  veo_quality: 32000,
-  sora2: 3200,
-  sora2_pro: 6400,
+  grok: 320,
+  kling_std: 8000,
+  kling_pro: 10800,
+  veo_fast: 4800,
+  veo_quality: 20000,
 };
 
 const MODEL_LABELS: Record<
