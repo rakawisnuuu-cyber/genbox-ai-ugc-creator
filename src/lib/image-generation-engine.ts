@@ -500,9 +500,9 @@ export function planImageShots(config: GenerationConfig): ImageShotPlan[] {
 
 // ── Cost ─────────────────────────────────────────────────────────
 const COST_PER_IMAGE: Record<ImageModel, number> = {
-  "nano-banana": 310,
-  "nano-banana-2": 620,
-  "nano-banana-pro": 1400,
+  "nano-banana": 640,
+  "nano-banana-2": 640,
+  "nano-banana-pro": 1440,
 };
 
 export function estimateCost(model: ImageModel, count: number): number {

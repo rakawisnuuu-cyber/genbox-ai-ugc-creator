@@ -14,7 +14,7 @@
  * 4. Talking Head prompts: rich scene anchor → beat intent → dialogue → rules
  */
 
-export type VideoModelType = "grok" | "kling_std" | "kling_pro" | "veo_fast" | "veo_quality" | "sora2" | "sora2_pro";
+export type VideoModelType = "grok" | "kling_std" | "kling_pro" | "veo_fast" | "veo_quality";
 
 // ══════════════════════════════════════════════════════════════════
 // MANDATORY RULES — appended to EVERY video prompt
@@ -78,8 +78,6 @@ The product must not morph, stretch, rotate incorrectly, or change color as the 
     ? "Target model: Grok. Keep prompt SHORT — one flowing paragraph, 3-4 sentences max. No sections, no timestamps."
     : model === "kling_std" || model === "kling_pro"
     ? "Target model: Kling 3.0. Use structured format with Scene Setup, Character, Product, Camera, Timeline (0s-2s, 2s-4s, etc.), Dialogue, Stability sections."
-    : model === "sora2" || model === "sora2_pro"
-    ? "Target model: Sora 2. Keep prompt as one natural flowing paragraph, 4-5 sentences. Simple and descriptive."
     : "Target model: Veo 3.1. Use continuous narrative style — NO timestamps. Natural flowing description of what happens.";
 
   return `ROLE:
