@@ -1034,13 +1034,9 @@ Content template: ${template?.label}`,
               ? "kling-3.0-std"
               : frame.model === "kling_pro"
                 ? "kling-3.0-pro"
-                : frame.model === "sora2"
-                  ? "sora-2"
-                  : frame.model === "sora2_pro"
-                    ? "sora-2-pro"
-                    : frame.model === "veo_fast"
-                      ? "veo3_fast"
-                      : "veo3",
+                : frame.model === "veo_fast"
+                  ? "veo3_fast"
+                  : "veo3",
         provider: "kie_ai",
         status: "completed",
         metadata: {
