@@ -82,22 +82,22 @@ const SHOT_ICONS: Record<string, React.ComponentType<any>> = { Star, Search, Han
 type VideoMode = "motion" | "talking" | "story";
 
 const MOTION_MODELS = [
-  { id: "grok", label: "Grok (Cepat)", cost: 320, durations: [6, 10] },
-  { id: "kling_std", label: "Kling 3.0 Std", cost: 8000, durations: [3, 5, 8, 10, 12, 15] },
-  { id: "kling_pro", label: "Kling 3.0 Pro", cost: 10800, durations: [3, 5, 8, 10, 12, 15] },
-  { id: "veo_fast", label: "Veo 3.1 Fast", cost: 4800, durations: [8] },
-  { id: "veo_quality", label: "Veo 3.1 Quality", cost: 20000, durations: [8] },
+  { id: "grok", label: "Grok (Cepat)", cost: 1240, durations: [6, 10] },
+  { id: "kling_std", label: "Kling 3.0 Std", cost: 1860, durations: [3, 5, 8, 10, 12, 15] },
+  { id: "kling_pro", label: "Kling 3.0 Pro", cost: 3560, durations: [3, 5, 8, 10, 12, 15] },
+  { id: "veo_fast", label: "Veo 3.1 Fast", cost: 4960, durations: [8] },
+  { id: "veo_quality", label: "Veo 3.1 Quality", cost: 24800, durations: [8] },
 ];
 
 const TALK_VEO_MODELS = [
-  { id: "veo_fast", label: "Veo 3.1 Fast", costBase: 4800, costExtend: 3600 },
-  { id: "veo_quality", label: "Veo 3.1 Quality", costBase: 20000, costExtend: 15000 },
+  { id: "veo_fast", label: "Veo 3.1 Fast", costBase: 4960, costExtend: 3720 },
+  { id: "veo_quality", label: "Veo 3.1 Quality", costBase: 24800, costExtend: 18600 },
 ];
 
 const MODEL_INFO: Record<ImageModel, { label: string; desc: string }> = {
-  "nano-banana": { label: "Nano Banana (Cepat)", desc: "~Rp 640" },
-  "nano-banana-2": { label: "Nano Banana 2", desc: "~Rp 640" },
-  "nano-banana-pro": { label: "Nano Banana Pro", desc: "~Rp 1.440" },
+  "nano-banana": { label: "Nano Banana (Cepat)", desc: "~Rp 310" },
+  "nano-banana-2": { label: "Nano Banana 2", desc: "~Rp 620" },
+  "nano-banana-pro": { label: "Nano Banana Pro", desc: "~Rp 1.400" },
 };
 const ASPECT_RATIOS = ["9:16", "1:1", "4:5", "16:9"];
 const RESOLUTIONS = ["1K", "2K", "4K"] as const;
@@ -414,7 +414,6 @@ Generate the video prompt now.`;
       setUploading(true);
       setDna(null);
       try {
-        if (prodPreview && prodPreview.startsWith("blob:")) URL.revokeObjectURL(prodPreview);
         setProdPreview(URL.createObjectURL(f));
         const path = `${user.id}/${Date.now()}.jpg`;
         const { error } = await supabase.storage.from("product-images").upload(path, f, { contentType: f.type });

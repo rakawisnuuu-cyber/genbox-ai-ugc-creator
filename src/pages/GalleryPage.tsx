@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -107,7 +107,6 @@ const GalleryPage = () => {
   const [detailItem, setDetailItem] = useState<Generation | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Generation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Generation | null>(null);
-  const cursorRef = useRef<string | null>(null);
 
   const handleDelete = async (item: Generation) => {
     const { error } = await supabase.from("generations").delete().eq("id", item.id);
@@ -130,7 +129,6 @@ const GalleryPage = () => {
       } else {
         setLoading(true);
         setHasMore(true);
-        cursorRef.current = null;
       }
 
       let query = supabase
@@ -143,8 +141,9 @@ const GalleryPage = () => {
       if (tab === "gambar") query = query.neq("type", "video");
       else if (tab === "video") query = query.eq("type", "video");
 
-      if (loadMore && cursorRef.current) {
-        query = query.lt("created_at", cursorRef.current);
+      if (loadMore && items.length > 0) {
+        const lastItem = items[items.length - 1];
+        query = query.lt("created_at", lastItem.created_at);
       }
 
       const { data } = await query;
@@ -152,10 +151,6 @@ const GalleryPage = () => {
 
       if (newItems.length < PAGE_SIZE) {
         setHasMore(false);
-      }
-
-      if (newItems.length > 0) {
-        cursorRef.current = newItems[newItems.length - 1].created_at;
       }
 
       if (loadMore) {
@@ -166,7 +161,7 @@ const GalleryPage = () => {
         setLoading(false);
       }
     },
-    [user, tab],
+    [user, tab, items],
   );
 
   useEffect(() => {

@@ -7,7 +7,7 @@ import {
 import { AlertTriangle, ArrowRight, MessageCircle } from "lucide-react";
 
 const PAYMENT_URL = "https://clicky.id/rkaaw/link/ugc-genboxid";
-const WA_URL = "https://wa.me/6287775788034?text=Halo%2C%20saya%20mau%20tanya%20soal%20Genbox";
+const WA_URL = "https://wa.me/6281234567890?text=Halo%2C%20saya%20mau%20tanya%20soal%20Genbox";
 
 interface BYOKDisclaimerModalProps {
   open: boolean;

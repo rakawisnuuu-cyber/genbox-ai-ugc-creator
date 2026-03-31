@@ -60,7 +60,7 @@ import {
 import UpscaleButton from "@/components/UpscaleButton";
 import { useUpscale } from "@/hooks/useUpscale";
 
-type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro";
+type VideoModel = "grok" | "veo_fast" | "veo_quality" | "kling_std" | "kling_pro" | "sora2" | "sora2_pro";
 type FrameStatus = "idle" | "generating" | "completed" | "failed";
 
 interface FrameState {
@@ -99,11 +99,13 @@ interface GalleryImage {
 }
 
 const MODEL_COSTS: Record<VideoModel, number> = {
-  grok: 320,
-  kling_std: 8000,
-  kling_pro: 10800,
-  veo_fast: 4800,
-  veo_quality: 20000,
+  grok: 1600,
+  kling_std: 2300,
+  kling_pro: 4600,
+  veo_fast: 6400,
+  veo_quality: 32000,
+  sora2: 3200,
+  sora2_pro: 6400,
 };
 
 const MODEL_LABELS: Record<
@@ -115,35 +117,49 @@ const MODEL_LABELS: Record<
     badge: "HEMAT",
     badgeColor: "bg-green-500/20 text-green-400",
     audio: false,
-    cost: "~Rp 320",
+    cost: "~Rp 1.600",
   },
   kling_std: {
     label: "Kling",
     badge: "VALUE",
     badgeColor: "bg-cyan-500/20 text-cyan-400",
     audio: true,
-    cost: "~Rp 8.000/5s",
+    cost: "~Rp 2.300",
   },
   kling_pro: {
     label: "Kling Pro",
     badge: "PRO",
     badgeColor: "bg-teal-500/20 text-teal-400",
     audio: true,
-    cost: "~Rp 10.800/5s",
+    cost: "~Rp 4.600",
+  },
+  sora2: {
+    label: "Sora 2",
+    badge: "NEW",
+    badgeColor: "bg-violet-500/20 text-violet-400",
+    audio: false,
+    cost: "~Rp 3.200",
+  },
+  sora2_pro: {
+    label: "Sora 2 Pro",
+    badge: "NEW PRO",
+    badgeColor: "bg-fuchsia-500/20 text-fuchsia-400",
+    audio: false,
+    cost: "~Rp 6.400",
   },
   veo_fast: {
     label: "Veo Fast",
     badge: "STANDARD",
     badgeColor: "bg-blue-500/20 text-blue-400",
     audio: true,
-    cost: "~Rp 4.800",
+    cost: "~Rp 6.400",
   },
   veo_quality: {
     label: "Veo Quality",
     badge: "PREMIUM",
     badgeColor: "bg-primary/20 text-primary",
     audio: true,
-    cost: "~Rp 20.000",
+    cost: "~Rp 32.000",
   },
 };
 
@@ -151,6 +167,8 @@ const MODEL_DURATIONS: Record<VideoModel, number[]> = {
   grok: [6, 10],
   kling_std: [5, 8, 10],
   kling_pro: [5, 8, 10, 15],
+  sora2: [10],
+  sora2_pro: [10],
   veo_fast: [8],
   veo_quality: [8],
 };
@@ -772,7 +790,6 @@ Rules:
       toast({ title: "File terlalu besar", description: "Maksimal 10MB", variant: "destructive" });
       return;
     }
-    if (sourcePreview && sourcePreview.startsWith("blob:")) URL.revokeObjectURL(sourcePreview);
     setSourcePreview(URL.createObjectURL(file));
     setUploading(true);
 
@@ -1035,9 +1052,13 @@ Content template: ${template?.label}`,
               ? "kling-3.0-std"
               : frame.model === "kling_pro"
                 ? "kling-3.0-pro"
-                : frame.model === "veo_fast"
-                  ? "veo3_fast"
-                  : "veo3",
+                : frame.model === "sora2"
+                  ? "sora-2"
+                  : frame.model === "sora2_pro"
+                    ? "sora-2-pro"
+                    : frame.model === "veo_fast"
+                      ? "veo3_fast"
+                      : "veo3",
         provider: "kie_ai",
         status: "completed",
         metadata: {
