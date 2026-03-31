@@ -25,7 +25,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
   const [isDragging, setIsDragging] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [mediaErrors, setMediaErrors] = useState<Record<number, boolean>>({});
-  const dragX = useMotionValue(0);
+  
 
   const total = showcaseCards.length;
 
