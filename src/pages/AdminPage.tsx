@@ -14,7 +14,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Trash2, RefreshCw, Shield, Plus, ToggleLeft, ToggleRight, Ticket, Clock, CalendarPlus, CheckCircle2, CreditCard, XCircle } from "lucide-react";
+import {
+  Trash2,
+  RefreshCw,
+  Shield,
+  Plus,
+  ToggleLeft,
+  ToggleRight,
+  Ticket,
+  Clock,
+  CalendarPlus,
+  CheckCircle2,
+  CreditCard,
+  XCircle,
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface AdminUser {
@@ -148,7 +161,7 @@ const AdminPage = () => {
     } else {
       toast({ title: "User activated as Lifetime" });
       setPaymentUsers((prev) =>
-        prev.map((u) => (u.user_id === userId ? { ...u, is_paid: true, plan: "lifetime" } : u))
+        prev.map((u) => (u.user_id === userId ? { ...u, is_paid: true, plan: "lifetime" } : u)),
       );
     }
     setActivateUser(null);
@@ -163,9 +176,7 @@ const AdminPage = () => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Access revoked" });
-      setPaymentUsers((prev) =>
-        prev.map((u) => (u.user_id === userId ? { ...u, is_paid: false, plan: "trial" } : u))
-      );
+      setPaymentUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, is_paid: false, plan: "trial" } : u)));
     }
     setRevokeUser(null);
   };
@@ -200,8 +211,8 @@ const AdminPage = () => {
   const handleDelete = async (userId: string) => {
     setDeleting(userId);
     const { data, error } = await supabase.functions.invoke("admin-users", {
-      method: "POST",
-      body: { action: "delete", user_id: userId },
+      method: "DELETE",
+      body: { user_id: userId },
     });
     if (error || data?.error) {
       toast({ title: "Error", description: data?.error || error?.message, variant: "destructive" });
@@ -609,7 +620,8 @@ const AdminPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Activate Lifetime?</AlertDialogTitle>
             <AlertDialogDescription>
-              User <span className="font-medium text-foreground">{activateUser?.email}</span> akan mendapat akses Lifetime.
+              User <span className="font-medium text-foreground">{activateUser?.email}</span> akan mendapat akses
+              Lifetime.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
