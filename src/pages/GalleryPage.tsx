@@ -107,6 +107,7 @@ const GalleryPage = () => {
   const [detailItem, setDetailItem] = useState<Generation | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<Generation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Generation | null>(null);
+  const cursorRef = useRef<string | null>(null);
 
   const handleDelete = async (item: Generation) => {
     const { error } = await supabase.from("generations").delete().eq("id", item.id);
