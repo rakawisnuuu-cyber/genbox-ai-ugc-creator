@@ -729,17 +729,24 @@ Generate the video prompt now.`;
                   {[
                     { m: "ugc" as const, i: Smartphone, t: "UGC / Affiliate", d: "Smartphone, authentic" },
                     { m: "commercial" as const, i: CameraIcon, t: "Commercial / Iklan", d: "Editorial, cinematic" },
-                  ].map((o) => (
-                    <button
-                      key={o.m}
-                      onClick={() => setMode(o.m)}
-                      className={`p-4 rounded-xl border text-left ${mode === o.m ? "border-primary/30 bg-primary/5" : "border-border/40 hover:border-border/60"}`}
-                    >
-                      <o.i className={`w-5 h-5 mb-2 ${mode === o.m ? "text-primary" : "text-muted-foreground"}`} />
-                      <p className="text-sm font-medium">{o.t}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1">{o.d}</p>
-                    </button>
-                  ))}
+                  ].map((o) => {
+                    const isDisabled = o.m === "commercial";
+                    return (
+                      <button
+                        key={o.m}
+                        onClick={() => !isDisabled && setMode(o.m)}
+                        disabled={isDisabled}
+                        className={`p-4 rounded-xl border text-left relative ${isDisabled ? "opacity-50 cursor-not-allowed border-border/30" : mode === o.m ? "border-primary/30 bg-primary/5" : "border-border/40 hover:border-border/60"}`}
+                      >
+                        {isDisabled && (
+                          <span className="absolute top-2 right-2 text-[9px] font-bold uppercase tracking-wider bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">Beta</span>
+                        )}
+                        <o.i className={`w-5 h-5 mb-2 ${mode === o.m ? "text-primary" : "text-muted-foreground"}`} />
+                        <p className="text-sm font-medium">{o.t}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">{o.d}</p>
+                      </button>
+                    );
+                  })}
                 </div>
               </Sec>
             </div>
