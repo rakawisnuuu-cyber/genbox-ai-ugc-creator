@@ -33,7 +33,8 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const COMING_SOON_PREFIXES = ["/tools/"];
+const COMING_SOON_PREFIXES = ["/tools/voiceover"];
+const BETA_PREFIXES = ["/prompt/"];
 
 const navGroups: NavGroup[] = [
   {
@@ -42,7 +43,7 @@ const navGroups: NavGroup[] = [
   {
     label: "GAMBAR & KARAKTER",
     items: [
-      { title: "Generate Image + Video", icon: ImagePlus, path: "/generate" },
+      { title: "UGC Storyboard", icon: ImagePlus, path: "/generate" },
       { title: "Create Avatar", icon: Users, path: "/characters" },
     ],
   },
@@ -54,7 +55,7 @@ const navGroups: NavGroup[] = [
     label: "TOOLS",
     items: [
       { title: "Audio Voiceover", icon: Mic, path: "/tools/voiceover" },
-      { title: "n8n Blueprint", icon: Workflow, path: "/tools/blueprint" },
+      { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
     ],
   },
   {
