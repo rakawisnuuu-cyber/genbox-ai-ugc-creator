@@ -7,7 +7,7 @@ import {
 import { AlertTriangle, ArrowRight, MessageCircle } from "lucide-react";
 
 const PAYMENT_URL = "https://clicky.id/rkaaw/link/ugc-genboxid";
-const WA_URL = "https://wa.me/6287775788034?text=Halo%2C%20saya%20mau%20tanya%20soal%20Genbox";
+const TG_URL = "https://t.me/genaborz";
 
 interface BYOKDisclaimerModalProps {
   open: boolean;
@@ -21,7 +21,7 @@ const BYOKDisclaimerModal = ({ open, onOpenChange }: BYOKDisclaimerModalProps) =
   };
 
   const handleAsk = () => {
-    window.open(WA_URL, "_blank", "noopener,noreferrer");
+    window.open(TG_URL, "_blank", "noopener,noreferrer");
   };
 
   return (
