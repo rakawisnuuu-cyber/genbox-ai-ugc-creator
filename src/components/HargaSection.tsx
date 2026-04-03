@@ -10,7 +10,8 @@ const features = [
   "Output tanpa watermark",
   "Setup guide lengkap",
   "Update fitur selamanya",
-  "WhatsApp support group",
+  "Custom GPT for advance prompting & scripting",
+  "Telegram support group",
 ];
 
 const trustItems = [

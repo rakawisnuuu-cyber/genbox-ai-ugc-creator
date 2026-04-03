@@ -42,12 +42,12 @@ const TrialExpiredPage = () => {
             </Button>
             <Button asChild variant="outline" size="sm" className="w-full">
               <a
-                href="https://wa.me/6287775788034?text=Halo%2C%20trial%20Genbox%20saya%20sudah%20habis.%20Bisa%20diperpanjang%3F"
+                href="https://t.me/genaborz"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <MessageCircle className="h-4 w-4 mr-2" />
-                Hubungi via WhatsApp
+                Hubungi via Telegram
               </a>
             </Button>
             <Button asChild variant="outline" size="sm" className="w-full">

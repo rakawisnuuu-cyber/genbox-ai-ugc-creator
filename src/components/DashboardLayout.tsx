@@ -95,6 +95,7 @@ const DashboardLayout = () => {
 
   const renderNavItem = (item: NavItem, onNavigate?: () => void) => {
     const isComingSoon = COMING_SOON_PREFIXES.some((p) => item.path.startsWith(p));
+    const isBeta = BETA_PREFIXES.some((p) => item.path.startsWith(p));
     if (isComingSoon) {
       return (
         <li key={item.path}>
@@ -120,7 +121,10 @@ const DashboardLayout = () => {
         >
           <item.icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
           {item.title}
-          {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
+          {isBeta && (
+            <span className="text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400">BETA</span>
+          )}
+          {active && !isBeta && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />}
         </Link>
       </li>
     );
