@@ -35,7 +35,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const COMING_SOON_PREFIXES = ["/tools/voiceover"];
+const COMING_SOON_PREFIXES = ["/tools/voiceover", "/tools/script-engine"];
 const BETA_PREFIXES = ["/prompt/"];
 
 const navGroups: NavGroup[] = [
