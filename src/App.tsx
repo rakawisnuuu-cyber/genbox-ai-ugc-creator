@@ -18,6 +18,7 @@ import SettingsPage from "./pages/SettingsPage";
 import PromptEnginePage from "./pages/PromptEnginePage";
 import CreateCharacterPage from "./pages/CreateCharacterPage";
 import BlueprintPage from "./pages/BlueprintPage";
+import ECoursePage from "./pages/ECoursePage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
