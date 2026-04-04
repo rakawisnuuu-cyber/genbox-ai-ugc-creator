@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ArrowRight, Gift, Lock, Zap, Infinity, ShieldCheck } from "lucide-react";
+import { Check, ArrowRight, Gift, Lock, Zap } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import { PRICING } from "@/lib/pricing";
 import BYOKDisclaimerModal from "@/components/BYOKDisclaimerModal";
