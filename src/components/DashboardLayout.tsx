@@ -17,6 +17,8 @@ import {
   Sparkles,
   ScanSearch,
   Wand2,
+  MessageSquare,
+  GraduationCap,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
