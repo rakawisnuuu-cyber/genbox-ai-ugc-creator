@@ -17,6 +17,8 @@ import {
   Sparkles,
   ScanSearch,
   Wand2,
+  MessageSquare,
+  GraduationCap,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
@@ -33,7 +35,7 @@ interface NavGroup {
   items: NavItem[];
 }
 
-const COMING_SOON_PREFIXES = ["/tools/voiceover"];
+const COMING_SOON_PREFIXES = ["/tools/voiceover", "/tools/script-engine"];
 const BETA_PREFIXES = ["/prompt/"];
 
 const navGroups: NavGroup[] = [
@@ -55,7 +57,9 @@ const navGroups: NavGroup[] = [
     label: "TOOLS",
     items: [
       { title: "Audio Voiceover", icon: Mic, path: "/tools/voiceover" },
+      { title: "Script Engine", icon: MessageSquare, path: "/tools/script-engine" },
       { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
+      { title: "E-Course", icon: GraduationCap, path: "/ecourse" },
     ],
   },
   {

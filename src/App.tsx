@@ -18,6 +18,7 @@ import SettingsPage from "./pages/SettingsPage";
 import PromptEnginePage from "./pages/PromptEnginePage";
 import CreateCharacterPage from "./pages/CreateCharacterPage";
 import BlueprintPage from "./pages/BlueprintPage";
+import ECoursePage from "./pages/ECoursePage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import NotFound from "./pages/NotFound";
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="/gallery" element={<GalleryPage />} />
 
               <Route path="/blueprint" element={<BlueprintPage />} />
+              <Route path="/ecourse" element={<ECoursePage />} />
               <Route path="/characters/create" element={<CreateCharacterPage />} />
               {/* VideoPage rendered permanently in DashboardLayout */}
               <Route path="/settings" element={<SettingsPage />} />

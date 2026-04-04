@@ -4,13 +4,15 @@ import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 import caraKerjaProduct from "@/assets/cara-kerja-product.jpg";
 import caraKerjaUgc from "@/assets/cara-kerja-ugc-new.jpeg";
 
+const PRESET_BASE = "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters";
+
 const characterImages = [
-  "/assets/characters/hijab-casual.jpeg",
-  "/assets/characters/urban-trendy.jpeg",
-  "/assets/characters/ibu-muda.jpeg",
-  "/assets/characters/gen-z-creator.jpeg",
-  "/assets/characters/beauty-enthusiast.jpeg",
-  "/assets/characters/bapak-umkm.jpeg",
+  `${PRESET_BASE}/hijab-casual.jpeg`,
+  `${PRESET_BASE}/urban-trendy.jpeg`,
+  `${PRESET_BASE}/ibu-muda.jpeg`,
+  `${PRESET_BASE}/gen-z-creator.jpeg`,
+  `${PRESET_BASE}/beauty-enthusiast.jpeg`,
+  `${PRESET_BASE}/bapak-umkm.jpeg`,
 ];
 
 const SHOWCASE_VIDEO = "/showcase/cara-kerja-video.mp4";
@@ -157,26 +159,12 @@ const StepVideo = () => {
           }`}
         >
           {playing ? (
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="text-foreground"
-            >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-foreground">
               <rect x="6" y="4" width="4" height="16" />
               <rect x="14" y="4" width="4" height="16" />
             </svg>
           ) : (
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="text-primary-foreground ml-0.5"
-            >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-primary-foreground ml-0.5">
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
           )}
@@ -188,41 +176,11 @@ const StepVideo = () => {
 
 /* ── Step data ── */
 const steps = [
-  {
-    num: "01",
-    icon: Upload,
-    title: "Upload Produk",
-    desc: "Drop foto produk. AI analisa jenis produk otomatis.",
-    visual: <StepUpload />,
-  },
-  {
-    num: "02",
-    icon: Users,
-    title: "Pilih Karakter",
-    desc: "10+ preset karakter Indonesia atau buat sendiri.",
-    visual: <StepCharacter />,
-  },
-  {
-    num: "03",
-    icon: Film,
-    title: "Buat Storyboard",
-    desc: "AI generate 5-frame storyboard: Hook → Build → Demo → Proof → CTA.",
-    visual: <StepStoryboard />,
-  },
-  {
-    num: "04",
-    icon: Sparkles,
-    title: "Generate Gambar",
-    desc: "Gambar UGC realistis per-frame. Konsisten di semua frame.",
-    visual: <StepGenerate />,
-  },
-  {
-    num: "05",
-    icon: Download,
-    title: "Buat Video",
-    desc: "Video UGC siap posting ke TikTok dan Instagram Reels.",
-    visual: <StepVideo />,
-  },
+  { num: "01", icon: Upload, title: "Upload Produk", desc: "Drop foto produk. AI analisa jenis produk otomatis.", visual: <StepUpload /> },
+  { num: "02", icon: Users, title: "Pilih Karakter", desc: "10+ preset karakter Indonesia atau buat sendiri.", visual: <StepCharacter /> },
+  { num: "03", icon: Film, title: "Buat Storyboard", desc: "AI generate 5-frame storyboard: Hook → Build → Demo → Proof → CTA.", visual: <StepStoryboard /> },
+  { num: "04", icon: Sparkles, title: "Generate Gambar", desc: "Gambar UGC realistis per-frame. Konsisten di semua frame.", visual: <StepGenerate /> },
+  { num: "05", icon: Download, title: "Buat Video", desc: "Video UGC siap posting ke TikTok dan Instagram Reels.", visual: <StepVideo /> },
 ];
 
 /* ── Main Section ── */
@@ -232,7 +190,6 @@ const CaraKerjaSection = () => {
   return (
     <section id="cara-kerja" ref={ref} className="relative z-10 px-4 py-16 sm:py-24">
       <div className="mx-auto max-w-5xl">
-        {/* Badge */}
         <div className="flex justify-center">
           <div
             className={`flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary ${isVisible ? "animate-fade-up" : "opacity-0"}`}
@@ -242,7 +199,6 @@ const CaraKerjaSection = () => {
           </div>
         </div>
 
-        {/* Heading */}
         <h2
           className={`mt-5 text-center font-satoshi text-[28px] font-bold leading-tight tracking-tight sm:text-[36px] lg:text-[42px] ${isVisible ? "animate-fade-up" : "opacity-0"}`}
           style={{
@@ -265,11 +221,7 @@ const CaraKerjaSection = () => {
         {/* Desktop: uniform 5-column grid */}
         <div className="mt-12 hidden md:grid md:grid-cols-5 gap-4">
           {steps.map((step, i) => (
-            <div
-              key={step.num}
-              className={`${isVisible ? "animate-fade-up" : "opacity-0"}`}
-              style={{ animationDelay: `${0.35 + i * 0.08}s` }}
-            >
+            <div key={step.num} className={`${isVisible ? "animate-fade-up" : "opacity-0"}`} style={{ animationDelay: `${0.35 + i * 0.08}s` }}>
               <div className="flex items-center gap-1.5 mb-2.5">
                 <span className="font-mono text-[20px] font-bold leading-none text-primary/30">{step.num}</span>
                 <step.icon size={13} className="text-primary/50" />
@@ -284,11 +236,7 @@ const CaraKerjaSection = () => {
         {/* Mobile: Vertical timeline */}
         <div className="mt-10 md:hidden space-y-8">
           {steps.map((step, i) => (
-            <div
-              key={step.num}
-              className={`flex gap-4 ${isVisible ? "animate-fade-up" : "opacity-0"}`}
-              style={{ animationDelay: `${0.3 + i * 0.1}s` }}
-            >
+            <div key={step.num} className={`flex gap-4 ${isVisible ? "animate-fade-up" : "opacity-0"}`} style={{ animationDelay: `${0.3 + i * 0.1}s` }}>
               <div className="flex flex-col items-center shrink-0">
                 <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-primary/15 text-primary border border-primary/30">
                   <step.icon size={18} />
@@ -296,9 +244,7 @@ const CaraKerjaSection = () => {
                 {i < 4 && <div className="w-px flex-1 mt-2 bg-primary/20" />}
               </div>
               <div className="flex-1 pb-2">
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary/50">
-                  Langkah {step.num}
-                </span>
+                <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-primary/50">Langkah {step.num}</span>
                 <h3 className="mt-1 font-satoshi text-base font-bold text-foreground">{step.title}</h3>
                 <p className="mt-1 text-xs text-muted-foreground">{step.desc}</p>
                 <div className="mt-3">{step.visual}</div>
