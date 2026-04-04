@@ -17,7 +17,7 @@ const features = [
 const trustItems = [
   { icon: Lock, label: "Pembayaran Aman" },
   { icon: Zap, label: "Akses Instant" },
-  { icon: Infinity, label: "Lifetime Updates" },
+  { icon: Zap, label: "Lifetime Updates" },
 ];
 
 const valueProps = [
