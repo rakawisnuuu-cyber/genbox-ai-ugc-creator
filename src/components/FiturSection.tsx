@@ -1,7 +1,6 @@
 import { Users, Sparkles, Film } from "lucide-react";
 import { useScrollReveal } from "@/hooks/use-scroll-reveal";
 
-const PRESET_BASE = "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/preset-characters";
 const SHOWCASE_BASE = "https://hgwojnluqkrypwttytxb.supabase.co/storage/v1/object/public/showcase-videos";
 
 /* ── Feature Data ─────────────────────────────────── */
