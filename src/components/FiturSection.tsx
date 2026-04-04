@@ -115,9 +115,8 @@ const FiturSection = () => {
           Semua yang Kamu Butuhkan untuk Konten UGC
         </h2>
 
-        {/* Feature 01 — full width hero */}
         <div className="mt-12">
-          <ModuleCard {...features[0]} isVisible={isVisible} delay={0.3} isHero />
+          <ModuleCard {...features[0]} isVisible={isVisible} delay={0.3} />
         </div>
 
         {/* Features 02 & 03 — side by side on desktop */}
