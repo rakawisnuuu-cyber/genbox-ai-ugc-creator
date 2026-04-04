@@ -1,31 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 
-const STORAGE_BASE = "/assets/images/showcase";
-
 interface ShowcaseCard {
   id: number;
-  url: string;
+  videoId: string;
 }
 
 const showcaseCards: ShowcaseCard[] = [
-  { id: 1, url: `${STORAGE_BASE}/video-1.webp` },
-  { id: 2, url: `${STORAGE_BASE}/video-2.webp` },
-  { id: 3, url: `${STORAGE_BASE}/video-3.webp` },
-  { id: 4, url: `${STORAGE_BASE}/video-4.webp` },
-  { id: 6, url: `${STORAGE_BASE}/video-6.webp` },
+  { id: 1, videoId: "2eu2OX_py3c" },
+  { id: 2, videoId: "2eu2OX_py3c" }, // Add more unique IDs later
+  { id: 3, videoId: "2eu2OX_py3c" },
 ];
 
 interface DepthDeckCarouselProps {
   autoPlayInterval?: number;
 }
 
-export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeckCarouselProps) {
+export default function DepthDeckCarousel({ autoPlayInterval = 5000 }: DepthDeckCarouselProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [mediaErrors, setMediaErrors] = useState<Record<number, boolean>>({});
-  
 
   const total = showcaseCards.length;
 
@@ -67,10 +61,6 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
     };
   };
 
-  const handleMediaError = (id: number) => {
-    setMediaErrors((prev) => ({ ...prev, [id]: true }));
-  };
-
   return (
     <div
       className="relative flex items-center justify-center"
@@ -80,6 +70,7 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
     >
       {showcaseCards.map((card, index) => {
         const style = getCardStyle(index);
+        const isActive = style.isActive;
 
         return (
           <motion.div
@@ -112,48 +103,35 @@ export default function DepthDeckCarousel({ autoPlayInterval = 3000 }: DepthDeck
             <div
               className="relative h-full w-full overflow-hidden rounded-2xl border border-white/10"
               style={{
-                boxShadow: style.isActive
+                boxShadow: isActive
                   ? "0 20px 60px -15px rgba(0,0,0,0.6), 0 0 40px -10px rgba(0,0,0,0.3)"
                   : "0 8px 30px -10px rgba(0,0,0,0.4)",
               }}
             >
-              {!mediaErrors[card.id] ? (
+              {isActive ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${card.videoId}?autoplay=1&mute=1&loop=1&playlist=${card.videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  style={{ border: "none" }}
+                  allow="autoplay; encrypted-media"
+                  loading="lazy"
+                  title="UGC showcase"
+                />
+              ) : (
                 <img
-                  src={card.url}
+                  src={`https://img.youtube.com/vi/${card.videoId}/0.jpg`}
                   alt="UGC showcase"
                   className="absolute inset-0 h-full w-full object-cover"
                   draggable={false}
                   loading="lazy"
-                  onError={() => handleMediaError(card.id)}
                 />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-900/40 to-primary/10">
-                  <div className="text-center">
-                    <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        className="text-primary/60"
-                      >
-                        <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                        <circle cx="9" cy="9" r="2" />
-                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                      </svg>
-                    </div>
-                    <span className="text-[10px] text-white/30">UGC Preview</span>
-                  </div>
-                </div>
               )}
 
               {/* Subtle bottom gradient for depth */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
 
               {/* AI Generated watermark */}
-              <div className="absolute right-3 top-3 z-10">
+              <div className="absolute right-3 top-3 z-10 pointer-events-none">
                 <span className="rounded bg-black/20 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wider text-white/30 backdrop-blur-sm">
                   AI Generated
                 </span>

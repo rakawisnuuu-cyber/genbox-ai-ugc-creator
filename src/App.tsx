@@ -61,6 +61,7 @@ const App = () => (
               <Route path="/gallery" element={<GalleryPage />} />
 
               <Route path="/blueprint" element={<BlueprintPage />} />
+              <Route path="/ecourse" element={<ECoursePage />} />
               <Route path="/characters/create" element={<CreateCharacterPage />} />
               {/* VideoPage rendered permanently in DashboardLayout */}
               <Route path="/settings" element={<SettingsPage />} />

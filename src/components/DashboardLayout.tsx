@@ -57,7 +57,9 @@ const navGroups: NavGroup[] = [
     label: "TOOLS",
     items: [
       { title: "Audio Voiceover", icon: Mic, path: "/tools/voiceover" },
+      { title: "Script Engine", icon: MessageSquare, path: "/tools/script-engine" },
       { title: "n8n Blueprint", icon: Workflow, path: "/blueprint" },
+      { title: "E-Course", icon: GraduationCap, path: "/ecourse" },
     ],
   },
   {

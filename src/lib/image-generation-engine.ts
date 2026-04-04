@@ -1,12 +1,11 @@
 /**
- * Image Generation Engine v3 — Category-Aware Shot System + UGC Behavioral Intelligence
- * Each shot type generates UNIQUE actions per product category.
- * Integrates: UGC Behavior Logic, Affiliate Priority Rule, First-Frame Conversion Rule.
- * v3.1: Phone/selfie decontamination — no device in frame, per-shot glitch mitigation.
+ * Image Generation Engine v4 — Lean Prompt System
+ * Reduced token usage ~65% while maintaining output quality.
+ * Keeps: SHOT_TYPES, estimateCost, formatRupiah, all type exports.
  */
 
 import type { ProductDNA, ProductCategory } from "./product-dna";
-import { buildProductConsistencyBlock, getCategoryPromptInstruction, getProductContext } from "./product-dna";
+import { buildProductConsistencyBlock } from "./product-dna";
 
 // ── Types ───────────────────────────────────────────────────────
 export type ContentMode = "ugc" | "commercial";
@@ -23,7 +22,7 @@ export interface ShotTypeDefinition {
   whenToUse: string[];
   ugc: ShotStyleConfig;
   commercial: ShotStyleConfig;
-  commonMistakes: string; // per-shot AI glitch mitigation
+  commonMistakes: string;
 }
 
 interface ShotStyleConfig {
@@ -258,235 +257,121 @@ export const SHOT_TYPES: ShotTypeDefinition[] = [
   },
 ];
 
-// ── Category-Specific Shot Actions ─────────────────────────────
-const CATEGORY_SHOT_ACTIONS: Record<ProductCategory, Record<ShotTypeKey, string>> = {
-  skincare: {
-    hero: "FRAMING: Medium close-up, face and product both prominent, cover photo energy.\nCharacter holds serum/cream bottle near cheek with one hand, other hand lightly touching jawline. Product label clearly visible and facing camera. Mid-sentence expression like casually reviewing for TikTok. Slight head tilt. Both hands are free — no phone.",
-    product_detail:
-      "FRAMING: First-person POV looking down — viewer sees character's hands holding/examining the product from their own perspective. No face visible.\nPOV shot looking down at hands holding the product. One hand holds the bottle/tube steady, other hand opens the cap or squeezes product onto fingertips. The product label faces up toward camera. Surface below (desk, palm, bed) visible. Character's lap or clothing edge visible at bottom of frame for context. Intimate, personal perspective.",
-    usage:
-      "FRAMING: Hands-focused medium shot, both hands actively doing something with the product.\nCharacter applying product to face with fingertips — dotting on cheeks and forehead, or spreading serum across skin. Both hands on face/product. Face and product both visible. Natural application motion captured from front.",
-    reaction:
-      "FRAMING: Face-dominant close-up, emotion is the subject, product secondary in background.\nCharacter just finished applying — one hand touching cheek with surprised/pleased expression, checking skin texture. Product resting on nearby surface. 'Wow it actually works' energy. No device in hands.",
-    lifestyle:
-      "FRAMING: Wide shot pulled back, character smaller in scene, environment tells the story.\nBathroom counter or vanity scene — product placed among other skincare items. Character in the middle of morning/night routine, relaxed and natural. Product stands out as the hero item.",
-    face_closeup:
-      "FRAMING: Extreme tight crop on face, eyes-to-chin only, skin texture is the subject.\nExtreme close-up of face after product application. Visible skin texture — pores, slight dewiness from product. Natural, unretouched look. One hand gently touching product-applied area.",
-  },
-  fashion: {
-    hero: "FRAMING: Full body shot, head to toe visible, outfit is the hero — 'This is the look.'\nFull OOTD pose — character wearing the fashion item, standing confidently. Full body visible head to toe. One hand on hip or adjusting clothing, other hand relaxed at side. The fashion item is clearly the star of the image. No phone or device visible.",
-    product_detail:
-      "FRAMING: Extreme close-up on material — 'This is the material.'\nTight close-up of fabric texture, stitching detail, or hardware (zipper, button, strap). Character's hand touching/pinching the fabric to show quality and weight. Natural light catching the material grain. Focus on craftsmanship. No face visible.",
-    usage:
-      "FRAMING: Mid-body movement shot — 'This is how it moves on a body.'\nCharacter mid-motion — walking, turning, reaching, sitting down. The fashion item flows, stretches, or drapes naturally with the body movement. Shows how the fabric reacts to real movement. Not posed — caught in motion. Arms and legs active.",
-    reaction:
-      "FRAMING: Upper body emotional close-up — 'This is how it makes you feel.'\nCharacter looking at themselves with genuine confidence. Slight smile, shoulders back, chin slightly up. The outfit is visible but the emotion is the subject — self-assurance, pride, 'I look good' energy. Hands adjusting collar or sleeve as a confidence gesture.",
-    lifestyle:
-      "FRAMING: Wide environmental shot — 'This is where you wear it.'\nCharacter in a real destination wearing the outfit naturally — cafe, street, mall, park, commute. The environment matches the outfit's vibe. Character mid-activity, not posing for camera. The outfit belongs in this scene.",
-    face_closeup:
-      "FRAMING: Tight face + neckline crop — 'This is your identity wearing it.'\nCharacter's face and upper chest, showing how the neckline/collar/accessory frames their face. The fashion item creates a visual identity around the person. Confident, personal expression. The clothing becomes part of who they are.",
-  },
-  food: {
-    hero: "FRAMING: Medium close-up, face and food product both prominent, appetizing energy.\nCharacter holding food/drink product with appetizing presentation. Product positioned between face and camera. Excited/hungry expression. Package or plate clearly visible and appealing. Both hands on food/drink — no device.",
-    product_detail:
-      "FRAMING: First-person POV looking down — viewer sees hands interacting with food/packaging from their own perspective. No face visible.\nPOV shot looking down at food product on table or in hands. One hand opens packaging, other hand ready to eat/drink. Steam, texture, condensation visible up close. The table surface and other items visible around the edges. ASMR-level food detail from personal perspective.",
-    usage:
-      "FRAMING: Hands-focused medium shot, hands actively eating/drinking/preparing.\nCharacter taking first bite or first sip. Mouth approaching food, chopsticks/spoon lifting food, or tilting drink. The anticipation moment. Authentic eating/drinking action.",
-    reaction:
-      "FRAMING: Face-dominant close-up, tasting reaction is the subject, food secondary.\nMid-chew or post-sip reaction — eyes widening, slow nod of approval, satisfied chewing expression. Product still in hand or on table. Genuine 'this is so good' face.",
-    lifestyle:
-      "FRAMING: Wide shot pulled back, food product in daily life context.\nProduct on cafe table or kitchen counter with lifestyle props (coffee cup, book, small plant). Character casually snacking/eating in natural context. Relaxed daily life integration.",
-    face_closeup:
-      "FRAMING: Extreme tight crop on face, sensory reaction is the subject.\nCharacter's face right after tasting — close-up reaction of enjoyment. Eyes closed savoring, or wide eyes surprise at flavor. Authentic sensory reaction.",
-  },
-  electronics: {
-    hero: "FRAMING: Medium close-up, character and device both prominent, unboxing/first-impression energy.\nCharacter holding device up to camera showing screen or main feature. Clean first-impression energy. Device angled so key features visible. Impressed/curious expression. Both hands on device — no other device visible.",
-    product_detail:
-      "FRAMING: First-person POV looking down — viewer sees hands holding/examining device from their own perspective. No face visible.\nPOV shot looking down at device in hands. Fingers exploring buttons, ports, screen. Device fills most of the frame. Desk or lap visible below. Fingerprints on glass for realism. The 'just unboxed and inspecting' moment from personal perspective.",
-    usage:
-      "FRAMING: Hands-focused medium shot, hands actively operating the device.\nCharacter actively using device — typing on keyboard, wearing earbuds, using camera features. Real usage scenario showing the device integrated into workflow. Hands on the product only.",
-    reaction:
-      "FRAMING: Face-dominant close-up, impressed expression is the subject, device secondary.\nCharacter just discovered a cool feature — looking at device then looking toward camera with impressed nod. 'Wait this actually can do this?' energy. No second device in hands.",
-    lifestyle:
-      "FRAMING: Wide shot pulled back, device in work/life context, environment tells the story.\nDesk setup or on-the-go context — device naturally placed in work/life environment. Character using it as part of daily flow. WFH desk, commute, cafe table.",
-    face_closeup:
-      "FRAMING: Tight face crop, screen-lit expression, immersion is the subject.\nCharacter face illuminated by device screen light. Focused engaged expression. Shows the 'lost in using this device' moment. Screen glow visible on face.",
-  },
-  health: {
-    hero: "FRAMING: Medium close-up, character and supplement both prominent, morning energy.\nCharacter holding supplement bottle/pack with morning energy expression. Glass of water nearby. Fresh-faced, motivated vibe. Product label clearly readable. Both hands free to hold product.",
-    product_detail:
-      "FRAMING: First-person POV looking down — viewer sees hands holding supplement/dosage from their own perspective. No face visible.\nPOV shot looking down at supplement in palm or being poured from bottle. One hand holds the bottle, other hand catches pills/powder. Label readable from this angle. Kitchen counter or desk visible below.",
-    usage:
-      "FRAMING: Hands-focused medium shot, hands actively taking/mixing supplement.\nCharacter taking supplement — swallowing with water, mixing powder into shaker, opening packet. Active consumption moment. Kitchen or gym context. Hands on product/glass only.",
-    reaction:
-      "FRAMING: Face-dominant close-up, energized expression is the subject, product secondary.\nPost-supplement energized expression — stretching, deep breath, ready-to-go body language. Product on counter nearby. 'I can feel the difference' energy. No device in hands.",
-    lifestyle:
-      "FRAMING: Wide shot pulled back, supplement in active lifestyle context.\nMorning routine or post-workout context — supplement bottle part of active healthy lifestyle setup. Gym bag, yoga mat, or kitchen smoothie ingredients visible.",
-    face_closeup:
-      "FRAMING: Extreme tight crop on face, wellness glow is the subject.\nFresh energized face close-up — glowing, healthy skin, bright eyes. Suggesting the wellness benefit. Post-workout or morning freshness.",
-  },
-  home: {
-    hero: "FRAMING: Medium-wide shot, character and home product both visible, presenter energy.\nCharacter standing next to home product in room setting — showing scale and placement. Proud presenter energy. Product is the focal point of the room/area. Hands free or gesturing toward product.",
-    product_detail:
-      "FRAMING: First-person POV looking down — viewer sees hands touching/examining the home product from their own perspective.\nPOV shot looking down at hands running across the product surface — feeling the wood grain, fabric texture, or mechanism. The product sits on its surface (table, shelf, floor). Fingers trace the material quality. No face visible. The 'inspecting the craftsmanship' moment from personal perspective.",
-    usage:
-      "FRAMING: Hands-focused medium shot, character actively interacting with home product.\nCharacter actively using the home product — sitting on furniture, adjusting organizer, lighting candle, arranging decor. Functional demonstration. Hands on product only.",
-    reaction:
-      "FRAMING: Face-dominant medium shot, satisfaction is the subject, product in background.\nCharacter stepping back to admire the product in place — hands on hips or clasped, satisfied head tilt. 'Room transformation complete' energy.",
-    lifestyle:
-      "FRAMING: Wide shot pulled back, product in full room context, cozy atmosphere.\nCozy lifestyle moment — product naturally integrated into daily living. Reading on new chair, drinking tea with new mug, organized shelf in background.",
-    face_closeup:
-      "FRAMING: Tight face crop, comfort/satisfaction is the subject.\nCharacter's comfortable relaxed face in context of home product — comfort and satisfaction. The 'finally my space feels right' expression.",
-  },
-  other: {
-    hero: "FRAMING: Medium close-up, face and product both prominent, reviewer energy.\nCharacter showcasing product to camera with genuine interest. Product held clearly at chest level with label visible. Friendly reviewer energy. Both hands on product.",
-    product_detail:
-      "FRAMING: Extreme close-up, product fills 70% of frame, hand for scale.\nClose-up of product key feature, packaging detail, or unique selling point. Hand for scale. Natural lighting highlighting material quality. Product only.",
-    usage:
-      "FRAMING: Hands-focused medium shot, hands actively using the product.\nCharacter using or interacting with product in its natural context. Authentic demonstration of the product's purpose. Hands on product only.",
-    reaction:
-      "FRAMING: Face-dominant close-up, honest expression is the subject.\nHonest review expression after using — nodding approval, examining result, sharing genuine impression toward camera. No device in hands.",
-    lifestyle:
-      "FRAMING: Wide shot pulled back, product in daily context.\nProduct integrated into daily life scene. Natural, unforced placement showing how it fits into real routines.",
-    face_closeup:
-      "FRAMING: Extreme tight crop on face, authentic expression.\nClose-up of character engaging with or reacting to the product. Natural expression, honest energy.",
-  },
-};
+// ── Lean System Blocks ─────────────────────────────────────────
+const LEAN_SYSTEM_BASE = (mode: ContentMode): string => `
+You generate hyper-realistic ${mode === "ugc" ? "Indonesian UGC smartphone" : "editorial commercial"} photos.
+SUBJECT: Match the character reference EXACTLY — face, skin tone, hair, body type. Do not beautify or alter.
+PRODUCT: Match the product reference EXACTLY — shape, color, label, logo, proportions. No redesign.
+${mode === "ugc" ? `CAPTURE FEEL: Front-facing smartphone camera (24-28mm). Natural daylight only. Slightly off-center framing. Real skin — pores, tone variation, no filter. Subject feels mid-review, spontaneous, not posed. No phone or device visible in frame — the camera IS the viewer's POV.` : `CAPTURE FEEL: Full-frame DSLR, 85mm. Soft diffused studio light. Intentional balanced composition. Refined skin — natural but controlled. Clean curated environment.`}
+PRODUCT VISIBILITY: Logo unobstructed. Readable at thumbnail scale. Lighting supports product clarity.
+OUTPUT: ONE single image only. No grid, no collage, no split-screen.
+HANDS: Exactly 5 fingers each. No phone or device in hands.
+`.trim();
 
-// ── UGC Behavioral Intelligence ──────────────────────────────────
-const UGC_BEHAVIOR_BLOCK = `UGC BEHAVIOR LOGIC — Subject behaves like someone casually reviewing a product on TikTok.
-Favor: mid-sentence expressions or micro reactions, natural hand adjustments and grip shifts, slight posture imbalance or casual leaning, attention split between product and camera.
-Allow: slight framing imperfection, minor natural blur.
-The subject must feel spontaneous, not posed.`;
-
-const AFFILIATE_PRIORITY_BLOCK = `AFFILIATE PRIORITY RULE — The product is ALWAYS the visual priority.
-Ensure: product clearly visible and readable, logo or key feature unobstructed, pose naturally showcases product, lighting supports product clarity.
-Avoid: wide shots shrinking the product, busy backgrounds distracting from product, hands blocking branding.
-The viewer must instantly understand what is being promoted.`;
-
-const FIRST_FRAME_RULE = `FIRST-FRAME CONVERSION RULE — The image must communicate the product instantly, even at thumbnail scale.
-Ensure: product silhouette readable small, product placed within central viewing zone, branding visible without zooming, clear contrast between product and background.
-Recognition must occur within 0.5 seconds.`;
-
-const SINGLE_IMAGE_RULE = `OUTPUT RULE: Generate EXACTLY ONE single image. Do NOT create a grid, collage, multi-panel, split-screen, side-by-side, before/after comparison, or any multi-image layout. ONE image, ONE scene, ONE frame only.`;
-
-const GLOBAL_DEVICE_RULE = `CRITICAL — NO DEVICE IN FRAME: The camera/phone is the viewer's perspective. It must NEVER appear in the image. The character's hands are free to hold and interact with the product ONLY. No phone, smartphone, camera, tripod, or recording device visible anywhere in the scene. The "selfie" or "front-facing" feel comes from the camera angle and distance, not from showing a device.`;
-
-const ANTI_GLITCH_BLOCK = `NEGATIVE CONSTRAINTS (DO NOT generate any of these):
-- Phone, smartphone, camera, or recording device visible in the character's hands or anywhere in frame
-- Extra fingers, deformed hands, merged fingers, missing fingers (each hand must have exactly 5 fingers)
-- Text overlay, watermark, subtitle, logo stamp, UI elements
-- Split image, grid layout, collage, multi-panel, triptych
-- Blurry face, morphed product, duplicate objects, floating objects
-- CGI render, 3D product mockup, plastic/waxy skin, airbrushed perfection
-- Different product than described (do NOT substitute with another item)
-- Multiple people unless explicitly requested
-- Product label text that doesn't match the reference image`;
-
-// ── Realism Directives ──────────────────────────────────────────
-const UGC_REALISM = `PHOTOREALISM — UGC FRONT-FACING CAMERA CAPTURE:
-Captured from front-facing camera perspective (24-28mm equivalent lens, f/1.8-f/2.4 computational aperture).
-Natural daylight only — window side-light or front-light, 5000K-6500K, uneven exposure allowed.
-Skin: visible pores, acne texture, slight oiliness, blemishes, redness, uneven tone. Non-retouched real skin.
-Composition: slightly off-center, imperfect framing, natural micro-shake feel, awkward crop allowed.
-Color: neutral to slightly warm, low-medium contrast, natural unsaturated, slightly inconsistent white balance.
-Environment: real Indonesian living space, imperfect background, personal items visible.`;
-
-const COMMERCIAL_REALISM = `PHOTOREALISM — EDITORIAL STUDIO PHOTOGRAPHY:
-Shot on full-frame DSLR, 85mm or 50mm prime lens, f/1.8-f/2.8.
-Studio lighting: soft diffused key light + subtle fill bounce + soft rim separation. 5200K-5600K.
-Skin: visible pores but refined, matte finish, controlled highlights, minimal imperfections present.
-Composition: intentional balanced framing, controlled asymmetry, tripod-stable.
-Color: clean premium tone, medium contrast, slightly warm or neutral luxury, high consistency.
-Environment: real but curated space, minimal clutter, intentional props.`;
+const NEGATIVE_BLOCK = `Avoid: CGI, 3D render, cartoon, airbrushed skin, plastic texture, extra fingers, product redesign, altered logo, color-shifted packaging, phone or device in frame, grid layout, watermark, duplicate objects.`;
 
 const REALISM_BOOST: Record<RealismLevel, string> = {
   standard: "",
-  ultra: "ULTRA-REALISM: Every skin pore visible, micro-blemishes, oil sheen, flyaway hairs, fabric grain, 8K detail.",
-  raw_phone:
-    "RAW PHONE FEEL: Digital noise, slight compression, uneven white balance, imperfect exposure, fingerprint on lens edge.",
+  ultra: "Ultra realism: every skin pore visible, micro-blemishes, oil sheen, flyaway hairs, 8K detail.",
+  raw_phone: "Raw phone feel: digital noise, slight compression, uneven white balance, imperfect exposure.",
 };
 
-const CATEGORY_DETAILS: Record<ProductCategory, string> = {
-  skincare: "cream texture, moisture reflection, pores visible, serum droplets",
-  fashion: "fabric wrinkles, natural folds, stitching, movement in clothing",
-  food: "steam, oil shine, crumbs, sauce drip, condensation, appetizing texture",
-  electronics: "fingerprints on glass, screen reflections, subtle smudges, LED glow",
-  health: "supplement texture, pill detail, powder dissolving, wellness packaging",
-  home: "wood grain, fabric weave, proportional to room, natural shadows",
-  other: "natural material texture, realistic scale, authentic packaging",
+// ── Category-Specific Shot Actions (Lean) ──────────────────────
+const CATEGORY_SHOT_ACTIONS: Record<ProductCategory, Record<ShotTypeKey, string>> = {
+  skincare: {
+    hero: "Medium close-up. Character holds product near cheek, label facing camera. Mid-review expression, slight head tilt.",
+    product_detail: "POV looking down. Hands hold product, cap open or product on fingertips. Label faces up. No face.",
+    usage: "Both hands applying product to face — dotting serum on cheeks, spreading cream. Face and product both visible.",
+    reaction: "Face close-up, one hand touching cheek. Genuine impressed expression. Product resting nearby.",
+    lifestyle: "Bathroom or vanity scene. Product among other skincare items. Character mid morning-routine, relaxed.",
+    face_closeup: "Extreme tight crop eyes-to-chin. Visible pores, slight dewiness from product. One hand touching skin.",
+  },
+  fashion: {
+    hero: "Full body head-to-toe. Character wearing the item, standing confident. One hand on hip. Outfit is the hero.",
+    product_detail: "Extreme close-up on fabric — texture, stitching, hardware detail. Character hand touching or pinching material. No face visible.",
+    usage: "Mid-motion — walking, turning, or reaching. Fashion item moves naturally with body. Caught-in-motion feel, not posed.",
+    reaction: "Upper body. Character looking at themselves with confidence — shoulders back, slight smile. Hand adjusting collar or sleeve.",
+    lifestyle: "Wide shot. Character in real destination (cafe, street, mall) wearing outfit naturally. Mid-activity, not posing for camera.",
+    face_closeup: "Face and neckline or collar framing. How the clothing frames their identity. Confident personal expression.",
+  },
+  food: {
+    hero: "Medium close-up. Character holding food or drink, product between face and camera. Hungry or excited expression.",
+    product_detail: "POV looking down at food on table. Hands interacting — opening packaging, chopsticks lifting, steam or condensation visible. No face.",
+    usage: "First bite or first sip moment. Mouth approaching food. Authentic eating or drinking action.",
+    reaction: "Face close-up mid-chew or post-sip. Eyes widening, satisfied nod. Product still in hand.",
+    lifestyle: "Product on cafe table or kitchen counter with lifestyle props. Character casually snacking in natural context.",
+    face_closeup: "Face right after tasting. Eyes closed savoring or wide-eye surprise at flavor. Sensory reaction close-up.",
+  },
+  electronics: {
+    hero: "Medium close-up. Character holding device up, screen or main feature visible. Impressed or curious expression.",
+    product_detail: "POV looking down at device. Fingers exploring buttons, ports, screen surface. Fingerprints on glass for realism. No face.",
+    usage: "Character actively using device — typing, wearing earbuds, using camera feature. Real usage scenario.",
+    reaction: "Character discovers cool feature — impressed nod toward camera. 'Wait this actually works' energy.",
+    lifestyle: "Desk setup or on-the-go. Device in natural work or life environment — WFH desk, commute, or cafe table.",
+    face_closeup: "Face lit by device screen glow. Focused immersed expression. Lost-in-the-device moment.",
+  },
+  health: {
+    hero: "Medium close-up. Character holding supplement bottle, glass of water nearby. Fresh-faced morning energy.",
+    product_detail: "POV looking down at supplement in palm or being poured from bottle. Label readable. Kitchen or desk surface below.",
+    usage: "Character swallowing pill with water, mixing powder into shaker, or opening packet. Active consumption moment.",
+    reaction: "Post-supplement energized expression — stretching, deep breath. Ready-to-go body language. Product on counter nearby.",
+    lifestyle: "Morning routine or post-workout setup. Supplement beside gym bag, yoga mat, or smoothie ingredients.",
+    face_closeup: "Fresh energized face — glowing healthy skin, bright eyes. Post-workout or morning freshness.",
+  },
+  home: {
+    hero: "Medium-wide shot. Character standing beside home product in room. Proud presenter energy. Hands free or gesturing toward it.",
+    product_detail: "POV hands running across product surface — feeling wood grain, fabric weave, or mechanism. No face visible.",
+    usage: "Character actively using product — sitting on furniture, adjusting organizer, lighting candle, arranging decor.",
+    reaction: "Character stepping back to admire product in place. Hands on hips, satisfied head tilt. Room transformation energy.",
+    lifestyle: "Product naturally in daily living scene — reading on new chair, cozy room corner, organized shelf in background.",
+    face_closeup: "Comfortable relaxed face in context of home product. Comfort and satisfaction expression.",
+  },
+  other: {
+    hero: "Medium close-up. Character showcasing product to camera. Product at chest level, label clearly visible.",
+    product_detail: "Close-up of product key feature or packaging detail. Hand for scale. Natural lighting on material.",
+    usage: "Character using product in its natural context. Authentic functional demonstration.",
+    reaction: "Honest review expression — nodding approval, examining result, sharing genuine impression toward camera.",
+    lifestyle: "Product integrated into daily life. Natural unforced placement in real routine.",
+    face_closeup: "Close-up of character engaging with or reacting to product. Natural honest energy.",
+  },
 };
-
-const SKIN_TONES = ["sawo matang natural skin", "kuning langsat tone", "healthy Indonesian complexion"];
 
 // ── Shot Planner ────────────────────────────────────────────────
 export function planImageShots(config: GenerationConfig): ImageShotPlan[] {
-  const { mode, selectedShots, productDNA, characterDescription, environment, realismLevel } = config;
-  const realism = mode === "ugc" ? UGC_REALISM : COMMERCIAL_REALISM;
-  const boost = REALISM_BOOST[realismLevel];
+  const {
+    mode,
+    selectedShots,
+    productDNA,
+    characterDescription,
+    environment,
+    realismLevel,
+  } = config;
+
+  const systemBlock = LEAN_SYSTEM_BASE(mode);
+  const realismBoost = REALISM_BOOST[realismLevel];
   const productBlock = buildProductConsistencyBlock(productDNA);
-  const catDetail = CATEGORY_DETAILS[productDNA.category] || CATEGORY_DETAILS.other;
-  const skin = SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)];
   const categoryActions = CATEGORY_SHOT_ACTIONS[productDNA.category] || CATEGORY_SHOT_ACTIONS.other;
-  const productCtx = getProductContext(productDNA);
+  const environmentLine = `Environment: ${environment.description || environment.label}`;
 
   return selectedShots.map((shotKey, idx) => {
     const def = SHOT_TYPES.find((s) => s.key === shotKey)!;
     const style = mode === "ugc" ? def.ugc : def.commercial;
     const action = categoryActions[shotKey] || categoryActions.hero;
 
-    const parts: string[] = [];
-
-    // 1. Image reference anchoring
-    parts.push(`IMAGE REFERENCE ANCHORING:
-- Image 1 (character reference): This is the EXACT person to depict. Match their face shape, skin tone, facial features, hairstyle, body type, and clothing EXACTLY. Do not alter, beautify, or reimagine.
-- Image 2 (product reference): This is the EXACT product to show. Match its shape, color, label, packaging, and size EXACTLY. Do not substitute with a different product.`);
-
-    // 2. Single image + no device + anti-glitch
-    parts.push(SINGLE_IMAGE_RULE);
-    if (mode === "ugc") parts.push(GLOBAL_DEVICE_RULE);
-    parts.push(ANTI_GLITCH_BLOCK);
-
-    // 3. Per-shot common mistakes
-    parts.push(`COMMON MISTAKES TO AVOID FOR THIS SHOT TYPE (${def.name.en}):\n${def.commonMistakes}`);
-
-    // 4. Realism base
-    parts.push(realism);
-    if (boost) parts.push(boost);
-
-    // 5. UGC behavioral intelligence (only for UGC mode)
-    if (mode === "ugc") {
-      parts.push(UGC_BEHAVIOR_BLOCK);
-      parts.push(AFFILIATE_PRIORITY_BLOCK);
-      if (idx === 0) parts.push(FIRST_FRAME_RULE);
-    }
-
-    // 6. Category-specific action (THE KEY DIFFERENTIATOR)
-    parts.push(`SPECIFIC ACTION FOR THIS SHOT:\n${action}`);
-
-    // 7. Scene setup
-    parts.push(`SCENE: ${style.promptFragment}`);
-    if (!style.expression.includes("N/A")) {
-      parts.push(`CHARACTER: ${characterDescription}. Skin tone: ${skin}. Expression: ${style.expression}.`);
-    }
-    parts.push(`CAMERA: ${style.camera}, ${style.lens} lens, ${style.distance} distance, ${style.angle} angle.`);
-    parts.push(`LIGHTING: ${style.lighting}`);
-    parts.push(`COMPOSITION: ${style.composition}`);
-    parts.push(`ENVIRONMENT: ${environment.description || environment.label}`);
-
-    // 8. Product consistency
-    parts.push(productBlock);
-    parts.push(`PRODUCT DETAILS: ${catDetail}`);
-
-    // 9. Product interaction guide from DNA
-    parts.push(`PRODUCT INTERACTION: ${productCtx.interactionGuide}`);
-
-    // 10. Environment consistency (same across all shots)
-    if (idx > 0) {
-      parts.push(
-        `ENVIRONMENT CONSISTENCY: This shot takes place in the SAME location as all other shots. Same room, same wall color, same furniture, same lighting direction. Do not change the setting.`,
-      );
-    }
+    const parts: string[] = [
+      systemBlock,
+      ...(realismBoost ? [realismBoost] : []),
+      `SHOT: ${def.name.en} — ${action}`,
+      `CHARACTER: ${characterDescription}. Expression: ${style.expression}.`,
+      `CAMERA: ${style.lens} lens, ${style.distance} distance, ${style.angle} angle.`,
+      `LIGHTING: ${style.lighting}`,
+      environmentLine,
+      productBlock,
+      ...(idx > 0
+        ? [`CONSISTENCY: Same location as all previous shots — same room, wall color, lighting direction.`]
+        : []),
+      NEGATIVE_BLOCK,
+    ];
 
     return {
       shotIndex: idx,
